@@ -9,6 +9,7 @@ import fs
 class BrowseFrame(wx.Frame):
 
     def __init__(self, fs):
+        
         wx.Frame.__init__(self, None)
 
         self.fs = fs
@@ -46,22 +47,19 @@ class BrowseFrame(wx.Frame):
         if item_data['expanded']:            
             return
 
-        paths = self.fs.listdir(path, absolute=True)
+        paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
 
         if not paths:
             self.tree.SetItemHasChildren(item_id, False)
             self.tree.Collapse(item_id)
             return
 
-
-        paths.sort(key=lambda p:(not self.fs.isdir(p), p.lower()))
-
-
-        for new_path in paths:
-
-            is_dir = self.fs.isdir(new_path)
-            name = fs.pathsplit(new_path)[-1]
-            new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData( {'path':new_path, 'expanded':False}))
+        paths.sort(key=lambda p:(not p[0], p[1].lower()))
+        
+        for is_dir, new_path in paths:
+            
+            name = fs.pathsplit(new_path)[-1]            
+            new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData({'path':new_path, 'expanded':False}))
 
             if is_dir:
                 self.tree.SetItemHasChildren(new_item)
@@ -69,7 +67,6 @@ class BrowseFrame(wx.Frame):
                 self.tree.SetItemImage(new_item, self.fldropenidx, wx.TreeItemIcon_Expanded)
             else:
                 self.tree.SetItemImage(new_item, self.fileidx, wx.TreeItemIcon_Normal)
-
 
         item_data['expanded'] = True
         self.tree.Expand(item_id)

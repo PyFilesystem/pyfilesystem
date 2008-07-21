@@ -63,11 +63,6 @@ class FSError(Exception):
         return '%s - %s' % (self.code, msg)
 
 
-class PathError(FSError):
-
-    pass
-
-
 def _isabsolute(path):
     if path:
         return path[1] in '\\/'
@@ -106,8 +101,12 @@ def pathjoin(*paths):
     else:
         return "/".join(pathstack)
 
+
 def pathsplit(path):
-    return path.rsplit('/', 1)
+    split = normpath(path).rsplit('/', 1)
+    if len(split) == 1:
+        return ('', split[0])
+    return split
 
 
 def resolvepath(path):
@@ -118,9 +117,13 @@ def makerelative(path):
         return path[1:]
     return path
 
-def splitpath(path, numsplits=None):
-
+def _iteratepath(path, numsplits=None):
+    
     path = resolvepath(path)
+    
+    if not path:
+        return []
+    
     if numsplits == None:
         return path.split('/')
     else:
@@ -269,7 +272,6 @@ class OSFS(FS):
             return pathjoin('/', pathname)
         return pathname
 
-
     def open(self, pathname, mode="r", buffering=-1):
 
         try:
@@ -298,7 +300,6 @@ class OSFS(FS):
 
         return pathname.startswith('.')
 
-
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
         try:
@@ -307,6 +308,21 @@ class OSFS(FS):
             raise FSError("LIST_FAILED", str(e), path, details=e)
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
+
+
+    def mkdir(self, path, mode=0777, recursive=False):
+        
+        sys_path = self.getsyspath(path)
+        
+        if recursive:
+            makedirs(sys_path, mode)
+        else:
+            makedir(sys_path, mode)
+            
+    def remove(self, path):
+        
+        sys_path = self.getsyspath(path)
+        os.remove(sys_path)
 
 
 
