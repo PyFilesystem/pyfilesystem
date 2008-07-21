@@ -29,7 +29,7 @@ class BrowseFrame(wx.Frame):
         self.tree.SetItemImage(self.root_id, self.fldridx, wx.TreeItemIcon_Normal)
         self.tree.SetItemImage(self.root_id, self.fldropenidx, wx.TreeItemIcon_Expanded)
 
-        self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded)
+        self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnItemExpanding)
 
         self.expand(self.root_id)
 
@@ -43,8 +43,7 @@ class BrowseFrame(wx.Frame):
         if not self.fs.isdir(path):
             return
 
-        if item_data['expanded']:
-            self.tree.Expand(item_id)
+        if item_data['expanded']:            
             return
 
         paths = self.fs.listdir(path, absolute=True)
@@ -76,9 +75,10 @@ class BrowseFrame(wx.Frame):
         self.tree.Expand(item_id)
 
 
-    def OnItemExpanded(self, e):
+    def OnItemExpanding(self, e):
 
         self.expand(e.GetItem())
+        e.Skip()
 
 
 def browse(fs):

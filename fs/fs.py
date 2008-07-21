@@ -233,7 +233,16 @@ class OSFS(FS):
 
     def __init__(self, root_path):
 
-        self.root_path = os.path.abspath(os.path.expanduser(root_path))
+        expanded_path = normpath(os.path.expanduser(root_path))
+        
+        print expanded_path
+        
+        if not os.path.exists(expanded_path):
+            raise FSError("PATH_NOT_EXIST", "Root path does not exist: %(path)s", expanded_path)
+        if not os.path.isdir(expanded_path):
+            raise FSError("PATH_NOT_DIR", "Root path is not a directory: %(path)s", expanded_path)
+        
+        self.root_path = normpath(os.path.abspath(expanded_path))
         #print "Root path", self.root_path
 
     def __str__(self):
@@ -429,19 +438,22 @@ class MountFS(FS):
 if __name__ == "__main__":
 
     osfs = OSFS("~/")
+    print osfs
     #print osfs
+
+    print_fs(osfs)
 
     #print osfs.listdir("/projects/fs")
 
-    sub_fs = osfs.open_dir("projects/")
+    #sub_fs = osfs.open_dir("projects/")
 
-    print sub_fs
+    #print sub_fs
 
-    sub_fs.open('test.txt')
+    #sub_fs.open('test.txt')
 
     #print sub_fs.listdir(dirs_only=True)
     #print sub_fs.listdir()
-    print_fs(sub_fs, max_levels=2)
+    #print_fs(sub_fs, max_levels=2)
 
     #for f in osfs.listdir():
     #    print f
