@@ -2,6 +2,29 @@
 
 from fs import FS, pathsplit, _iteratepath, FSError, print_fs
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+class MemoryFile(StringIO):
+    
+    def __init__(self, path, memory_fs, *args, **kwargs):
+        
+        self.path = path
+        self.memory_fs = memory_fs
+        
+        StringIO.__init__(*args, **kwargs)
+        
+    def close():
+        
+        value = self.get_vale()
+        self.memory_fs._on_close_memory_file(path, value)
+        StringIO.close(self)
+        
+    
+    
+
 class MemoryFS(FS):        
     
     class DirEntry(object):                
@@ -31,6 +54,12 @@ class MemoryFS(FS):
         
         def __str__(self):
             return "%s: %s" % (self.name, self.desc_contents())
+        
+    class FileEntry(object):
+        
+        def __init__(self):
+            self.memory_file = None
+            self.value = ""
 
     def _make_dir_entry(self, *args, **kwargs):
         
@@ -58,7 +87,7 @@ class MemoryFS(FS):
     
     def getsyspath(self, pathname):
         
-        raise FSError("NO_SYS_PATH", "This file-system has not syspath!", pathname)
+        raise FSError("NO_SYS_PATH", "This file-system has no syspath", pathname)
     
             
     def isdir(self, path):
@@ -130,10 +159,25 @@ class MemoryFS(FS):
         
         if dir_item is None:
             parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
-    
-
         
         return self
+    
+    def open(self, path, mode, **kwargs):
+                
+        dir_entry = self._get_dir_entry(path)
+        if dir_entry is None:
+            dirpath, dirname = pathsplit(path)
+        parent_dir_entry = self._get_dir_entry(dirpath)
+        
+        
+        
+        if parent_dir_entry is None:
+            raise FSError("DOES_NOT_EXIST", "File does not exist", path)
+        
+    def _on_close_memory_file(self, path, value):
+        
+        dir_entry = self._get_dir_entry(path)
+        
     
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
