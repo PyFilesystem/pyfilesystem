@@ -122,12 +122,12 @@ def _iteratepath(path, numsplits=None):
     path = resolvepath(path)
     
     if not path:
-        return []
+        return []    
     
     if numsplits == None:
-        return path.split('/')
+        return filter(lambda p:bool(p), path.split('/'))
     else:
-        return path.split('/', numsplits)
+        return filter(lambda p:bool(p), path.split('/', numsplits))
 
 
 def print_fs(fs, path="/", max_levels=None, indent=' '*2):
@@ -135,7 +135,7 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
     def print_dir(fs, path, level):
 
         try:
-            dir_listing = [(fs.isdir(p), p) for p in fs.listdir(path)]
+            dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
         except FSError:
             print indent*level + "... unabled to retrieve directory list (%s) ..." % str(e)
             return
@@ -156,6 +156,20 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
 
 class FS(object):
 
+
+    def _resolve(self, pathname):
+
+        resolved_path = resolvepath(pathname)        
+        return resolved_path
+
+
+    def abspath(self, pathname):
+
+        pathname = normpath(pathname)
+
+        if not pathname.startswith('/'):
+            return pathjoin('/', pathname)
+        return pathname
 
 
     def open(self, pathname, mode, **kwargs):
@@ -238,8 +252,6 @@ class OSFS(FS):
 
         expanded_path = normpath(os.path.expanduser(root_path))
         
-        print expanded_path
-        
         if not os.path.exists(expanded_path):
             raise FSError("PATH_NOT_EXIST", "Root path does not exist: %(path)s", expanded_path)
         if not os.path.isdir(expanded_path):
@@ -251,26 +263,14 @@ class OSFS(FS):
     def __str__(self):
         return "<OSFS \"%s\">" % self.root_path
 
-    def _resolve(self, pathname):
 
-        resolved_path = resolvepath(pathname)
-        #print "Resolved_path", resolved_path
-        return resolved_path
 
     def getsyspath(self, pathname):
-
-        #print makerelative(self._resolve(pathname))
-        sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))
-        #print "Sys path", sys_path
+        
+        sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))        
         return sys_path
 
-    def abspath(self, pathname):
 
-        pathname = normpath(pathname)
-
-        if not pathname.startswith('/'):
-            return pathjoin('/', pathname)
-        return pathname
 
     def open(self, pathname, mode="r", buffering=-1):
 
@@ -318,6 +318,7 @@ class OSFS(FS):
             makedirs(sys_path, mode)
         else:
             makedir(sys_path, mode)
+            
             
     def remove(self, path):
         
