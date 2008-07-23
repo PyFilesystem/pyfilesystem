@@ -52,8 +52,7 @@ class MemoryFile(object):
     def readline(self, *args, **kwargs):
         return self.mem_file.readline(*args, **kwargs)
     
-    def close():
-        
+    def close(self):        
         value = self.get_vale()
         self.memory_fs._on_close_memory_file(path, value)
         StringIO.close(self)
@@ -94,6 +93,19 @@ class MemoryFS(FS):
                 
             self.contents = contents
             
+            self.num_reading = 0
+            self.num_writing = 0
+            self.data = None
+        
+            self.locks = 0
+            
+        def lock(self):
+            self.locks += 1
+            
+        def unlock(self):
+            self.locks -=1
+            assert self.locks >=0, "Lock / Unlock mismatch!"
+            
         def desc_contents(self):
             if self.isfile():
                 return "<file %s>"%self.name
@@ -106,6 +118,9 @@ class MemoryFS(FS):
         def isfile(self):
             return self.type == "file"
         
+        def islocked(self):
+            return self.locks > 0
+                
         def __str__(self):
             return "%s: %s" % (self.name, self.desc_contents())
         
@@ -218,21 +233,56 @@ class MemoryFS(FS):
         
         return self
     
+    
+    def _lock_dir(self, dirpath):
+        
+        dir_entry = self._get_dir_entry(path)
+        dir_entry.lock()
+    
+        
+    def _unlock_dir(self, dirpath):
+        
+        dir_entry = self._get_dir_entry(path)
+        dir_entry.unlock()
+    
+    def is_dir_locked(self, dirpath):
+        
+        dir_entry = self._get_dir_entry(path)
+        return dir_entry.islocked()
+
+    
     def open(self, path, mode, **kwargs):
                 
         dir_entry = self._get_dir_entry(path)
         if dir_entry is None:
-            dirpath, dirname = pathsplit(path)
-        parent_dir_entry = self._get_dir_entry(dirpath)
+            dirpath, filename = pathsplit(path)
+        parent_dir_entry = self._get_dir_entry(filepath)
         
+        if 'r' in mode or 'a' in mode:
+            if filename not in parent_dir_entry:
+                raise FSError("FILE_DOES_NOT_EXIST", "Can not open file that does not exist: %(path)s", path)
+            
+            parent_dir.lock()
+            file_dir_entry = parent_dir_entry[filename]
+            mem_file = MemoryFile(path, self, file_dir_entry.value, mode)
+            file_dir_entry.num_reading += 1
+            return mem_file
+        
+        else:
+            self._make_dir_entry("file", filename)
         
         
         if parent_dir_entry is None:
             raise FSError("DOES_NOT_EXIST", "File does not exist", path)
         
+        
     def _on_close_memory_file(self, path, value):
+                
+        self._unlock_dir(path)
         
         dir_entry = self._get_dir_entry(path)
+        dir_entry.data = value
+        
         
     
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
