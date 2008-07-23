@@ -21,14 +21,22 @@ class MemoryFile(object):
                     return False
             return True
         
-        if check_mode('w'):            
-            self.mem_file = StringIO()
+        self.mem_file = None
+        
+        if check_mode('w'):
             if check_mode('+'):
-                self.mem_file.write(value)
-            
+                self.mem_file = StringIO(value)
+            else:
+                self.mem_file = StringIO()
+                        
         elif check_mode('r'):
-            self.mem_file = StringIO(value)            
+            if check_mode('+'):
+                self.mem_file = StringIO(value)                
+            else:
+                self.mem_file = StringIO(value)
                 
+        if check_mode('a'):
+            self.mem_file.seek(0, os.SEEK_END)
                 
         self.mem_file = None    
         
