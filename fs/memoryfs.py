@@ -7,20 +7,66 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-class MemoryFile(StringIO):
+class MemoryFile(object):
     
-    def __init__(self, path, memory_fs, *args, **kwargs):
+    def __init__(self, path, memory_fs, value, mode):
         
         self.path = path
         self.memory_fs = memory_fs
+        self.mode = mode
         
-        StringIO.__init__(*args, **kwargs)
+        def check_mode(mode_chars):
+            for c in mode_chars:
+                if c not in mode:
+                    return False
+            return True
         
+        if check_mode('w'):            
+            self.mem_file = StringIO()
+            if check_mode('+'):
+                self.mem_file.write(value)
+            
+        elif check_mode('r'):
+            self.mem_file = StringIO(value)            
+                
+                
+        self.mem_file = None    
+        
+    def flush(self):
+        pass
+    
+    def __iter__(self):
+        return iter(self.mem_file)
+    
+    def next(self):
+        return self.mem_file.next()
+    
+    def readline(self, *args, **kwargs):
+        return self.mem_file.readline(*args, **kwargs)
+    
     def close():
         
         value = self.get_vale()
         self.memory_fs._on_close_memory_file(path, value)
         StringIO.close(self)
+        
+    def read(self, size=None):
+        return self.mem_file.read(size)
+    
+    def seek(self, *args, **kwargs):
+        return self.mem_file.seek(*args, **kwargs)
+    
+    def tell(self):
+        return self.mem_file.tell()
+    
+    def truncate(self, *args, **kwargs):
+        return self.mem_file.truncate(*args, **kwargs)
+    
+    def write(self, data):
+        return self.mem_file.write(data)
+    
+    def writelines(self, *args, **kwargs):
+        return self.mem_file.writelines(*args, **kwargs)
         
     
     
@@ -42,7 +88,7 @@ class MemoryFS(FS):
             
         def desc_contents(self):
             if self.isfile():
-                return "<file>"
+                return "<file %s>"%self.name
             elif self.isdir():
                 return "<dir %s>"%"".join( "%s: %s"% (k, v.desc_contents()) for k, v in self.contents.iteritems())
             
@@ -55,11 +101,13 @@ class MemoryFS(FS):
         def __str__(self):
             return "%s: %s" % (self.name, self.desc_contents())
         
+        
     class FileEntry(object):
         
         def __init__(self):
             self.memory_file = None
             self.value = ""
+            
 
     def _make_dir_entry(self, *args, **kwargs):
         
@@ -201,3 +249,5 @@ if __name__ == "__main__":
     #print mem_fs.root
     print_fs(mem_fs)
         
+    from browsewin import browse
+    browse(mem_fs)

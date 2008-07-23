@@ -39,7 +39,7 @@ class NullFile:
     def truncate(self, *args, **kwargs):
         return 0
 
-    def write(self, str):
+    def write(self, data):
         pass
 
     def writelines(self, *args, **kwargs):
