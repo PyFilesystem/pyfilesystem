@@ -58,7 +58,13 @@ class BrowseFrame(wx.Frame):
         
         for is_dir, new_path in paths:
             
-            name = fs.pathsplit(new_path)[-1]            
+            name = fs.pathsplit(new_path)[-1]
+            
+            if not is_dir and name.endswith('.txt'):
+                
+                txt = self.fs.open(new_path).read(50)
+                name += " - "+txt
+            
             new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData({'path':new_path, 'expanded':False}))
 
             if is_dir:

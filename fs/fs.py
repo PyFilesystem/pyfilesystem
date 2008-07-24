@@ -4,6 +4,36 @@ import fnmatch
 from itertools import chain
 
 
+error_msgs = {
+
+    "UNKNOWN_ERROR" :   "No information on error: %(path)s",
+    "INVALID_PATH" :    "Path is invalid: %(path)s",
+    "NO_DIR" :          "Directory does not exist: %(path)s",
+    "NO_FILE" :         "No such file: %(path)s",
+    "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
+    "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
+    "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
+    "OPEN_FAILED" :     "Unable to open file: %(path)s"
+}
+
+error_codes = error_msgs.keys()
+
+class FSError(Exception):
+
+    def __init__(self, code, path=None, msg=None, details=None):
+
+        self.code = code
+        self.msg = msg or error_msgs.get(code, error_msgs['UNKNOWN_ERROR'])
+        self.path = path
+        self.details = details
+
+    def __str__(self):
+
+        msg = self.msg % dict((k, str(v)) for k,v in self.__dict__.iteritems())
+
+        return '%s %s' % (self.code, msg)
+
+
 class NullFile:
 
     def __init__(self):
@@ -47,23 +77,9 @@ class NullFile:
 
 
 
-class FSError(Exception):
-
-    def __init__(self, code, msg, path=None, details=None):
-
-        self.code = code
-        self.msg = msg
-        self.path = path
-        self.details = details
-
-    def __str__(self):
-
-        msg = self.msg % self.__dict__
-
-        return '%s - %s' % (self.code, msg)
 
 
-def _isabsolute(path):
+def isabsolutepath(path):
     if path:
         return path[1] in '\\/'
     return False
@@ -89,7 +105,7 @@ def pathjoin(*paths):
     for component in chain(*(normpath(path).split('/') for path in relpaths)):
         if component == "..":
             if not pathstack:
-                raise PathError("INVALID_PATH", "Relative path is invalid: %(path)s", str(paths))
+                raise PathError("INVALID_PATH", str(paths))
             sub = pathstack.pop()
         elif component == ".":
             pass
@@ -172,14 +188,14 @@ class FS(object):
         return pathname
 
 
-    def open(self, pathname, mode, **kwargs):
+    def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         pass
 
     def open_dir(self, dirname):
 
         if not self.exists(dirname):
-            raise FSError("NO_DIR", "Directory does not exist: %(path)s", dirname)
+            raise FSError("NO_DIR", dirname)
 
         sub_fs = SubFS(self, dirname)
         return sub_fs
@@ -233,7 +249,7 @@ class SubFS(FS):
 
         return self.parent.getsyspath(self._delegate(pathname))
 
-    def open(self, pathname, mode="r", buffering=-1):
+    def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         return self.parent.open(self._delegate(pathname), mode, buffering)
 
@@ -253,9 +269,9 @@ class OSFS(FS):
         expanded_path = normpath(os.path.expanduser(root_path))
         
         if not os.path.exists(expanded_path):
-            raise FSError("PATH_NOT_EXIST", "Root path does not exist: %(path)s", expanded_path)
+            raise FSError("NO_DIR", expanded_path, msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
-            raise FSError("PATH_NOT_DIR", "Root path is not a directory: %(path)s", expanded_path)
+            raise FSError("NO_DIR", expanded_path, msg="Root path is not a directory: %(path)s")
         
         self.root_path = normpath(os.path.abspath(expanded_path))
         #print "Root path", self.root_path
@@ -272,12 +288,12 @@ class OSFS(FS):
 
 
 
-    def open(self, pathname, mode="r", buffering=-1):
+    def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         try:
             f = open(self.getsyspath(pathname), mode, buffering)
         except IOError, e:
-            raise FSError("OPEN_FAILED", str(e), pathname, details=e)
+            raise FSError("OPEN_FAILED", pathname, details=e, msg=str(details))
 
         return f
 
@@ -305,7 +321,7 @@ class OSFS(FS):
         try:
             paths = os.listdir(self.getsyspath(path))
         except IOError, e:
-            raise FSError("LIST_FAILED", str(e), path, details=e)
+            raise FSError("LISTDIR_FAILED", path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
 
@@ -361,7 +377,7 @@ class MountFS(FS):
     def mkdir(self, dirpath, recursive=True):
 
         if recursive and '/' in dirpath:
-            raise PathError("INVALID_PATH", "Use recursive=True to create this path", dirpath)
+            raise PathError("NO_DIR", dirpath, msg="Use recursive=True to create this path: %(path)s")
 
         def do_mkdir(dirname):
 
@@ -375,7 +391,7 @@ class MountFS(FS):
 
             if path_component in current_dir:
                 if not current_dir[path_component].isdir():
-                    raise PathError("INVALID_PATH", "Can not create path here", dirpath)
+                    raise PathError("NO_DIR", dirpath, msg="Path references a file, not a dir: %(path)s")
 
             current_dir[path_component] = DirEntry(TYPE_DIR, path_component, {})
             current_dir = current_dir[path_component].contents
@@ -386,7 +402,7 @@ class MountFS(FS):
     def mountdir(self, dirname, dirfs, params=None, create_path=True):
 
         if dirname in self.dir_mounts:
-            raise FSError("MOUNT_NOT_FREE", "A directory of this name is already mounted", dirname)
+            raise FSError("MOUNT_NOT_FREE", dirname, msg="A directory of this name is already mounted")
 
         success, code = dirfs._onmount(self)
         if success:
