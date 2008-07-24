@@ -134,12 +134,12 @@ def makerelative(path):
     return path
 
 def _iteratepath(path, numsplits=None):
-    
+
     path = resolvepath(path)
-    
+
     if not path:
-        return []    
-    
+        return []
+
     if numsplits == None:
         return filter(lambda p:bool(p), path.split('/'))
     else:
@@ -175,7 +175,7 @@ class FS(object):
 
     def _resolve(self, pathname):
 
-        resolved_path = resolvepath(pathname)        
+        resolved_path = resolvepath(pathname)
         return resolved_path
 
 
@@ -267,12 +267,12 @@ class OSFS(FS):
     def __init__(self, root_path):
 
         expanded_path = normpath(os.path.expanduser(root_path))
-        
+
         if not os.path.exists(expanded_path):
             raise FSError("NO_DIR", expanded_path, msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
             raise FSError("NO_DIR", expanded_path, msg="Root path is not a directory: %(path)s")
-        
+
         self.root_path = normpath(os.path.abspath(expanded_path))
         #print "Root path", self.root_path
 
@@ -282,8 +282,8 @@ class OSFS(FS):
 
 
     def getsyspath(self, pathname):
-        
-        sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))        
+
+        sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))
         return sys_path
 
 
@@ -327,17 +327,17 @@ class OSFS(FS):
 
 
     def mkdir(self, path, mode=0777, recursive=False):
-        
+
         sys_path = self.getsyspath(path)
-        
+
         if recursive:
             makedirs(sys_path, mode)
         else:
             makedir(sys_path, mode)
-            
-            
+
+
     def remove(self, path):
-        
+
         sys_path = self.getsyspath(path)
         os.remove(sys_path)
 
@@ -474,7 +474,10 @@ if __name__ == "__main__":
     print osfs
     #print osfs
 
-    print_fs(osfs)
+    import browsewin
+    browsewin.browse(osfs)
+
+    #print_fs(osfs)
 
     #print osfs.listdir("/projects/fs")
 
