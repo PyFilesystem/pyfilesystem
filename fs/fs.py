@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import os.path
 import fnmatch
@@ -260,8 +262,8 @@ class FS(object):
 
     def getsize(self, path):
 
-        return self.info(path)['size']
-  
+        return self.getinfo(path)['size']
+
 
 class SubFS(FS):
 
@@ -445,7 +447,7 @@ if __name__ == "__main__":
 
     for filename in osfs.walk_files("/prettycharts", "*.pov"):
         print filename
-        print osfs.info(filename)
+        print osfs.getinfo(filename)
 
     import browsewin
     browsewin.browse(osfs)
