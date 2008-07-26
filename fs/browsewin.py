@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import wx
+import wx.gizmos
 
 import fs
 
@@ -15,8 +16,13 @@ class BrowseFrame(wx.Frame):
         self.fs = fs
         self.SetTitle("FS Browser - "+str(fs))
 
-        self.tree = wx.TreeCtrl(self, -1)
-        self.root_id = self.tree.AddRoot(str(fs), data=wx.TreeItemData( {'path':"/", 'expanded':False} ))
+        self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
+        self.tree.AddColumn("FS", 300)
+        self.tree.AddColumn("Size", 150)
+        self.tree.AddColumn("Created", 250)
+        self.root_id = self.tree.AddRoot('root', data=wx.TreeItemData( {'path':"/", 'expanded':False} ))
+
+        rid = self.tree.GetItemData(self.root_id)
 
         isz = (16, 16)
         il = wx.ImageList(isz[0], isz[1])
@@ -31,6 +37,10 @@ class BrowseFrame(wx.Frame):
         self.tree.SetItemImage(self.root_id, self.fldropenidx, wx.TreeItemIcon_Expanded)
 
         self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnItemExpanding)
+
+        wx.CallAfter(self.OnInit)
+
+    def OnInit(self):
 
         self.expand(self.root_id)
 
@@ -60,19 +70,34 @@ class BrowseFrame(wx.Frame):
 
             name = fs.pathsplit(new_path)[-1]
 
-            if not is_dir and name.endswith('.txt'):
-
-                txt = self.fs.open(new_path).readline()[:50].rstrip()
-                name += " - "+txt
-
             new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData({'path':new_path, 'expanded':False}))
 
+            info = self.fs.getinfo(new_path)
+
             if is_dir:
+
                 self.tree.SetItemHasChildren(new_item)
-                self.tree.SetItemImage(new_item, self.fldridx, wx.TreeItemIcon_Normal)
-                self.tree.SetItemImage(new_item, self.fldropenidx, wx.TreeItemIcon_Expanded)
+                self.tree.SetItemImage(new_item, self.fldridx, 0, wx.TreeItemIcon_Normal)
+                self.tree.SetItemImage(new_item, self.fldropenidx, 0, wx.TreeItemIcon_Expanded)
+
+                self.tree.SetItemText(new_item, "", 1)
+
+                ct = info.get('created_time', None)
+                if ct is not None:
+                    self.tree.SetItemText(new_item, ct.ctime(), 2)
+                else:
+                    self.tree.SetItemText(new_item, 'unknown', 2)
+
             else:
-                self.tree.SetItemImage(new_item, self.fileidx, wx.TreeItemIcon_Normal)
+                self.tree.SetItemImage(new_item, self.fileidx, 0, wx.TreeItemIcon_Normal)
+
+                self.tree.SetItemText(new_item, str(info.get('size', '?'))+ " bytes", 1)
+
+                ct = info.get('created_time', None)
+                if ct is not None:
+                    self.tree.SetItemText(new_item, ct.ctime(), 2)
+                else:
+                    self.tree.SetItemText(new_item, 'unknown', 2)
 
         item_data['expanded'] = True
         self.tree.Expand(item_id)

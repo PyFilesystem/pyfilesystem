@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import datetime
 from fs import FS, pathsplit, _iteratepath, FSError, print_fs
 
 try:
@@ -53,7 +54,7 @@ class MemoryFile(object):
         self.closed = False
 
     def __del__(self):
-        
+
         if not self.closed:
             self.close()
 
@@ -119,6 +120,8 @@ class MemoryFS(FS):
 
             self.locks = 0
 
+            self.created_time = datetime.datetime.now()
+
         def lock(self):
             self.locks += 1
 
@@ -144,14 +147,6 @@ class MemoryFS(FS):
         def __str__(self):
             return "%s: %s" % (self.name, self.desc_contents())
 
-
-    class FileEntry(object):
-
-        def __init__(self):
-            self.memory_file = None
-            self.value = ""
-
-
     def _make_dir_entry(self, *args, **kwargs):
 
         return self.dir_entry_factory(*args, **kwargs)
@@ -160,6 +155,9 @@ class MemoryFS(FS):
 
         self.dir_entry_factory = MemoryFS.DirEntry
         self.root = self._make_dir_entry('dir', 'root')
+
+    def __str__(self):
+        return "<MemoryFS>"
 
     def _get_dir_entry(self, dirpath):
 
@@ -310,7 +308,6 @@ class MemoryFS(FS):
             raise FSError("NO_FILE", path)
 
 
-
     def _on_close_memory_file(self, path, value):
 
         filepath, filename = pathsplit(path)
@@ -326,6 +323,18 @@ class MemoryFS(FS):
         paths = dir_entry.contents.keys()
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
+
+    def getinfo(self, path):
+
+        dir_entry = self._get_dir_entry(path)
+
+        info = {}
+        info['created_time'] = dir_entry.created_time
+
+        if dir_entry.isfile():
+            info['size'] = len(dir_entry.data)
+
+        return info
 
 
     def ishidden(self, pathname):

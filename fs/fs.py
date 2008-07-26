@@ -2,6 +2,7 @@ import os
 import os.path
 import fnmatch
 from itertools import chain
+import datetime
 
 
 error_msgs = {
@@ -11,6 +12,7 @@ error_msgs = {
     "NO_DIR" :          "Directory does not exist: %(path)s",
     "NO_FILE" :         "No such file: %(path)s",
     "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
+    "DELETE_FAILED" :   "Unable to delete file: %(path)s",
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
     "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
     "OPEN_FAILED" :     "Unable to open file: %(path)s",
@@ -201,6 +203,10 @@ class FS(object):
         sub_fs = SubFS(self, dirname)
         return sub_fs
 
+    def remove(self, filepath):
+
+        pass
+
 
     def _listdir_helper(self, path, paths, wildcard, full, absolute, hidden, dirs_only, files_only):
 
@@ -252,6 +258,10 @@ class FS(object):
                         yield path
 
 
+    def getsize(self, path):
+
+        return self.info(path)['size']
+  
 
 class SubFS(FS):
 
@@ -289,7 +299,7 @@ class OSFS(FS):
 
     def __init__(self, root_path):
 
-        expanded_path = normpath(os.path.expanduser(root_path))
+        expanded_path = normpath(os.path.expanduser(os.path.expandvars(root_path)))
 
         if not os.path.exists(expanded_path):
             raise FSError("NO_DIR", expanded_path, msg="Root directory does not exist: %(path)s")
@@ -361,132 +371,70 @@ class OSFS(FS):
     def remove(self, path):
 
         sys_path = self.getsyspath(path)
-        os.remove(sys_path)
+        try:
+            os.remove(sys_path)
+        except OSError, e:
+            raise FSError("FILE_DELETE_FAILED", path, details=e)
 
 
+    def remove_dir(self, path, recursive=False):
+
+        sys_path = self.getsyspath(path)
+
+        if recursive:
+
+            try:
+                os.rmdir(sys_path)
+            except OSError, e:
+                raise FSError("DIR_DELETE_FAILED", path, details=e)
+
+        else:
+
+            try:
+                os.removedirs(sys_path)
+            except OSError, e:
+                raise FSError("DIR_DELETE_FAILED", path, details=e)
 
 
+    def getinfo(self, path):
 
-class MountFS(FS):
+        sys_path = self.getsyspath(path)
 
-    TYPE_FILE, TYPE_DIR, TYPE_FS = range(3)
+        try:
+            stats = os.stat(sys_path)
+        except OSError, e:
+            raise FSError("UNKNOWN_ERROR", path, details=e)
 
-    class DirEntry(object):
-        def __init__(self, type, name, contents ):
+        info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
 
-            assert filename or dirname or fs, "Must specifiy a filename, a dirname or a fs!"
+        info['size'] = info['st_size']
 
-            self.type = type
-            self.name = name
-            self.contents = contents
+        ct = info.get('st_ctime', None)
+        if ct is not None:
+            info['created_time'] = datetime.datetime.fromtimestamp(ct)
 
-        def isdir(self):
-            return self.type == TYPE_DIR
+        at = info.get('st_atime', None)
+        if at is not None:
+            info['accessed_time'] = datetime.datetime.fromtimestamp(at)
 
-        def isfile(self):
-            return self.type == TYPE_FILE
+        mt = info.get('st_mtime', None)
+        if mt is not None:
+            info['modified_time'] = datetime.datetime.fromtimestamp(at)
 
-        def isfs(self):
-            return self.type == TYPE_FS
-
-
-    def __init__(self):
-
-        self.parent = None
-
-        self.root = {}
-
-    def mkdir(self, dirpath, recursive=True):
-
-        if recursive and '/' in dirpath:
-            raise PathError("NO_DIR", dirpath, msg="Use recursive=True to create this path: %(path)s")
-
-        def do_mkdir(dirname):
-
-            if dirname not in current_dir:
-                current_dir["dirname"] = {}
-                return True
-            return False
-
-        current_dir = self.root
-        for path_component in split_path(current_dir):
-
-            if path_component in current_dir:
-                if not current_dir[path_component].isdir():
-                    raise PathError("NO_DIR", dirpath, msg="Path references a file, not a dir: %(path)s")
-
-            current_dir[path_component] = DirEntry(TYPE_DIR, path_component, {})
-            current_dir = current_dir[path_component].contents
-
-        return self
+        return info
 
 
-    def mountdir(self, dirname, dirfs, params=None, create_path=True):
+    def getsize(self, path):
 
-        if dirname in self.dir_mounts:
-            raise FSError("MOUNT_NOT_FREE", dirname, msg="A directory of this name is already mounted")
+        sys_path = self.getsyspath(path)
 
-        success, code = dirfs._onmount(self)
-        if success:
-            self.dir_mounts[dirname] = dirfs
+        try:
+            stats = os.stat(sys_path)
+        except OSError, e:
+            raise FSError("UNKNOWN_ERROR", path, details=e)
 
-        return code
+        return stats.st_size
 
-    def unmountdir(self, dirname):
-
-        if dirname not in self.dir_mounts:
-            raise FSError("NOT_MOUNTED", "Directory not mounted", dirname)
-
-        dirfs = self.dir_mounts[dirname]
-
-        success = dirfs._onunmount(self)
-        if success:
-            del dirfs[dirname]
-
-        return code
-
-
-
-    def mountfile(self, filename, callable, params=None, create_path=True):
-        pass
-
-    def unmountfile(self, filename):
-        pass
-
-
-
-    def _onmount(self, parent):
-        pass
-
-    def _onunmount(self, parent):
-        pass
-
-
-    def open(self, pathname, params=None):
-        pass
-
-
-    def opendir(self, dirname, params=None):
-
-        pass
-
-    def isdir(self, dirname):
-        pass
-
-    def isfile(self, filename):
-        pass
-
-    def listdir(self, pathname, absolute=False):
-        pass
-
-    def mkdir(self, pathname):
-        pass
-
-    def exists(self, filename):
-        pass
-
-    def getsyspath(self, filename):
-        return None
 
 
 
@@ -497,6 +445,7 @@ if __name__ == "__main__":
 
     for filename in osfs.walk_files("/prettycharts", "*.pov"):
         print filename
+        print osfs.info(filename)
 
     import browsewin
     browsewin.browse(osfs)
