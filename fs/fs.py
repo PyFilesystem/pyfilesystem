@@ -13,7 +13,8 @@ error_msgs = {
     "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
     "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
-    "OPEN_FAILED" :     "Unable to open file: %(path)s"
+    "OPEN_FAILED" :     "Unable to open file: %(path)s",
+    "FILE_LOCKED" :     "File is locked: %(path)s",
 }
 
 error_codes = error_msgs.keys()
@@ -29,9 +30,9 @@ class FSError(Exception):
 
     def __str__(self):
 
-        msg = self.msg % dict((k, str(v)) for k,v in self.__dict__.iteritems())
+        msg = self.msg % dict((k, str(v)) for k, v in self.__dict__.iteritems())
 
-        return '%s %s' % (self.code, msg)
+        return '%s. %s' % (self.code, msg)
 
 
 class NullFile:
@@ -224,8 +225,32 @@ class FS(object):
         elif absolute:
             paths = [self.abspath(pathjoin(path, p)) for p in paths]
 
-
         return paths
+
+
+    def walk_files(self, path="/", wildcard=None, dir_wildcard=None):
+
+        dirs = [path]
+        files = []
+
+        while dirs:
+
+            path = dirs.pop()
+
+            for path in self.listdir(path, full=True):
+                if self.isdir(path):
+                    if dir_wildcard is not None:
+                        if fnmatch.fnmatch(path, dir_wilcard):
+                            dirs.append(path)
+                    else:
+                        dirs.append(path)
+                else:
+                    if wildcard is not None:
+                        if fnmatch.fnmatch(path, wildcard):
+                            yield path
+                    else:
+                        yield path
+
 
 
 class SubFS(FS):
@@ -234,7 +259,6 @@ class SubFS(FS):
 
         self.parent = parent
         self.sub_dir = parent.abspath(sub_dir)
-        #print "sub_dir", self.sub_dir
 
     def __str__(self):
         return "<SubFS \"%s\" of %s>" % (self.sub_dir, self.parent)
@@ -242,7 +266,6 @@ class SubFS(FS):
     def _delegate(self, dirname):
 
         delegate_path = pathjoin(self.sub_dir, resolvepath(makerelative(dirname)))
-        #print "delegate path", delegate_path
         return delegate_path
 
     def getsyspath(self, pathname):
@@ -274,7 +297,6 @@ class OSFS(FS):
             raise FSError("NO_DIR", expanded_path, msg="Root path is not a directory: %(path)s")
 
         self.root_path = normpath(os.path.abspath(expanded_path))
-        #print "Root path", self.root_path
 
     def __str__(self):
         return "<OSFS \"%s\">" % self.root_path
@@ -320,7 +342,7 @@ class OSFS(FS):
 
         try:
             paths = os.listdir(self.getsyspath(path))
-        except IOError, e:
+        except (OSError, IOError), e:
             raise FSError("LISTDIR_FAILED", path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
@@ -470,9 +492,11 @@ class MountFS(FS):
 
 if __name__ == "__main__":
 
-    osfs = OSFS("~/")
+    osfs = OSFS("~/projects")
     print osfs
-    #print osfs
+
+    for filename in osfs.walk_files("/prettycharts", "*.pov"):
+        print filename
 
     import browsewin
     browsewin.browse(osfs)

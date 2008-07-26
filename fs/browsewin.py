@@ -9,7 +9,7 @@ import fs
 class BrowseFrame(wx.Frame):
 
     def __init__(self, fs):
-        
+
         wx.Frame.__init__(self, None)
 
         self.fs = fs
@@ -44,7 +44,7 @@ class BrowseFrame(wx.Frame):
         if not self.fs.isdir(path):
             return
 
-        if item_data['expanded']:            
+        if item_data['expanded']:
             return
 
         paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
@@ -55,16 +55,16 @@ class BrowseFrame(wx.Frame):
             return
 
         paths.sort(key=lambda p:(not p[0], p[1].lower()))
-        
+
         for is_dir, new_path in paths:
-            
+
             name = fs.pathsplit(new_path)[-1]
-            
+
             if not is_dir and name.endswith('.txt'):
-                
-                txt = self.fs.open(new_path).read(50)
+
+                txt = self.fs.open(new_path).readline()[:50].rstrip()
                 name += " - "+txt
-            
+
             new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData({'path':new_path, 'expanded':False}))
 
             if is_dir:
