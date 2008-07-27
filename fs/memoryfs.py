@@ -308,6 +308,25 @@ class MemoryFS(FS):
             raise FSError("NO_FILE", path)
 
 
+    def remove(self, path):
+
+        dir_entry = self._get_dir_entry(path)
+
+        if dir_entry is None:
+            raise FSError("NO_FILE", path)
+
+        if dir_entry.islocked():
+            raise FSError("FILE_LOCKED", path)
+
+        pathname, dirname = pathsplit(path)
+
+        parent_dir = self._get_dir_entry(pathname)
+
+        del parent_dir.contents[dirname]
+
+
+
+
     def _on_close_memory_file(self, path, value):
 
         filepath, filename = pathsplit(path)
