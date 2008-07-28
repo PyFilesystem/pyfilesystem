@@ -23,11 +23,12 @@ class MultiFS(FS):
         self.fs_sequence.remove(fs)
         del self.fs_lookup[name]
         
-        
-        
+                
     def __getitem__(self, name):
         
         return self.fs_lookup[name]
+    
+    
     
     def __iter__(self):
         

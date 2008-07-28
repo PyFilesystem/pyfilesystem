@@ -10,6 +10,7 @@ import datetime
 error_msgs = {
 
     "UNKNOWN_ERROR" :   "No information on error: %(path)s",
+    "UNSUPPORTED" :     "This filesystem does not support this action.",
     "INVALID_PATH" :    "Path is invalid: %(path)s",
     "NO_DIR" :          "Directory does not exist: %(path)s",
     "NO_FILE" :         "No such file: %(path)s",
@@ -192,22 +193,26 @@ class FS(object):
             return pathjoin('/', pathname)
         return pathname
 
+    def getsyspath(self, path):
+        
+        raise FSError("NO_SYS_PATH", path)
 
     def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         pass
 
-    def open_dir(self, dirname):
+    def open_dir(self, path):
 
-        if not self.exists(dirname):
-            raise FSError("NO_DIR", dirname)
+        if not self.exists(path):
+            raise FSError("NO_DIR", path)
 
-        sub_fs = SubFS(self, dirname)
+        sub_fs = SubFS(self, path)
         return sub_fs
 
-    def remove(self, filepath):
 
-        pass
+    def remove(self, path):
+
+        raise FSError("UNSUPPORTED", path)
 
 
     def _listdir_helper(self, path, paths, wildcard, full, absolute, hidden, dirs_only, files_only):
@@ -243,9 +248,9 @@ class FS(object):
 
         while dirs:
 
-            path = dirs.pop()
+            current_path = dirs.pop()
 
-            for path in self.listdir(path, full=True):
+            for path in self.listdir(current_path, full=True):
                 if self.isdir(path):
                     if dir_wildcard is not None:
                         if fnmatch.fnmatch(path, dir_wilcard):
@@ -258,6 +263,34 @@ class FS(object):
                             yield path
                     else:
                         yield path
+
+    def walk(self, path="/", wildcard=None, dir_wildcard=None):
+        
+        dirs = [path]
+        
+        
+        while dirs:
+                        
+            current_path = dirs.pop()
+            
+            paths = []
+            for path in self.listdir(current_path, full=True):
+                
+                if self.isdir(path):
+                    if dir_wildcard is not None:
+                        if fnmatch.fnmatch(path, dir_wilcard):
+                            dirs.append(path)
+                    else:
+                        dirs.append(path)
+                else:
+                    if wildcard is not None:
+                        if fnmatch.fnmatch(path, wildcard):
+                            paths.append(path)
+                    else:
+                        paths.append(path)
+            
+            yield (current_path, paths)
+
 
 
     def getsize(self, path):
@@ -287,6 +320,15 @@ class SubFS(FS):
     def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         return self.parent.open(self._delegate(pathname), mode, buffering)
+    
+    def open_dir(self, path):
+
+        if not self.exists(dirname):
+            raise FSError("NO_DIR", dirname)
+
+        path = self._delegate(path)
+        sub_fs = self.parent.open_dir(path)
+        return sub_fs
 
     def isdir(self, pathname):
 
