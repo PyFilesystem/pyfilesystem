@@ -194,10 +194,10 @@ class FS(object):
         return pathname
 
     def getsyspath(self, path):
-        
+
         raise FSError("NO_SYS_PATH", path)
 
-    def open(self, pathname, mode="r", buffering=-1, **kwargs):
+    def open(self, path, mode="r", buffering=-1, **kwargs):
 
         pass
 
@@ -265,17 +265,17 @@ class FS(object):
                         yield path
 
     def walk(self, path="/", wildcard=None, dir_wildcard=None):
-        
+
         dirs = [path]
-        
-        
+
+
         while dirs:
-                        
+
             current_path = dirs.pop()
-            
+
             paths = []
             for path in self.listdir(current_path, full=True):
-                
+
                 if self.isdir(path):
                     if dir_wildcard is not None:
                         if fnmatch.fnmatch(path, dir_wilcard):
@@ -288,7 +288,7 @@ class FS(object):
                             paths.append(path)
                     else:
                         paths.append(path)
-            
+
             yield (current_path, paths)
 
 
@@ -320,7 +320,7 @@ class SubFS(FS):
     def open(self, pathname, mode="r", buffering=-1, **kwargs):
 
         return self.parent.open(self._delegate(pathname), mode, buffering)
-    
+
     def open_dir(self, path):
 
         if not self.exists(dirname):
@@ -407,9 +407,9 @@ class OSFS(FS):
         sys_path = self.getsyspath(path)
 
         if recursive:
-            makedirs(sys_path, mode)
+            os.makedirs(sys_path, mode)
         else:
-            makedir(sys_path, mode)
+            os.makedir(sys_path, mode)
 
 
     def remove(self, path):
@@ -421,7 +421,7 @@ class OSFS(FS):
             raise FSError("FILE_DELETE_FAILED", path, details=e)
 
 
-    def remove_dir(self, path, recursive=False):
+    def removedir(self, path, recursive=False):
 
         sys_path = self.getsyspath(path)
 
