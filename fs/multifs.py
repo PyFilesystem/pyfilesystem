@@ -45,6 +45,16 @@ class MultiFS(FS):
             if fs.exists(path):
                 return fs
         return None
+    
+    def which(self, path):
+        
+        for fs in self:
+            if fs.exists(path):
+                for fs_name, fs_object in self.fs_lookup.iteritems():
+                    if fs is fs_object:
+                        return fs_name, fs
+        return None, None
+    
 
     def getsyspath(self, path):
 
@@ -53,6 +63,19 @@ class MultiFS(FS):
             return fs.getsyspath(path)
 
         raise FSError("NO_FILE", path)
+
+
+    def desc(self, path):
+        
+        if not self.exists(path):
+            raise FSError("NO_RESOURCE", path)
+        
+        name, fs = self.which(path)
+        if name is None:
+            return ""
+        return "%s, on %s (%s)" % (fs.desc(path), name, fs)
+        
+        
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 

@@ -175,6 +175,12 @@ class MemoryFS(FS):
 
         raise FSError("NO_SYS_PATH", pathname, msg="This file-system has no syspath")
 
+    def desc(self, path):
+        
+        if self.isdir(path):
+            return "Dir in memory"
+        else:
+            return "File object in memory"
 
     def isdir(self, path):
 

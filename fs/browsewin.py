@@ -11,7 +11,7 @@ class BrowseFrame(wx.Frame):
 
     def __init__(self, fs):
 
-        wx.Frame.__init__(self, None)
+        wx.Frame.__init__(self, None, size=(1000, 600))
 
         self.fs = fs
         self.SetTitle("FS Browser - "+str(fs))
@@ -20,6 +20,7 @@ class BrowseFrame(wx.Frame):
         self.tree.AddColumn("FS", 300)
         self.tree.AddColumn("Size", 150)
         self.tree.AddColumn("Created", 250)
+        self.tree.AddColumn("Description", 250)
         self.root_id = self.tree.AddRoot('root', data=wx.TreeItemData( {'path':"/", 'expanded':False} ))
 
         rid = self.tree.GetItemData(self.root_id)
@@ -98,6 +99,8 @@ class BrowseFrame(wx.Frame):
                     self.tree.SetItemText(new_item, ct.ctime(), 2)
                 else:
                     self.tree.SetItemText(new_item, 'unknown', 2)
+                    
+            self.tree.SetItemText(new_item, self.fs.desc(new_path), 3)
 
         item_data['expanded'] = True
         self.tree.Expand(item_id)

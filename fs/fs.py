@@ -14,6 +14,7 @@ error_msgs = {
     "INVALID_PATH" :    "Path is invalid: %(path)s",
     "NO_DIR" :          "Directory does not exist: %(path)s",
     "NO_FILE" :         "No such file: %(path)s",
+    "NO_RESOURCE" :     "No path to: %(path)s",
     "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
     "DELETE_FAILED" :   "Unable to delete file: %(path)s",
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
@@ -205,7 +206,21 @@ class FS(object):
             if e.code == "NO_FILE":
                 return NullFile()
             raise
-            
+      
+    def desc(self, path):
+        
+        if not self.exists(path):        
+            return "No description available"
+                
+        try:
+            sys_path = self.getsyspath(path)
+        except FSError:
+            return "No description available"
+        
+        if self.isdir(path):
+            return "Dir, maps to %s" % sys_path
+        else:
+            return "File, maps to %s" % sys_path
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 
