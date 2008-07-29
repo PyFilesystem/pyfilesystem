@@ -218,9 +218,9 @@ class FS(object):
             return "No description available"
         
         if self.isdir(path):
-            return "Dir, maps to %s" % sys_path
+            return "OS dir, maps to %s" % sys_path
         else:
-            return "File, maps to %s" % sys_path
+            return "OS file, maps to %s" % sys_path
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 

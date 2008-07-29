@@ -154,7 +154,7 @@ class MemoryFS(FS):
     def __init__(self):
 
         self.dir_entry_factory = MemoryFS.DirEntry
-        self.root = self._make_dir_entry('dir', 'root')
+        self.root = self._make_dir_entry('dir', 'root')        
 
     def __str__(self):
         return "<MemoryFS>"
@@ -178,9 +178,9 @@ class MemoryFS(FS):
     def desc(self, path):
         
         if self.isdir(path):
-            return "Dir in memory"
+            return "Memory dir"
         else:
-            return "File object in memory"
+            return "Memory file object"
 
     def isdir(self, path):
 

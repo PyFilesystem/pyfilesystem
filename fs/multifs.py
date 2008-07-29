@@ -160,8 +160,8 @@ if __name__ == "__main__":
     mem_fs.mkdir('projects/A/B', recursive=True)
 
 
-    mem_fs.open("projects/readme.txt", 'w').write("Hello, World!")
-    mem_fs.open("projects/readme.txt", 'wa').write("\nSecond Line")
+    mem_fs.open("projects/test2/readme.txt", 'w').write("Hello, World!")
+    mem_fs.open("projects/A/readme.txt", 'w').write("\nSecond Line")
     
     multifs = MultiFS()
     multifs.addfs("osfs", osfs)

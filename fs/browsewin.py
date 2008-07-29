@@ -5,8 +5,6 @@ import wx.gizmos
 
 import fs
 
-
-
 class BrowseFrame(wx.Frame):
 
     def __init__(self, fs):
@@ -17,10 +15,10 @@ class BrowseFrame(wx.Frame):
         self.SetTitle("FS Browser - "+str(fs))
 
         self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
-        self.tree.AddColumn("FS", 300)
+        self.tree.AddColumn("FS", 300)        
+        self.tree.AddColumn("Description", 250)
         self.tree.AddColumn("Size", 150)
         self.tree.AddColumn("Created", 250)
-        self.tree.AddColumn("Description", 250)
         self.root_id = self.tree.AddRoot('root', data=wx.TreeItemData( {'path':"/", 'expanded':False} ))
 
         rid = self.tree.GetItemData(self.root_id)
@@ -81,26 +79,26 @@ class BrowseFrame(wx.Frame):
                 self.tree.SetItemImage(new_item, self.fldridx, 0, wx.TreeItemIcon_Normal)
                 self.tree.SetItemImage(new_item, self.fldropenidx, 0, wx.TreeItemIcon_Expanded)
 
-                self.tree.SetItemText(new_item, "", 1)
+                self.tree.SetItemText(new_item, "", 2)
 
                 ct = info.get('created_time', None)
                 if ct is not None:
-                    self.tree.SetItemText(new_item, ct.ctime(), 2)
+                    self.tree.SetItemText(new_item, ct.ctime(), 3)
                 else:
-                    self.tree.SetItemText(new_item, 'unknown', 2)
+                    self.tree.SetItemText(new_item, 'unknown', 3)
 
             else:
                 self.tree.SetItemImage(new_item, self.fileidx, 0, wx.TreeItemIcon_Normal)
 
-                self.tree.SetItemText(new_item, str(info.get('size', '?'))+ " bytes", 1)
+                self.tree.SetItemText(new_item, str(info.get('size', '?'))+ " bytes", 2)
 
                 ct = info.get('created_time', None)
                 if ct is not None:
-                    self.tree.SetItemText(new_item, ct.ctime(), 2)
+                    self.tree.SetItemText(new_item, ct.ctime(), 3)
                 else:
-                    self.tree.SetItemText(new_item, 'unknown', 2)
+                    self.tree.SetItemText(new_item, 'unknown', 3)
                     
-            self.tree.SetItemText(new_item, self.fs.desc(new_path), 3)
+            self.tree.SetItemText(new_item, self.fs.desc(new_path), 1)
 
         item_data['expanded'] = True
         self.tree.Expand(item_id)
