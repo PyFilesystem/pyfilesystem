@@ -15,7 +15,7 @@ class MultiFS(FS):
         return "<MultiFS: %s>" % ", ".join(str(fs) for fs in self.fs_sequence)
 
 
-    def add_fs(self, name, fs):
+    def addfs(self, name, fs):
 
         if name in self.fs_lookup:
             raise ValueError("Name already exists.")
@@ -24,7 +24,7 @@ class MultiFS(FS):
         self.fs_lookup[name] = fs
 
 
-    def remove_fs(self, name):
+    def removefs(self, name):
 
         fs = self.fs_lookup[name]
         self.fs_sequence.remove(fs)
@@ -42,7 +42,7 @@ class MultiFS(FS):
     def _delegate_search(self, path):
 
         for fs in self:
-            if self.exists(path):
+            if fs.exists(path):
                 return fs
         return None
 
@@ -71,21 +71,21 @@ class MultiFS(FS):
 
         fs = self._delegate_search(path)
         if fs is not None:
-            return fs.isdir()
+            return fs.isdir(path)
         return False
 
     def isfile(self, path):
 
         fs = self._delegate_search(path)
         if fs is not None:
-            return fs.isfile()
+            return fs.isfile(path)
         return False
 
     def ishidden(self, path):
 
         fs = self._delegate_search(path)
         if fs is not None:
-            return fs.isfile()
+            return fs.isfile(path)
         return False
 
     def listdir(self, path="./", *args, **kwargs):
@@ -102,7 +102,7 @@ class MultiFS(FS):
     def remove(self, path):
 
         for fs in self:
-            if fs.exist(path):
+            if fs.exists(path):
                 fs.remove(path)
                 return
         raise FSError("NO_FILE", path)
@@ -119,7 +119,31 @@ class MultiFS(FS):
     def getinfo(self, path):
 
         for fs in self:
-            if fs.exist(path):
+            if fs.exists(path):
                 return fs.getinfo(path)
 
         raise FSError("NO_FILE", path)
+
+
+if __name__ == "__main__":
+    
+    import fs
+    osfs = fs.OSFS('~/')
+    import memoryfs
+
+    mem_fs = memoryfs.MemoryFS()
+    mem_fs.mkdir('projects/test2', recursive=True)
+    mem_fs.mkdir('projects/A', recursive=True)
+    mem_fs.mkdir('projects/A/B', recursive=True)
+
+
+    mem_fs.open("projects/readme.txt", 'w').write("Hello, World!")
+    mem_fs.open("projects/readme.txt", 'wa').write("\nSecond Line")
+    
+    multifs = MultiFS()
+    multifs.addfs("osfs", osfs)
+    multifs.addfs("mem_fs", mem_fs)
+    
+    import browsewin
+    
+    browsewin.browse(multifs)

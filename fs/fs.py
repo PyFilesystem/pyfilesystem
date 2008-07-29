@@ -10,7 +10,7 @@ import datetime
 error_msgs = {
 
     "UNKNOWN_ERROR" :   "No information on error: %(path)s",
-    "UNSUPPORTED" :     "This filesystem does not support this action.",
+    "UNSUPPORTED" :     "Action is unsupported by this filesystem.",
     "INVALID_PATH" :    "Path is invalid: %(path)s",
     "NO_DIR" :          "Directory does not exist: %(path)s",
     "NO_FILE" :         "No such file: %(path)s",
@@ -196,12 +196,22 @@ class FS(object):
     def getsyspath(self, path):
 
         raise FSError("NO_SYS_PATH", path)
+    
+    def safeopen(self, *args, **kwargs):
+        
+        try:
+            f = self.open(*args, **kwargs)
+        except FSError, e:
+            if e.code == "NO_FILE":
+                return NullFile()
+            raise
+            
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 
         pass
 
-    def open_dir(self, path):
+    def opendir(self, path):
 
         if not self.exists(path):
             raise FSError("NO_DIR", path)
@@ -487,7 +497,7 @@ if __name__ == "__main__":
     osfs = OSFS("~/projects")
     print osfs
 
-    for filename in osfs.walk_files("/prettycharts", "*.pov"):
+    for filename in osfs.walk_files("/", "*.pov"):
         print filename
         print osfs.getinfo(filename)
 

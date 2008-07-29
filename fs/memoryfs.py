@@ -192,7 +192,7 @@ class MemoryFS(FS):
 
     def exists(self, path):
 
-        return self._getdir(path) is not None
+        return self._get_dir_entry(path) is not None
 
     def mkdir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
 
@@ -339,6 +339,8 @@ class MemoryFS(FS):
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
         dir_entry = self._get_dir_entry(path)
+        if dir_entry is None:
+            raise FSError("NO_DIR", path)
         paths = dir_entry.contents.keys()
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
