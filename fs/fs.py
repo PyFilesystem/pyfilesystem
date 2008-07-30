@@ -159,7 +159,7 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
 
         try:
             dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
-        except FSError:
+        except FSError, e:
             print indent*level + "... unabled to retrieve directory list (%s) ..." % str(e)
             return
 

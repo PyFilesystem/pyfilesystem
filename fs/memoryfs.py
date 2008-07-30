@@ -151,9 +151,11 @@ class MemoryFS(FS):
 
         return self.dir_entry_factory(*args, **kwargs)
 
-    def __init__(self):
+    def __init__(self, file_factory=None):
 
         self.dir_entry_factory = MemoryFS.DirEntry
+        self.file_factory = file_factory or MemoryFile
+            
         self.root = self._make_dir_entry('dir', 'root')        
 
     def __str__(self):
@@ -290,7 +292,7 @@ class MemoryFS(FS):
                 raise FSError("FILE_LOCKED", path)
 
             self._lock_dir_entry(path)
-            mem_file = MemoryFile(path, self, file_dir_entry.data, mode)
+            mem_file = self.file_factory(path, self, file_dir_entry.data, mode)
             return mem_file
 
         elif 'w' in mode:
@@ -307,7 +309,7 @@ class MemoryFS(FS):
 
             self._lock_dir_entry(path)
 
-            mem_file = MemoryFile(path, self, None, mode)
+            mem_file = self.file_factory(path, self, None, mode)
             return mem_file
 
         if parent_dir_entry is None:
