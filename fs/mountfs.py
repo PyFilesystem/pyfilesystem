@@ -57,6 +57,16 @@ class MountFS(FS):
             
         return self, path
     
+    
+    def desc(self, path):
+    
+        fs, delegate_path = self._delegate(path)
+        if fs is self:
+            return "Mount dir"
+        
+        return "Mounted dir, maps to path %s on %s" % (delegate_path, str(fs))
+        
+    
     def isdir(self, path):
         
         fs, delegate_path = self._delegate(path)
@@ -86,7 +96,8 @@ class MountFS(FS):
         self.mem_fs.mkdir(path, recursive=True)
         mount_filename = pathjoin(path, '.mount')
         mount = self.mem_fs.open(mount_filename, 'w')
-        mount.fs = fs
+        mount.name = name
+        mount.fs = fs        
         
         self.mounts[name] = (path, fs)
 
@@ -104,6 +115,7 @@ if __name__ == "__main__":
     
     #print mountfs.listdir('1/2/Memroot/B/C')
     
+    print mountfs.desc('1/2/Memroot/B')
     print_fs(mountfs)
     
     #print mountfs._delegate('1/2/Memroot/B')

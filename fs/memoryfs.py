@@ -181,8 +181,10 @@ class MemoryFS(FS):
         
         if self.isdir(path):
             return "Memory dir"
-        else:
+        elif self.isfile(path):
             return "Memory file object"
+        else:
+            return "No description available"
 
     def isdir(self, path):
 
