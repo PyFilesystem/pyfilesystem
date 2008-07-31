@@ -252,6 +252,7 @@ class FS(object):
             if e.code == "NO_FILE":
                 return NullFile()
             raise
+        return f
 
     def desc(self, path):
 
