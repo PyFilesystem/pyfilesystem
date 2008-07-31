@@ -19,7 +19,6 @@ class OSFS(FS):
         return "<OSFS \"%s\">" % self.root_path
 
 
-
     def getsyspath(self, pathname):
 
         sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))
@@ -102,6 +101,15 @@ class OSFS(FS):
             except OSError, e:
                 raise FSError("DIR_DELETE_FAILED", path, details=e)
 
+    def rename(self, src, dst):
+
+        path_src = self.getsyspath(src)
+        path_dst = self.getsyspath(dst)
+
+        try:
+            os.rename(path_src, path_dst)
+        except OSError, e:
+            raise FSError("RENAME_FAILED", src)
 
     def getinfo(self, path):
 

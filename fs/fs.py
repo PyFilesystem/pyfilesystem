@@ -17,6 +17,7 @@ error_msgs = {
     "NO_RESOURCE" :     "No path to: %(path)s",
     "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
     "DELETE_FAILED" :   "Unable to delete file: %(path)s",
+    "RENAME_FAILED" :   "Unable to rename file: %(path)s",
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
     "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
     "OPEN_FAILED" :     "Unable to open file: %(path)s",
@@ -231,7 +232,7 @@ class FS(object):
         return resolved_path
 
 
-    def abspath(self, pathname):
+    def _abspath(self, pathname):
 
         pathname = normpath(pathname)
 
@@ -269,7 +270,7 @@ class FS(object):
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 
-        pass
+        raise FSError("UNSUPPORTED")
 
     def opendir(self, path):
 
@@ -306,7 +307,7 @@ class FS(object):
         if full:
             paths = [pathjoin(path, p) for p in paths]
         elif absolute:
-            paths = [self.abspath(pathjoin(path, p)) for p in paths]
+            paths = [self._abspath(pathjoin(path, p)) for p in paths]
 
         return paths
 
@@ -373,40 +374,97 @@ class SubFS(FS):
     def __init__(self, parent, sub_dir):
 
         self.parent = parent
-        self.sub_dir = parent.abspath(sub_dir)
+        self.sub_dir = parent._abspath(sub_dir)
 
     def __str__(self):
-        return "<SubFS \"%s\" of %s>" % (self.sub_dir, self.parent)
 
-    def _delegate(self, dirname):
+        return "<SubFS \"%s\" in %s>" % (self.sub_dir, self.parent)
 
-        delegate_path = pathjoin(self.sub_dir, resolvepath(makerelative(dirname)))
-        return delegate_path
+    def desc(self, path):
 
-    def getsyspath(self, pathname):
+        if self.isdir(path):
+            return "Sub dir of %s"%str(self.parent)
+        else:
+            return "File in sub dir of %s"%str(self.parent)
 
-        return self.parent.getsyspath(self._delegate(pathname))
+    def _delegate(self, path):
 
-    def open(self, pathname, mode="r", buffering=-1, **kwargs):
+        return pathjoin(self.sub_dir, resolvepath(makerelative(path)))
 
-        return self.parent.open(self._delegate(pathname), mode, buffering)
+    def getsyspath(self, path):
 
-    def open_dir(self, path):
+        return self.parent.getsyspath(self._delegate(path))
 
-        if not self.exists(dirname):
-            raise FSError("NO_DIR", dirname)
+    def open(self, path, mode="r", buffering=-1, **kwargs):
+
+        return self.parent.open(self._delegate(path), mode, buffering)
+
+    def exists(self, path):
+
+        return self.parent.exists(self._delegate(path))
+
+    def opendir(self, path):
+
+        if not self.exists(path):
+            raise FSError("NO_DIR", path)
 
         path = self._delegate(path)
-        sub_fs = self.parent.open_dir(path)
+        sub_fs = self.parent.opendir(path)
         return sub_fs
 
-    def isdir(self, pathname):
+    def isdir(self, path):
 
-        return self.parent.isdir(self._delegate(pathname))
+        return self.parent.isdir(self._delegate(path))
+
+    def isfile(self, path):
+
+        return self.parent.isdir(self._delegate(path))
+
+    def ishidden(self, path):
+
+        return self.parent.ishidden(self._delegate(path))
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
-        return self.parent.listdir(self._delegate(path), wildcard, full, absolute, hidden, dirs_only, files_only)
+        paths = self.parent.listdir(self._delegate(path),
+                                    wildcard,
+                                    False,
+                                    False,
+                                    hidden,
+                                    dirs_only,
+                                    files_only)
+        if absolute:
+            listpath = resolvepath(path)
+            paths = [makeabsolute(pathjoin(listpath, path)) for path in paths]
+        elif full:
+            listpath = resolvepath(path)
+            paths = [makerelative(pathjoin(listpath, path)) for path in paths]
+        return paths
+
+
+    def mkdir(self, path, mode=0777, recursive=False):
+
+        return self.parent.mkdir(self._delegate(path), mode=mode, recursive=False)
+
+    def remove(self, path):
+
+        return self.parent.remove(self._delegate(path))
+
+    def removedir(self, path, recursive=False):
+
+        self.parent.removedir(self._delegate(path), recursive=False)
+
+    def getinfo(self, path):
+
+        return self.parent.getinfo(self._delegate(path))
+
+    def getsize(self, path):
+
+        return self.parent.getsize(self._delegate(path))
+
+    def rename(self, src, dst):
+
+        return self.parent.rename(self._delegate(src), self._delegate(dst))
 
 
 def validatefs(fs):
@@ -424,6 +482,7 @@ def validatefs(fs):
                          "removedir",
                          "getinfo",
                          "getsize",
+                         "rename",
     ]
 
     pad_size = len(max(expected_methods, key=str.__len__))
@@ -437,3 +496,14 @@ def validatefs(fs):
             count += 1
     print
     print "%i out of %i methods" % (count, len(expected_methods))
+
+
+if __name__ == "__main__":
+    import osfs
+    import browsewin
+
+    fs1 = osfs.OSFS('~/')
+    fs2 = fs1.opendir("projects").opendir('prettycharts')
+
+    #browsewin.browse(fs1)
+    browsewin.browse(fs2)
