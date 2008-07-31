@@ -45,16 +45,16 @@ class MultiFS(FS):
             if fs.exists(path):
                 return fs
         return None
-    
+
     def which(self, path):
-        
+
         for fs in self:
             if fs.exists(path):
                 for fs_name, fs_object in self.fs_lookup.iteritems():
                     if fs is fs_object:
                         return fs_name, fs
         return None, None
-    
+
 
     def getsyspath(self, path):
 
@@ -66,16 +66,16 @@ class MultiFS(FS):
 
 
     def desc(self, path):
-        
+
         if not self.exists(path):
             raise FSError("NO_RESOURCE", path)
-        
+
         name, fs = self.which(path)
         if name is None:
             return ""
         return "%s, on %s (%s)" % (fs.desc(path), name, fs)
-        
-        
+
+
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
 
@@ -149,9 +149,10 @@ class MultiFS(FS):
 
 
 if __name__ == "__main__":
-    
+
     import fs
-    osfs = fs.OSFS('~/')
+    import osfs
+    osfs = osfs.OSFS('~/')
     import memoryfs
 
     mem_fs = memoryfs.MemoryFS()
@@ -162,11 +163,11 @@ if __name__ == "__main__":
 
     mem_fs.open("projects/test2/readme.txt", 'w').write("Hello, World!")
     mem_fs.open("projects/A/readme.txt", 'w').write("\nSecond Line")
-    
+
     multifs = MultiFS()
     multifs.addfs("osfs", osfs)
     multifs.addfs("mem_fs", mem_fs)
-    
+
     import browsewin
-    
+
     browsewin.browse(multifs)

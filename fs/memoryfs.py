@@ -155,8 +155,8 @@ class MemoryFS(FS):
 
         self.dir_entry_factory = MemoryFS.DirEntry
         self.file_factory = file_factory or MemoryFile
-            
-        self.root = self._make_dir_entry('dir', 'root')        
+
+        self.root = self._make_dir_entry('dir', 'root')
 
     def __str__(self):
         return "<MemoryFS>"
@@ -178,7 +178,7 @@ class MemoryFS(FS):
         raise FSError("NO_SYS_PATH", pathname, msg="This file-system has no syspath")
 
     def desc(self, path):
-        
+
         if self.isdir(path):
             return "Memory dir"
         elif self.isfile(path):
@@ -366,7 +366,6 @@ class MemoryFS(FS):
             info['size'] = len(dir_entry.data)
 
         return info
-
 
     def ishidden(self, pathname):
         return False

@@ -36,7 +36,7 @@ class MountFS(FS):
         for i, path_component in enumerate(path_components):
             
             if current_dir is None:
-                return None, None
+                return None, None, None
                  
             if '.mount' in current_dir.contents:   
                 break
@@ -53,14 +53,14 @@ class MountFS(FS):
                 
                 mount = self.mem_fs.open(mount_filename, 'r')
                 delegate_path = '/'.join(path_components[i:])                
-                return mount.fs, delegate_path
+                return mount.fs, mount_point, delegate_path
             
-        return self, path
+        return self, "", path
     
     
     def desc(self, path):
     
-        fs, delegate_path = self._delegate(path)
+        fs, mount_path, delegate_path = self._delegate(path)
         if fs is self:
             return "Mount dir"
         
@@ -69,7 +69,7 @@ class MountFS(FS):
     
     def isdir(self, path):
         
-        fs, delegate_path = self._delegate(path)
+        fs, mount_path, delegate_path = self._delegate(path)
         if fs is None:
             return False
         
@@ -80,16 +80,37 @@ class MountFS(FS):
     
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
-        fs, delegate_path = self._delegate(path)
+        fs, mount_path, delegate_path = self._delegate(path)
                         
         if fs is None:
             raise FSError("NO_DIR", path)
         
         if fs is self:
-            return self.mem_fs.listdir(path, wildcard=wildcard, full=full, absolute=absolute, hidden=hidden, dirs_only=True, files_only=False)        
+            if files_only:
+                return []
+            return self.mem_fs.listdir(path,
+                                       wildcard=wildcard,
+                                       full=full,
+                                       absolute=absolute,
+                                       hidden=hidden,
+                                       dirs_only=True,
+                                       files_only=False)        
         else:
-            return fs.listdir(delegate_path, wildcard=wildcard, full=full, absolute=absolute, hidden=hidden, dirs_only=dirs_only, files_only=files_only)
+            paths = fs.listdir(delegate_path,
+                               wildcard=wildcard,
+                               full=full,
+                               absolute=absolute,
+                               hidden=hidden,
+                               dirs_only=dirs_only,
+                               files_only=files_only)
+            if full or absolute:
+                if full:
+                    mount_path = makeabsolute(mount_path)
+                else:
+                    mount_path = makerelative(mount_path)
+                paths = [pathjoin(mount_path, path) for path in paths]
         
+            return paths
     
     def mount(self, name, path, fs):
                 
@@ -110,6 +131,7 @@ if __name__ == "__main__":
     #print_fs(fs1)
     
     mountfs = MountFS()
+    
     mountfs.mount("fs1", '1/2', fs1)
     mountfs.mount("fs1", '1/another', fs1)
     
