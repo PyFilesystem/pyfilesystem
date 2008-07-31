@@ -27,7 +27,18 @@ error_codes = error_msgs.keys()
 
 class FSError(Exception):
 
+    """A catch all exception for FS objects."""
+
     def __init__(self, code, path=None, msg=None, details=None):
+
+        """
+
+        code -- A short identifier for the error
+        path -- A path associated with the error
+        msg -- An textual description of the error
+        details -- Any additional details associated with the error
+
+        """
 
         self.code = code
         self.msg = msg or error_msgs.get(code, error_msgs['UNKNOWN_ERROR'])
@@ -49,7 +60,14 @@ class PathError(Exception):
         return self.msg
 
 
-class NullFile:
+class NullFile(object):
+
+    """A NullFile is a file object that has no functionality. Null files are
+    returned by the 'safeopen' method in FS objects when the file does not exist.
+    This can simplify code by negating the need to check if a file exists,
+    or handling exceptions.
+
+    """
 
     def __init__(self):
         self.closed = False
@@ -91,20 +109,24 @@ class NullFile:
         pass
 
 
-
-
-
 def isabsolutepath(path):
+    """Returns True if a given path is absolute."""
     if path:
         return path[0] in '\\/'
     return False
 
 def normpath(path):
+    """Normalizes a path to be in the formated expected by FS objects.
+    Returns a new path string."""
     return path.replace('\\', '/')
 
 
 def pathjoin(*paths):
+    """Joins any number of paths together. Returns a new path string.
 
+    paths -- An iterable of path strings
+
+    """
     absolute = False
 
     relpaths = []
@@ -134,10 +156,21 @@ def pathjoin(*paths):
 
 
 def pathsplit(path):
+    """Splits a path on a path separator. Returns a tuple containing the path up
+    to that last separator and the remaining path component.
+
+    >>> pathsplit("foo/bar")
+    ('foo', 'bar')
+
+    >>> pathsplit("foo/bar/baz")
+    ('foo/bar', 'bar')
+
+    """
+
     split = normpath(path).rsplit('/', 1)
     if len(split) == 1:
         return ('', split[0])
-    return split
+    return tuple(split)
 
 def resolvepath(path):
     return pathjoin(path)
