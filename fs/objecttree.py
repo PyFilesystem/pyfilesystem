@@ -50,8 +50,13 @@ class ObjectTree(object):
             return default
         return node
 
-    def __contains__(self, value):
-        return value in self.root
+    def isobject(self, path):
+        node = self._locate(path)
+        return type(node) is not _ObjectDict
+
+    def __contains__(self, path):
+        node = self._locate(path)
+        return node is not None
 
     def __iter__(self):
         return iter(self.root)
