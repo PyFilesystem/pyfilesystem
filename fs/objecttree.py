@@ -44,6 +44,13 @@ class ObjectTree(object):
             raise IndexError("Path does not exist")
         return node
 
+    def __delitem__(self, path):
+        path, name = path.rsplit('/', 1)
+        node = self._locate(path)
+        if node is None or type(node) is not _ObjectDict:
+            raise IndexError("Path does not exist")
+        del node[name]
+
     def get(self, path, default):
         node = self._locate(path)
         if node is None:
