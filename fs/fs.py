@@ -10,18 +10,31 @@ import datetime
 error_msgs = {
 
     "UNKNOWN_ERROR" :   "No information on error: %(path)s",
+
+    # UnsupportedError
     "UNSUPPORTED" :     "Action is unsupported by this filesystem.",
-    "INVALID_PATH" :    "Path is invalid: %(path)s",
-    "NO_DIR" :          "Directory does not exist: %(path)s",
-    "NO_FILE" :         "No such file: %(path)s",
-    "NO_RESOURCE" :     "No path to: %(path)s",
+
+    # OperationFailedError
     "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
     "DELETE_FAILED" :   "Unable to delete file: %(path)s",
     "RENAME_FAILED" :   "Unable to rename file: %(path)s",
-    "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
-    "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
     "OPEN_FAILED" :     "Unable to open file: %(path)s",
+    "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
+
+    # NoSysPathError
+    "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
+
+    # PathError
+    "INVALID_PATH" :    "Path is invalid: %(path)s",
+
+    # ResourceLockedError
     "FILE_LOCKED" :     "File is locked: %(path)s",
+    "DIR_LOCKED" :      "Dir is locked: %(path)s",
+
+    # ResourceNotFoundError
+    "NO_DIR" :          "Directory does not exist: %(path)s",
+    "NO_FILE" :         "No such file: %(path)s",
+    "NO_RESOURCE" :     "No path to: %(path)s",
 }
 
 error_codes = error_msgs.keys()
@@ -31,7 +44,6 @@ class FSError(Exception):
     """A catch all exception for FS objects."""
 
     def __init__(self, code, path=None, msg=None, details=None):
-
         """
 
         code -- A short identifier for the error
@@ -47,18 +59,27 @@ class FSError(Exception):
         self.details = details
 
     def __str__(self):
-
         msg = self.msg % dict((k, str(v)) for k, v in self.__dict__.iteritems())
 
         return '%s. %s' % (self.code, msg)
 
-class PathError(Exception):
+class UnsupportedError(FSError):
+    pass
 
-    def __init__(self, msg):
-        self.msg = msg
+class OperationFailedError(FSError):
+    pass
 
-    def __str__(self):
-        return self.msg
+class NoSysPathError(FSError):
+    pass
+
+class PathError(FSError):
+    pass
+
+class ResourceLockedError(FSError):
+    pass
+
+class ResourceNotFoundError(FSError):
+    pass
 
 
 class NullFile(object):
@@ -143,7 +164,7 @@ def pathjoin(*paths):
     for component in chain(*(normpath(path).split('/') for path in relpaths)):
         if component == "..":
             if not pathstack:
-                raise PathError("relative path is invalid")
+                raise PathError("INVALID_PATH", repr(paths), msg="relative path is invalid")
             sub = pathstack.pop()
         elif component == ".":
             pass
@@ -187,9 +208,7 @@ def makeabsolute(path):
     return path
 
 def _iteratepath(path, numsplits=None):
-
     path = resolvepath(path)
-
     if not path:
         return []
 
@@ -200,9 +219,7 @@ def _iteratepath(path, numsplits=None):
 
 
 def print_fs(fs, path="/", max_levels=None, indent=' '*2):
-
     def print_dir(fs, path, level):
-
         try:
             dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
         except FSError, e:
@@ -219,7 +236,6 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
                     print_dir(fs, pathjoin(path, item), level+1)
             else:
                 print indent*level + '%s' % item
-
     print_dir(fs, path, 0)
 
 
@@ -227,13 +243,10 @@ class FS(object):
 
 
     def _resolve(self, pathname):
-
         resolved_path = resolvepath(pathname)
         return resolved_path
 
-
     def _abspath(self, pathname):
-
         pathname = normpath(pathname)
 
         if not pathname.startswith('/'):
@@ -241,21 +254,49 @@ class FS(object):
         return pathname
 
     def getsyspath(self, path):
+        raise NoSysPathError("NO_SYS_PATH", path)
 
-        raise FSError("NO_SYS_PATH", path)
+    def open(self, path, mode="r", buffering=-1, **kwargs):
+        raise UnsupportedError("UNSUPPORTED")
 
     def safeopen(self, *args, **kwargs):
-
         try:
             f = self.open(*args, **kwargs)
-        except FSError, e:
-            if e.code == "NO_FILE":
-                return NullFile()
-            raise
+        except ResourceNotFoundError:
+            return NullFile()
         return f
 
-    def desc(self, path):
+    def exists(self, path):
+        raise UnsupportedError("UNSUPPORTED")
 
+    def isdir(self, path):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def isfile(self, path):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def ishidden(self, path):
+        return path.startswith('.')
+
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def mkdir(self, path, mode=0777, recursive=False):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def remove(self, path):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def removedir(self, path, recursive=False):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def rename(self, src, dst):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def getinfo(self, path):
+        raise UnsupportedError("UNSUPPORTED")
+
+    def desc(self, path):
         if not self.exists(path):
             return "No description available"
 
@@ -270,28 +311,18 @@ class FS(object):
             return "OS file, maps to %s" % sys_path
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
-
-        raise FSError("UNSUPPORTED")
+        raise UNSUPPORTED_ERROR("UNSUPPORTED")
 
     def opendir(self, path):
-
         if not self.exists(path):
-            raise FSError("NO_DIR", path)
+            raise ResourceNotFoundError("NO_DIR", path)
 
         sub_fs = SubFS(self, path)
         return sub_fs
 
-
-    def remove(self, path):
-
-        raise FSError("UNSUPPORTED", path)
-
-
     def _listdir_helper(self, path, paths, wildcard, full, absolute, hidden, dirs_only, files_only):
-
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
-
 
         if wildcard is not None:
             match = fnmatch.fnmatch
@@ -313,8 +344,7 @@ class FS(object):
         return paths
 
 
-    def walk_files(self, path="/", wildcard=None, dir_wildcard=None):
-
+    def walkfiles(self, path="/", wildcard=None, dir_wildcard=None):
         dirs = [path]
         files = []
 
@@ -337,12 +367,8 @@ class FS(object):
                         yield path
 
     def walk(self, path="/", wildcard=None, dir_wildcard=None):
-
         dirs = [path]
-
-
         while dirs:
-
             current_path = dirs.pop()
 
             paths = []
@@ -360,73 +386,58 @@ class FS(object):
                             paths.append(path)
                     else:
                         paths.append(path)
-
             yield (current_path, paths)
 
 
-
     def getsize(self, path):
-
         return self.getinfo(path)['size']
 
 
 class SubFS(FS):
 
     def __init__(self, parent, sub_dir):
-
         self.parent = parent
         self.sub_dir = parent._abspath(sub_dir)
 
     def __str__(self):
-
         return "<SubFS \"%s\" in %s>" % (self.sub_dir, self.parent)
 
     def desc(self, path):
-
         if self.isdir(path):
             return "Sub dir of %s"%str(self.parent)
         else:
             return "File in sub dir of %s"%str(self.parent)
 
     def _delegate(self, path):
-
         return pathjoin(self.sub_dir, resolvepath(makerelative(path)))
 
     def getsyspath(self, path):
-
         return self.parent.getsyspath(self._delegate(path))
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
-
         return self.parent.open(self._delegate(path), mode, buffering)
 
     def exists(self, path):
-
         return self.parent.exists(self._delegate(path))
 
     def opendir(self, path):
-
         if not self.exists(path):
-            raise FSError("NO_DIR", path)
+            raise ResourceNotFoundError("NO_DIR", path)
 
         path = self._delegate(path)
         sub_fs = self.parent.opendir(path)
         return sub_fs
 
     def isdir(self, path):
-
         return self.parent.isdir(self._delegate(path))
 
     def isfile(self, path):
-
         return self.parent.isdir(self._delegate(path))
 
     def ishidden(self, path):
-
         return self.parent.ishidden(self._delegate(path))
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
-
         paths = self.parent.listdir(self._delegate(path),
                                     wildcard,
                                     False,
@@ -444,29 +455,22 @@ class SubFS(FS):
 
 
     def mkdir(self, path, mode=0777, recursive=False):
-
         return self.parent.mkdir(self._delegate(path), mode=mode, recursive=False)
 
     def remove(self, path):
-
         return self.parent.remove(self._delegate(path))
 
     def removedir(self, path, recursive=False):
-
         self.parent.removedir(self._delegate(path), recursive=False)
 
     def getinfo(self, path):
-
         return self.parent.getinfo(self._delegate(path))
 
     def getsize(self, path):
-
         return self.parent.getsize(self._delegate(path))
 
     def rename(self, src, dst):
-
         return self.parent.rename(self._delegate(src), self._delegate(dst))
-
 
 def validatefs(fs):
 

@@ -9,63 +9,51 @@ class OSFS(FS):
         expanded_path = normpath(os.path.expanduser(os.path.expandvars(root_path)))
 
         if not os.path.exists(expanded_path):
-            raise FSError("NO_DIR", expanded_path, msg="Root directory does not exist: %(path)s")
+            raise ResourceNotFoundError("NO_DIR", expanded_path, msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
-            raise FSError("NO_DIR", expanded_path, msg="Root path is not a directory: %(path)s")
+            raise ResourceNotFoundError("NO_DIR", expanded_path, msg="Root path is not a directory: %(path)s")
 
         self.root_path = normpath(os.path.abspath(expanded_path))
 
     def __str__(self):
         return "<OSFS \"%s\">" % self.root_path
 
-
-    def getsyspath(self, pathname):
-
-        sys_path = os.path.join(self.root_path, makerelative(self._resolve(pathname)))
+    def getsyspath(self, path):
+        sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))
         return sys_path
 
-
-
-    def open(self, pathname, mode="r", buffering=-1, **kwargs):
-
+    def open(self, path, mode="r", buffering=-1, **kwargs):
         try:
-            f = open(self.getsyspath(pathname), mode, buffering)
+            f = open(self.getsyspath(path), mode, buffering)
         except IOError, e:
-            raise FSError("OPEN_FAILED", pathname, details=e, msg=str(details))
+            raise OperationFailedError("OPEN_FAILED", path, details=e, msg=str(details))
 
         return f
 
-    def exists(self, pathname):
+    def exists(self, path):
+        path = self.getsyspath(path)
+        return os.path.exists(path)
 
-        pathname = self.getsyspath(pathname)
-        return os.path.exists(pathname)
-
-    def isdir(self, pathname):
-
-        path = self.getsyspath(pathname)
+    def isdir(self, path):
+        path = self.getsyspath(path)
         return os.path.isdir(path)
 
-    def isfile(self, pathname):
-
-        path = self.getsyspath(pathname)
+    def isfile(self, path):
+        path = self.getsyspath(path)
         return os.path.isfile(path)
 
-    def ishidden(self, pathname):
-
-        return pathname.startswith('.')
+    def ishidden(self, path):
+        return path.startswith('.')
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
-
         try:
             paths = os.listdir(self.getsyspath(path))
         except (OSError, IOError), e:
-            raise FSError("LISTDIR_FAILED", path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
+            raise OperationFailedError("LISTDIR_FAILED", path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
 
-
     def mkdir(self, path, mode=0777, recursive=False):
-
         sys_path = self.getsyspath(path)
 
         if recursive:
@@ -75,44 +63,37 @@ class OSFS(FS):
 
 
     def remove(self, path):
-
         sys_path = self.getsyspath(path)
         try:
             os.remove(sys_path)
         except OSError, e:
-            raise FSError("FILE_DELETE_FAILED", path, details=e)
+            raise OperationFailedError("REMOVE_FAILED", path, details=e)
 
 
     def removedir(self, path, recursive=False):
-
         sys_path = self.getsyspath(path)
 
         if recursive:
-
             try:
                 os.rmdir(sys_path)
             except OSError, e:
-                raise FSError("DIR_DELETE_FAILED", path, details=e)
-
+                raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
         else:
-
             try:
                 os.removedirs(sys_path)
             except OSError, e:
-                raise FSError("DIR_DELETE_FAILED", path, details=e)
+                raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
 
     def rename(self, src, dst):
-
         path_src = self.getsyspath(src)
         path_dst = self.getsyspath(dst)
 
         try:
             os.rename(path_src, path_dst)
         except OSError, e:
-            raise FSError("RENAME_FAILED", src)
+            raise OperationFailedError("RENAME_FAILED", src)
 
     def getinfo(self, path):
-
         sys_path = self.getsyspath(path)
 
         try:
@@ -140,7 +121,6 @@ class OSFS(FS):
 
 
     def getsize(self, path):
-
         sys_path = self.getsyspath(path)
 
         try:

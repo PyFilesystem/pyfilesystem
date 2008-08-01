@@ -51,17 +51,15 @@ class TestHelpers(unittest.TestCase):
         self.assertRaises(fs.PathError, fs.pathjoin, "a/b/../../../d")
 
     def test_makerelative(self):
-
         tests = [   ("/a/b", "a/b"),
                     ("a/b", "a/b"),
                     ("/", "") ]
-        
+
         for path, result in tests:
             print path, result
             self.assertEqual(fs.makerelative(path), result)
 
     def test_absolute(self):
-
         tests = [   ("/a/b", "/a/b"),
                     ("a/b", "/a/b"),
                     ("/", "/") ]
@@ -70,7 +68,6 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.makeabsolute(path), result)
 
     def test_iteratepath(self):
-
         tests = [   ("a/b", ["a", "b"]),
                     ("", [] ),
                     ("aaa/bbb/ccc", ["aaa", "bbb", "ccc"]),
@@ -85,7 +82,6 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(list(fs._iteratepath("a/b/c/d", 2)), ["a", "b", "c/d"])
 
     def test_pathsplit(self):
-
         tests = [   ("a/b", ("a", "b")),
                     ("a/b/c", ("a/b", "c")),
                     ("a", ("", "a")),

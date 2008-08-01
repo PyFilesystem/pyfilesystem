@@ -18,7 +18,6 @@ def _check_mode(mode, mode_chars):
 class MemoryFile(object):
 
     def __init__(self, path, memory_fs, value, mode):
-
         self.path = path
         self.memory_fs = memory_fs
         self.mode = mode
@@ -54,10 +53,8 @@ class MemoryFile(object):
         self.closed = False
 
     def __del__(self):
-
         if not self.closed:
             self.close()
-
 
     def flush(self):
         pass
@@ -99,14 +96,11 @@ class MemoryFile(object):
         return self.mem_file.writelines(*args, **kwargs)
 
 
-
-
 class MemoryFS(FS):
 
     class DirEntry(object):
 
         def __init__(self, type, name, contents=None):
-
             self.type = type
             self.name = name
             self.permissions = None
@@ -148,11 +142,9 @@ class MemoryFS(FS):
             return "%s: %s" % (self.name, self.desc_contents())
 
     def _make_dir_entry(self, *args, **kwargs):
-
         return self.dir_entry_factory(*args, **kwargs)
 
     def __init__(self, file_factory=None):
-
         self.dir_entry_factory = MemoryFS.DirEntry
         self.file_factory = file_factory or MemoryFile
 
@@ -162,9 +154,7 @@ class MemoryFS(FS):
         return "<MemoryFS>"
 
     def _get_dir_entry(self, dirpath):
-
         current_dir = self.root
-
         for path_component in _iteratepath(dirpath):
             dir_entry = current_dir.contents.get(path_component, None)
             if dir_entry is None:
@@ -173,12 +163,7 @@ class MemoryFS(FS):
 
         return current_dir
 
-    def getsyspath(self, pathname):
-
-        raise FSError("NO_SYS_PATH", pathname, msg="This file-system has no syspath")
-
     def desc(self, path):
-
         if self.isdir(path):
             return "Memory dir"
         elif self.isfile(path):
@@ -187,25 +172,21 @@ class MemoryFS(FS):
             return "No description available"
 
     def isdir(self, path):
-
         dir_item = self._get_dir_entry(self._resolve(path))
         if dir_item is None:
             return False
         return dir_item.isdir()
 
     def isfile(self, path):
-
         dir_item = self._get_dir_entry(self._resolve(path))
         if dir_item is None:
             return False
         return dir_item.isfile()
 
     def exists(self, path):
-
         return self._get_dir_entry(path) is not None
 
     def mkdir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
-
         fullpath = dirname
         dirpath, dirname = pathsplit(dirname)
 
@@ -213,11 +194,11 @@ class MemoryFS(FS):
             parent_dir = self._get_dir_entry(dirpath)
             if parent_dir is not None:
                 if parent_dir.isfile():
-                    raise FSError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                    raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
                 else:
                     if not allow_recreate:
                         if dirname in parent_dir.contents:
-                            raise FSError("NO_DIR", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+                            raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
 
             current_dir = self.root
             for path_component in _iteratepath(dirpath)[:-1]:
@@ -225,7 +206,7 @@ class MemoryFS(FS):
                 if dir_item is None:
                     break
                 if not dir_item.isdir():
-                    raise FSError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                    raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
                 current_dir = dir_item.contents
 
             current_dir = self.root
@@ -243,7 +224,7 @@ class MemoryFS(FS):
         else:
             parent_dir = self._get_dir_entry(dirpath)
             if parent_dir is None:
-                raise FSError("NO_DIR", dirname, msg="Could not make dir, as parent dir does not exist: %(path)s")
+                raise ResourceNotFoundError("NO_DIR", dirname, msg="Could not make dir, as parent dir does not exist: %(path)s")
 
         dir_item = parent_dir.contents.get(dirname, None)
         if dir_item is not None:
@@ -251,55 +232,46 @@ class MemoryFS(FS):
                 if not allow_recreate:
                     raise FSError("DIR_EXISTS", dirname)
             else:
-                raise FSError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
 
         if dir_item is None:
             parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
 
         return self
 
-
     def _lock_dir_entry(self, path):
-
         dir_entry = self._get_dir_entry(path)
         dir_entry.lock()
 
-
     def _unlock_dir_entry(self, path):
-
         dir_entry = self._get_dir_entry(path)
         dir_entry.unlock()
 
     def _is_dir_locked(self, path):
-
         dir_entry = self._get_dir_entry(path)
         return dir_entry.islocked()
 
-
     def open(self, path, mode="r", **kwargs):
-
         filepath, filename = pathsplit(path)
         parent_dir_entry = self._get_dir_entry(filepath)
 
         if parent_dir_entry is None or not parent_dir_entry.isdir():
-            raise FSError("NO_FILE", path)
+            raise ResourceNotFoundError("NO_FILE", path)
 
         if 'r' in mode or 'a' in mode:
             if filename not in parent_dir_entry.contents:
-                raise FSError("NO_FILE", path)
+                raise ResourceNotFoundError("NO_FILE", path)
 
             file_dir_entry = parent_dir_entry.contents[filename]
 
             if 'a' in mode and  file_dir_entry.islocked():
-                raise FSError("FILE_LOCKED", path)
+                raise ResourceLockedError("FILE_LOCKED", path)
 
             self._lock_dir_entry(path)
             mem_file = self.file_factory(path, self, file_dir_entry.data, mode)
             return mem_file
 
         elif 'w' in mode:
-
-
             if filename not in parent_dir_entry.contents:
                 file_dir_entry = self._make_dir_entry("file", filename)
                 parent_dir_entry.contents[filename] = file_dir_entry
@@ -307,7 +279,7 @@ class MemoryFS(FS):
                 file_dir_entry = parent_dir_entry.contents[filename]
 
             if file_dir_entry.islocked():
-                raise FSError("FILE_LOCKED", path)
+                raise ResourceLockedError("FILE_LOCKED", path)
 
             self._lock_dir_entry(path)
 
@@ -315,18 +287,16 @@ class MemoryFS(FS):
             return mem_file
 
         if parent_dir_entry is None:
-            raise FSError("NO_FILE", path)
-
+            raise ResourceNotFoundError("NO_FILE", path)
 
     def remove(self, path):
-
         dir_entry = self._get_dir_entry(path)
 
         if dir_entry is None:
-            raise FSError("NO_FILE", path)
+            raise ResourceNotFoundError("NO_FILE", path)
 
         if dir_entry.islocked():
-            raise FSError("FILE_LOCKED", path)
+            raise ResourceLockedError("FILE_LOCKED", path)
 
         pathname, dirname = pathsplit(path)
 
@@ -334,29 +304,21 @@ class MemoryFS(FS):
 
         del parent_dir.contents[dirname]
 
-
-
-
     def _on_close_memory_file(self, path, value):
-
         filepath, filename = pathsplit(path)
         dir_entry = self._get_dir_entry(path)
         dir_entry.data = value
         self._unlock_dir_entry(path)
 
-
-
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
-
         dir_entry = self._get_dir_entry(path)
         if dir_entry is None:
-            raise FSError("NO_DIR", path)
+            raise ResourceNotFoundError("NO_DIR", path)
         paths = dir_entry.contents.keys()
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
 
     def getinfo(self, path):
-
         dir_entry = self._get_dir_entry(path)
 
         info = {}
