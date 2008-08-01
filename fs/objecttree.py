@@ -2,7 +2,7 @@
 
 from fs import _iteratepath, pathsplit
 
-class ObjectDict(dict):
+class _ObjectDict(dict):
     pass
 
 class ObjectTree(object):
@@ -10,12 +10,12 @@ class ObjectTree(object):
     """A class to facilitate the creation of tree structures."""
 
     def __init__(self):
-        self.root = ObjectDict()
+        self.root = _ObjectDict()
 
     def _locate(self, path):
         current = self.root
         for path_component in path.split('/'):
-            if type(current) is not ObjectDict:
+            if type(current) is not _ObjectDict:
                 return None
             node = current.get(path_component, None)
             if node is None:
@@ -30,8 +30,8 @@ class ObjectTree(object):
         path, name = path.rsplit('/', 1)
         for path_component in path.split('/'):
             node = current.get(path_component, None)
-            if node is None or type(node) is not ObjectDict:
-                new_dict = ObjectDict()
+            if type(node) is not _ObjectDict:
+                new_dict = _ObjectDict()
                 current[path_component] = new_dict
                 current = new_dict
             else:
