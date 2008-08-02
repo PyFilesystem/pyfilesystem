@@ -15,7 +15,7 @@ class BrowseFrame(wx.Frame):
         self.SetTitle("FS Browser - "+str(fs))
 
         self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
-        self.tree.AddColumn("FS", 300)        
+        self.tree.AddColumn("FS", 300)
         self.tree.AddColumn("Description", 250)
         self.tree.AddColumn("Size", 150)
         self.tree.AddColumn("Created", 250)
@@ -97,7 +97,7 @@ class BrowseFrame(wx.Frame):
                     self.tree.SetItemText(new_item, ct.ctime(), 3)
                 else:
                     self.tree.SetItemText(new_item, 'unknown', 3)
-                    
+
             self.tree.SetItemText(new_item, self.fs.desc(new_path), 1)
 
         item_data['expanded'] = True
@@ -119,5 +119,6 @@ def browse(fs):
 
 if __name__ == "__main__":
 
-    home_fs = fs.OSFS("~/")
+    from osfs import OSFS
+    home_fs = OSFS("~/")
     browse(home_fs)

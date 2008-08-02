@@ -321,6 +321,9 @@ class MemoryFS(FS):
     def getinfo(self, path):
         dir_entry = self._get_dir_entry(path)
 
+        if dir_entry is None:
+            raise ResourceNotFoundError("NO_RESOURCE", path)
+
         info = {}
         info['created_time'] = dir_entry.created_time
 
