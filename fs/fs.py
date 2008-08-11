@@ -15,11 +15,13 @@ error_msgs = {
     "UNSUPPORTED" :     "Action is unsupported by this filesystem.",
 
     # OperationFailedError
-    "LISTDIR_FAILED" :  "Unable to get directory listing: %(path)s",
-    "DELETE_FAILED" :   "Unable to delete file: %(path)s",
-    "RENAME_FAILED" :   "Unable to rename file: %(path)s",
-    "OPEN_FAILED" :     "Unable to open file: %(path)s",
-    "DIR_EXISTS" :      "Directory exists (try allow_recreate=True): %(path)s",
+    "LISTDIR_FAILED" :      "Unable to get directory listing: %(path)s",
+    "DELETE_FAILED" :       "Unable to delete file: %(path)s",
+    "RENAME_FAILED" :       "Unable to rename file: %(path)s",
+    "OPEN_FAILED" :         "Unable to open file: %(path)s",
+    "DIR_EXISTS" :          "Directory exists (try allow_recreate=True): %(path)s",
+    "REMOVE_FAILED" :       "Unable to remove file: %(path)s",
+    "REMOVEDIR_FAILED" :    "Unable to remove dir: %(path)s",
 
     # NoSysPathError
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",

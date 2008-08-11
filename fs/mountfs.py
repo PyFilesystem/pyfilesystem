@@ -110,6 +110,7 @@ class MountFS(FS):
 
     def open(self, path, mode="r", **kwargs):
 
+        path = normpath(path)
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
             callable = object.open_callable
@@ -121,6 +122,63 @@ class MountFS(FS):
             raise ResourceNotFoundError("NO_FILE", path)
 
         return fs.open(delegate_path, mode, **kwargs)
+
+    def exists(self, path):
+
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+
+        if fs is None:
+            return False
+
+        if fs is self:
+            return path in self.mount_tree
+
+        return fs.exists(delegate_path)
+
+    def removedir(self, path, recursive=False):
+
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+
+        if fs is not self:
+            return fs.removedir(delegate_path, path)
+
+        object = self.mount_tree.get(path, None)
+        if object is None or not isinstance(object, dict):
+            raise ResourceNotFound("NO_DIR", path)
+
+        if not recursive and len(object):
+            raise OperationFailedError("REMOVEDIR_FAILED", path)
+
+        del self.mount_tree[delegate_path]
+
+    def rename(self, src, dst):
+
+
+        fs1, mount_path1, delegate_path1 = self._delegate(path)
+        fs2, mount_path2, delegate_path2 = self._delegate(path)
+
+        if fs1 is not fs2:
+            raise OperationFailedError("RENAME_FAILED", src)
+
+        if fs1 is not self:
+            return fs1.rename(delegate_path1, delegate_path2)
+
+        path_src = normpath(src)
+        path_dst = normpath(dst)
+
+        object = self.mount_tree.get(path_src, None)
+        object2 = self.mount_tree.get(path_dst, None)
+
+        if object1 is None:
+            raise NoResourceError("NO_RESOURCE", src)
+
+        # TODO!
+
+        raise UnsupportedError("UNSUPPORTED", src)
+
+
 
 
     def mountdir(self, path, fs):
@@ -145,6 +203,27 @@ class MountFS(FS):
                 return self.mount_tree[path].info_callable(path)
             return {}
         return fs.getinfo(delegate_path)
+
+    def getsize(self, path):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+
+        if fs is None:
+            raise ResourceNotFoundError("NO_FILE", path)
+
+        if fs is self:
+            object = self.mount_tree.get(path, None)
+
+            if object is None or isinstance(object, dict):
+                raise ResourceNotFoundError("NO_FILE", path)
+
+            size = self.mount_tree[path].info_callable(path).get("size", None)
+            return size
+
+        return fs.getinfo(delegate_path).getsize()
+
+
+
 #
 #class MountFS(FS):
 #
