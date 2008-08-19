@@ -400,6 +400,18 @@ class FS(object):
     def getsize(self, path):
         return self.getinfo(path)['size']
 
+    def makefile(self, path, data):
+        f = None
+        try:
+            f = self.open(path, "wb")
+            f.write(data)
+        finally:
+            if f is not None:
+                f.close()
+        return True
+
+
+
 
 class SubFS(FS):
 

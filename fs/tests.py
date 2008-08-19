@@ -137,6 +137,7 @@ class TestFS(unittest.TestCase):
 
 
     def test_removedir(self):
+
         check = self.check
         self.fs.makedir("a")
         self.assert_(check("a"))
@@ -156,6 +157,21 @@ class TestFS(unittest.TestCase):
         self.assert_(not check("foo/bar/baz"))
         self.assert_(not check("foo/bar"))
         self.assert_(not check("foo"))
+
+    def test_rename(self):
+
+        check = self.check
+        self.fs.open("foo.txt", 'wt').write("Hello, World!")
+        self.assert_(check("foo.txt"))
+        self.fs.rename("foo.txt", "bar.txt")
+        self.assert_(check("bar.txt"))
+
+    def test_makefile(self):
+
+        check = self.check
+        self.fs.makefile("foo.txt", "Hello, World!")
+        data = self.fs.open("foo.txt").read()
+        self.assertEqual(data, "Hello, World!")
 
 
 if __name__ == "__main__":
