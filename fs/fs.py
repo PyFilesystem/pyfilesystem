@@ -140,14 +140,27 @@ class NullFile(object):
 
 
 def isabsolutepath(path):
-    """Returns True if a given path is absolute."""
+    """Returns True if a given path is absolute.
+
+    >>> isabsolutepath("a/b/c")
+    False
+
+    >>> isabsolutepath("/foo/bar")
+    True
+
+    """
     if path:
         return path[0] in '\\/'
     return False
 
 def normpath(path):
     """Normalizes a path to be in the formated expected by FS objects.
-    Returns a new path string."""
+    Returns a new path string.
+
+    >>> normpath(r"foo\\bar\\baz")
+    'foo/bar/baz'
+
+    """
     return path.replace('\\', '/')
 
 
@@ -155,6 +168,12 @@ def pathjoin(*paths):
     """Joins any number of paths together. Returns a new path string.
 
     paths -- An iterable of path strings
+
+    >>> pathjoin('foo', 'bar', 'baz')
+    'foo/bar/baz'
+
+    >>> pathjoin('foo/bar', '../baz')
+    'foo/baz'
 
     """
     absolute = False
@@ -193,7 +212,7 @@ def pathsplit(path):
     ('foo', 'bar')
 
     >>> pathsplit("foo/bar/baz")
-    ('foo/bar', 'bar')
+    ('foo/bar', 'baz')
 
     """
 
@@ -203,9 +222,25 @@ def pathsplit(path):
     return tuple(split)
 
 def resolvepath(path):
+    """Normalises the path and removes any relative path components.
+
+    path -- A path string
+
+    >>> resolvepath(r"foo\\bar\\..\\baz")
+    'foo/baz'
+
+    """
     return pathjoin(path)
 
 def makerelative(path):
+    """Makes a path relative by removing initial separator.
+
+    path -- A normalised path
+
+    >>> makerelative("/foo/bar")
+    'foo/bar'
+
+    """
     if path.startswith('/'):
         return path[1:]
     return path
@@ -261,8 +296,10 @@ class FS(object):
             return pathjoin('/', pathname)
         return pathname
 
-    def getsyspath(self, path):
-        raise NoSysPathError("NO_SYS_PATH", path)
+    def getsyspath(self, path, default=None):
+        if default is None:
+            raise NoSysPathError("NO_SYS_PATH", path)
+        return default
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
         raise UnsupportedError("UNSUPPORTED")
@@ -399,17 +436,6 @@ class FS(object):
 
     def getsize(self, path):
         return self.getinfo(path)['size']
-
-    def makefile(self, path, data):
-        f = None
-        try:
-            f = self.open(path, "wb")
-            f.write(data)
-        finally:
-            if f is not None:
-                f.close()
-        return True
-
 
 
 

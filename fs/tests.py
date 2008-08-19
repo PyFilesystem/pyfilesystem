@@ -6,6 +6,7 @@ import fs
 class TestHelpers(unittest.TestCase):
 
     def test_isabsolutepath(self):
+        """fs.isabsolutepath tests"""
         tests = [   ('', False),
                     ('/', True),
                     ('/A/B', True),
@@ -16,6 +17,7 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.isabsolutepath(path), result)
 
     def test_normpath(self):
+        """fs.normpath tests"""
         tests = [   ("\\a\\b\\c", "/a/b/c"),
                     ("", ""),
                     ("/a/b/c", "/a/b/c"),
@@ -24,6 +26,7 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.normpath(path), result)
 
     def test_pathjon(self):
+        """fs.pathjoin tests"""
         tests = [   ("", "a", "a"),
                     ("a", "a", "a/a"),
                     ("a/b", "../c", "a/c"),
@@ -51,6 +54,7 @@ class TestHelpers(unittest.TestCase):
         self.assertRaises(fs.PathError, fs.pathjoin, "a/b/../../../d")
 
     def test_makerelative(self):
+        """fs.makerelative tests"""
         tests = [   ("/a/b", "a/b"),
                     ("a/b", "a/b"),
                     ("/", "") ]
@@ -59,7 +63,8 @@ class TestHelpers(unittest.TestCase):
             print path, result
             self.assertEqual(fs.makerelative(path), result)
 
-    def test_absolute(self):
+    def test_makeabsolute(self):
+        """fs.makeabsolute tests"""
         tests = [   ("/a/b", "/a/b"),
                     ("a/b", "/a/b"),
                     ("/", "/") ]
@@ -68,6 +73,7 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.makeabsolute(path), result)
 
     def test_iteratepath(self):
+        """fs.iteratepath tests"""
         tests = [   ("a/b", ["a", "b"]),
                     ("", [] ),
                     ("aaa/bbb/ccc", ["aaa", "bbb", "ccc"]),
@@ -82,6 +88,7 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(list(fs._iteratepath("a/b/c/d", 2)), ["a", "b", "c/d"])
 
     def test_pathsplit(self):
+        """fs.pathsplit tests"""
         tests = [   ("a/b", ("a", "b")),
                     ("a/b/c", ("a/b", "c")),
                     ("a", ("", "a")),
@@ -119,7 +126,7 @@ class TestFS(unittest.TestCase):
         return os.path.exists(os.path.join(self.temp_dir, p))
 
     def test_makedir(self):
-
+        """osfs.makedir tests"""
         check = self.check
 
         self.fs.makedir("a")
@@ -137,7 +144,7 @@ class TestFS(unittest.TestCase):
 
 
     def test_removedir(self):
-
+        """osfs.removedir tests"""
         check = self.check
         self.fs.makedir("a")
         self.assert_(check("a"))
@@ -159,19 +166,12 @@ class TestFS(unittest.TestCase):
         self.assert_(not check("foo"))
 
     def test_rename(self):
-
+        """osfs.rename tests"""
         check = self.check
         self.fs.open("foo.txt", 'wt').write("Hello, World!")
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
-
-    def test_makefile(self):
-
-        check = self.check
-        self.fs.makefile("foo.txt", "Hello, World!")
-        data = self.fs.open("foo.txt").read()
-        self.assertEqual(data, "Hello, World!")
 
 
 if __name__ == "__main__":

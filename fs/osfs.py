@@ -18,7 +18,7 @@ class OSFS(FS):
     def __str__(self):
         return "<OSFS \"%s\">" % self.root_path
 
-    def getsyspath(self, path):
+    def getsyspath(self, path, default=None):
         sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))
         return sys_path
 
