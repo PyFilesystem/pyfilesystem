@@ -327,7 +327,7 @@ class MountFS(FS):
 #            return paths
 #
 #    def mount(self, name, path, fs):
-#        self.mem_fs.mkdir(path, recursive=True)
+#        self.mem_fs.makedir(path, recursive=True)
 #        mount_filename = pathjoin(path, '.mount')
 #        mount = self.mem_fs.open(mount_filename, 'w')
 #        mount.name = name
@@ -338,7 +338,7 @@ class MountFS(FS):
 if __name__ == "__main__":
 
     fs1 = MemoryFS()
-    fs1.mkdir("Memroot/B/C/D", recursive=True)
+    fs1.makedir("Memroot/B/C/D", recursive=True)
     fs1.open("test.txt", 'w').write("Hello, World!")
 
     #print_fs(fs1)

@@ -93,6 +93,74 @@ class TestHelpers(unittest.TestCase):
         for path, result in tests:
             self.assertEqual(fs.pathsplit(path), result)
 
+
+import tempfile
+import osfs
+import os
+
+class TestFS(unittest.TestCase):
+
+    def setUp(self):
+
+        self.temp_dir = tempfile.mkdtemp("fstest")
+        self.fs = osfs.OSFS(self.temp_dir)
+        print "Temp dir is", self.temp_dir
+
+    def tearDown(self):
+        assert "fstest" in self.temp_dir
+        for root, dirs, files in os.walk(self.temp_dir, topdown=False):
+            for f in files:
+                os.remove(os.path.join(root, f))
+            for d in dirs:
+                os.rmdir(os.path.join(root, d))
+        os.removedirs(self.temp_dir)
+
+    def check(self, p):
+        return os.path.exists(os.path.join(self.temp_dir, p))
+
+    def test_makedir(self):
+
+        check = self.check
+
+        self.fs.makedir("a")
+        self.assert_(check("a"))
+        self.assertRaises(fs.FSError, self.fs.makedir, "a/b/c")
+
+        self.fs.makedir("a/b/c", recursive=True)
+        self.assert_(check("a/b/c"))
+
+        self.fs.makedir("foo/bar/baz", recursive=True)
+        self.assert_(check("foo/bar/baz"))
+
+        self.fs.makedir("a/b/child")
+        self.assert_(check("a/b/child"))
+
+
+    def test_removedir(self):
+        check = self.check
+        self.fs.makedir("a")
+        self.assert_(check("a"))
+        self.fs.removedir("a")
+        self.assert_(not check("a"))
+        self.fs.makedir("a/b/c/d", recursive=True)
+        self.assertRaises(fs.FSError, self.fs.removedir, "a/b")
+        self.fs.removedir("a/b/c/d")
+        self.assert_(not check("a/b/c/d"))
+        self.fs.removedir("a/b/c")
+        self.assert_(not check("a/b/c"))
+        self.fs.removedir("a/b")
+        self.assert_(not check("a/b"))
+
+        self.fs.makedir("foo/bar/baz", recursive=True)
+        self.fs.removedir("foo/bar/baz", recursive=True)
+        self.assert_(not check("foo/bar/baz"))
+        self.assert_(not check("foo/bar"))
+        self.assert_(not check("foo"))
+
+
 if __name__ == "__main__":
+    #t = TestFS()
+    #t.setUp()
+    #t.tearDown()
     import nose
-    nose.run()
+    nose.main()

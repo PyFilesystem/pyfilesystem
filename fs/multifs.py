@@ -140,9 +140,9 @@ if __name__ == "__main__":
     import memoryfs
 
     mem_fs = memoryfs.MemoryFS()
-    mem_fs.mkdir('projects/test2', recursive=True)
-    mem_fs.mkdir('projects/A', recursive=True)
-    mem_fs.mkdir('projects/A/B', recursive=True)
+    mem_fs.makedir('projects/test2', recursive=True)
+    mem_fs.makedir('projects/A', recursive=True)
+    mem_fs.makedir('projects/A/B', recursive=True)
 
 
     mem_fs.open("projects/test2/readme.txt", 'w').write("Hello, World!")

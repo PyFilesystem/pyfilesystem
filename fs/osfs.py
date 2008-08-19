@@ -53,14 +53,19 @@ class OSFS(FS):
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
 
-    def mkdir(self, path, mode=0777, recursive=False):
+    def makedir(self, path, mode=0777, recursive=False):
         sys_path = self.getsyspath(path)
 
-        if recursive:
-            os.makedirs(sys_path, mode)
-        else:
-            os.makedir(sys_path, mode)
-
+        try:
+            if recursive:
+                os.makedirs(sys_path, mode)
+            else:
+                try:
+                    os.mkdir(sys_path, mode)
+                except OSError, e:
+                    raise FSError("NO_DIR", sys_path)
+        except OSError, e:
+            raise FSError("OS_ERROR", sys_path, details=e)
 
     def remove(self, path):
         sys_path = self.getsyspath(path)
@@ -75,12 +80,12 @@ class OSFS(FS):
 
         if recursive:
             try:
-                os.rmdir(sys_path)
+                os.removedirs(sys_path)
             except OSError, e:
                 raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
         else:
             try:
-                os.removedirs(sys_path)
+                os.rmdir(sys_path)
             except OSError, e:
                 raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
 
@@ -129,6 +134,7 @@ class OSFS(FS):
             raise FSError("UNKNOWN_ERROR", path, details=e)
 
         return stats.st_size
+
 
 
 if __name__ == "__main__":

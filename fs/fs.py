@@ -37,6 +37,9 @@ error_msgs = {
     "NO_DIR" :          "Directory does not exist: %(path)s",
     "NO_FILE" :         "No such file: %(path)s",
     "NO_RESOURCE" :     "No path to: %(path)s",
+
+    # SystemError
+    "OS_ERROR" :        "Non specific OS error: %(path)s",
 }
 
 error_codes = error_msgs.keys()
@@ -81,6 +84,9 @@ class ResourceLockedError(FSError):
     pass
 
 class ResourceNotFoundError(FSError):
+    pass
+
+class SystemError(FSError):
     pass
 
 
@@ -283,7 +289,7 @@ class FS(object):
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
         raise UnsupportedError("UNSUPPORTED")
 
-    def mkdir(self, path, mode=0777, recursive=False):
+    def makedir(self, path, mode=0777, recursive=False):
         raise UnsupportedError("UNSUPPORTED")
 
     def remove(self, path):
@@ -456,8 +462,8 @@ class SubFS(FS):
         return paths
 
 
-    def mkdir(self, path, mode=0777, recursive=False):
-        return self.parent.mkdir(self._delegate(path), mode=mode, recursive=False)
+    def makedir(self, path, mode=0777, recursive=False):
+        return self.parent.makedir(self._delegate(path), mode=mode, recursive=False)
 
     def remove(self, path):
         return self.parent.remove(self._delegate(path))
@@ -484,7 +490,7 @@ def validatefs(fs):
                          "isfile",
                          "ishidden",
                          "listdir",
-                         "mkdir",
+                         "makedir",
                          "remove",
                          "removedir",
                          "getinfo",

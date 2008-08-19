@@ -186,7 +186,7 @@ class MemoryFS(FS):
     def exists(self, path):
         return self._get_dir_entry(path) is not None
 
-    def mkdir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
+    def makedir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
         fullpath = dirname
         dirpath, dirname = pathsplit(dirname)
 
@@ -340,9 +340,9 @@ class MemoryFS(FS):
 def main():
 
     mem_fs = MemoryFS()
-    mem_fs.mkdir('test/test2', recursive=True)
-    mem_fs.mkdir('test/A', recursive=True)
-    mem_fs.mkdir('test/A/B', recursive=True)
+    mem_fs.makedir('test/test2', recursive=True)
+    mem_fs.makedir('test/A', recursive=True)
+    mem_fs.makedir('test/A/B', recursive=True)
 
 
 
