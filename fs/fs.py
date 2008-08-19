@@ -235,22 +235,33 @@ def resolvepath(path):
 def makerelative(path):
     """Makes a path relative by removing initial separator.
 
-    path -- A normalised path
+    path -- A path
 
     >>> makerelative("/foo/bar")
     'foo/bar'
 
     """
+    path = normpath(path)
     if path.startswith('/'):
         return path[1:]
     return path
 
 def makeabsolute(path):
+    """Makes a path absolute by adding a separater at the beginning of the path.
+
+    path -- A path
+
+    >>> makeabsolute("foo/bar/baz")
+    '/foo/bar/baz'
+
+    """
+    path = normpath(path)
     if not path.startswith('/'):
         return '/'+path
     return path
 
 def _iteratepath(path, numsplits=None):
+
     path = resolvepath(path)
     if not path:
         return []
@@ -262,11 +273,21 @@ def _iteratepath(path, numsplits=None):
 
 
 def print_fs(fs, path="/", max_levels=None, indent=' '*2):
+    """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
+    Be careful about printing a OSFS, or any other large filesystem.
+    Without max_levels set, this function will traverse the entire directory tree.
+
+    fs -- A filesystem object
+    path -- Path of root to list (default "/")
+    max_levels -- Maximum levels of dirs to list (default None for no maximum)
+    indent -- String to indent each directory level (default two spaces)
+
+    """
     def print_dir(fs, path, level):
         try:
             dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
         except FSError, e:
-            print indent*level + "... unabled to retrieve directory list (%s) ..." % str(e)
+            print indent*level + "... unabled to retrieve directory list (reason: %s) ..." % str(e)
             return
 
         dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
@@ -284,6 +305,10 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
 
 class FS(object):
 
+    """The base class for Filesystem objects. An instance of a class derived from FS is an abstraction
+    on some kind of filesytem, such as the OS filesystem or a zip file.
+
+    """
 
     def _resolve(self, pathname):
         resolved_path = resolvepath(pathname)
@@ -297,6 +322,14 @@ class FS(object):
         return pathname
 
     def getsyspath(self, path, default=None):
+        """Returns the system path (a path recognised by the operating system) if present.
+        If the path does not map to a system path, then either the default is returned (if given),
+        or a NoSysPathError exception is thrown.
+
+        path -- A path within the filesystem
+        default -- A default value to return if there is no mapping to an operating system path
+
+        """
         if default is None:
             raise NoSysPathError("NO_SYS_PATH", path)
         return default
@@ -440,6 +473,12 @@ class FS(object):
 
 
 class SubFS(FS):
+
+    """A SubFS represents a sub directory of another filesystem object.
+    SubFS objects are return by opendir, which effectively creates a 'sandbox'
+    filesystem that can not be used to access files / dirs outside of the sub directory.
+
+    """
 
     def __init__(self, parent, sub_dir):
         self.parent = parent
