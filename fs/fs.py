@@ -380,7 +380,7 @@ class FS(object):
 
         try:
             sys_path = self.getsyspath(path)
-        except FSError:
+        except NoSysPathError:
             return "No description available"
 
         if self.isdir(path):
@@ -476,7 +476,7 @@ class SubFS(FS):
 
     """A SubFS represents a sub directory of another filesystem object.
     SubFS objects are return by opendir, which effectively creates a 'sandbox'
-    filesystem that can not be used to access files / dirs outside of the sub directory.
+    filesystem that can only access files / dirs under a root path within its 'parent' dir.
 
     """
 
