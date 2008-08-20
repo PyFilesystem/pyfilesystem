@@ -2,6 +2,7 @@
 
 import unittest
 import fs
+import shutil
 
 class TestHelpers(unittest.TestCase):
 
@@ -125,7 +126,7 @@ class TestObjectTree(unittest.TestCase):
         ot['a/b/e'] = "C"
         ot['a/b/f'] = "D"
         self.assertEqual(sorted(ot['a/b'].values()), ['A', 'B', 'C', 'D'])
-        self.assert_(ot.get('a/b/x', None) is None)
+        self.assert_(ot.get('a/b/x', -1) == -1)
 
         self.assert_('a/b/c' in ot)
         self.assert_('a/b/x' not in ot)
@@ -137,7 +138,7 @@ class TestObjectTree(unittest.TestCase):
         self.assertEqual(left, "a/b/e")
         self.assertEqual(object, "C")
         self.assertEqual(right, "f/g")
-    
+
 
 
 import tempfile
@@ -154,12 +155,7 @@ class TestFS(unittest.TestCase):
 
     def tearDown(self):
         assert "fstest" in self.temp_dir
-        for root, dirs, files in os.walk(self.temp_dir, topdown=False):
-            for f in files:
-                os.remove(os.path.join(root, f))
-            for d in dirs:
-                os.rmdir(os.path.join(root, d))
-        os.removedirs(self.temp_dir)
+        shutil.rmtree(self.temp_dir)
 
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, p))
