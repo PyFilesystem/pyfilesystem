@@ -12,6 +12,12 @@ class ObjectTree(object):
     def __init__(self):
         self.root = _ObjectDict()
 
+    def _split(self, path):
+        if '/' not in path:
+            return  "", path
+        else:
+            return path.rsplit('/', 1)
+
     def _splitpath(self, path):
         return [p for p in path.split('/') if p]
 
@@ -30,7 +36,7 @@ class ObjectTree(object):
         if not path:
             raise IndexError("No path supplied")
         current = self.root
-        path, name = path.rsplit('/', 1)
+        path, name = self._split(path)
         for path_component in self._splitpath(path):
             node = current.get(path_component, None)
             if type(node) is not _ObjectDict:
@@ -48,7 +54,7 @@ class ObjectTree(object):
         return node
 
     def __delitem__(self, path):
-        path, name = path.rsplit('/', 1)
+        path, name = self._split(path)
         node = self._locate(path)
         if node is None or type(node) is not _ObjectDict:
             raise IndexError("Path does not exist")
@@ -97,6 +103,7 @@ class ObjectTree(object):
 
     def iteritems(self):
         return self.root.iteritems()
+
 
 if __name__ == "__main__":
 
