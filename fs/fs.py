@@ -5,7 +5,10 @@ import os.path
 import fnmatch
 from itertools import chain
 import datetime
-
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threadding
 
 error_msgs = {
 
@@ -303,12 +306,31 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
     print_dir(fs, path, 0)
 
 
+def _synchronize(func):
+    def acquire_lock(self, *args, **kwargs):
+        self._lock.acquire()
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self._lock.release()
+    acquire_lock.__doc__ = func.__doc__
+    return acquire_lock
+
+
+
 class FS(object):
 
     """The base class for Filesystem objects. An instance of a class derived from FS is an abstraction
     on some kind of filesytem, such as the OS filesystem or a zip file.
 
     """
+
+    def __init__(self, thread_syncronize=False):
+
+        if thread_syncronize:
+            self._lock = threading.RLock()
+        else:
+            self._lock = None
 
     def _resolve(self, pathname):
         resolved_path = resolvepath(pathname)

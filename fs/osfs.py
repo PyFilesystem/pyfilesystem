@@ -5,6 +5,7 @@ from fs import *
 class OSFS(FS):
 
     def __init__(self, root_path):
+        FS.__init__(self)
 
         expanded_path = normpath(os.path.expanduser(os.path.expandvars(root_path)))
 
