@@ -4,6 +4,13 @@ from fs import FS, FSError
 
 class MultiFS(FS):
 
+    """A MultiFS is a filesystem that delegates to a sequence of other filesystems.
+    Operations on the MultiFS will try easy 'child' filesystem in order, until it
+    succeeds. In effect, creating a filesystem that combines the files and dirs of
+    its children.
+
+    """
+
     def __init__(self):
         FS.__init__(self, thread_syncronize=True)
 
@@ -11,9 +18,19 @@ class MultiFS(FS):
         self.fs_lookup =  {}
 
     def __str__(self):
-        return "<MultiFS: %s>" % ", ".join(str(fs) for fs in self.fs_sequence)
+        self._lock.acquire()
+        try:
+            return "<MultiFS: %s>" % ", ".join(str(fs) for fs in self.fs_sequence)
+        finally:
+            self._lock.release()
 
     def addfs(self, name, fs):
+        """Adds a filesystem to the MultiFS
+
+        name -- A unique name to refer to the filesystem being added
+        fs -- The filesystem to add
+
+        """
         self._lock.acquire()
         try:
             if name in self.fs_lookup:
@@ -25,8 +42,15 @@ class MultiFS(FS):
             self._lock.release()
 
     def removefs(self, name):
+        """Removes a filesystem from the sequence.
+
+        name -- The name of the filesystem, as used in addfs
+
+        """
         self._lock.acquire()
         try:
+            if name not in self.fs_lookup:
+                raise ValueError("No filesystem called '%s'"%name)
             fs = self.fs_lookup[name]
             self.fs_sequence.remove(fs)
             del self.fs_lookup[name]
@@ -55,6 +79,12 @@ class MultiFS(FS):
         return None
 
     def which(self, path):
+        """Retrieves the filesystem that a given path would delegate to.
+        Returns a tuple of the filesystem's name and the filesystem object itself.
+
+        path -- A path in MultiFS
+
+        """
         self._lock.acquire()
         try:
             for fs in self:
@@ -62,7 +92,7 @@ class MultiFS(FS):
                     for fs_name, fs_object in self.fs_lookup.iteritems():
                         if fs is fs_object:
                             return fs_name, fs
-            return None, None
+            raise ResourceNotFoundError("NO_RESOURCE", path, msg="Path does not map to any filesystem: %(path)s")
         finally:
             self._lock.release()
 

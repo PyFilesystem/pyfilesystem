@@ -71,26 +71,13 @@ class FSError(Exception):
 
         return '%s. %s' % (self.code, msg)
 
-class UnsupportedError(FSError):
-    pass
-
-class OperationFailedError(FSError):
-    pass
-
-class NoSysPathError(FSError):
-    pass
-
-class PathError(FSError):
-    pass
-
-class ResourceLockedError(FSError):
-    pass
-
-class ResourceNotFoundError(FSError):
-    pass
-
-class SystemError(FSError):
-    pass
+class UnsupportedError(FSError): pass
+class OperationFailedError(FSError): pass
+class NoSysPathError(FSError): pass
+class PathError(FSError): pass
+class ResourceLockedError(FSError): pass
+class ResourceNotFoundError(FSError): pass
+class SystemError(FSError): pass
 
 
 class NullFile(object):
