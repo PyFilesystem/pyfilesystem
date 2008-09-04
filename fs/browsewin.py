@@ -8,7 +8,7 @@ import fs
 class InfoFrame(wx.Frame):
 
     def __init__(self, path, desc, info):
-        wx.Frame.__init__(self, None, -1, style=wx.DEFAULT_FRAME_STYLE, size=(700, 500))
+        wx.Frame.__init__(self, None, -1, style=wx.DEFAULT_FRAME_STYLE, size=(500, 500))
 
         self.SetTitle("FS Object info - %s (%s)" % (path, desc))
 
@@ -20,7 +20,7 @@ class InfoFrame(wx.Frame):
         self.list_ctrl.InsertColumn(0, "Key")
         self.list_ctrl.InsertColumn(1, "Value")
 
-        self.list_ctrl.SetColumnWidth(0, 150)
+        self.list_ctrl.SetColumnWidth(0, 190)
         self.list_ctrl.SetColumnWidth(1, 300)
 
         for key in keys:

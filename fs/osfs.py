@@ -140,14 +140,6 @@ class OSFS(FS):
 if __name__ == "__main__":
 
     osfs = OSFS("~/projects")
-    print osfs
-
-    for filename in osfs.walkfiles("/", "*.pov"):
-        print filename
-        print osfs.getinfo(filename)
-
-    validatefs(osfs)
-
     import browsewin
     browsewin.browse(osfs)
 

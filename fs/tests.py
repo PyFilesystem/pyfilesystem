@@ -247,15 +247,13 @@ class TestOSFS(unittest.TestCase):
         info = self.fs.getinfo("info.txt")
         self.assertEqual(info['size'], len(test_str))
 
-
     def test_getsize(self):
-
         test_str = "*"*23
         f = self.fs.open("info.txt", 'wb')
         f.write(test_str)
         f.close()
-        info = self.fs.getinfo("info.txt")
-        self.assertEqual(info['size'], len(test_str))
+        size = self.fs.getsize("info.txt")
+        self.assertEqual(size, len(test_str))
 
 class TestSubFS(TestOSFS):
 

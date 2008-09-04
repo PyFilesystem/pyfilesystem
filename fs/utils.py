@@ -10,7 +10,7 @@ def copy_file(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
     dst_fs -- Destination filesystem object
     dst_path -- Destination filesystem object
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
-    
+
     """
 
     src_syspath = src_fs.getsyspath(src_path, default="")
@@ -48,7 +48,4 @@ def get_total_data(count_fs):
 
     """
 
-    total = 0
-    for f in count_fs.walkfiles(absolute=True):
-        total += count_fs.getsize(f)
-    return total
+    total = sum(count_fs.getsize(f) for f in count_fs.walkfiles(absolute=True))

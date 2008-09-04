@@ -25,6 +25,7 @@ error_msgs = {
     "DIR_EXISTS" :          "Directory exists (try allow_recreate=True): %(path)s",
     "REMOVE_FAILED" :       "Unable to remove file: %(path)s",
     "REMOVEDIR_FAILED" :    "Unable to remove dir: %(path)s",
+    "GETSIZE_FAILED" :      "Unable to retrieve size of resource: %(path)s",
 
     # NoSysPathError
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
@@ -487,7 +488,16 @@ class FS(object):
 
 
     def getsize(self, path):
-        return self.getinfo(path)['size']
+        """Returns the size (in bytes) of a resource.
+
+        path -- A path to the resource
+
+        """
+        info = self.getinfo(path)
+        size = info.get('size', None)
+        if 'size' is None:
+            raise OperationFailedError("GETSIZE_FAILED", path)
+        return size
 
 
 
@@ -575,36 +585,6 @@ class SubFS(FS):
 
     def rename(self, src, dst):
         return self.parent.rename(self._delegate(src), self._delegate(dst))
-
-def validatefs(fs):
-
-    expected_methods = [ "abspath",
-                         "getsyspath",
-                         "open",
-                         "exists",
-                         "isdir",
-                         "isfile",
-                         "ishidden",
-                         "listdir",
-                         "makedir",
-                         "remove",
-                         "removedir",
-                         "getinfo",
-                         "getsize",
-                         "rename",
-    ]
-
-    pad_size = len(max(expected_methods, key=str.__len__))
-    count = 0
-    for method_name in sorted(expected_methods):
-        method = getattr(fs, method_name, None)
-        if method is None:
-            print method_name.ljust(pad_size), '?'
-        else:
-            print method_name.ljust(pad_size), 'X'
-            count += 1
-    print
-    print "%i out of %i methods" % (count, len(expected_methods))
 
 
 if __name__ == "__main__":

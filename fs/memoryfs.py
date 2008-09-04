@@ -411,9 +411,7 @@ class MemoryFS(FS):
             dir_entry = self._get_dir_entry(path)
             if dir_entry is None:
                 raise ResourceNotFoundError("NO_DIR", path)
-            paths = dir_entry.contents.keys()
-            print "Listdir", paths
-
+            paths = dir_entry.contents.keys()            
             return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
         finally:
             self._lock.release()
