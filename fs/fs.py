@@ -392,9 +392,19 @@ class FS(object):
         raise UnsupportedError("UNSUPPORTED")
 
     def getinfo(self, path):
+        """Returns information for a path as a dictionary.
+
+        path -- A path to retrieve information for
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def desc(self, path):
+        """Returns short descriptive text regarding a path. For use as a debugging aid.
+
+        path -- A path to describe
+
+        """
         if not self.exists(path):
             return "No description available"
 

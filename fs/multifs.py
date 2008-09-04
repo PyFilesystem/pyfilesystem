@@ -25,7 +25,7 @@ class MultiFS(FS):
             self._lock.release()
 
     def addfs(self, name, fs):
-        """Adds a filesystem to the MultiFS
+        """Adds a filesystem to the MultiFS.
 
         name -- A unique name to refer to the filesystem being added
         fs -- The filesystem to add
