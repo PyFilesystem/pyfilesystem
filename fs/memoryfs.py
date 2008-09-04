@@ -153,6 +153,8 @@ class MemoryFS(FS):
         try:
             current_dir = self.root
             for path_component in _iteratepath(dirpath):
+                if current_dir.contents is None:
+                    return None
                 dir_entry = current_dir.contents.get(path_component, None)
                 if dir_entry is None:
                     return None
@@ -410,6 +412,7 @@ class MemoryFS(FS):
             if dir_entry is None:
                 raise ResourceNotFoundError("NO_DIR", path)
             paths = dir_entry.contents.keys()
+            print "Listdir", paths
 
             return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
         finally:

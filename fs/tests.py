@@ -188,12 +188,74 @@ class TestOSFS(unittest.TestCase):
         self.assert_(not check("foo/bar"))
         self.assert_(not check("foo"))
 
+    def test_listdir(self):
+
+        def makefile(fname):
+            f = self.fs.open(fname, "wb")
+            f.write("*")
+            f.close()
+
+        makefile("a")
+        makefile("b")
+        makefile("foo")
+        makefile("bar")
+
+        d1 = self.fs.listdir()
+        self.assertEqual(len(d1), 4)
+        self.assertEqual(sorted(d1), ["a", "b", "bar", "foo"])
+
+        d2 = self.fs.listdir(absolute=True)
+        self.assertEqual(len(d2), 4)
+        self.assertEqual(sorted(d2), ["/a", "/b", "/bar", "/foo"])
+
+        self.fs.makedir("p/1/2/3", recursive=True)
+        makefile("p/1/2/3/a")
+        makefile("p/1/2/3/b")
+        makefile("p/1/2/3/foo")
+        makefile("p/1/2/3/bar")
+
+        self.fs.makedir("q")
+        dirs_only = self.fs.listdir(dirs_only=True)
+        files_only = self.fs.listdir(files_only=True)
+        self.assertEqual(sorted(dirs_only), ["p", "q"])
+        self.assertEqual(sorted(files_only), ["a", "b", "bar", "foo"])
+
+        d3 = self.fs.listdir("p/1/2/3")
+        self.assertEqual(len(d3), 4)
+        self.assertEqual(sorted(d3), ["a", "b", "bar", "foo"])
+
+        d4 = self.fs.listdir("p/1/2/3", absolute=True)
+        self.assertEqual(len(d4), 4)
+        self.assertEqual(sorted(d4), ["/p/1/2/3/a", "/p/1/2/3/b", "/p/1/2/3/bar", "/p/1/2/3/foo"])
+
+        d4 = self.fs.listdir("p/1/2/3", full=True)
+        self.assertEqual(len(d4), 4)
+        self.assertEqual(sorted(d4), ["p/1/2/3/a", "p/1/2/3/b", "p/1/2/3/bar", "p/1/2/3/foo"])
+
     def test_rename(self):
         check = self.check
         self.fs.open("foo.txt", 'wt').write("Hello, World!")
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
+
+    def test_info(self):
+        test_str = "Hello, World!"
+        f = self.fs.open("info.txt", 'wb')
+        f.write(test_str)
+        f.close()
+        info = self.fs.getinfo("info.txt")
+        self.assertEqual(info['size'], len(test_str))
+
+
+    def test_getsize(self):
+
+        test_str = "*"*23
+        f = self.fs.open("info.txt", 'wb')
+        f.write(test_str)
+        f.close()
+        info = self.fs.getinfo("info.txt")
+        self.assertEqual(info['size'], len(test_str))
 
 class TestSubFS(TestOSFS):
 

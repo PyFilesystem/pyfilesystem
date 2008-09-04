@@ -351,6 +351,7 @@ class FS(object):
         raise UnsupportedError("UNSUPPORTED")
 
     def safeopen(self, *args, **kwargs):
+        """Like 'open', but will return a NullFile if the file could not be opened."""
         try:
             f = self.open(*args, **kwargs)
         except ResourceNotFoundError:
@@ -358,6 +359,11 @@ class FS(object):
         return f
 
     def exists(self, path):
+        """Returns True if the path references a valid resource.
+
+        path -- A path to test
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def isdir(self, path):
