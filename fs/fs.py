@@ -41,6 +41,9 @@ error_msgs = {
     "NO_FILE" :         "No such file: %(path)s",
     "NO_RESOURCE" :     "No path to: %(path)s",
 
+    # ResourceInvalid
+    "WRONG_TYPE" :      "Resource is not the type that was expected: %(path)s",
+
     # SystemError
     "OS_ERROR" :        "Non specific OS error: %(path)s",
 }
@@ -78,6 +81,7 @@ class PathError(FSError): pass
 class ResourceLockedError(FSError): pass
 class ResourceNotFoundError(FSError): pass
 class SystemError(FSError): pass
+class ResourceInvalid(FSError): pass
 
 
 class NullFile(object):
@@ -549,13 +553,13 @@ class SubFS(FS):
 
 
     def makedir(self, path, mode=0777, recursive=False):
-        return self.parent.makedir(self._delegate(path), mode=mode, recursive=False)
+        return self.parent.makedir(self._delegate(path), mode=mode, recursive=recursive)
 
     def remove(self, path):
         return self.parent.remove(self._delegate(path))
 
     def removedir(self, path, recursive=False):
-        self.parent.removedir(self._delegate(path), recursive=False)
+        self.parent.removedir(self._delegate(path), recursive=recursive)
 
     def getinfo(self, path):
         return self.parent.getinfo(self._delegate(path))

@@ -343,6 +343,56 @@ class MemoryFS(FS):
         finally:
             self._lock.release()
 
+    def removedir(self, path, recursive=False):
+        self._lock.acquire()
+        try:
+            dir_entry = self._get_dir_entry(path)
+
+            if dir_entry is None:
+                raise ResourceNotFoundError("NO_DIR", path)
+            if dir_entry.islocked():
+                raise ResourceLockedError("FILE_LOCKED", path)
+            if not dir_entry.isdir():
+                raise ResourceInvalid("WRONG_TYPE", path, msg="Can't remove resource, its not a directory: %(path)s" )
+
+            if not recursive and len(dir_entry.contents):
+                raise OperationFailedError("REMOVEDIR_FAILED", "Directory is not empty: %(path)s")
+
+            if recursive:
+                rpathname = path
+                while rpathname:
+                    rpathname, dirname = pathsplit(rpathname)
+                    parent_dir = self._get_dir_entry(rpathname)
+                    del parent_dir.contents[dirname]
+            else:
+                pathname, dirname = pathsplit(path)
+                parent_dir = self._get_dir_entry(pathname)
+                del parent_dir.contents[dirname]
+
+        finally:
+            self._lock.release()
+
+    def rename(self, src, dst):
+        self._lock.acquire()
+        try:
+            dir_entry = self._get_dir_entry(src)
+            if dir_entry is None:
+                raise ResourceNotFoundError("NO_DIR", src)
+            if dir_entry.islocked():
+                raise ResourceLockedError("FILE_LOCKED", src)
+
+            dst_dir_entry = self._get_dir_entry(dst)
+            if dst_dir_entry is not None:
+                raise OperationFailedError("RENAME_FAILED", "Destination exists: %(path)s", src + " -> " + dst )
+
+            pathname, dirname = pathsplit(src)
+            parent_dir = self._get_dir_entry(pathname)
+            parent_dir.contents[dst] = parent_dir.contents[dirname]
+            del parent_dir.contents[dirname]
+        finally:
+            self._lock.release()
+
+
     def _on_close_memory_file(self, path, value):
         self._lock.acquire()
         try:

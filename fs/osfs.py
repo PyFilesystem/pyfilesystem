@@ -75,7 +75,6 @@ class OSFS(FS):
         except OSError, e:
             raise OperationFailedError("REMOVE_FAILED", path, details=e)
 
-
     def removedir(self, path, recursive=False):
         sys_path = self.getsyspath(path)
 

@@ -7,7 +7,6 @@ import shutil
 class TestHelpers(unittest.TestCase):
 
     def test_isabsolutepath(self):
-        """fs.isabsolutepath tests"""
         tests = [   ('', False),
                     ('/', True),
                     ('/A/B', True),
@@ -18,7 +17,6 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.isabsolutepath(path), result)
 
     def test_normpath(self):
-        """fs.normpath tests"""
         tests = [   ("\\a\\b\\c", "/a/b/c"),
                     ("", ""),
                     ("/a/b/c", "/a/b/c"),
@@ -27,7 +25,6 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.normpath(path), result)
 
     def test_pathjon(self):
-        """fs.pathjoin tests"""
         tests = [   ("", "a", "a"),
                     ("a", "a", "a/a"),
                     ("a/b", "../c", "a/c"),
@@ -55,7 +52,6 @@ class TestHelpers(unittest.TestCase):
         self.assertRaises(fs.PathError, fs.pathjoin, "a/b/../../../d")
 
     def test_makerelative(self):
-        """fs.makerelative tests"""
         tests = [   ("/a/b", "a/b"),
                     ("a/b", "a/b"),
                     ("/", "") ]
@@ -65,7 +61,6 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.makerelative(path), result)
 
     def test_makeabsolute(self):
-        """fs.makeabsolute tests"""
         tests = [   ("/a/b", "/a/b"),
                     ("a/b", "/a/b"),
                     ("/", "/") ]
@@ -74,7 +69,6 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(fs.makeabsolute(path), result)
 
     def test_iteratepath(self):
-        """fs.iteratepath tests"""
         tests = [   ("a/b", ["a", "b"]),
                     ("", [] ),
                     ("aaa/bbb/ccc", ["aaa", "bbb", "ccc"]),
@@ -89,7 +83,6 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(list(fs._iteratepath("a/b/c/d", 2)), ["a", "b", "c/d"])
 
     def test_pathsplit(self):
-        """fs.pathsplit tests"""
         tests = [   ("a/b", ("a", "b")),
                     ("a/b/c", ("a/b", "c")),
                     ("a", ("", "a")),
@@ -107,7 +100,6 @@ import objecttree
 class TestObjectTree(unittest.TestCase):
 
     def test_getset(self):
-        """objecttree.ObjectTree tests"""
         ot = objecttree.ObjectTree()
         ot['foo'] = "bar"
         self.assertEqual(ot['foo'], 'bar')
@@ -145,23 +137,20 @@ import tempfile
 import osfs
 import os
 
-class TestFS(unittest.TestCase):
+class TestOSFS(unittest.TestCase):
 
     def setUp(self):
-
         self.temp_dir = tempfile.mkdtemp("fstest")
         self.fs = osfs.OSFS(self.temp_dir)
         print "Temp dir is", self.temp_dir
 
     def tearDown(self):
-        assert "fstest" in self.temp_dir
         shutil.rmtree(self.temp_dir)
 
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, p))
 
     def test_makedir(self):
-        """osfs.makedir tests"""
         check = self.check
 
         self.fs.makedir("a")
@@ -179,7 +168,6 @@ class TestFS(unittest.TestCase):
 
 
     def test_removedir(self):
-        """osfs.removedir tests"""
         check = self.check
         self.fs.makedir("a")
         self.assert_(check("a"))
@@ -201,12 +189,40 @@ class TestFS(unittest.TestCase):
         self.assert_(not check("foo"))
 
     def test_rename(self):
-        """osfs.rename tests"""
         check = self.check
         self.fs.open("foo.txt", 'wt').write("Hello, World!")
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
+
+class TestSubFS(TestOSFS):
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp("fstest")
+        self.parent_fs = osfs.OSFS(self.temp_dir)
+        self.parent_fs.makedir("foo/bar", recursive=True)
+        self.fs = self.parent_fs.opendir("foo/bar")
+        print "Temp dir is", self.temp_dir
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def check(self, p):
+        p = os.path.join("foo/bar", p)
+        return os.path.exists(os.path.join(self.temp_dir, p))
+
+
+import memoryfs
+class TestMemoryFS(TestOSFS):
+
+    def setUp(self):
+        self.fs = memoryfs.MemoryFS()
+
+    def tearDown(self):
+        pass
+
+    def check(self, p):
+        return self.fs.exists(p)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,29 @@ import wx.gizmos
 
 import fs
 
+class InfoFrame(wx.Frame):
+
+    def __init__(self, path, desc, info):
+        wx.Frame.__init__(self, None, -1, style=wx.DEFAULT_FRAME_STYLE, size=(700, 500))
+
+        self.SetTitle("FS Object info - %s (%s)" % (path, desc))
+
+        keys = info.keys()
+        keys.sort()
+
+        self.list_ctrl = wx.ListCtrl(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+
+        self.list_ctrl.InsertColumn(0, "Key")
+        self.list_ctrl.InsertColumn(1, "Value")
+
+        self.list_ctrl.SetColumnWidth(0, 150)
+        self.list_ctrl.SetColumnWidth(1, 300)
+
+        for key in keys:
+            self.list_ctrl.Append((key, str(info[key])))
+
+
+
 class BrowseFrame(wx.Frame):
 
     def __init__(self, fs):
@@ -36,6 +59,8 @@ class BrowseFrame(wx.Frame):
         self.tree.SetItemImage(self.root_id, self.fldropenidx, wx.TreeItemIcon_Expanded)
 
         self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnItemExpanding)
+        self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnItemActivated)
+
 
         wx.CallAfter(self.OnInit)
 
@@ -109,6 +134,14 @@ class BrowseFrame(wx.Frame):
         self.expand(e.GetItem())
         e.Skip()
 
+    def OnItemActivated(self, e):
+
+        item_data = self.tree.GetItemData(e.GetItem()).GetData()
+        path = item_data["path"]
+        info = self.fs.getinfo(path)
+
+        info_frame = InfoFrame(path, self.fs.desc(path), info)
+        info_frame.Show()
 
 def browse(fs):
 
