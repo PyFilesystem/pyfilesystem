@@ -11,7 +11,7 @@ class ZipFS(FS):
         if compression == "deflated":
             compression_type = zipfile.ZIP_DEFLATED
         elif compression == "stored":
-            compression_type = zipfile.ZIP_STORES
+            compression_type = zipfile.ZIP_STORED
         else:
             raise ValueError("Compression should be 'deflated' (default) or 'stored'")
 
