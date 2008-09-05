@@ -3,7 +3,6 @@
 import os
 import datetime
 from fs import _iteratepath
-from fs import *
 
 
 try:
