@@ -269,14 +269,14 @@ def _iteratepath(path, numsplits=None):
         return filter(lambda p:bool(p), path.split('/', numsplits))
 
 
-def print_fs(fs, path="/", max_levels=2, indent=' '*2):
+def print_fs(fs, path="/", max_levels=5, indent=' '*2):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
 
     fs -- A filesystem object
     path -- Path of root to list (default "/")
-    max_levels -- Maximum levels of dirs to list (default None for no maximum)
+    max_levels -- Maximum levels of dirs to list (default 5), set to None for no maximum
     indent -- String to indent each directory level (default two spaces)
 
     """
