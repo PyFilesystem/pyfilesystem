@@ -405,13 +405,13 @@ class MemoryFS(FS):
         finally:
             self._lock.release()
 
-    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
         self._lock.acquire()
         try:
             dir_entry = self._get_dir_entry(path)
             if dir_entry is None:
                 raise ResourceNotFoundError("NO_DIR", path)
-            paths = dir_entry.contents.keys()            
+            paths = dir_entry.contents.keys()
             return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
         finally:
             self._lock.release()

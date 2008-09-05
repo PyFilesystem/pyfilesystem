@@ -19,7 +19,7 @@ class OSFS(FS):
     def __str__(self):
         return "<OSFS \"%s\">" % self.root_path
 
-    def getsyspath(self, path, default=None):
+    def getsyspath(self, path, allow_none=False):
         sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))
         return sys_path
 
@@ -127,7 +127,6 @@ class OSFS(FS):
 
     def getsize(self, path):
         sys_path = self.getsyspath(path)
-
         try:
             stats = os.stat(sys_path)
         except OSError, e:
@@ -140,6 +139,11 @@ class OSFS(FS):
 if __name__ == "__main__":
 
     osfs = OSFS("~/projects")
+
+
+    for p in osfs.walk("tagging-trunk", search='depth'):
+        print p
+
     import browsewin
     browsewin.browse(osfs)
 

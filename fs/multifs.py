@@ -96,14 +96,13 @@ class MultiFS(FS):
         finally:
             self._lock.release()
 
-    def getsyspath(self, path):
+    def getsyspath(self, path, allow_none=False):
         self._lock.acquire()
         try:
             fs = self._delegate_search(path)
             if fs is not None:
-                return fs.getsyspath(path)
-
-            raise ResourceNotFoundError("NO_FILE", path)
+                return fs.getsyspath(path, allow_none)
+            raise ResourceNotFoundError("NO_RESOURCE", path)
         finally:
             self._lock.release()
 
@@ -111,7 +110,7 @@ class MultiFS(FS):
         self._lock.acquire()
         try:
             if not self.exists(path):
-                raise FSError("NO_RESOURCE", path)
+                raise ResourceNotFoundError("NO_RESOURCE", path)
 
             name, fs = self.which(path)
             if name is None:

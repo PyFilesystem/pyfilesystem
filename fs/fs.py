@@ -2,6 +2,7 @@
 
 import os
 import os.path
+import shutil
 import fnmatch
 from itertools import chain
 import datetime
@@ -26,6 +27,7 @@ error_msgs = {
     "REMOVE_FAILED" :       "Unable to remove file: %(path)s",
     "REMOVEDIR_FAILED" :    "Unable to remove dir: %(path)s",
     "GETSIZE_FAILED" :      "Unable to retrieve size of resource: %(path)s",
+    "COPYFILE_FAILED" :     "Unable to copy file: %(path)s",
 
     # NoSysPathError
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
@@ -55,7 +57,7 @@ class FSError(Exception):
 
     """A catch all exception for FS objects."""
 
-    def __init__(self, code, path=None, msg=None, details=None):
+    def __init__(self, code, path=None, path2=None, msg=None, details=None):
         """
 
         code -- A short identifier for the error
@@ -335,18 +337,17 @@ class FS(object):
             return pathjoin('/', pathname)
         return pathname
 
-    def getsyspath(self, path, default=None):
+    def getsyspath(self, path, allow_none=False):
         """Returns the system path (a path recognised by the operating system) if present.
-        If the path does not map to a system path, then either the default is returned (if given),
-        or a NoSysPathError exception is thrown.
+        If the path does not map to a system path (and allow_none is False) then a NoSysPathError exception is thrown.
 
         path -- A path within the filesystem
-        default -- A default value to return if there is no mapping to an operating system path
+        allow_none -- If True, this method can return None if there is no system path
 
         """
-        if default is None:
+        if not allow_none:
             raise NoSysPathError("NO_SYS_PATH", path)
-        return default
+        return None
 
     def open(self, path, mode="r", buffering=-1, **kwargs):
         raise UnsupportedError("UNSUPPORTED")
@@ -368,15 +369,36 @@ class FS(object):
         raise UnsupportedError("UNSUPPORTED")
 
     def isdir(self, path):
+        """Returns True if a given path references a directory."""
         raise UnsupportedError("UNSUPPORTED")
 
     def isfile(self, path):
+        """Returns True if a given path references a file."""
         raise UnsupportedError("UNSUPPORTED")
 
     def ishidden(self, path):
+        """Returns True if the given path is hidden."""
         return path.startswith('.')
 
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self,   path="./",
+                        wildcard=None,
+                        full=False,
+                        absolute=False,
+                        hidden=True,
+                        dirs_only=False,
+                        files_only=False):
+
+        """Lists all the files and directories in a path. Returns a list of paths.
+
+        path -- Root of the path to list
+        wildcard -- Only returns paths that match this wildcard, default does no matching
+        full -- Returns a full path
+        absolute -- Returns an absolute path
+        hidden -- If True, return hidden files
+        dirs_only -- If True, only return directories
+        files_only -- If True, only return files
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def makedir(self, path, mode=0777, recursive=False):
@@ -434,7 +456,7 @@ class FS(object):
 
         if wildcard is not None:
             match = fnmatch.fnmatch
-            paths = [p for p in path if match(p, wildcard)]
+            paths = [p for p in paths if match(p, wildcard)]
 
         if not hidden:
             paths = [p for p in paths if not self.ishidden(p)]
@@ -452,49 +474,71 @@ class FS(object):
         return paths
 
 
-    def walkfiles(self, path="/", wildcard=None, dir_wildcard=None):
-        dirs = [path]
-        files = []
+    def walkfiles(self, path="/", wildcard=None, dir_wildcard=None, search="breadth" ):
 
-        while dirs:
+        """Like the 'walk' method, but just yields files.
 
-            current_path = dirs.pop()
+        path -- Root path to start walking
+        wildcard -- If given, only return files that match this wildcard
+        dir_wildcard -- If given, only walk in to directories that match this wildcard
+        search -- A string that identifies the method used to walk the directories,
+        can be 'breadth' for a breadth first search, or 'depth' for a depth first
+        search. Use 'depth' if you plan to create / delete files as you go.
 
-            for path in self.listdir(current_path, full=True):
-                if self.isdir(path):
-                    if dir_wildcard is not None:
-                        if fnmatch.fnmatch(path, dir_wilcard):
+        """
+
+        for path, files in self.walk(path, wildcard, dir_wildcard, search):
+            for f in files:
+                yield f
+
+
+    def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth"):
+        """Walks a directory tree and yields the root path and contents.
+        Yields a tuple of the path of each directory and a list of its file contents.
+
+        path -- Root path to start walking
+        wildcard -- If given, only return files that match this wildcard
+        dir_wildcard -- If given, only walk in to directories that match this wildcard
+        search -- A string that identifies the method used to walk the directories,
+        can be 'breadth' for a breadth first search, or 'depth' for a depth first
+        search. Use 'depth' if you plan to create / delete files as you go.
+
+
+        """
+        if search == "breadth":
+            dirs = [path]
+            while dirs:
+                current_path = dirs.pop()
+
+                paths = []
+                for path in self.listdir(current_path, full=True):
+
+                    if self.isdir(path):
+                        if dir_wildcard is not None:
+                            if fnmatch.fnmatch(path, dir_wilcard):
+                                dirs.append(path)
+                        else:
                             dirs.append(path)
                     else:
-                        dirs.append(path)
-                else:
-                    if wildcard is not None:
-                        if fnmatch.fnmatch(path, wildcard):
-                            yield path
-                    else:
-                        yield path
-
-    def walk(self, path="/", wildcard=None, dir_wildcard=None):
-        dirs = [path]
-        while dirs:
-            current_path = dirs.pop()
-
-            paths = []
-            for path in self.listdir(current_path, full=True):
-
-                if self.isdir(path):
-                    if dir_wildcard is not None:
-                        if fnmatch.fnmatch(path, dir_wilcard):
-                            dirs.append(path)
-                    else:
-                        dirs.append(path)
-                else:
-                    if wildcard is not None:
-                        if fnmatch.fnmatch(path, wildcard):
+                        if wildcard is not None:
+                            if fnmatch.fnmatch(path, wildcard):
+                                paths.append(path)
+                        else:
                             paths.append(path)
-                    else:
-                        paths.append(path)
-            yield (current_path, paths)
+                yield (current_path, paths)
+
+        elif search == "depth":
+
+            def recurse(recurse_path):
+                for path in self.listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
+                    for p in recurse(path):
+                        yield p
+                yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, full=True, files_only=True))
+
+            for p in recurse(path):
+                yield p
+        else:
+            raise ValueError("Search should be 'breadth' or 'depth'")
 
 
     def getsize(self, path):
@@ -509,6 +553,52 @@ class FS(object):
             raise OperationFailedError("GETSIZE_FAILED", path)
         return size
 
+    def copyfile(self, src, dst, overwrite=False,  chunk_size=1024*16384):
+
+        src_syspath = self.getsyspath(src, allow_none=True)
+        dst_syspath = self.getsyspath(dst, allow_none=True)
+
+        if not self.isdir(src):
+            raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+        if not self.isdir(dst):
+            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a file: %(path)s")
+
+        if src_syspath is not None and dst_syspath is not None:
+            shutil.copyfile(src_syspath, dst_syspath)
+        else:
+            src_file, dst_file = None, None
+            try:
+                src_file = self.open(src, "rb")
+                if not overwrite:
+                    if self.exists(dst):
+                        raise OperationFailedError("COPYFILE_FAILED", src, dst, msg="Destination file exists: %(path2)s")
+                dst_file = self.open(src, "wb")
+
+                while True:
+                    chunk = src_file.read(chunk_size)
+                    dst_file.write(chunk)
+                    if len(chunk) != chunk_size:
+                        break
+            finally:
+                if src_file is not None:
+                    src_file.close()
+                if dst_file is not None:
+                    dst_file.close()
+
+    def movefile(self, src, dst):
+
+        src_syspath = self.getsyspath(src, allow_none=True)
+        dst_syspath = self.getsyspath(dst, allow_none=True)
+
+        if src_syspath is not None and dst_syspath is not None:
+            if not self.isdir(src):
+                raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+            if not self.isdir(dst):
+                raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a file: %(path)s")
+            shutil.move(src_syspath, dst_syspath)
+        else:
+            self.copyfile(src, dst)
+            self.remove(src)
 
 
 class SubFS(FS):
@@ -561,7 +651,7 @@ class SubFS(FS):
     def ishidden(self, path):
         return self.parent.ishidden(self._delegate(path))
 
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
         paths = self.parent.listdir(self._delegate(path),
                                     wildcard,
                                     False,

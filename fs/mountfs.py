@@ -82,7 +82,7 @@ class MountFS(FS):
         finally:
             self._lock.release()
 
-    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
 
         self._lock.acquire()
         try:
