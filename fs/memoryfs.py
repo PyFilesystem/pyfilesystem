@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-
 import os
 import datetime
 from fs import _iteratepath
-
 
 try:
     from cStringIO import StringIO
