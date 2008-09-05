@@ -58,7 +58,7 @@ class FSError(Exception):
     """A catch all exception for FS objects."""
 
     def __init__(self, code, path=None, path2=None, msg=None, details=None):
-        """
+        """A unified exception class that represents Filesystem errors.
 
         code -- A short identifier for the error
         path -- A path associated with the error
@@ -269,7 +269,7 @@ def _iteratepath(path, numsplits=None):
         return filter(lambda p:bool(p), path.split('/', numsplits))
 
 
-def print_fs(fs, path="/", max_levels=None, indent=' '*2):
+def print_fs(fs, path="/", max_levels=2, indent=' '*2):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
@@ -295,6 +295,9 @@ def print_fs(fs, path="/", max_levels=None, indent=' '*2):
                 print indent*level + '[%s]' % item
                 if max_levels is None or level < max_levels:
                     print_dir(fs, pathjoin(path, item), level+1)
+                if max_levels is not None:
+                    if level >= max_levels:
+                        print indent*(level+1) + "[...]"
             else:
                 print indent*level + '%s' % item
     print_dir(fs, path, 0)
@@ -555,6 +558,17 @@ class FS(object):
 
     def copyfile(self, src, dst, overwrite=False,  chunk_size=1024*16384):
 
+        """Copies a file from src to dst.
+
+        src -- The source path
+        dst -- The destination path
+        overwrite -- If True, then the destination may be overwritten
+        (if a file exists at that location). If False then an exception will be
+        thrown if the destination exists
+        chunk_size -- Size of chunks to use in copy, if a simple copy is required
+
+        """
+
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
 
@@ -586,6 +600,13 @@ class FS(object):
                     dst_file.close()
 
     def movefile(self, src, dst):
+
+        """Moves a file from one location to another.
+
+        src -- Source path
+        dst -- Destination path
+
+        """
 
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)

@@ -232,6 +232,7 @@ class TestOSFS(unittest.TestCase):
         self.assertEqual(len(d4), 4)
         self.assertEqual(sorted(d4), ["p/1/2/3/a", "p/1/2/3/b", "p/1/2/3/bar", "p/1/2/3/foo"])
 
+
     def test_rename(self):
         check = self.check
         self.fs.open("foo.txt", 'wt').write("Hello, World!")

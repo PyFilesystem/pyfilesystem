@@ -147,7 +147,7 @@ if __name__ == "__main__":
     import browsewin
     browsewin.browse(osfs)
 
-    #print_fs(osfs)
+    print_fs(osfs)
 
     #print osfs.listdir("/projects/fs")
 
