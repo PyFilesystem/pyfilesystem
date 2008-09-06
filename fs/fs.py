@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+from helpers import *
 import os
 import os.path
 import shutil
 import fnmatch
-from itertools import chain
 import datetime
 try:
     import threading
@@ -20,6 +20,7 @@ error_msgs = {
 
     # OperationFailedError
     "LISTDIR_FAILED" :      "Unable to get directory listing: %(path)s",
+    "MAKEDIR_FAILED" :      "Unable to create directory: %(path)s",
     "DELETE_FAILED" :       "Unable to delete file: %(path)s",
     "RENAME_FAILED" :       "Unable to rename file: %(path)s",
     "OPEN_FAILED" :         "Unable to open file: %(path)s",
@@ -86,6 +87,25 @@ class ResourceNotFoundError(FSError): pass
 class SystemError(FSError): pass
 class ResourceInvalid(FSError): pass
 
+def silence_fserrors(f, *args, **kwargs):
+    try:
+        return f(*args, **kwargs)
+    except FSError:
+        return None
+
+
+def _iteratepath(path, numsplits=None):
+
+    path = resolvepath(path)
+    if not path:
+        return []
+
+    if numsplits == None:
+        return filter(lambda p:bool(p), path.split('/'))
+    else:
+        return filter(lambda p:bool(p), path.split('/', numsplits))
+
+
 
 class NullFile(object):
 
@@ -134,139 +154,6 @@ class NullFile(object):
 
     def writelines(self, *args, **kwargs):
         pass
-
-
-def isabsolutepath(path):
-    """Returns True if a given path is absolute.
-
-    >>> isabsolutepath("a/b/c")
-    False
-
-    >>> isabsolutepath("/foo/bar")
-    True
-
-    """
-    if path:
-        return path[0] in '\\/'
-    return False
-
-def normpath(path):
-    """Normalizes a path to be in the formated expected by FS objects.
-    Returns a new path string.
-
-    >>> normpath(r"foo\\bar\\baz")
-    'foo/bar/baz'
-
-    """
-    return path.replace('\\', '/')
-
-
-def pathjoin(*paths):
-    """Joins any number of paths together. Returns a new path string.
-
-    paths -- An iterable of path strings
-
-    >>> pathjoin('foo', 'bar', 'baz')
-    'foo/bar/baz'
-
-    >>> pathjoin('foo/bar', '../baz')
-    'foo/baz'
-
-    """
-    absolute = False
-
-    relpaths = []
-    for p in paths:
-        if p:
-         if p[0] in '\\/':
-             del relpaths[:]
-             absolute = True
-         relpaths.append(p)
-
-    pathstack = []
-
-    for component in chain(*(normpath(path).split('/') for path in relpaths)):
-        if component == "..":
-            if not pathstack:
-                raise PathError("INVALID_PATH", repr(paths), msg="relative path is invalid")
-            sub = pathstack.pop()
-        elif component == ".":
-            pass
-        elif component:
-            pathstack.append(component)
-
-    if absolute:
-        return "/" + "/".join(pathstack)
-    else:
-        return "/".join(pathstack)
-
-
-def pathsplit(path):
-    """Splits a path on a path separator. Returns a tuple containing the path up
-    to that last separator and the remaining path component.
-
-    >>> pathsplit("foo/bar")
-    ('foo', 'bar')
-
-    >>> pathsplit("foo/bar/baz")
-    ('foo/bar', 'baz')
-
-    """
-
-    split = normpath(path).rsplit('/', 1)
-    if len(split) == 1:
-        return ('', split[0])
-    return tuple(split)
-
-def resolvepath(path):
-    """Normalises the path and removes any relative path components.
-
-    path -- A path string
-
-    >>> resolvepath(r"foo\\bar\\..\\baz")
-    'foo/baz'
-
-    """
-    return pathjoin(path)
-
-def makerelative(path):
-    """Makes a path relative by removing initial separator.
-
-    path -- A path
-
-    >>> makerelative("/foo/bar")
-    'foo/bar'
-
-    """
-    path = normpath(path)
-    if path.startswith('/'):
-        return path[1:]
-    return path
-
-def makeabsolute(path):
-    """Makes a path absolute by adding a separater at the beginning of the path.
-
-    path -- A path
-
-    >>> makeabsolute("foo/bar/baz")
-    '/foo/bar/baz'
-
-    """
-    path = normpath(path)
-    if not path.startswith('/'):
-        return '/'+path
-    return path
-
-def _iteratepath(path, numsplits=None):
-
-    path = resolvepath(path)
-    if not path:
-        return []
-
-    if numsplits == None:
-        return filter(lambda p:bool(p), path.split('/'))
-    else:
-        return filter(lambda p:bool(p), path.split('/', numsplits))
 
 
 def print_fs(fs, path="/", max_levels=5, indent=' '*2):
@@ -352,7 +239,7 @@ class FS(object):
             raise NoSysPathError("NO_SYS_PATH", path)
         return None
 
-    def open(self, path, mode="r", buffering=-1, **kwargs):
+    def open(self, path, mode="r", **kwargs):
         raise UnsupportedError("UNSUPPORTED")
 
     def safeopen(self, *args, **kwargs):
@@ -404,7 +291,7 @@ class FS(object):
         """
         raise UnsupportedError("UNSUPPORTED")
 
-    def makedir(self, path, mode=0777, recursive=False):
+    def makedir(self, path, mode=0777, recursive=False, allow_recreate=False):
         raise UnsupportedError("UNSUPPORTED")
 
     def remove(self, path):
@@ -443,7 +330,7 @@ class FS(object):
         else:
             return "OS file, maps to %s" % sys_path
 
-    def open(self, path, mode="r", buffering=-1, **kwargs):
+    def open(self, path, mode="r", **kwargs):
         raise UNSUPPORTED_ERROR("UNSUPPORTED")
 
     def opendir(self, path):
@@ -556,7 +443,7 @@ class FS(object):
             raise OperationFailedError("GETSIZE_FAILED", path)
         return size
 
-    def copyfile(self, src, dst, overwrite=False,  chunk_size=1024*16384):
+    def copy(self, src, dst, overwrite=False,  chunk_size=1024*16384):
 
         """Copies a file from src to dst.
 
@@ -569,13 +456,14 @@ class FS(object):
 
         """
 
+        if self.isdir(dst):
+            dst = pathjoin( getroot(dst), getresource(src) )
+
+        if not self.isfile(src):
+            raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
-
-        if not self.isdir(src):
-            raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
-        if not self.isdir(dst):
-            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a file: %(path)s")
 
         if src_syspath is not None and dst_syspath is not None:
             shutil.copyfile(src_syspath, dst_syspath)
@@ -586,7 +474,7 @@ class FS(object):
                 if not overwrite:
                     if self.exists(dst):
                         raise OperationFailedError("COPYFILE_FAILED", src, dst, msg="Destination file exists: %(path2)s")
-                dst_file = self.open(src, "wb")
+                dst_file = self.open(dst, "wb")
 
                 while True:
                     chunk = src_file.read(chunk_size)
@@ -599,7 +487,7 @@ class FS(object):
                 if dst_file is not None:
                     dst_file.close()
 
-    def movefile(self, src, dst):
+    def move(self, src, dst):
 
         """Moves a file from one location to another.
 
@@ -612,14 +500,62 @@ class FS(object):
         dst_syspath = self.getsyspath(dst, allow_none=True)
 
         if src_syspath is not None and dst_syspath is not None:
-            if not self.isdir(src):
+            if not self.isfile(src):
                 raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
-            if not self.isdir(dst):
-                raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a file: %(path)s")
             shutil.move(src_syspath, dst_syspath)
         else:
-            self.copyfile(src, dst)
+            self.copy(src, dst)
             self.remove(src)
+
+
+    def movedir(self, src, dst):
+
+        """Moves a directory from one location to another.
+
+        src -- Source directory path
+        dst -- Destination directory path
+
+        """
+
+        src_syspath = self.getsyspath(src, allow_none=True)
+        dst_syspath = self.getsyspath(dst, allow_none=True)
+
+        if not self.isdir(src):
+            raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
+        if not self.isdir(dst):
+            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
+
+        if src_syspath is not None and dst_syspath is not None:
+            shutil.move(src_syspath, dst_syspath)
+        else:
+
+            movefile = self.move
+            silence_fserrors(self.makedir, dst)
+            for dirname, filename in self.walk(src):
+                silence_fserrors(self.makedir, dirname)
+                src_filename = pathjoin(dirname, filename)
+                dst_filename = pathjoin(dst, dirname)
+                movefile(src_filename, dst_filename)
+
+
+
+    def isdirempty(self, path):
+
+        """Return True if a path contains no files.
+
+        path -- Path of a directory
+
+        """
+
+        path = normpath(path)
+        iter_dir = iter(self.listdir(path))
+        try:
+            iter_dir.next()
+        except StopIteration:
+            return True
+        return False
+
+
 
 
 class SubFS(FS):
@@ -646,11 +582,11 @@ class SubFS(FS):
     def _delegate(self, path):
         return pathjoin(self.sub_dir, resolvepath(makerelative(path)))
 
-    def getsyspath(self, path):
-        return self.parent.getsyspath(self._delegate(path))
+    def getsyspath(self, path, allow_none=False):
+        return self.parent.getsyspath(self._delegate(path), allow_none=allow_none)
 
-    def open(self, path, mode="r", buffering=-1, **kwargs):
-        return self.parent.open(self._delegate(path), mode, buffering)
+    def open(self, path, mode="r", **kwargs):
+        return self.parent.open(self._delegate(path), mode)
 
     def exists(self, path):
         return self.parent.exists(self._delegate(path))
@@ -667,7 +603,7 @@ class SubFS(FS):
         return self.parent.isdir(self._delegate(path))
 
     def isfile(self, path):
-        return self.parent.isdir(self._delegate(path))
+        return self.parent.isfile(self._delegate(path))
 
     def ishidden(self, path):
         return self.parent.ishidden(self._delegate(path))
@@ -689,8 +625,8 @@ class SubFS(FS):
         return paths
 
 
-    def makedir(self, path, mode=0777, recursive=False):
-        return self.parent.makedir(self._delegate(path), mode=mode, recursive=recursive)
+    def makedir(self, path, mode=0777, recursive=False, allow_recreate=False):
+        return self.parent.makedir(self._delegate(path), mode=mode, recursive=recursive, allow_recreate=allow_recreate)
 
     def remove(self, path):
         return self.parent.remove(self._delegate(path))
@@ -714,6 +650,8 @@ if __name__ == "__main__":
 
     fs1 = osfs.OSFS('~/')
     fs2 = fs1.opendir("projects").opendir('prettycharts')
+
+
 
     #browsewin.browse(fs1)
     browsewin.browse(fs2)

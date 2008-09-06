@@ -2,6 +2,7 @@
 
 import unittest
 import fs
+from helpers import *
 import shutil
 
 class TestHelpers(unittest.TestCase):
@@ -46,10 +47,10 @@ class TestHelpers(unittest.TestCase):
             result = testpaths[-1]
             self.assertEqual(fs.pathjoin(*paths), result)
 
-        self.assertRaises(fs.PathError, fs.pathjoin, "../")
-        self.assertRaises(fs.PathError, fs.pathjoin, "./../")
-        self.assertRaises(fs.PathError, fs.pathjoin, "a/b", "../../..")
-        self.assertRaises(fs.PathError, fs.pathjoin, "a/b/../../../d")
+        self.assertRaises(ValueError, fs.pathjoin, "../")
+        self.assertRaises(ValueError, fs.pathjoin, "./../")
+        self.assertRaises(ValueError, fs.pathjoin, "a/b", "../../..")
+        self.assertRaises(ValueError, fs.pathjoin, "a/b/../../../d")
 
     def test_makerelative(self):
         tests = [   ("/a/b", "a/b"),
@@ -132,7 +133,6 @@ class TestObjectTree(unittest.TestCase):
         self.assertEqual(right, "f/g")
 
 
-
 import tempfile
 import osfs
 import os
@@ -148,7 +148,7 @@ class TestOSFS(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def check(self, p):
-        return os.path.exists(os.path.join(self.temp_dir, p))
+        return os.path.exists(os.path.join(self.temp_dir, makerelative(p)))
 
     def test_makedir(self):
         check = self.check
@@ -256,6 +256,35 @@ class TestOSFS(unittest.TestCase):
         size = self.fs.getsize("info.txt")
         self.assertEqual(size, len(test_str))
 
+    def test_movefile(self):
+
+        check = self.check
+        contents = "If the implementation is hard to explain, it's a bad idea."
+        def makefile(path):
+            f = self.fs.open(path, "wb")
+            f.write(contents)
+            f.close()
+        def checkcontents(path):
+            f = self.fs.open(path, "rb")
+            check_contents = f.read()
+            f.close()
+            return contents == check_contents
+
+        self.fs.makedir("foo/bar", recursive=True)
+        makefile("foo/bar/a.txt")
+        self.assert_(check("foo/bar/a.txt"))
+        self.assert_(checkcontents("foo/bar/a.txt"))
+        self.fs.move("foo/bar/a.txt", "foo/b.txt")
+        self.assert_(not check("foo/bar/a.txt"))
+        self.assert_(check("foo/b.txt"))
+        self.assert_(checkcontents("foo/b.txt"))
+
+        self.fs.move("foo/b.txt", "c.txt")
+        fs.print_fs(self.fs)
+        self.assert_(not check("foo/b.txt"))
+        self.assert_(check("/c.txt"))
+        self.assert_(checkcontents("/c.txt"))
+
 class TestSubFS(TestOSFS):
 
     def setUp(self):
@@ -269,8 +298,9 @@ class TestSubFS(TestOSFS):
         shutil.rmtree(self.temp_dir)
 
     def check(self, p):
-        p = os.path.join("foo/bar", p)
-        return os.path.exists(os.path.join(self.temp_dir, p))
+        p = os.path.join("foo/bar", makerelative(p))
+        full_p = os.path.join(self.temp_dir, p)
+        return os.path.exists(full_p)
 
 
 import memoryfs
@@ -284,6 +314,22 @@ class TestMemoryFS(TestOSFS):
 
     def check(self, p):
         return self.fs.exists(p)
+
+
+import mountfs
+class TestMountFS(TestOSFS):
+
+    def setUp(self):
+        self.mount_fs = mountfs.MountFS()
+        self.mem_fs = memoryfs.MemoryFS()
+        self.mount_fs.mountdir("mounted/memfs", self.mem_fs)
+        self.fs = self.mount_fs.opendir("mounted/memfs")
+
+    def tearDown(self):
+        pass
+
+    def check(self, p):
+        return self.mount_fs.exists(os.path.join("mounted/memfs", makerelative(p)))
 
 
 if __name__ == "__main__":

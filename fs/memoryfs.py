@@ -2,6 +2,7 @@
 import os
 import datetime
 from fs import _iteratepath
+from fs import *
 
 try:
     from cStringIO import StringIO
@@ -95,6 +96,9 @@ class MemoryFS(FS):
     class DirEntry(object):
 
         def __init__(self, type, name, contents=None):
+
+            assert type in ("dir", "file"), "Type must be dir or file!"
+
             self.type = type
             self.name = name
             self.permissions = None
@@ -214,7 +218,7 @@ class MemoryFS(FS):
                     else:
                         if not allow_recreate:
                             if dirname in parent_dir.contents:
-                                raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+                                raise OperationFailedError("MAKEDIR_FAILED", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
 
                 current_dir = self.root
                 for path_component in _iteratepath(dirpath)[:-1]:
@@ -354,7 +358,7 @@ class MemoryFS(FS):
             if not dir_entry.isdir():
                 raise ResourceInvalid("WRONG_TYPE", path, msg="Can't remove resource, its not a directory: %(path)s" )
 
-            if not recursive and len(dir_entry.contents):
+            if dir_entry.contents:
                 raise OperationFailedError("REMOVEDIR_FAILED", "Directory is not empty: %(path)s")
 
             if recursive:
@@ -372,6 +376,8 @@ class MemoryFS(FS):
             self._lock.release()
 
     def rename(self, src, dst):
+        if not issamedir(src, dst):
+            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
         self._lock.acquire()
         try:
             dir_entry = self._get_dir_entry(src)

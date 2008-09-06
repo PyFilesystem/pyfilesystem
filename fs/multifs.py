@@ -101,7 +101,7 @@ class MultiFS(FS):
         try:
             fs = self._delegate_search(path)
             if fs is not None:
-                return fs.getsyspath(path, allow_none)
+                return fs.getsyspath(path, allow_none=allow_none)
             raise ResourceNotFoundError("NO_RESOURCE", path)
         finally:
             self._lock.release()
@@ -120,12 +120,12 @@ class MultiFS(FS):
             self._lock.release()
 
 
-    def open(self, path, mode="r", buffering=-1, **kwargs):
+    def open(self, path, mode="r",**kwargs):
         self._lock.acquire()
         try:
             for fs in self:
                 if fs.exists(path):
-                    fs_file = fs.open(path, mode, buffering, **kwargs)
+                    fs_file = fs.open(path, mode, **kwargs)
                     return fs_file
 
             raise ResourceNotFoundError("NO_FILE", path)
@@ -206,6 +206,8 @@ class MultiFS(FS):
             self._lock.release()
 
     def rename(self, src, dst):
+        if not issamedir(src, dst):
+            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
         self._lock.acquire()
         try:
             for fs in self:

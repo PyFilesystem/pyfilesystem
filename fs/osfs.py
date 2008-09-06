@@ -23,11 +23,11 @@ class OSFS(FS):
         sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))
         return sys_path
 
-    def open(self, path, mode="r", buffering=-1, **kwargs):
+    def open(self, path, mode="r", **kwargs):
         try:
-            f = open(self.getsyspath(path), mode, buffering)
+            f = open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
         except IOError, e:
-            raise OperationFailedError("OPEN_FAILED", path, details=e, msg=str(details))
+            raise OperationFailedError("OPEN_FAILED", path, details=e, msg=str(e))
 
         return f
 
@@ -54,19 +54,21 @@ class OSFS(FS):
 
         return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
 
-    def makedir(self, path, mode=0777, recursive=False):
+    def makedir(self, path, mode=0777, recursive=False, allow_recreate=False):
         sys_path = self.getsyspath(path)
 
         try:
             if recursive:
                 os.makedirs(sys_path, mode)
             else:
+                if not allow_recreate and self.exists(path):
+                    raise OperationFailedError("MAKEDIR_FAILED", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
                 try:
                     os.mkdir(sys_path, mode)
                 except OSError, e:
-                    raise FSError("NO_DIR", sys_path)
+                    raise OperationFailedError("MAKEDIR_FAILED", path)
         except OSError, e:
-            raise FSError("OS_ERROR", sys_path, details=e)
+            raise OperationFailedError("MAKEDIR_FAILED", path, details=e)
 
     def remove(self, path):
         sys_path = self.getsyspath(path)
@@ -90,6 +92,8 @@ class OSFS(FS):
                 raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
 
     def rename(self, src, dst):
+        if not issamedir(src, dst):
+            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
         path_src = self.getsyspath(src)
         path_dst = self.getsyspath(dst)
 
