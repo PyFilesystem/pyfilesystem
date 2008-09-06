@@ -184,7 +184,7 @@ def print_fs(fs, path="/", max_levels=5, indent=' '*2):
                     print_dir(fs, pathjoin(path, item), level+1)
                 if max_levels is not None:
                     if level >= max_levels:
-                        print indent*(level+1) + "[...]"
+                        print indent*(level+1) + "..."
             else:
                 print indent*level + '%s' % item
     print_dir(fs, path, 0)
@@ -651,6 +651,7 @@ if __name__ == "__main__":
     fs1 = osfs.OSFS('~/')
     fs2 = fs1.opendir("projects").opendir('prettycharts')
 
+    print_fs(fs2)
 
 
     #browsewin.browse(fs1)
