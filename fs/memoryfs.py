@@ -38,6 +38,10 @@ class MemoryFile(object):
         elif _check_mode(mode, 'r'):
             self.mem_file = StringIO(value)
 
+        elif _check_mode(mode, "a"):
+            self.mem_file = StringIO()
+            self.mem_file.write(value)
+
         else:
             if value is not None:
                 self.mem_file = StringIO(value)

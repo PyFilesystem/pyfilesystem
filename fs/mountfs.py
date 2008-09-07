@@ -25,6 +25,9 @@ class MountFS(FS):
         FS.__init__(self, thread_syncronize=True)
         self.mount_tree = ObjectTree()
 
+    def __str__(self):
+        return "<MountFS>"
+
     def _delegate(self, path):
         path = normpath(path)
         head_path, object, tail_path = self.mount_tree.partialget(path)

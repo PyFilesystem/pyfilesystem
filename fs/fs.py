@@ -71,6 +71,7 @@ class FSError(Exception):
         self.code = code
         self.msg = msg or error_msgs.get(code, error_msgs['UNKNOWN_ERROR'])
         self.path = path
+        self.path2 = path2
         self.details = details
 
     def __str__(self):
@@ -239,6 +240,9 @@ class FS(object):
             raise NoSysPathError("NO_SYS_PATH", path)
         return None
 
+    def hassyspath(self, path):
+        return self.getsyspath(path, None) is not None
+
     def open(self, path, mode="r", **kwargs):
         raise UnsupportedError("UNSUPPORTED")
 
@@ -379,7 +383,7 @@ class FS(object):
 
         for path, files in self.walk(path, wildcard, dir_wildcard, search):
             for f in files:
-                yield f
+                yield pathjoin(path, f)
 
 
     def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth"):
@@ -401,8 +405,9 @@ class FS(object):
                 current_path = dirs.pop()
 
                 paths = []
-                for path in self.listdir(current_path, full=True):
+                for filename in self.listdir(current_path):
 
+                    path = pathjoin(current_path, filename)
                     if self.isdir(path):
                         if dir_wildcard is not None:
                             if fnmatch.fnmatch(path, dir_wilcard):
@@ -412,9 +417,9 @@ class FS(object):
                     else:
                         if wildcard is not None:
                             if fnmatch.fnmatch(path, wildcard):
-                                paths.append(path)
+                                paths.append(filename)
                         else:
-                            paths.append(path)
+                            paths.append(filename)
                 yield (current_path, paths)
 
         elif search == "depth":
@@ -423,7 +428,7 @@ class FS(object):
                 for path in self.listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
                     for p in recurse(path):
                         yield p
-                yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, full=True, files_only=True))
+                yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, files_only=True))
 
             for p in recurse(path):
                 yield p
@@ -443,7 +448,7 @@ class FS(object):
             raise OperationFailedError("GETSIZE_FAILED", path)
         return size
 
-    def copy(self, src, dst, overwrite=False,  chunk_size=1024*16384):
+    def copy(self, src, dst, overwrite=False, chunk_size=1024*16384):
 
         """Copies a file from src to dst.
 
@@ -457,7 +462,7 @@ class FS(object):
         """
 
         if self.isdir(dst):
-            dst = pathjoin( getroot(dst), getresource(src) )
+            dst = pathjoin( getroot(dst), getresourcename(src) )
 
         if not self.isfile(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
@@ -508,35 +513,98 @@ class FS(object):
             self.remove(src)
 
 
-    def movedir(self, src, dst):
+    def movedir(self, src, dst, ignore_errors=False):
 
         """Moves a directory from one location to another.
 
         src -- Source directory path
         dst -- Destination directory path
+        ignore_errors -- If True then this method will ignore FSError exceptions when moving files
 
         """
-
-        src_syspath = self.getsyspath(src, allow_none=True)
-        dst_syspath = self.getsyspath(dst, allow_none=True)
-
         if not self.isdir(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
         if not self.isdir(dst):
             raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
 
+        src_syspath = self.getsyspath(src, allow_none=True)
+        dst_syspath = self.getsyspath(dst, allow_none=True)
+
         if src_syspath is not None and dst_syspath is not None:
             shutil.move(src_syspath, dst_syspath)
         else:
 
-            movefile = self.move
-            silence_fserrors(self.makedir, dst)
-            for dirname, filename in self.walk(src):
-                silence_fserrors(self.makedir, dirname)
-                src_filename = pathjoin(dirname, filename)
-                dst_filename = pathjoin(dst, dirname)
-                movefile(src_filename, dst_filename)
+            def movefile_noerrors(src, dst):
+                try:
+                    return self.move(src, dst)
+                except FSError:
+                    return
+            if ignore_errors:
+                movefile = movefile_noerrors
+            else:
+                movefile = self.move
 
+            self.makedir(dst, allow_recreate=True)
+            for dirname, filenames in self.walk(src, search="depth"):
+
+                dst_dirname = makerelative(dirname[len(src):])
+                dst_dirpath = pathjoin(dst, dst_dirname)
+                self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
+
+                for filename in filenames:
+
+                    src_filename = pathjoin(dirname, filename)
+                    dst_filename = pathjoin(dst_dirpath, filename)
+                    movefile(src_filename, dst_filename)
+
+                self.removedir(dirname)
+
+
+
+    def copydir(self, src, dst, ignore_errors=False):
+
+        """Copies a directory from one location to another.
+
+        src -- Source directory path
+        dst -- Destination directory path
+        ignore_errors -- If True, exceptions when copying will be ignored
+
+        """
+        if not self.isdir(src):
+            raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
+        if not self.isdir(dst):
+            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
+        #
+        #src_syspath = self.getsyspath(src, allow_none=True)
+        #dst_syspath = self.getsyspath(dst, allow_none=True)
+        #
+        #if src_syspath is not None and dst_syspath is not None:
+        #    shutil.copytree(src_syspath, dst_syspath)
+        #else:
+
+        def copyfile_noerrors(src, dst):
+            try:
+                return self.copy(src, dst)
+            except FSError:
+                return
+        if ignore_errors:
+            copyfile = copyfile_noerrors
+        else:
+            copyfile = self.copy
+
+        copyfile = self.copy
+        self.makedir(dst, allow_recreate=True)
+        for dirname, filenames in self.walk(src):
+
+            dst_dirname = makerelative(dirname[len(src):])
+            dst_dirpath = pathjoin(dst, dst_dirname)
+            self.makedir(dst_dirpath, allow_recreate=True)
+
+            for filename in filenames:
+
+                src_filename = pathjoin(dirname, filename)
+                dst_filename = pathjoin(dst_dirpath, filename)
+                copyfile(src_filename, dst_filename)
 
 
     def isdirempty(self, path):
@@ -651,7 +719,13 @@ if __name__ == "__main__":
     fs1 = osfs.OSFS('~/')
     fs2 = fs1.opendir("projects").opendir('prettycharts')
 
-    print_fs(fs2)
+    for d, f in fs1.walk('/projects/prettycharts'):
+        print d, f
+
+    for f in fs1.walkfiles("/projects/prettycharts"):
+        print f
+
+    #print_fs(fs2)
 
 
     #browsewin.browse(fs1)

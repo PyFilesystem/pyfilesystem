@@ -285,6 +285,128 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("/c.txt"))
         self.assert_(checkcontents("/c.txt"))
 
+    def test_movedir(self):
+
+        check = self.check
+        contents = "If the implementation is hard to explain, it's a bad idea."
+        def makefile(path):
+            f = self.fs.open(path, "wb")
+            f.write(contents)
+            f.close()
+
+        self.fs.makedir("a")
+        self.fs.makedir("b")
+        makefile("a/1.txt")
+        makefile("a/2.txt")
+        makefile("a/3.txt")
+        self.fs.makedir("a/foo/bar", recursive=True)
+        makefile("a/foo/bar/baz.txt")
+
+        self.fs.makedir("copy of a")
+        self.fs.movedir("a", "copy of a")
+
+        self.assert_(check("copy of a/1.txt"))
+        self.assert_(check("copy of a/2.txt"))
+        self.assert_(check("copy of a/3.txt"))
+        self.assert_(check("copy of a/foo/bar/baz.txt"))
+
+        self.assert_(not check("a/1.txt"))
+        self.assert_(not check("a/2.txt"))
+        self.assert_(not check("a/3.txt"))
+        self.assert_(not check("a/foo/bar/baz.txt"))
+        self.assert_(not check("a/foo/bar"))
+        self.assert_(not check("a/foo"))
+        self.assert_(not check("a"))
+
+
+    def test_copydir(self):
+
+        check = self.check
+        contents = "If the implementation is hard to explain, it's a bad idea."
+        def makefile(path):
+            f = self.fs.open(path, "wb")
+            f.write(contents)
+            f.close()
+
+        self.fs.makedir("a")
+        self.fs.makedir("b")
+        makefile("a/1.txt")
+        makefile("a/2.txt")
+        makefile("a/3.txt")
+        self.fs.makedir("a/foo/bar", recursive=True)
+        makefile("a/foo/bar/baz.txt")
+
+        self.fs.makedir("copy of a")
+        self.fs.copydir("a", "copy of a")
+        self.assert_(check("copy of a/1.txt"))
+        self.assert_(check("copy of a/2.txt"))
+        self.assert_(check("copy of a/3.txt"))
+        self.assert_(check("copy of a/foo/bar/baz.txt"))
+
+        self.assert_(check("a/1.txt"))
+        self.assert_(check("a/2.txt"))
+        self.assert_(check("a/3.txt"))
+        self.assert_(check("a/foo/bar/baz.txt"))
+
+
+    def test_readwriteappendseek(self):
+
+        def checkcontents(path, check_contents):
+            f = self.fs.open(path, "rb")
+            read_contents = f.read()
+            f.close()
+            return read_contents == check_contents
+
+        test_strings = ["Beautiful is better than ugly.",
+                        "Explicit is better than implicit.",
+                        "Simple is better than complex."]
+        all_strings = "".join(test_strings)
+
+        self.assertRaises(fs.ResourceNotFoundError, self.fs.open, "a.txt", "r")
+        self.assert_(not self.fs.exists("a.txt"))
+        f1 = self.fs.open("a.txt", "wb")
+        pos = 0
+        for s in test_strings:
+            f1.write(s)
+            pos += len(s)
+            self.assertEqual(pos, f1.tell())
+        f1.close()
+        self.assert_(self.fs.exists("a.txt"))
+        self.assert_(checkcontents("a.txt", all_strings))
+
+        f2 = self.fs.open("b.txt", "wb")
+        f2.write(test_strings[0])
+        f2.close()
+        f3 = self.fs.open("b.txt", "ab")
+        f3.write(test_strings[1])
+        f3.write(test_strings[2])
+        f3.close()
+        self.assert_(checkcontents("b.txt", all_strings))
+        f4 = self.fs.open("b.txt", "wb")
+        f4.write(test_strings[2])
+        f4.close()
+        self.assert_(checkcontents("b.txt", test_strings[2]))
+        f5 = self.fs.open("c.txt", "wt")
+        for s in test_strings:
+            f5.write(s+"\n")
+        f5.close()
+        f6 = self.fs.open("c.txt", "rt")
+        for s, t in zip(f6, test_strings):
+            self.assertEqual(s, t+"\n")
+        f6.close()
+        f7 = self.fs.open("c.txt", "rt")
+        f7.seek(13)
+        word = f7.read(6)
+        self.assertEqual(word, "better")
+        f7.seek(1, os.SEEK_CUR)
+        word = f7.read(4)
+        self.assertEqual(word, "than")
+        f7.seek(-9, os.SEEK_END)
+        word = f7.read(7)
+        self.assertEqual(word, "complex")
+        f7.close()
+
+
 class TestSubFS(TestOSFS):
 
     def setUp(self):

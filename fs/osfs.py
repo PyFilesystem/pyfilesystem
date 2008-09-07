@@ -27,6 +27,8 @@ class OSFS(FS):
         try:
             f = open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
         except IOError, e:
+            if e.errno == 2:
+                raise ResourceNotFoundError("NO_FILE", path)
             raise OperationFailedError("OPEN_FAILED", path, details=e, msg=str(e))
 
         return f
@@ -66,7 +68,11 @@ class OSFS(FS):
                 try:
                     os.mkdir(sys_path, mode)
                 except OSError, e:
-                    raise OperationFailedError("MAKEDIR_FAILED", path)
+                    if allow_recreate:
+                        if e.errno !=17:
+                            raise OperationFailedError("MAKEDIR_FAILED", path)
+                    else:
+                        raise OperationFailedError("MAKEDIR_FAILED", path)
         except OSError, e:
             raise OperationFailedError("MAKEDIR_FAILED", path, details=e)
 
