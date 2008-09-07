@@ -335,7 +335,22 @@ class FS(object):
             return "OS file, maps to %s" % sys_path
 
     def open(self, path, mode="r", **kwargs):
-        raise UNSUPPORTED_ERROR("UNSUPPORTED")
+        raise UnsupportedError("UNSUPPORTED")
+
+    def getcontents(self, path):
+        """Returns the contents of a file as a string.
+
+        path -- path of file to read.
+
+        """
+        f = None
+        try:
+            f = self.open(path, "rb")
+            contents = f.read()
+            return contents
+        finally:
+            if f is not None:
+                f.close()
 
     def opendir(self, path):
         if not self.exists(path):

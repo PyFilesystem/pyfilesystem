@@ -405,6 +405,7 @@ class TestOSFS(unittest.TestCase):
         word = f7.read(7)
         self.assertEqual(word, "complex")
         f7.close()
+        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)
 
 
 class TestSubFS(TestOSFS):
