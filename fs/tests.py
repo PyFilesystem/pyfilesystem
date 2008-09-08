@@ -265,7 +265,6 @@ class TestOSFS(unittest.TestCase):
         self.assertEqual(size, len(test_str))
 
     def test_movefile(self):
-
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
         def makefile(path):
@@ -294,7 +293,6 @@ class TestOSFS(unittest.TestCase):
         self.assert_(checkcontents("/c.txt"))
 
     def test_movedir(self):
-
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
         def makefile(path):
@@ -328,7 +326,6 @@ class TestOSFS(unittest.TestCase):
 
 
     def test_copydir(self):
-
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
         def makefile(path):
@@ -358,13 +355,11 @@ class TestOSFS(unittest.TestCase):
 
 
     def test_readwriteappendseek(self):
-
         def checkcontents(path, check_contents):
             f = self.fs.open(path, "rb")
             read_contents = f.read()
             f.close()
             return read_contents == check_contents
-
         test_strings = ["Beautiful is better than ugly.",
                         "Explicit is better than implicit.",
                         "Simple is better than complex."]
