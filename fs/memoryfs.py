@@ -51,6 +51,9 @@ class MemoryFile(object):
         assert self.mem_file is not None, "self.mem_file should have a value"
         self.closed = False
 
+    def __str__(self):
+        return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
+
     def __del__(self):
         if not self.closed:
             self.close()

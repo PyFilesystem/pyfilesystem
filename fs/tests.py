@@ -150,6 +150,11 @@ class TestOSFS(unittest.TestCase):
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, makerelative(p)))
 
+    def test_debug(self):
+        str(self.fs)
+        repr(self.fs)
+        self.assert_(hasattr(self.fs, 'desc'))
+
     def test_makedir(self):
         check = self.check
 
@@ -166,6 +171,8 @@ class TestOSFS(unittest.TestCase):
         self.fs.makedir("a/b/child")
         self.assert_(check("a/b/child"))
 
+        self.fs.desc("a")
+        self.fs.desc("a/b/child")
 
     def test_removedir(self):
         check = self.check
@@ -247,6 +254,7 @@ class TestOSFS(unittest.TestCase):
         f.close()
         info = self.fs.getinfo("info.txt")
         self.assertEqual(info['size'], len(test_str))
+        self.fs.desc("info.txt")
 
     def test_getsize(self):
         test_str = "*"*23
