@@ -454,6 +454,20 @@ class TestMountFS(TestOSFS):
     def check(self, p):
         return self.mount_fs.exists(os.path.join("mounted/memfs", makerelative(p)))
 
+import tempfs
+class TestTempFS(TestOSFS):
+
+    def setUp(self):
+        self.fs = tempfs.TempFS()
+
+    def tearDown(self):
+        td = self.fs._temp_dir
+        del self.fs
+        self.assert_(not os.path.exists(td))
+
+    def check(self, p):
+        td = self.fs._temp_dir
+        return os.path.exists(os.path.join(td, makerelative(p)))
 
 if __name__ == "__main__":
     #t = TestFS()

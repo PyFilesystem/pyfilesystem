@@ -83,9 +83,25 @@ def pathsplit(path):
     return tuple(split)
 
 def getroot(path):
+    """Returns the root directory of a path.
+
+    path -- A path
+
+    >>> getroot('foo/bar/baz')
+    'foo/bar'
+
+    """
     return pathsplit(path)[0]
 
 def getresourcename(path):
+    """Returns the resource references by a path.
+
+    path -- A path
+
+    >>> getresourcename('foo/bar/baz')
+    'baz'
+
+    """
     return pathsplit(path)[1]
 
 def resolvepath(path):
@@ -127,8 +143,15 @@ def makeabsolute(path):
         return '/'+path
     return path
 
-
 def issamedir(path1, path2):
-    dirname1, name1 = pathsplit(path1)
-    dirname2, name2 = pathsplit(path2)
-    return dirname1 == dirname2
+    """Return true if two paths reference a resource in the same directory.
+
+    path1 -- First path
+    path2 -- Second path
+
+    >>> issamedir("foo/bar/baz.txt", "foo/bar/spam.txt")
+    True
+    >>> issamedir("foo/bar/baz/txt", "spam/eggs/spam.txt")
+    False
+    """
+    return pathsplit(path1)[0] == pathsplit(path2)[0]
