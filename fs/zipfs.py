@@ -52,6 +52,9 @@ class ZipFS(FS):
             self.temp_fs = tempfs.TempFS()
 
     def close(self):
+        """Finalizes the zip file so that it can be read.
+        No further operations will work after this method is called."""
+
         if self.zf is not None:
             self.zf.close()
             self.zf = None
@@ -66,7 +69,10 @@ class ZipFS(FS):
         if 'r' in mode:
             if self.zip_mode not in 'ra':
                 raise OperationFailedError("OPEN_FAILED", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
-            contents = self.zf.read(path)
+            try:
+                contents = self.zf.read(path)
+            except KeyError:
+                raise ResourceNotFoundError("NO_FILE", path)
             return StringIO(contents)
 
         if 'w' in mode:
@@ -87,12 +93,10 @@ class ZipFS(FS):
 if __name__ == "__main__":
     def test():
         zfs = ZipFS("t.zip", "w")
-        f = zfs.open("t.txt", 'w')
-        f.write("Hello, World!")
-        f.close()
+        zfs.createfile("t.txt", "Hello, World!")
         zfs.close()
-
         rfs = ZipFS("t.zip", 'r')
         print rfs.getcontents("t.txt")
+        print rfs.getcontents("w.txt")
     test()
     #zfs.close()

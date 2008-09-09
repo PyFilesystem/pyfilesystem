@@ -352,6 +352,21 @@ class FS(object):
             if f is not None:
                 f.close()
 
+    def createfile(self, path, data):
+        """A convenience method to create a new file from a string.
+
+        path -- Path of the file to create
+        data -- A string containing the contents of the file
+
+        """
+        f = None
+        try:
+            f = self.open(path, 'wb')
+            f.write(data)
+        finally:
+            if f is not None:
+                f.close()
+
     def opendir(self, path):
         if not self.exists(path):
             raise ResourceNotFoundError("NO_DIR", path)
