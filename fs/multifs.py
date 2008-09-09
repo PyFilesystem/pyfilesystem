@@ -5,7 +5,7 @@ from fs import FS, FSError
 class MultiFS(FS):
 
     """A MultiFS is a filesystem that delegates to a sequence of other filesystems.
-    Operations on the MultiFS will try easy 'child' filesystem in order, until it
+    Operations on the MultiFS will try each 'child' filesystem in order, until it
     succeeds. In effect, creating a filesystem that combines the files and dirs of
     its children.
 
