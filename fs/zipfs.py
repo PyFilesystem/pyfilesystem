@@ -51,6 +51,13 @@ class ZipFS(FS):
         if mode in 'wa':
             self.temp_fs = tempfs.TempFS()
 
+        self.resource_list = None
+        if mode == 'r':
+            self.resource_list = self.zf.namelist()
+
+    def _get_resource_list(self):
+        return self.resource_list or self.zf.namelist()
+
     def close(self):
         """Finalizes the zip file so that it can be read.
         No further operations will work after this method is called."""
@@ -90,6 +97,21 @@ class ZipFS(FS):
         sys_path = self.temp_fs.getsyspath(filename)
         self.zf.write(sys_path, filename)
 
+
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+
+        path = normpath(path)
+
+        def indir(p):
+            p = makeabsolute(p)
+            list_dir = makeabsolute(path)
+            sub_path = normpath(p[len(list_dir)+1:])
+            return sub_path and '/' not in sub_path
+
+        paths = [getresourcename(p.rstrip('/')) for p in self._get_resource_list() if indir(p.rstrip('/'))]
+
+        return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
+
 if __name__ == "__main__":
     def test():
         zfs = ZipFS("t.zip", "w")
@@ -98,5 +120,11 @@ if __name__ == "__main__":
         rfs = ZipFS("t.zip", 'r')
         print rfs.getcontents("t.txt")
         print rfs.getcontents("w.txt")
-    test()
+
+    def test2():
+        zfs = ZipFS("t2.zip", "r")
+        print zfs.listdir("/tagging-trunk")
+        print zfs.listdir("/")
+
+    test2()
     #zfs.close()
