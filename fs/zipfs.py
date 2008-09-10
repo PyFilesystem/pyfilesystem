@@ -30,6 +30,17 @@ class _TempWriteFile(object):
         self._file.close()
         self.close_callback(self.filename)
 
+class _ExceptionProxy(object):
+
+    def __getattr__(self, name):
+        raise ValueError("Zip file has been closed")
+
+    def __setattr__(self, name, value):
+        raise ValueError("Zip file has been closed")
+
+    def __nonzero__(self):
+        return False
+
 class ZipFS(FS):
 
     def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False):
@@ -56,15 +67,17 @@ class ZipFS(FS):
             self.resource_list = self.zf.namelist()
 
     def _get_resource_list(self):
+        if not self.zf:
+            raise ValueError("Zip file has been closed")
         return self.resource_list or self.zf.namelist()
 
     def close(self):
         """Finalizes the zip file so that it can be read.
         No further operations will work after this method is called."""
 
-        if self.zf is not None:
+        if self.zf:
             self.zf.close()
-            self.zf = None
+            self.zf = _ExceptionProxy()
 
     def __del__(self):
         self.close()
@@ -124,6 +137,9 @@ if __name__ == "__main__":
     def test2():
         zfs = ZipFS("t2.zip", "r")
         print zfs.listdir("/tagging-trunk")
+        print zfs.listdir("/")
+        zfs.close()
+        zfs.open("t.txt")
         print zfs.listdir("/")
 
     test2()
