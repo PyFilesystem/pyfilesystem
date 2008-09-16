@@ -172,12 +172,16 @@ class ZipFS(FS):
         return self._path_fs.exists(path)
 
     def makedir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
-        dirname = normpath(dirname)
-        if self.zip_mode not in "wa":
-            raise OperationFailedError("MAKEDIR_FAILED", dirname, "Zip file must be opened for writing ('w') or appending ('a')")
-        if not dirname.endswith('/'):
-            dirname += '/'
-        self._add_resource(dirname)
+        self._lock.acquire()
+        try:
+            dirname = normpath(dirname)
+            if self.zip_mode not in "wa":
+                raise OperationFailedError("MAKEDIR_FAILED", dirname, "Zip file must be opened for writing ('w') or appending ('a')")
+            if not dirname.endswith('/'):
+                dirname += '/'
+            self._add_resource(dirname)
+        finally:
+            self._lock.release()
 
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
 
