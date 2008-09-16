@@ -24,7 +24,7 @@ class InfoFrame(wx.Frame):
         self.list_ctrl.SetColumnWidth(1, 300)
 
         for key in keys:
-            self.list_ctrl.Append((key, str(info[key])))
+            self.list_ctrl.Append((key, repr(info[key])))
 
 
 
@@ -38,7 +38,7 @@ class BrowseFrame(wx.Frame):
         self.SetTitle("FS Browser - "+str(fs))
 
         self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
-        self.tree.AddColumn("FS", 300)
+        self.tree.AddColumn("File System", 300)
         self.tree.AddColumn("Description", 250)
         self.tree.AddColumn("Size", 150)
         self.tree.AddColumn("Created", 250)

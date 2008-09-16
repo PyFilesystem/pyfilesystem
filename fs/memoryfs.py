@@ -156,6 +156,9 @@ class MemoryFS(FS):
     def __str__(self):
         return "<MemoryFS>"
 
+    def __unicode__(self):
+        return unicode(self.__str__())
+
     def _get_dir_entry(self, dirpath):
         self._lock.acquire()
         try:
@@ -212,6 +215,8 @@ class MemoryFS(FS):
             self._lock.release()
 
     def makedir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
+        if not dirname:
+            raise PathError("INVALID_PATH", "Path is empty")
         self._lock.acquire()
         try:
             fullpath = dirname
@@ -234,7 +239,7 @@ class MemoryFS(FS):
                         break
                     if not dir_item.isdir():
                         raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
-                    current_dir = dir_item.contents
+                    current_dir = dir_item
 
                 current_dir = self.root
                 for path_component in _iteratepath(dirpath):
