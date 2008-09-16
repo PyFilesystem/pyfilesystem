@@ -9,7 +9,8 @@ import datetime
 try:
     import threading
 except ImportError:
-    import dummy_threading as threadding
+    import dummy_threading as threading
+import dummy_threading
 
 error_msgs = {
 
@@ -211,11 +212,16 @@ class FS(object):
     """
 
     def __init__(self, thread_syncronize=False):
+        """The baseclass for Filesystem objects.
 
+        thread_synconize -- If True, a lock object will be created for the
+        object, otherwise a dummy lock will be used.
+
+        """
         if thread_syncronize:
             self._lock = threading.RLock()
         else:
-            self._lock = None
+            self._lock = dummy_threading.RLock()
 
     def _resolve(self, pathname):
         resolved_path = resolvepath(pathname)
@@ -241,9 +247,22 @@ class FS(object):
         return None
 
     def hassyspath(self, path):
+        """Return True if the path maps to a system path.
+
+        path -- Pach to check
+
+        """
         return self.getsyspath(path, None) is not None
 
     def open(self, path, mode="r", **kwargs):
+        """Opens a file.
+
+        path -- Path to file that should be opened
+        mode -- Mode of file to open, identical too the mode string used in
+        'file' and 'open' builtins
+        kwargs -- Additional (optional) keyword parameters that may be required to open the file
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def safeopen(self, *args, **kwargs):
@@ -334,9 +353,6 @@ class FS(object):
         else:
             return "OS file, maps to %s" % sys_path
 
-    def open(self, path, mode="r", **kwargs):
-        raise UnsupportedError("UNSUPPORTED")
-
     def getcontents(self, path):
         """Returns the contents of a file as a string.
 
@@ -368,6 +384,11 @@ class FS(object):
                 f.close()
 
     def opendir(self, path):
+        """Opens a directory and returns a FS object representing its contents.
+
+        path -- Path to directory to open
+
+        """
         if not self.exists(path):
             raise ResourceNotFoundError("NO_DIR", path)
 
@@ -375,6 +396,8 @@ class FS(object):
         return sub_fs
 
     def _listdir_helper(self, path, paths, wildcard, full, absolute, hidden, dirs_only, files_only):
+        """A helper function called by listdir method that applies filtering."""
+
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
 
@@ -604,13 +627,6 @@ class FS(object):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
         if not self.isdir(dst):
             raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
-        #
-        #src_syspath = self.getsyspath(src, allow_none=True)
-        #dst_syspath = self.getsyspath(dst, allow_none=True)
-        #
-        #if src_syspath is not None and dst_syspath is not None:
-        #    shutil.copytree(src_syspath, dst_syspath)
-        #else:
 
         def copyfile_noerrors(src, dst):
             try:
@@ -669,7 +685,7 @@ class SubFS(FS):
         self.sub_dir = parent._abspath(sub_dir)
 
     def __str__(self):
-        return "<SubFS \"%s\" in %s>" % (self.sub_dir, self.parent)
+        return "<SubFS: \"%s\" in %s>" % (self.sub_dir, self.parent)
 
     def desc(self, path):
         if self.isdir(path):

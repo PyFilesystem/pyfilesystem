@@ -4,8 +4,8 @@ from fs import *
 
 class OSFS(FS):
 
-    def __init__(self, root_path):
-        FS.__init__(self)
+    def __init__(self, root_path, thread_syncronize=True):
+        FS.__init__(self, thread_syncronize=thread_syncronize)
 
         expanded_path = normpath(os.path.expanduser(os.path.expandvars(root_path)))
 
