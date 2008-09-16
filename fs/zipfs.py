@@ -14,6 +14,8 @@ import tempfs
 
 class _TempWriteFile(object):
 
+    """Proxies a file object and calls a callback when the file is closed."""
+
     def __init__(self, fs, filename, close_callback):
         self.fs = fs
         self.filename = filename
@@ -32,6 +34,8 @@ class _TempWriteFile(object):
 
 class _ExceptionProxy(object):
 
+    """A placeholder for an object that may no longer be used."""
+
     def __getattr__(self, name):
         raise ValueError("Zip file has been closed")
 
@@ -43,7 +47,18 @@ class _ExceptionProxy(object):
 
 class ZipFS(FS):
 
+    """A FileSystem that represents a zip file."""
+
     def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, thread_syncronize=True):
+        """Create a FS that maps on to a zip file.
+
+        zip_file -- A (system) path, or a file-like object
+        mode -- Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
+        compression -- Can be 'deflated' (default) to compress data or 'stored' to just store date
+        allowZip64 -- Set to True to use zip files greater than 2 MB, default is False
+        thread_syncronize -- Set to True (default) to enable thread-safety
+
+        """
         FS.__init__(self, thread_syncronize=thread_syncronize)
         if compression == "deflated":
             compression_type = ZIP_DEFLATED
