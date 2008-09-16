@@ -21,7 +21,7 @@ class TempFS(OSFS):
         OSFS.__init__(self, self._temp_dir, thread_syncronize=thread_syncronize)
 
     def __str__(self):
-        return '<TempFS in "%s">' % self._temp_dir
+        return '<TempFS: "%s">' % self._temp_dir
 
     def __unicode__(self):
         return uncode(self.__str__())
