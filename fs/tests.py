@@ -25,7 +25,7 @@ class TestHelpers(unittest.TestCase):
         for path, result in tests:
             self.assertEqual(fs.normpath(path), result)
 
-    def test_pathjon(self):
+    def test_pathjoin(self):
         tests = [   ("", "a", "a"),
                     ("a", "a", "a/a"),
                     ("a/b", "../c", "a/c"),
