@@ -21,8 +21,8 @@ class MountFS(FS):
                 return {}
             self.info_callable = info_callable or no_info_callable
 
-    def __init__(self):
-        FS.__init__(self, thread_syncronize=True)
+    def __init__(self, thread_syncronize=True):
+        FS.__init__(self, thread_syncronize=thread_syncronize)
         self.mount_tree = ObjectTree()
 
     def __str__(self):
