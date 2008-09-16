@@ -44,8 +44,8 @@ class _ExceptionProxy(object):
 
 class ZipFS(FS):
 
-    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False):
-        FS.__init__(self, thread_syncronize=True)
+    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, thread_syncronize=True):
+        FS.__init__(self, thread_syncronize=thread_syncronize)
         if compression == "deflated":
             compression_type = ZIP_DEFLATED
         elif compression == "stored":
@@ -131,6 +131,20 @@ class ZipFS(FS):
                 return f
 
             raise ValueError("Mode must contain be 'r' or 'w'")
+        finally:
+            self._lock.release()
+
+    def getcontents(self, path):
+        self._lock.acquire()
+        try:
+            if not exists(path):
+                raise ResourceNotFoundError("NO_FILE", path)
+            path = normpath(path)
+            try:
+                contents = self.zf.read(path)
+            except KeyError:
+                raise ResourceNotFoundError("NO_FILE", path)
+            return contents
         finally:
             self._lock.release()
 
