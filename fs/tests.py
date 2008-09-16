@@ -472,6 +472,65 @@ class TestTempFS(TestOSFS):
         td = self.fs._temp_dir
         return os.path.exists(os.path.join(td, makerelative(p)))
 
+import zipfs
+import random
+import zipfile
+class TestReadZipFS(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
+        self.temp_filename = os.path.abspath(self.temp_filename)
+
+        self.zf = zipfile.ZipFile(self.temp_filename, "w")
+        zf = self.zf
+        zf.writestr("a.txt", "Hello, World!")
+        zf.writestr("b.txt", "b")
+        zf.writestr("1.txt", "1")
+        zf.writestr("foo/bar/baz.txt", "baz")
+        zf.writestr("foo/second.txt", "hai")
+        zf.close()
+        self.fs = zipfs.ZipFS(self.temp_filename, "r")
+
+    def tearDown(self):
+        self.fs.close()
+        os.remove(self.temp_filename)
+
+    def check(self, p):
+        try:
+            self.zipfile.getinfo(p)
+            return True
+        except:
+            return False
+
+    def test_reads(self):
+        def read_contents(path):
+            f = self.fs.open(path)
+            contents = f.read()
+            return contents
+        def check_contents(path, expected):
+            self.assert_(read_contents(path)==expected)
+        check_contents("a.txt", "Hello, World!")
+        check_contents("1.txt", "1")
+        check_contents("foo/bar/baz.txt", "baz")
+
+    def test_getcontents(self):
+        def read_contents(path):
+            return self.fs.getcontents(path)
+        def check_contents(path, expected):
+            self.assert_(read_contents(path)==expected)
+        check_contents("a.txt", "Hello, World!")
+        check_contents("1.txt", "1")
+        check_contents("foo/bar/baz.txt", "baz")
+
+    def test_listdir(self):
+
+        def check_listing(path, expected):
+            dir_list = self.fs.listdir(path)
+            self.assert_(sorted(dir_list) == sorted(expected))
+        check_listing('/', ['a.txt', '1.txt', 'foo', 'b.txt'])
+        check_listing('foo', ['second.txt', 'bar'])
+        check_listing('foo/bar', ['baz.txt'])
+
 if __name__ == "__main__":
     #t = TestFS()
     #t.setUp()

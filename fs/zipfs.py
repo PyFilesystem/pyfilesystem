@@ -92,13 +92,10 @@ class ZipFS(FS):
     def close(self):
         """Finalizes the zip file so that it can be read.
         No further operations will work after this method is called."""
-        self._lock.acquire()
-        try:
-            if self.zf:
-                self.zf.close()
-                self.zf = _ExceptionProxy()
-        finally:
-            self._lock.release()
+
+        if hasattr(self, 'zf') and self.zf:
+            self.zf.close()
+            self.zf = _ExceptionProxy()
 
     def __del__(self):
         self.close()
@@ -136,13 +133,15 @@ class ZipFS(FS):
     def getcontents(self, path):
         self._lock.acquire()
         try:
-            if not exists(path):
+            if not self.exists(path):
                 raise ResourceNotFoundError("NO_FILE", path)
             path = normpath(path)
             try:
                 contents = self.zf.read(path)
             except KeyError:
                 raise ResourceNotFoundError("NO_FILE", path)
+            except RuntimeError:
+                raise OperationFailedError("READ_FAILED", path, "Zip file must be oppened with 'r' or 'a' to read")
             return contents
         finally:
             self._lock.release()
@@ -230,6 +229,8 @@ if __name__ == "__main__":
     zfs = ZipFS("t3.zip", "w")
     zfs.createfile("t.txt", "Hello, World!")
     zfs.createfile("foo/bar/baz/t.txt", "Hello, World!")
+
+    print zfs.getcontents('t.txt')
     #print zfs.isdir("t.txt")
     #print zfs.isfile("t.txt")
     #print zfs.isfile("foo/bar")

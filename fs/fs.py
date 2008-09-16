@@ -30,6 +30,7 @@ error_msgs = {
     "REMOVEDIR_FAILED" :    "Unable to remove dir: %(path)s",
     "GETSIZE_FAILED" :      "Unable to retrieve size of resource: %(path)s",
     "COPYFILE_FAILED" :     "Unable to copy file: %(path)s",
+    "READ_FAILED" :         "Unable to read from file: %(path)s",
 
     # NoSysPathError
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
