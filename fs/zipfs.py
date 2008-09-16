@@ -10,7 +10,6 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from tempfile import NamedTemporaryFile
 import tempfs
 
 class _TempWriteFile(object):
