@@ -181,7 +181,9 @@ class ZipFS(FS):
                 zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
             except KeyError:
                 zinfo = {'file_size':0}
-            info = {'size' : zinfo['file_size']}
+            info = {'size' : zinfo['file_size'] }
+            if 'date_time' in zinfo:
+                info['created_time'] = datetime.datetime(*zinfo['date_time'])
             info.update(zinfo)
             return info
         finally:
