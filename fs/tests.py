@@ -528,6 +528,11 @@ class TestReadZipFS(unittest.TestCase):
         self.assert_(self.fs.isfile('foo/bar/baz.txt'))
         self.assert_(self.fs.isdir('foo'))
         self.assert_(self.fs.isdir('foo/bar'))
+        self.assert_(self.fs.exists('a.txt'))
+        self.assert_(self.fs.exists('1.txt'))
+        self.assert_(self.fs.exists('foo/bar/baz.txt'))
+        self.assert_(self.fs.exists('foo'))
+        self.assert_(self.fs.exists('foo/bar'))
 
     def test_listdir(self):
 
