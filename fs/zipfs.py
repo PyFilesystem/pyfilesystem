@@ -179,7 +179,7 @@ class ZipFS(FS):
         return self._path_fs.isdir(path)
 
     def isfile(self, path):
-        return self._path_fs.isdir(path)
+        return self._path_fs.isfile(path)
 
     def exists(self, path):
         return self._path_fs.exists(path)

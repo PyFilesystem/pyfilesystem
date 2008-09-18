@@ -522,6 +522,13 @@ class TestReadZipFS(unittest.TestCase):
         check_contents("1.txt", "1")
         check_contents("foo/bar/baz.txt", "baz")
 
+    def test_is(self):
+        self.assert_(self.fs.isfile('a.txt'))
+        self.assert_(self.fs.isfile('1.txt'))
+        self.assert_(self.fs.isfile('foo/bar/baz.txt'))
+        self.assert_(self.fs.isdir('foo'))
+        self.assert_(self.fs.isdir('foo/bar'))
+
     def test_listdir(self):
 
         def check_listing(path, expected):
@@ -530,6 +537,75 @@ class TestReadZipFS(unittest.TestCase):
         check_listing('/', ['a.txt', '1.txt', 'foo', 'b.txt'])
         check_listing('foo', ['second.txt', 'bar'])
         check_listing('foo/bar', ['baz.txt'])
+
+class TestWriteZipFS(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
+        self.temp_filename = os.path.abspath(self.temp_filename)
+
+        zip_fs = zipfs.ZipFS(self.temp_filename, 'w')
+
+        def makefile(filename, contents):
+            if dirname(filename):
+                zip_fs.makedir(dirname(filename), recursive=True, allow_recreate=True)
+            f = zip_fs.open(filename, 'w')
+            f.write(contents)
+            f.close()
+
+        makefile("a.txt", "Hello, World!")
+        makefile("b.txt", "b")
+        makefile("foo/bar/baz.txt", "baz")
+        makefile("foo/second.txt", "hai")
+
+        zip_fs.close()
+
+    def tearDown(self):
+        os.remove(self.temp_filename)
+
+    def test_valid(self):
+        zf = zipfile.ZipFile(self.temp_filename, "r")
+        self.assert_(zf.testzip() is None)
+        zf.close()
+
+    def test_creation(self):
+        zf = zipfile.ZipFile(self.temp_filename, "r")
+        def check_contents(filename, contents):
+            zcontents = zf.read(filename)
+            self.assertEqual(contents, zcontents)
+        check_contents("a.txt", "Hello, World!")
+        check_contents("b.txt", "b")
+        check_contents("foo/bar/baz.txt", "baz")
+        check_contents("foo/second.txt", "hai")
+
+
+class TestAppendZipFS(TestWriteZipFS):
+
+    def setUp(self):
+        self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
+        self.temp_filename = os.path.abspath(self.temp_filename)
+
+        zip_fs = zipfs.ZipFS(self.temp_filename, 'w')
+
+        def makefile(filename, contents):
+            if dirname(filename):
+                zip_fs.makedir(dirname(filename), recursive=True, allow_recreate=True)
+            f = zip_fs.open(filename, 'w')
+            f.write(contents)
+            f.close()
+
+        makefile("a.txt", "Hello, World!")
+        makefile("b.txt", "b")
+
+        zip_fs.close()
+        zip_fs = zipfs.ZipFS(self.temp_filename, 'a')
+
+        makefile("foo/bar/baz.txt", "baz")
+        makefile("foo/second.txt", "hai")
+
+        zip_fs.close()
+
+
 
 if __name__ == "__main__":
     #t = TestFS()

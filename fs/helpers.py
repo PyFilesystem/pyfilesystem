@@ -82,23 +82,23 @@ def pathsplit(path):
         return ('', split[0])
     return tuple(split)
 
-def getroot(path):
-    """Returns the root directory of a path.
+def dirname(path):
+    """Returns the parent directory of a path.
 
-    path -- A path
+    path -- A FS path
 
-    >>> getroot('foo/bar/baz')
+    >>> dirname('foo/bar/baz')
     'foo/bar'
 
     """
     return pathsplit(path)[0]
 
-def getresourcename(path):
+def resourcename(path):
     """Returns the resource references by a path.
 
-    path -- A path
+    path -- A FS path
 
-    >>> getresourcename('foo/bar/baz')
+    >>> resourcename('foo/bar/baz')
     'baz'
 
     """
@@ -154,4 +154,4 @@ def issamedir(path1, path2):
     >>> issamedir("foo/bar/baz/txt", "spam/eggs/spam.txt")
     False
     """
-    return pathsplit(path1)[0] == pathsplit(path2)[0]
+    return pathsplit(resolvepath(path1))[0] == pathsplit(resolvepath(path2))[0]

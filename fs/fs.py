@@ -77,7 +77,11 @@ class FSError(Exception):
         self.details = details
 
     def __str__(self):
-        msg = self.msg % dict((k, str(v)) for k, v in self.__dict__.iteritems())
+        if self.details is None:
+            msg = self.msg % dict((k, str(v)) for k, v in self.__dict__.iteritems())
+        else:
+            msg = self.msg % dict((k, str(v)) for k, v in self.__dict__.iteritems())
+            msg += ", "+str(self.details)
 
         return '%s. %s' % (self.code, msg)
 
@@ -516,7 +520,7 @@ class FS(object):
         """
 
         if self.isdir(dst):
-            dst = pathjoin( getroot(dst), getresourcename(src) )
+            dst = pathjoin( dirname(dst), resourcename(src) )
 
         if not self.isfile(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")

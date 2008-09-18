@@ -74,7 +74,10 @@ class OSFS(FS):
                     else:
                         raise OperationFailedError("MAKEDIR_FAILED", path)
         except OSError, e:
-            raise OperationFailedError("MAKEDIR_FAILED", path, details=e)
+            if e.errno == 17:
+                return
+            else:
+                raise OperationFailedError("MAKEDIR_FAILED", path, details=e)
 
     def remove(self, path):
         sys_path = self.getsyspath(path)
