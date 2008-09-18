@@ -479,7 +479,7 @@ class TestReadZipFS(unittest.TestCase):
 
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
-        self.temp_filename = os.path.abspath(self.temp_filename)
+        self.temp_filename = os.path.join(tempfile.gettempdir(), self.temp_filename)
 
         self.zf = zipfile.ZipFile(self.temp_filename, "w")
         zf = self.zf
@@ -547,7 +547,7 @@ class TestWriteZipFS(unittest.TestCase):
 
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
-        self.temp_filename = os.path.abspath(self.temp_filename)
+        self.temp_filename = os.path.join(tempfile.gettempdir(), self.temp_filename)
 
         zip_fs = zipfs.ZipFS(self.temp_filename, 'w')
 
@@ -588,7 +588,7 @@ class TestAppendZipFS(TestWriteZipFS):
 
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
-        self.temp_filename = os.path.abspath(self.temp_filename)
+        self.temp_filename = os.path.join(tempfile.gettempdir(), self.temp_filename)
 
         zip_fs = zipfs.ZipFS(self.temp_filename, 'w')
 
