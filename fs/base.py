@@ -298,7 +298,6 @@ class FS(object):
                         hidden=True,
                         dirs_only=False,
                         files_only=False):
-
         """Lists all the files and directories in a path. Returns a list of paths.
 
         path -- Root of the path to list
@@ -446,7 +445,6 @@ class FS(object):
 
 
     def walkfiles(self, path="/", wildcard=None, dir_wildcard=None, search="breadth" ):
-
         """Like the 'walk' method, but just yields files.
 
         path -- Root path to start walking
@@ -526,7 +524,6 @@ class FS(object):
         return size
 
     def copy(self, src, dst, overwrite=False, chunk_size=1024*16384):
-
         """Copies a file from src to dst.
 
         src -- The source path
@@ -570,7 +567,6 @@ class FS(object):
                     dst_file.close()
 
     def move(self, src, dst, chunk_size=16384):
-
         """Moves a file from one location to another.
 
         src -- Source path
@@ -591,12 +587,12 @@ class FS(object):
 
 
     def movedir(self, src, dst, ignore_errors=False, chunk_size=16384):
-
         """Moves a directory from one location to another.
 
         src -- Source directory path
         dst -- Destination directory path
         ignore_errors -- If True then this method will ignore FSError exceptions when moving files
+        chunk_size -- Size of chunks to use when copying, if a simple copy is required
 
         """
         if not self.isdir(src):
@@ -639,12 +635,12 @@ class FS(object):
 
 
     def copydir(self, src, dst, ignore_errors=False, chunk_size=16384):
-
         """Copies a directory from one location to another.
 
         src -- Source directory path
         dst -- Destination directory path
         ignore_errors -- If True, exceptions when copying will be ignored
+        chunk_size -- Size of chunks to use when copying, if a simple copy is required
 
         """
         if not self.isdir(src):
@@ -678,13 +674,11 @@ class FS(object):
 
 
     def isdirempty(self, path):
-
         """Return True if a path contains no files.
 
         path -- Path of a directory
 
         """
-
         path = normpath(path)
         iter_dir = iter(self.listdir(path))
         try:
