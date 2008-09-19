@@ -122,7 +122,7 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     mount_fs = MountFS()
     mount_fs.mount('dir1', fs1)
     mount_fs.mount('dir2', fs2)
-    mount_fs.movedir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
+    mount_fs.copydir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
 
 def countbytes(count_fs):
     """Returns the total number of bytes contained within files in a filesystem.
