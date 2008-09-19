@@ -95,6 +95,13 @@ class SystemError(FSError): pass
 class ResourceInvalid(FSError): pass
 
 def silence_fserrors(f, *args, **kwargs):
+    """Perform a function call and return None if any FSError exceptions are thrown/
+
+    f -- Function to call
+    args -- Parameters to f
+    kwargs -- Keyword parameters to f
+
+    """
     try:
         return f(*args, **kwargs)
     except FSError:
@@ -320,15 +327,41 @@ class FS(object):
         raise UnsupportedError("UNSUPPORTED")
 
     def makedir(self, path, mode=0777, recursive=False, allow_recreate=False):
+        """Make a directory on the file system.
+
+        path -- Path of directory
+        mode -- Permissions
+        recursive -- If True, also create intermediate directories
+        allow_recreate -- If True, then re-creating a directory wont throw an exception
+
+        """
+
         raise UnsupportedError("UNSUPPORTED")
 
     def remove(self, path):
+        """Remove a resource from the filesystem.
+
+        path -- Path of the resource to remove
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def removedir(self, path, recursive=False):
+        """Remove a directory
+
+        path -- Path of the directory to remove
+        recursive -- If True, then blank parent directories will be removed
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def rename(self, src, dst):
+        """Renames a file or directory
+
+        src -- Path to rename
+        dst -- New name (not a path)
+
+        """
         raise UnsupportedError("UNSUPPORTED")
 
     def getinfo(self, path):
