@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from fs import _iteratepath, pathsplit
+from helpers import _iteratepath, pathsplit
 
 class _ObjectDict(dict):
     pass

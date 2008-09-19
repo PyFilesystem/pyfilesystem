@@ -2,6 +2,19 @@
 
 from itertools import chain
 
+def _iteratepath(path, numsplits=None):
+
+    path = resolvepath(path)
+    if not path:
+        return []
+
+    if numsplits == None:
+        return filter(lambda p:bool(p), path.split('/'))
+    else:
+        return filter(lambda p:bool(p), path.split('/', numsplits))
+
+
+
 def isabsolutepath(path):
     """Returns True if a given path is absolute.
 

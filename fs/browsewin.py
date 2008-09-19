@@ -11,7 +11,7 @@ Requires wxPython.
 import wx
 import wx.gizmos
 
-import fs
+import base as fs
 
 class InfoFrame(wx.Frame):
 

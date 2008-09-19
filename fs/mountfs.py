@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from fs import *
+from base import *
 from objecttree import ObjectTree
 from memoryfs import MemoryFS
 
@@ -261,6 +261,7 @@ class MountFS(FS):
             self.mount_tree[path] = MountFS.DirMount(path, fs)
         finally:
             self._lock.release()
+    mount = mountdir
 
     def mountfile(self, path, open_callable=None, info_callable=None):
         self._lock.acquire()

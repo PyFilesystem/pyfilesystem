@@ -6,8 +6,8 @@ A filesystem that exists only in memory, which obviously makes it very fast.
 
 import os
 import datetime
-from fs import _iteratepath
-from fs import *
+from helpers import _iteratepath
+from base import *
 
 try:
     from cStringIO import StringIO

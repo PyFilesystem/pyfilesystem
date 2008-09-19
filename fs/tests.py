@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import unittest
-import fs
+import base as fs
 from helpers import *
+from helpers import _iteratepath
 import shutil
 
 class TestHelpers(unittest.TestCase):
@@ -77,11 +78,11 @@ class TestHelpers(unittest.TestCase):
 
         for path, results in tests:
             print repr(path), results
-            for path_component, expected in zip(fs._iteratepath(path), results):
+            for path_component, expected in zip(_iteratepath(path), results):
                 self.assertEqual(path_component, expected)
 
-        self.assertEqual(list(fs._iteratepath("a/b/c/d", 1)), ["a", "b/c/d"])
-        self.assertEqual(list(fs._iteratepath("a/b/c/d", 2)), ["a", "b", "c/d"])
+        self.assertEqual(list(_iteratepath("a/b/c/d", 1)), ["a", "b/c/d"])
+        self.assertEqual(list(_iteratepath("a/b/c/d", 2)), ["a", "b", "c/d"])
 
     def test_pathsplit(self):
         tests = [   ("a/b", ("a", "b")),

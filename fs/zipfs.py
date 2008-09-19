@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from fs import *
+from base import *
+from helpers import *
 
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 from memoryfs import MemoryFS

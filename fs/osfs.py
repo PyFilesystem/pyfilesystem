@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from fs import *
+from base import *
+from helpers import *
 
 class OSFS(FS):
 

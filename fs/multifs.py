@@ -1,6 +1,7 @@
 #!/usr/in/env python
 
-from fs import FS, FSError
+from base import FS, FSError
+from helpers import *
 
 class MultiFS(FS):
 
