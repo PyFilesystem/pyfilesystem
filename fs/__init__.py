@@ -7,7 +7,7 @@ __version__ = "0.1dev"
 
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
-from fs import *
+from base import *
 from helpers import *
 __all__ = ['memoryfs',
            'mountfs',
