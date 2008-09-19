@@ -22,7 +22,7 @@ class OSFS(FS):
         self.root_path = normpath(os.path.abspath(expanded_path))
 
     def __str__(self):
-        return "<OSFS %s>" % self.root_path
+        return "<OSFS: %s>" % self.root_path
 
     __repr__ = __str__
 
