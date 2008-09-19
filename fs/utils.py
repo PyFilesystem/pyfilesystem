@@ -131,3 +131,4 @@ def countbytes(count_fs):
 
     """
     total = sum(count_fs.getsize(f) for f in count_fs.walkfiles())
+    return total
