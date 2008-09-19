@@ -6,6 +6,8 @@ from memoryfs import MemoryFS
 
 class MountFS(FS):
 
+    """A filesystem that delegates to other filesystems."""
+
     class DirMount(object):
         def __init__(self, path, fs):
             self.path = path

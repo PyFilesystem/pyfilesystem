@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Creates a window which can be used to browse the contents of a filesystem.
+To use, call the 'browse' method with a filesystem object. Double click a file
+or directory to display its properties.
+
+Requires wxPython.
+
+"""
 
 import wx
 import wx.gizmos

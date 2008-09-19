@@ -1,3 +1,5 @@
+"""Contains a number of standalone functions for path manipulation."""
+
 from itertools import chain
 
 def isabsolutepath(path):

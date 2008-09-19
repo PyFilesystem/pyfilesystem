@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+A filesystem that exists only in memory, which obviously makes it very fast.
+
+"""
+
 import os
 import datetime
 from fs import _iteratepath

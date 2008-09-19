@@ -1,3 +1,5 @@
+"""Contains a number of high level utility functions for working with FS objects."""
+
 import shutil
 
 def copy_file(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):

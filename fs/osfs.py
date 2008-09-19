@@ -4,6 +4,11 @@ from fs import *
 
 class OSFS(FS):
 
+    """The most basic of filesystems. Simply shadows the underlaying filesytem
+    of the Operating System.
+
+    """
+
     def __init__(self, root_path, thread_syncronize=True):
         FS.__init__(self, thread_syncronize=thread_syncronize)
 
