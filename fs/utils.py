@@ -4,7 +4,6 @@ import shutil
 from mountfs import MountFS
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
-
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
@@ -15,7 +14,6 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-
     src_syspath = src_fs.getsyspath(src_path, default="")
     dst_syspath = dst_fs.getsyspath(dst_path, default="")
 
@@ -100,7 +98,7 @@ def movedir(fs1, fs2, ignore_errors=False, chunk_size=16384):
         fs1 = fs1.opendir(dir1)
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
-        fs2 = fs1.opendir(dir2)
+        fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
     mount_fs.mount('dir1', fs1)
@@ -121,7 +119,7 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
         fs1 = fs1.opendir(dir1)
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
-        fs2 = fs1.opendir(dir2)
+        fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
     mount_fs.mount('dir1', fs1)
@@ -129,11 +127,9 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     mount_fs.movedir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
 
 def countbytes(count_fs):
-
     """Returns the total number of bytes contained within files in a filesystem.
 
     count_fs -- A filesystem object
 
     """
-
-    total = sum(count_fs.getsize(f) for f in count_fs.walkfiles(absolute=True))
+    total = sum(count_fs.getsize(f) for f in count_fs.walkfiles())
