@@ -1,13 +1,4 @@
 #!/usr/bin/env python
-"""
-A filesystem abstraction.
-
-"""
-
-__version__ = "0.1dev"
-
-__author__ = "Will McGugan (will@willmcgugan.com)"
-
 
 from helpers import *
 import os
