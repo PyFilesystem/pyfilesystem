@@ -569,7 +569,7 @@ class FS(object):
                 if dst_file is not None:
                     dst_file.close()
 
-    def move(self, src, dst):
+    def move(self, src, dst, chunk_size=16384):
 
         """Moves a file from one location to another.
 
@@ -586,11 +586,11 @@ class FS(object):
                 raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
             shutil.move(src_syspath, dst_syspath)
         else:
-            self.copy(src, dst)
+            self.copy(src, dst, chunk_size=chunk_size)
             self.remove(src)
 
 
-    def movedir(self, src, dst, ignore_errors=False):
+    def movedir(self, src, dst, ignore_errors=False, chunk_size=16384):
 
         """Moves a directory from one location to another.
 
@@ -632,13 +632,13 @@ class FS(object):
 
                     src_filename = pathjoin(dirname, filename)
                     dst_filename = pathjoin(dst_dirpath, filename)
-                    movefile(src_filename, dst_filename)
+                    movefile(src_filename, dst_filename, chunk_size=chunk_size)
 
                 self.removedir(dirname)
 
 
 
-    def copydir(self, src, dst, ignore_errors=False):
+    def copydir(self, src, dst, ignore_errors=False, chunk_size=16384):
 
         """Copies a directory from one location to another.
 
@@ -674,7 +674,7 @@ class FS(object):
 
                 src_filename = pathjoin(dirname, filename)
                 dst_filename = pathjoin(dst_dirpath, filename)
-                copyfile(src_filename, dst_filename)
+                copyfile(src_filename, dst_filename, chunk_size=chunk_size)
 
 
     def isdirempty(self, path):

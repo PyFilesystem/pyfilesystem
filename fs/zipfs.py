@@ -72,7 +72,10 @@ class ZipFS(FS):
             raise ValueError("mode must be 'r', 'w' or 'a'")
 
         self.zip_mode = mode
-        self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
+        try:
+            self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
+        except IOError:
+            raise ResourceNotFoundError("NO_FILE", "Zip file does not exist: %(path)s")
         self.zip_path = str(zip_file)
 
         self.temp_fs = None
@@ -96,7 +99,8 @@ class ZipFS(FS):
     def _add_resource(self, path):
         if path.endswith('/'):
             path = path[:-1]
-            self._path_fs.makedir(path, recursive=True, allow_recreate=True)
+            if path:
+                self._path_fs.makedir(path, recursive=True, allow_recreate=True)
         else:
             dirpath, filename = pathsplit(path)
             if dirpath:
