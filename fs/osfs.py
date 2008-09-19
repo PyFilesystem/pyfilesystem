@@ -17,7 +17,9 @@ class OSFS(FS):
         self.root_path = normpath(os.path.abspath(expanded_path))
 
     def __str__(self):
-        return "<OSFS \"%s\">" % self.root_path
+        return "<OSFS %s>" % self.root_path
+
+    __repr__ = __str__
 
     def getsyspath(self, path, allow_none=False):
         sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))

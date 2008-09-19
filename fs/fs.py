@@ -732,7 +732,12 @@ class SubFS(FS):
         self.sub_dir = parent._abspath(sub_dir)
 
     def __str__(self):
-        return "<SubFS: \"%s\" in %s>" % (self.sub_dir, self.parent)
+        return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
+
+    __repr__ = __str__
+
+    def __unicode__(self):
+        return unicode(self.__str__())
 
     def desc(self, path):
         if self.isdir(path):

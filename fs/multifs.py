@@ -24,6 +24,12 @@ class MultiFS(FS):
         finally:
             self._lock.release()
 
+    __repr__ = __str__
+
+    def __unicode__(self):
+        return unicode(self.__str__())
+
+
     def addfs(self, name, fs):
         """Adds a filesystem to the MultiFS.
 

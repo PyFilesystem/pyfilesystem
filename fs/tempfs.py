@@ -21,10 +21,12 @@ class TempFS(OSFS):
         OSFS.__init__(self, self._temp_dir, thread_syncronize=thread_syncronize)
 
     def __str__(self):
-        return '<TempFS: "%s">' % self._temp_dir
+        return '<TempFS: %s>' % self._temp_dir
+
+    __repr__ = __str__
 
     def __unicode__(self):
-        return uncode(self.__str__())
+        return unicode(self.__str__())
 
     def _cleanup(self):
         """Called by __del__ to remove the temporary directory. Can be called directly,

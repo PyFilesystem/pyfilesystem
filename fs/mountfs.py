@@ -28,6 +28,11 @@ class MountFS(FS):
     def __str__(self):
         return "<MountFS>"
 
+    __repr__ = __str__
+
+    def __unicode__(self):
+        return unicode(self.__str__())
+
     def _delegate(self, path):
         path = normpath(path)
         head_path, object, tail_path = self.mount_tree.partialget(path)

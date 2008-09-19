@@ -1,7 +1,6 @@
 from fs import *
 from helpers import *
-__all__ = ['browserwin',
-           'memoryfs',
+__all__ = ['memoryfs',
            'mountfs',
            'multifs',
            'osfs',
