@@ -15,7 +15,8 @@ classifiers = [
 
 setup(name='fs',
       version=VERSION,
-      description="A filesytem abstraction",
+      description="Filesystem abstraction",
+      long_description="Creates a common interface to filesystems",
       author="Will McGugan",
       author_email="will@willmcgugan.com",
       url="http://code.google.com/p/pyfilesystem/",
