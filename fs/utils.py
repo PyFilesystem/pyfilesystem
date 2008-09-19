@@ -3,7 +3,7 @@
 import shutil
 from mountfs import MountFS
 
-def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
+def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
@@ -42,8 +42,7 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
             dst.close()
 
 
-def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
-
+def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     """Move a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
@@ -54,7 +53,6 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=1024*16):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-
     src_syspath = src_fs.getsyspath(src_path, default="")
     dst_syspath = dst_fs.getsyspath(dst_path, default="")
 
