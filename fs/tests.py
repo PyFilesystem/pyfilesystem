@@ -145,7 +145,7 @@ class TestOSFS(unittest.TestCase):
         self.fs = osfs.OSFS(self.temp_dir)
         print "Temp dir is", self.temp_dir
 
-    def tearDown(self):
+    def tearDown(self):        
         shutil.rmtree(self.temp_dir)
 
     def check(self, p):
@@ -357,9 +357,13 @@ class TestOSFS(unittest.TestCase):
 
     def test_readwriteappendseek(self):
         def checkcontents(path, check_contents):
-            f = self.fs.open(path, "rb")
-            read_contents = f.read()
-            f.close()
+            f = None
+            try:
+                f = self.fs.open(path, "rb")
+                read_contents = f.read()
+            finally:
+                if f is not None:
+                    f.close()
             return read_contents == check_contents
         test_strings = ["Beautiful is better than ugly.",
                         "Explicit is better than implicit.",
@@ -390,15 +394,15 @@ class TestOSFS(unittest.TestCase):
         f4.write(test_strings[2])
         f4.close()
         self.assert_(checkcontents("b.txt", test_strings[2]))
-        f5 = self.fs.open("c.txt", "wt")
+        f5 = self.fs.open("c.txt", "wb")
         for s in test_strings:
             f5.write(s+"\n")
         f5.close()
-        f6 = self.fs.open("c.txt", "rt")
+        f6 = self.fs.open("c.txt", "rb")        
         for s, t in zip(f6, test_strings):
             self.assertEqual(s, t+"\n")
         f6.close()
-        f7 = self.fs.open("c.txt", "rt")
+        f7 = self.fs.open("c.txt", "rb")
         f7.seek(13)
         word = f7.read(6)
         self.assertEqual(word, "better")
@@ -409,7 +413,8 @@ class TestOSFS(unittest.TestCase):
         word = f7.read(7)
         self.assertEqual(word, "complex")
         f7.close()
-        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)
+        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)        
+        
 
 
 class TestSubFS(TestOSFS):
@@ -466,7 +471,7 @@ class TestTempFS(TestOSFS):
 
     def tearDown(self):
         td = self.fs._temp_dir
-        del self.fs
+        self.fs.close()
         self.assert_(not os.path.exists(td))
 
     def check(self, p):

@@ -28,7 +28,7 @@ class OSFS(FS):
     __repr__ = __str__
 
     def getsyspath(self, path, allow_none=False):
-        sys_path = os.path.join(self.root_path, makerelative(self._resolve(path)))
+        sys_path = os.path.join(self.root_path, makerelative(self._resolve(path))).replace('/', os.sep)
         return sys_path
 
     def open(self, path, mode="r", **kwargs):
@@ -77,10 +77,17 @@ class OSFS(FS):
                     os.mkdir(sys_path, mode)
                 except OSError, e:
                     if allow_recreate:
-                        if e.errno !=17:
+                        if e.errno != 17:
                             raise OperationFailedError("MAKEDIR_FAILED", path)
                     else:
                         raise OperationFailedError("MAKEDIR_FAILED", path)
+                except WindowsError, e:
+                    if allow_recreate:
+                        if e.errno != 183:
+                            raise OperationFailedError("MAKEDIR_FAILED", path)
+                    else:
+                        raise OperationFailedError("MAKEDIR_FAILED", path)
+                    
         except OSError, e:
             if e.errno == 17:
                 return

@@ -604,33 +604,37 @@ class FS(object):
         dst_syspath = self.getsyspath(dst, allow_none=True)
 
         if src_syspath is not None and dst_syspath is not None:
-            shutil.move(src_syspath, dst_syspath)
+            try:
+                shutil.move(src_syspath, dst_syspath)
+                return
+            except WindowsError:
+                pass
+                
+
+        def movefile_noerrors(src, dst):
+            try:
+                return self.move(src, dst)
+            except FSError:
+                return
+        if ignore_errors:
+            movefile = movefile_noerrors
         else:
+            movefile = self.move
 
-            def movefile_noerrors(src, dst):
-                try:
-                    return self.move(src, dst)
-                except FSError:
-                    return
-            if ignore_errors:
-                movefile = movefile_noerrors
-            else:
-                movefile = self.move
+        self.makedir(dst, allow_recreate=True)
+        for dirname, filenames in self.walk(src, search="depth"):
 
-            self.makedir(dst, allow_recreate=True)
-            for dirname, filenames in self.walk(src, search="depth"):
+            dst_dirname = makerelative(dirname[len(src):])
+            dst_dirpath = pathjoin(dst, dst_dirname)
+            self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
 
-                dst_dirname = makerelative(dirname[len(src):])
-                dst_dirpath = pathjoin(dst, dst_dirname)
-                self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
+            for filename in filenames:
 
-                for filename in filenames:
+                src_filename = pathjoin(dirname, filename)
+                dst_filename = pathjoin(dst_dirpath, filename)
+                movefile(src_filename, dst_filename, chunk_size=chunk_size)
 
-                    src_filename = pathjoin(dirname, filename)
-                    dst_filename = pathjoin(dst_dirpath, filename)
-                    movefile(src_filename, dst_filename, chunk_size=chunk_size)
-
-                self.removedir(dirname)
+            self.removedir(dirname)
 
 
 
