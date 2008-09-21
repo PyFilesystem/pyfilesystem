@@ -523,7 +523,7 @@ class FS(object):
             raise OperationFailedError("GETSIZE_FAILED", path)
         return size
 
-    def copy(self, src, dst, overwrite=False, chunk_size=1024*16384):
+    def copy(self, src, dst, overwrite=False, chunk_size=16384):
         """Copies a file from src to dst.
 
         src -- The source path
@@ -609,7 +609,7 @@ class FS(object):
                 return
             except WindowsError:
                 pass
-                
+
 
         def movefile_noerrors(src, dst):
             try:
