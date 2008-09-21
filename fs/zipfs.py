@@ -75,7 +75,7 @@ class ZipFS(FS):
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
         except IOError:
-            raise ResourceNotFoundError("NO_FILE", "Zip file does not exist: %(path)s")
+            raise ResourceNotFoundError("NO_FILE", str(zip_file), msg="Zip file does not exist: %(path)s")
         self.zip_path = str(zip_file)
 
         self.temp_fs = None
@@ -129,7 +129,7 @@ class ZipFS(FS):
 
             if 'r' in mode:
                 if self.zip_mode not in 'ra':
-                    raise OperationFailedError("OPEN_FAILED", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
+                    raise OperationFailedError("OPEN_FAILED", path, msg="Zip file must be opened for reading ('r') or appending ('a')")
                 try:
                     contents = self.zf.read(path)
                 except KeyError:
