@@ -171,7 +171,7 @@ class ZipFS(FS):
         try:
             sys_path = self.temp_fs.getsyspath(filename)
             self.zf.write(sys_path, filename)
-        except:
+        finally:
             self._lock.release()
 
     def desc(self, path):
