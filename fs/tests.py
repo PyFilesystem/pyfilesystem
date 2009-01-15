@@ -617,6 +617,62 @@ class TestAppendZipFS(TestWriteZipFS):
         zip_fs.close()
 
 
+import s3fs
+class TestS3FS(TestOSFS):
+
+    bucket = "test-s3fs.rfk.id.au"
+
+    def setUp(self):
+        self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
+        self._clear()
+
+    def _clear(self):
+        for (path,files) in self.fs.walk(search="depth"):
+            for fn in files:
+                self.fs.remove(pathjoin(path,fn))
+            if path and path != "/":
+                self.fs.removedir(path)
+    def tearDown(self):
+        self._clear()
+        for k in self.fs._s3bukt.list():
+            self.fs._s3bukt.delete_key(k)
+        self.fs._s3conn.delete_bucket(self.bucket)
+
+    def check(self, p):
+        return self.fs.exists(p)
+
+
+import rpcfs
+import threading
+import time
+class TestRPCFS(TestOSFS):
+
+    def setUp(self):
+        self.server = rpcfs.RPCFSServer(tempfs.TempFS(),("localhost",8000),logRequests=False)
+        self.server_thread = threading.Thread(target=self._run_server)
+        self.server_thread.start()
+        self.fs = rpcfs.RPCFS("http://localhost:8000")
+
+    def _run_server(self):
+        """Run the server, swallowing shutdown-related execptions."""
+        try:
+            self.server.serve_forever()
+        except:
+            pass
+
+    def tearDown(self):
+        try:
+          # Shut the server down.  We send one final request to
+          # bump the socket and make it recognise the shutdown.
+          self.server.serve_more_requests = False
+          self.server.server_close()
+          self.fs.exists("/")
+        except Exception:
+          pass
+
+    def check(self, p):
+        return self.fs.exists(p)
+
 
 if __name__ == "__main__":
     #t = TestFS()
