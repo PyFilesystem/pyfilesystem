@@ -10,6 +10,7 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 import boto.s3.connection
 from boto.exception import S3ResponseError
 
+import time
 import datetime
 try:
    from tempfile import SpooledTemporaryFile as TempFile
@@ -18,6 +19,11 @@ except ImportError:
 
 from fs.base import *
 from fs.helpers import *
+
+try:
+    from collections import MutableMapping as DictMixin
+except ImportError:
+    from UserDict import DictMixin
 
 
 class S3FS(FS):
@@ -85,16 +91,19 @@ class S3FS(FS):
         file are only sent back to S3 when the file is flushed or closed.
         """
         tf = TempFile()
+        oldLM = None
+        s3path = self._s3path(path)
         if "r" in mode or "+" in mode or "a" in mode:
             # Get the file contents into the tempfile.
             # If it does not exist and has been opened for writing, create it.
-            k = self._s3bukt.get_key(self._s3path(path))
+            k = self._s3bukt.get_key(s3path)
             if k is None:
                 if "w" not in mode and "a" not in mode:
                     raise ResourceNotFoundError("NO_FILE",path)
                 if not self.isdir(dirname(path)):
                     raise OperationFailedError("OPEN_FAILED", path,msg="Parent directory does not exist")
             else:
+                oldLM = k.last_modified
                 k.get_contents_to_file(tf)
                 if "a" not in mode:
                     tf.seek(0)
@@ -104,8 +113,12 @@ class S3FS(FS):
             oldclose = tf.close
             def upload():
                 tf.seek(0)
-                k = self._s3bukt.new_key(self._s3path(path))
+                k = self._s3bukt.new_key(s3path)
                 k.set_contents_from_file(tf)
+                k = self._s3bukt.get_key(s3path)
+                while k.last_modified == oldLM:
+                    time.sleep(0.1)
+                    k = self._s3bukt.get_key(s3path)
             def newflush():
                 oldflush()
                 pos = tf.tell()
@@ -164,6 +177,8 @@ class S3FS(FS):
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
         """List contents of a directory."""
         s3path = self._s3path(path) + self._separator
+        if s3path == "/":
+            s3path = ""
         i = len(s3path)
         ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
         paths = []
@@ -178,7 +193,8 @@ class S3FS(FS):
                     nm = nm.encode()
                 paths.append(nm)
         if not isDir:
-            raise OperationFailedError("LISTDIR_FAILED",path)
+            if s3path != self._prefixStr:
+                raise OperationFailedError("LISTDIR_FAILED",path)
         return self._listdir_helper(path,paths,wildcard,full,absolute,hidden,dirs_only,files_only)
 
     def _listdir_helper(self,path,paths,wildcard,full,absolute,hidden,dirs_only,files_only):
@@ -249,11 +265,19 @@ class S3FS(FS):
         # TODO: is there some standard scheme for representing empty dirs?
         k = self._s3bukt.new_key(s3pathD)
         k.set_contents_from_string("")
+        k = self._s3bukt.get_key(s3pathD)
+        while not k:
+            time.sleep(0.1)
+            k = self._s3bukt.get_key(s3pathD)
 
     def remove(self,path):
         """Remove the file at the given path."""
         # TODO: This will fail silently if the key doesn't exist
-        self._s3bukt.delete_key(self._s3path(path))
+        s3path = self._s3path(path)
+        self._s3bukt.delete_key(s3path)
+        k = self._s3bukt.get_key(s3path)
+        while k:
+            k = self._s3bukt.get_key(s3path)
 
     def removedir(self,path,recursive=False):
         """Remove the directory at the given path."""
@@ -330,6 +354,11 @@ class S3FS(FS):
             if "404 Not Found" in str(e):
                 raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
             raise e
+        else:
+            k = self._s3bukt.get_key(s3path_dst)
+            while not k:
+                time.sleep(0.1)
+                k = self._s3bukt.get_key(s3path_dst)
 
     def move(self,src,dst,chunk_size=16384):
         """Move a file from one location to another."""
