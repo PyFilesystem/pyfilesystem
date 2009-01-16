@@ -39,19 +39,6 @@ class ObjProxy:
     def __getattr__(self,attr):
         return getattr(self._obj,attr)
 
-class ReRaiseErrors:
-    """XML-RPC proxy wrapper that tries to re-raise Faults as actual errors."""
-    def __init__(self,proxy):
-        self._proxy = proxy
-    def __getattr__(self,attr):
-        val = getattr(self._proxy,attr)
-        if not callable(val):
-            return val
-        def func(*args,**kwds):
-            try:
-                val(*args,**kwds)
-            except xmlrpclib.Fault, e:
-                print "ERROR", e, e.faultCode, e.faultString
 
 def re_raise_faults(func):
     """Decorator to re-raise XML-RPC faults as proper exceptions."""
@@ -108,6 +95,7 @@ class ReRaiseFaults:
         val = getattr(self._obj,attr)
         if callable(val):
             val = re_raise_faults(val)
+            self.__dict__[attr] = val
         return val
 
 
@@ -128,7 +116,7 @@ class RPCFS(FS):
 
         The only required argument is the uri of the server to connect
         to.  This will be passed to the underlying XML-RPC server proxy
-        object along with any other arguments if they are provided.
+        object along with the 'transport' argument if it is provided.
         """
         self.uri = uri
         if transport is not None:
@@ -144,7 +132,9 @@ class RPCFS(FS):
 
     def open(self,path,mode):
         # TODO: chunked transport of large files
-        if "r" in mode or "a" in mode:
+        if "w" in mode:
+            self.proxy.set_contents(path,xmlrpclib.Binary(""))
+        if "r" in mode or "a" in mode or "+" in mode:
             try:
                 data = self.proxy.get_contents(path).data
             except IOError:
@@ -152,6 +142,7 @@ class RPCFS(FS):
                     raise ResourceNotFoundError("NO_FILE",path)
                 if not self.isdir(dirname(path)):
                     raise OperationFailedError("OPEN_FAILED", path,msg="Parent directory does not exist")
+                self.proxy.set_contents(path,xmlrpclib.Binary(""))
         else:
             data = ""
         f = ObjProxy(StringIO(data))
@@ -159,11 +150,15 @@ class RPCFS(FS):
             f.seek(0,0)
         else:
             f.seek(0,2)
+        oldflush = f.flush
         oldclose = f.close
+        def newflush():
+            oldflush()
+            self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
         def newclose():
             f.flush()
-            self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
             oldclose()
+        f.flush = newflush
         f.close = newclose
         return f
 
@@ -217,7 +212,11 @@ class RPCFS(FS):
 
 
 class RPCFSInterface(object):
-    """Wrapper to expose an FS via a XML-RPC compatible interface."""
+    """Wrapper to expose an FS via a XML-RPC compatible interface.
+
+    The only real trick is using xmlrpclib.Binary objects to trasnport
+    the contents of files.
+    """
 
     def __init__(self,fs):
         self.fs = fs
@@ -281,12 +280,16 @@ class RPCFSInterface(object):
 class RPCFSServer(SimpleXMLRPCServer):
     """Server to expose an FS object via XML-RPC.
 
+    This class takes as its first argument an FS instance, and as its second
+    argument a (hostname,port) tuple on which to listen for XML-RPC requests.
     Example:
 
         fs = OSFS('/var/srv/myfiles')
         s = RPCFSServer(fs,("",8080))
         s.serve_forever()
 
+    To cleanly shut down the server after calling serve_forever, set the
+    attribute "serve_more_requests" to False.
     """
 
     def __init__(self,fs,addr,requestHandler=None,logRequests=None):
