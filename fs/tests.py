@@ -247,6 +247,7 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
+        self.assert_(not check("foo.txt"))
 
     def test_info(self):
         test_str = "Hello, World!"
@@ -276,6 +277,7 @@ class TestOSFS(unittest.TestCase):
             f = self.fs.open(path, "rb")
             check_contents = f.read()
             f.close()
+            self.assertEqual(check_contents,contents)
             return contents == check_contents
 
         self.fs.makedir("foo/bar", recursive=True)
@@ -354,6 +356,28 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("a/3.txt"))
         self.assert_(check("a/foo/bar/baz.txt"))
 
+    def test_copydir_with_hidden(self):
+        check = self.check
+        contents = "If the implementation is hard to explain, it's a bad idea."
+        def makefile(path):
+            f = self.fs.open(path, "wb")
+            f.write(contents)
+            f.close()
+
+        self.fs.makedir("a")
+        makefile("a/1.txt")
+        makefile("a/2.txt")
+        makefile("a/.hidden.txt")
+
+        self.fs.makedir("copy of a")
+        self.fs.copydir("a", "copy of a")
+        self.assert_(check("copy of a/1.txt"))
+        self.assert_(check("copy of a/2.txt"))
+        self.assert_(check("copy of a/.hidden.txt"))
+
+        self.assert_(check("a/1.txt"))
+        self.assert_(check("a/2.txt"))
+        self.assert_(check("a/.hidden.txt"))
 
     def test_readwriteappendseek(self):
         def checkcontents(path, check_contents):
@@ -364,6 +388,7 @@ class TestOSFS(unittest.TestCase):
             finally:
                 if f is not None:
                     f.close()
+            self.assertEqual(read_contents,check_contents)
             return read_contents == check_contents
         test_strings = ["Beautiful is better than ugly.",
                         "Explicit is better than implicit.",
@@ -385,6 +410,7 @@ class TestOSFS(unittest.TestCase):
         f2 = self.fs.open("b.txt", "wb")
         f2.write(test_strings[0])
         f2.close()
+        self.assert_(checkcontents("b.txt", test_strings[0]))
         f3 = self.fs.open("b.txt", "ab")
         f3.write(test_strings[1])
         f3.write(test_strings[2])

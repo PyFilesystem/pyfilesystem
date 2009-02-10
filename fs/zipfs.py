@@ -201,7 +201,7 @@ class ZipFS(FS):
         finally:
             self._lock.release()
 
-    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
 
         return self._path_fs.listdir(path, wildcard, full, absolute, hidden, dirs_only, files_only)
 

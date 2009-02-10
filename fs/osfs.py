@@ -56,7 +56,7 @@ class OSFS(FS):
     def ishidden(self, path):
         return path.startswith('.')
 
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=False, dirs_only=False, files_only=False):
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
         try:
             paths = os.listdir(self.getsyspath(path))
         except (OSError, IOError), e:
