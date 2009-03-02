@@ -221,6 +221,27 @@ class FS(object):
         else:
             self._lock = dummy_threading.RLock()
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        lock = state.get("_lock",None)
+        if lock is not None:
+            if isinstance(lock,threading._RLock):
+                state["_lock"] = True
+            else:
+                state["_lock"] = False
+        return state
+
+    def __setstate__(self,state):
+        for (k,v) in state.iteritems():
+            print (k,v)
+            self.__dict__[k] = v
+        lock = state.get("_lock",None)
+        if lock is not None:
+            if lock:
+                self._lock = threading.RLock()
+            else:
+                self._lock = dummy_threading.RLock()
+
     def _resolve(self, pathname):
         resolved_path = resolvepath(pathname)
         return resolved_path

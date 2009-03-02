@@ -33,7 +33,7 @@ class TempFS(OSFS):
         This will be called automatically when the object is cleaned up by Python.
         Note that once this method has been called, the FS object may no longer be used."""
 
-        if not self._cleaned:
+        if not self._cleaned and self.exists("/"):
             self._lock.acquire()
             try:
                 rmtree(self._temp_dir)
