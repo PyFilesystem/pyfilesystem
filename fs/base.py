@@ -597,8 +597,6 @@ class FS(object):
         """
         if not self.isdir(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
-        if not self.isdir(dst):
-            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
 
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
