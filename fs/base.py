@@ -233,7 +233,6 @@ class FS(object):
 
     def __setstate__(self,state):
         for (k,v) in state.iteritems():
-            print (k,v)
             self.__dict__[k] = v
         lock = state.get("_lock",None)
         if lock is not None:
