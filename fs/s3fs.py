@@ -152,21 +152,31 @@ class S3FS(FS):
                     tf.seek(0)
         # Upload the tempfile when it is flushed or closed
         if "w" in mode or "a" in mode or "+" in mode:
+            # Override flush()
             oldflush = tf.flush
-            oldclose = tf.close
             def newflush():
                 oldflush()
                 pos = tf.tell()
                 tf.seek(0)
                 self._sync_set_contents(k,tf)
                 tf.seek(pos)
+            tf.flush = newflush
+            # Override close()
+            oldclose = tf.close
             def newclose():
-                oldflush()
                 tf.seek(0)
                 self._sync_set_contents(k,tf)
                 oldclose()
             tf.close = newclose
-            tf.flush = newflush
+            # Override __exit__ if it exists
+            try:
+                oldexit = tf.__exit__
+                def newexit(exc,value,tb):
+                    tf.close()
+                    return False
+                tf.__exit__ = newexit
+            except AttributeError:
+                pass
         return tf
 
     def exists(self,path):

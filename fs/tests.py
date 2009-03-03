@@ -440,7 +440,7 @@ class TestOSFS(unittest.TestCase):
         self.assertEqual(word, "complex")
         f7.close()
         self.assertEqual(self.fs.getcontents("a.txt"), all_strings)        
-        
+
 
 
 class TestSubFS(TestOSFS):
@@ -658,6 +658,7 @@ class TestS3FS(TestOSFS):
                 self.fs.remove(pathjoin(path,fn))
             if path and path != "/":
                 self.fs.removedir(path)
+
     def tearDown(self):
         self._clear()
         for k in self.fs._s3bukt.list():
@@ -667,17 +668,49 @@ class TestS3FS(TestOSFS):
     def check(self, p):
         return self.fs.exists(p)
 
+    def test_with_statement(self):
+        import sys
+        if sys.version_info[0] >= 2 and sys.version_info[1] >= 5:
+            #  A successful with statement
+            contents = "testing the with statement"
+            code = "from __future__ import with_statement\n"
+            code += "with self.fs.open('f.txt','w-') as testfile:\n"
+            code += "    testfile.write(contents)\n"
+            code += "self.assertEquals(self.fs.getcontents('f.txt'),contents)"
+            code = compile(code,"<string>",'exec')
+            eval(code)
+            # A with statement raising an error
+            contents = "testing the with statement"
+            code = "from __future__ import with_statement\n"
+            code += "with self.fs.open('f.txt','w-') as testfile:\n"
+            code += "    testfile.write(contents)\n"
+            code += "    raise ValueError\n"
+            code = compile(code,"<string>",'exec')
+            self.assertRaises(ValueError,eval,code,globals(),locals())
+            self.assertEquals(self.fs.getcontents('f.txt'),contents)
+            
+
 
 import rpcfs
+import socket
 import threading
 import time
 class TestRPCFS(TestOSFS):
 
     def setUp(self):
-        self.server = rpcfs.RPCFSServer(tempfs.TempFS(),("localhost",8000),logRequests=False)
+        self.port = 8000
+        self.server = None
+        while not self.server:
+            try:
+                self.server = rpcfs.RPCFSServer(tempfs.TempFS(),("localhost",self.port),logRequests=False)
+            except socket.error, e:
+                if e.args[1] == "Address already in use":
+                    self.port += 1
+                else:
+                    raise e
         self.server_thread = threading.Thread(target=self._run_server)
         self.server_thread.start()
-        self.fs = rpcfs.RPCFS("http://localhost:8000")
+        self.fs = rpcfs.RPCFS("http://localhost:" + str(self.port))
 
     def _run_server(self):
         """Run the server, swallowing shutdown-related execptions."""
