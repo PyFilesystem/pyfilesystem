@@ -103,17 +103,20 @@ class OSFS(FS):
 
     def removedir(self, path, recursive=False):
         sys_path = self.getsyspath(path)
-
+        #  Don't remove the root directory of this FS
+        if path in ("","/"):
+            return
+        try:
+            os.rmdir(sys_path)
+        except OSError, e:
+            raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
+        #  Using os.removedirs() for this can result in dirs being
+        #  removed outside the root of this FS, so we recurse manually.
         if recursive:
             try:
-                os.removedirs(sys_path)
-            except OSError, e:
-                raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
-        else:
-            try:
-                os.rmdir(sys_path)
-            except OSError, e:
-                raise OperationFailedError("REMOVEDIR_FAILED", path, details=e)
+                self.removedir(dirname(path),recursive=True)
+            except OperationFailedError:
+                pass
 
     def rename(self, src, dst):
         if not issamedir(src, dst):
