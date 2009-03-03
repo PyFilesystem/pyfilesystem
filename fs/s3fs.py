@@ -59,10 +59,9 @@ class S3FS(FS):
         by specifying the keyword 'separator' in the constructor.
         """
         self._bucket_name = bucket
+        self._access_keys = (aws_access_key,aws_secret_key)
         self._separator = separator
         self._key_sync_timeout = key_sync_timeout
-        self._s3conn = boto.s3.connection.S3Connection(aws_access_key,aws_secret_key)
-        self._s3bukt = self._s3conn.create_bucket(bucket)
         # Normalise prefix to this form: path/to/files/
         while prefix.startswith(separator):
             prefix = prefix[1:]
@@ -70,6 +69,39 @@ class S3FS(FS):
             prefix = prefix + separator
         self._prefix = prefix
         FS.__init__(self, thread_syncronize=thread_syncronize)
+
+    #  Make _s3conn and _s3bukt properties that are created on demand,
+    #  since they cannot be stored during pickling.
+
+    def _s3conn(self):
+        try:
+            return self.__dict__['_s3conn']
+        except KeyError:
+            c = boto.s3.connection.S3Connection(*self._access_keys)
+            self.__dict__['_s3conn'] = c
+            return c
+    _s3conn = property(_s3conn)
+
+    def _s3bukt(self):
+        try:
+            return self.__dict__['_s3bukt']
+        except KeyError:
+            b = self._s3conn.create_bucket(self._bucket_name)
+            self.__dict__['_s3bukt'] = b
+            return b
+    _s3bukt = property(_s3bukt)
+
+    def __getstate__(self):
+        state = super(S3FS,self).__getstate__()
+        try:
+            del state['_s3conn']
+        except KeyError:
+            pass
+        try:
+            del state['_s3bukt']
+        except KeyError:
+            pass
+        return state
 
     def __str__(self):
         return '<S3FS: %s:%s>' % (self._bucket_name,self._prefix)
