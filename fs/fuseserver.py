@@ -332,3 +332,7 @@ if __name__ == "__main__":
     #main(fs)
 
     main(mem_fs)
+
+    # To run do ./fuserserver.py -d -f testfs
+    # This will map a fs.memoryfs to testfs/ on the local filesystem under tests/fs
+    # To unmouont, do fusermount -u testfs
