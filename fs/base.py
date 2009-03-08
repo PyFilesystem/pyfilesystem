@@ -91,6 +91,7 @@ class NoSysPathError(FSError): pass
 class PathError(FSError): pass
 class ResourceLockedError(FSError): pass
 class ResourceNotFoundError(FSError): pass
+class DestinationExistsError(FSError): pass
 class SystemError(FSError): pass
 class ResourceInvalid(FSError): pass
 
@@ -222,6 +223,9 @@ class FS(object):
             self._lock = dummy_threading.RLock()
 
     def __getstate__(self):
+        #  Locks can't be pickled, so instead we just indicate the
+        #  type of lock that should be there.  None == no lock,
+        #  True == a proper lock, False == a dummy lock.
         state = self.__dict__.copy()
         lock = state.get("_lock",None)
         if lock is not None:
@@ -351,11 +355,12 @@ class FS(object):
         """
         raise UnsupportedError("UNSUPPORTED")
 
-    def removedir(self, path, recursive=False):
+    def removedir(self, path, recursive=False, force=False):
         """Remove a directory
 
         path -- Path of the directory to remove
         recursive -- If True, then blank parent directories will be removed
+        force -- If True, any directory contents will be removed
 
         """
         raise UnsupportedError("UNSUPPORTED")
@@ -560,6 +565,8 @@ class FS(object):
 
         if not self.isfile(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+        if not overwrite and self.exists(dst):
+            raise DestinationExistsError("COPYFILE_FAILED", src, dst, msg="Destination file exists: %(path2)s")
 
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
@@ -570,9 +577,6 @@ class FS(object):
             src_file, dst_file = None, None
             try:
                 src_file = self.open(src, "rb")
-                if not overwrite:
-                    if self.exists(dst):
-                        raise OperationFailedError("COPYFILE_FAILED", src, dst, msg="Destination file exists: %(path2)s")
                 dst_file = self.open(dst, "wb")
 
                 while True:
@@ -586,11 +590,12 @@ class FS(object):
                 if dst_file is not None:
                     dst_file.close()
 
-    def move(self, src, dst, chunk_size=16384):
+    def move(self, src, dst, overwrite=False, chunk_size=16384):
         """Moves a file from one location to another.
 
         src -- Source path
         dst -- Destination path
+        overwrite -- If True, then the destination may be overwritten
 
         """
 
@@ -600,23 +605,28 @@ class FS(object):
         if src_syspath is not None and dst_syspath is not None:
             if not self.isfile(src):
                 raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+            if not overwrite and self.exists(dst):
+                raise DestinationExistsError("MOVE_FAILED", src, dst, msg="Destination file exists: %(path2)s")
             shutil.move(src_syspath, dst_syspath)
         else:
-            self.copy(src, dst, chunk_size=chunk_size)
+            self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
             self.remove(src)
 
 
-    def movedir(self, src, dst, ignore_errors=False, chunk_size=16384):
+    def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Moves a directory from one location to another.
 
         src -- Source directory path
         dst -- Destination directory path
+        overwrite -- If True then any existing files in the destination directory will be overwritten
         ignore_errors -- If True then this method will ignore FSError exceptions when moving files
         chunk_size -- Size of chunks to use when copying, if a simple copy is required
 
         """
         if not self.isdir(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
+        if not overwrite and self.exists(dst):
+            raise DestinationExistsError("MOVEDIR_FAILED", src, dst, msg="Destination exists: %(path2)s")
 
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
@@ -628,10 +638,9 @@ class FS(object):
             except WindowsError:
                 pass
 
-
-        def movefile_noerrors(src, dst):
+        def movefile_noerrors(src, dst, overwrite):
             try:
-                return self.move(src, dst)
+                return self.move(src, dst, overwrite)
             except FSError:
                 return
         if ignore_errors:
@@ -650,29 +659,30 @@ class FS(object):
 
                 src_filename = pathjoin(dirname, filename)
                 dst_filename = pathjoin(dst_dirpath, filename)
-                movefile(src_filename, dst_filename, chunk_size=chunk_size)
+                movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
             self.removedir(dirname)
 
 
 
-    def copydir(self, src, dst, ignore_errors=False, chunk_size=16384):
+    def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Copies a directory from one location to another.
 
         src -- Source directory path
         dst -- Destination directory path
+        overwrite -- If True then any existing files in the destination directory will be overwritten
         ignore_errors -- If True, exceptions when copying will be ignored
         chunk_size -- Size of chunks to use when copying, if a simple copy is required
 
         """
         if not self.isdir(src):
             raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a dst: %(path)s")
-        if not self.isdir(dst):
-            raise ResourceInvalid("WRONG_TYPE", dst, msg="Source is not a dst: %(path)s")
+        if not overwrite and self.exists(dst):
+            raise DestinationExistsError("COPYDIR_FAILED", dst, msg="Destination exists: %(path)s")
 
-        def copyfile_noerrors(src, dst):
+        def copyfile_noerrors(src, dst, overwrite):
             try:
-                return self.copy(src, dst)
+                return self.copy(src, dst, overwrite=overwrite)
             except FSError:
                 return
         if ignore_errors:
@@ -692,7 +702,7 @@ class FS(object):
 
                 src_filename = pathjoin(dirname, filename)
                 dst_filename = pathjoin(dst_dirpath, filename)
-                copyfile(src_filename, dst_filename, chunk_size=chunk_size)
+                copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
 
     def isdirempty(self, path):
@@ -790,8 +800,8 @@ class SubFS(FS):
     def remove(self, path):
         return self.parent.remove(self._delegate(path))
 
-    def removedir(self, path, recursive=False):
-        self.parent.removedir(self._delegate(path), recursive=recursive)
+    def removedir(self, path, recursive=False,force=False):
+        self.parent.removedir(self._delegate(path), recursive=recursive, force=force)
 
     def getinfo(self, path):
         return self.parent.getinfo(self._delegate(path))

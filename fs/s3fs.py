@@ -126,7 +126,7 @@ class S3FS(FS):
         Since S3 only offers "eventual consistency" of data, it is possible
         to create a key but be unable to read it back straight away.  This
         method works around that limitation by polling the key until it reads
-        back the expected by the given key.
+        back the value expected by the given key.
 
         Note that this could easily fail if the key is modified by another
         program, meaning the content will never be as specified in the given
@@ -273,7 +273,6 @@ class S3FS(FS):
                 paths.append(nm)
         if not isDir:
             if s3path != self._prefix:
-                print "NOT A DIR:", s3path
                 raise OperationFailedError("LISTDIR_FAILED",path)
         return self._listdir_helper(path,paths,wildcard,full,absolute,hidden,dirs_only,files_only)
 
@@ -354,19 +353,26 @@ class S3FS(FS):
         while k:
             k = self._s3bukt.get_key(s3path)
 
-    def removedir(self,path,recursive=False):
+    def removedir(self,path,recursive=False,force=False):
         """Remove the directory at the given path."""
         s3path = self._s3path(path) + self._separator
-        ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
-        # Fail if the directory is not empty
+        if force:
+            #  If we will be forcibly removing any directory contents, we 
+            #  might as well get the un-delimited list straight away.
+            ks = self._s3bukt.list(prefix=s3path)
+        else:
+            ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
+        # Fail if the directory is not empty, or remove them if forced
         for k in ks:
             if k.name != s3path:
-                raise OperationFailedError("REMOVEDIR_FAILED",path)
+                if not force:
+                    raise OperationFailedError("REMOVEDIR_FAILED",path)
+                self._s3bukt.delete_key(k.name)
         self._s3bukt.delete_key(s3path)
         if recursive:
             pdir = dirname(path)
             try:
-                self.removedir(pdir,True)
+                self.removedir(pdir,recursive=True,force=False)
             except OperationFailedError:
                 pass
         
@@ -408,11 +414,11 @@ class S3FS(FS):
             # It exists as a regular file
             if k.name == s3path_dst:
                 if not overwrite:
-                    raise OperationFailedError("COPYFILE_FAILED",src,dst,msg="Destination file exists: %(path2)s")
+                    raise DestinationExistsError("COPYFILE_FAILED",src,dst,msg="Destination file exists: %(path2)s")
                 dstOK = True
                 break
             # Check if it refers to a directory.  If so, we copy *into* it.
-            # Since S3 lists in lexicographic order, subsequence iterations
+            # Since S3 lists in lexicographic order, subsequent iterations
             # of the loop will check for the existence of the new filename.
             if k.name == s3path_dstD:
                 nm = resourcename(src)
@@ -433,8 +439,8 @@ class S3FS(FS):
             k = self._s3bukt.get_key(s3path_dst)
             self._sync_key(k)
 
-    def move(self,src,dst,chunk_size=16384):
+    def move(self,src,dst,overwrite=False,chunk_size=16384):
         """Move a file from one location to another."""
-        self.copy(src,dst)
+        self.copy(src,dst,overwrite=overwrite)
         self._s3bukt.delete_key(self._s3path(src))
 

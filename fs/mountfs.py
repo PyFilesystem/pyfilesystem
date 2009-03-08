@@ -198,7 +198,7 @@ class MountFS(FS):
         finally:
             self._lock.release()
 
-    def removedir(self, path, recursive=False):
+    def removedir(self, path, recursive=False, force=False):
 
         self._lock.acquire()
         try:
@@ -209,10 +209,10 @@ class MountFS(FS):
             if fs is None or fs is self:
                 raise OperationFailedError("REMOVEDIR_FAILED", path, msg="Can not removedir for an un-mounted path")
 
-            if not fs.isdirempty(delegate_path):
+            if not force and not fs.isdirempty(delegate_path):
                 raise OperationFailedError("REMOVEDIR_FAILED", "Directory is not empty: %(path)s")
 
-            return fs.removedir(delegate_path, recursive)
+            return fs.removedir(delegate_path, recursive, force)
 
         finally:
             self._lock.release()

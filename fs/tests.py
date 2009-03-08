@@ -196,6 +196,12 @@ class TestOSFS(unittest.TestCase):
         self.assert_(not check("foo/bar"))
         self.assert_(not check("foo"))
 
+        self.fs.makedir("frollic/waggle", recursive=True)
+        self.fs.createfile("frollic/waddle.txt","waddlewaddlewaddle")
+        self.assertRaises(fs.OperationFailedError,self.fs.removedir,"frollic")
+        self.fs.removedir("frollic",force=True)
+        self.assert_(not check("frollic"))
+
     def test_listdir(self):
 
         def makefile(fname):
@@ -295,6 +301,15 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("/c.txt"))
         self.assert_(checkcontents("/c.txt"))
 
+        makefile("foo/bar/a.txt")
+        self.assertRaises(fs.DestinationExistsError,self.fs.move,"foo/bar/a.txt","/c.txt")
+        self.assert_(check("foo/bar/a.txt"))
+        self.assert_(check("/c.txt"))
+        self.fs.move("foo/bar/a.txt","/c.txt",overwrite=True)
+        self.assert_(not check("foo/bar/a.txt"))
+        self.assert_(check("/c.txt"))
+
+
     def test_movedir(self):
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
@@ -311,7 +326,6 @@ class TestOSFS(unittest.TestCase):
         self.fs.makedir("a/foo/bar", recursive=True)
         makefile("a/foo/bar/baz.txt")
 
-        self.fs.makedir("copy of a")
         self.fs.movedir("a", "copy of a")
 
         self.assert_(check("copy of a/1.txt"))
@@ -326,6 +340,51 @@ class TestOSFS(unittest.TestCase):
         self.assert_(not check("a/foo/bar"))
         self.assert_(not check("a/foo"))
         self.assert_(not check("a"))
+
+        self.fs.makedir("a")
+        self.assertRaises(fs.DestinationExistsError,self.fs.movedir,"copy of a","a")
+        self.fs.movedir("copy of a","a",overwrite=True)
+        self.assert_(not check("copy of a"))
+        self.assert_(check("a/1.txt"))
+        self.assert_(check("a/2.txt"))
+        self.assert_(check("a/3.txt"))
+        self.assert_(check("a/foo/bar/baz.txt"))
+        
+
+    def test_copyfile(self):
+        check = self.check
+        contents = "If the implementation is hard to explain, it's a bad idea."
+        def makefile(path,contents=contents):
+            f = self.fs.open(path, "wb")
+            f.write(contents)
+            f.close()
+        def checkcontents(path,contents=contents):
+            f = self.fs.open(path, "rb")
+            check_contents = f.read()
+            f.close()
+            self.assertEqual(check_contents,contents)
+            return contents == check_contents
+
+        self.fs.makedir("foo/bar", recursive=True)
+        makefile("foo/bar/a.txt")
+        self.assert_(check("foo/bar/a.txt"))
+        self.assert_(checkcontents("foo/bar/a.txt"))
+        self.fs.copy("foo/bar/a.txt", "foo/b.txt")
+        self.assert_(check("foo/bar/a.txt"))
+        self.assert_(check("foo/b.txt"))
+        self.assert_(checkcontents("foo/b.txt"))
+
+        self.fs.copy("foo/b.txt", "c.txt")
+        self.assert_(check("foo/b.txt"))
+        self.assert_(check("/c.txt"))
+        self.assert_(checkcontents("/c.txt"))
+
+        makefile("foo/bar/a.txt","different contents")
+        self.assertRaises(fs.DestinationExistsError,self.fs.copy,"foo/bar/a.txt","/c.txt")
+        self.assert_(checkcontents("/c.txt"))
+        self.fs.copy("foo/bar/a.txt","/c.txt",overwrite=True)
+        self.assert_(checkcontents("foo/bar/a.txt","different contents"))
+        self.assert_(checkcontents("/c.txt","different contents"))
 
 
     def test_copydir(self):
@@ -344,7 +403,6 @@ class TestOSFS(unittest.TestCase):
         self.fs.makedir("a/foo/bar", recursive=True)
         makefile("a/foo/bar/baz.txt")
 
-        self.fs.makedir("copy of a")
         self.fs.copydir("a", "copy of a")
         self.assert_(check("copy of a/1.txt"))
         self.assert_(check("copy of a/2.txt"))
@@ -355,6 +413,14 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("a/2.txt"))
         self.assert_(check("a/3.txt"))
         self.assert_(check("a/foo/bar/baz.txt"))
+
+        self.assertRaises(fs.DestinationExistsError,self.fs.copydir,"a","b")
+        self.fs.copydir("a","b",overwrite=True)
+        self.assert_(check("b/1.txt"))
+        self.assert_(check("b/2.txt"))
+        self.assert_(check("b/3.txt"))
+        self.assert_(check("b/foo/bar/baz.txt"))
+       
 
     def test_copydir_with_hidden(self):
         check = self.check
@@ -369,7 +435,6 @@ class TestOSFS(unittest.TestCase):
         makefile("a/2.txt")
         makefile("a/.hidden.txt")
 
-        self.fs.makedir("copy of a")
         self.fs.copydir("a", "copy of a")
         self.assert_(check("copy of a/1.txt"))
         self.assert_(check("copy of a/2.txt"))
@@ -671,7 +736,7 @@ class TestS3FS(TestOSFS):
     def test_with_statement(self):
         import sys
         if sys.version_info[0] >= 2 and sys.version_info[1] >= 5:
-            #  A successful with statement
+            #  A successful 'with' statement
             contents = "testing the with statement"
             code = "from __future__ import with_statement\n"
             code += "with self.fs.open('f.txt','w-') as testfile:\n"
@@ -679,7 +744,7 @@ class TestS3FS(TestOSFS):
             code += "self.assertEquals(self.fs.getcontents('f.txt'),contents)"
             code = compile(code,"<string>",'exec')
             eval(code)
-            # A with statement raising an error
+            # A 'with' statement raising an error
             contents = "testing the with statement"
             code = "from __future__ import with_statement\n"
             code += "with self.fs.open('f.txt','w-') as testfile:\n"
@@ -688,7 +753,7 @@ class TestS3FS(TestOSFS):
             code = compile(code,"<string>",'exec')
             self.assertRaises(ValueError,eval,code,globals(),locals())
             self.assertEquals(self.fs.getcontents('f.txt'),contents)
-            
+           
 
 
 import rpcfs

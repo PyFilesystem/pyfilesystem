@@ -180,8 +180,8 @@ class RPCFS(FS):
     def remove(self,path):
         return self.proxy.remove(path)
 
-    def removedir(self,path,recursive=False):
-        return self.proxy.removedir(path,recursive)
+    def removedir(self,path,recursive=False,force=False):
+        return self.proxy.removedir(path,recursive,force)
         
     def rename(self,src,dst):
         return self.proxy.rename(src,dst)
@@ -201,14 +201,14 @@ class RPCFS(FS):
     def copy(self,src,dst,overwrite=False,chunk_size=16384):
         return self.proxy.copy(src,dst,overwrite,chunk_size)
 
-    def move(self,src,dst,chunk_size=16384):
-        return self.proxy.move(src,dst,chunk_size)
+    def move(self,src,dst,overwrite=False,chunk_size=16384):
+        return self.proxy.move(src,dst,overwrite,chunk_size)
 
-    def movedir(self,src,dst,ignore_errors=False,chunk_size=16384):
-        return self.proxy.movedir(src,dst,ignore_errors,chunk_size)
+    def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        return self.proxy.movedir(src,dst,overwrite,ignore_errors,chunk_size)
 
-    def copydir(self,src,dst,ignore_errors=False,chunk_size=16384):
-        return self.proxy.copydir(src,dst,ignore_errors,chunk_size)
+    def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        return self.proxy.copydir(src,dst,overwrite,ignore_errors,chunk_size)
 
 
 class RPCFSInterface(object):
@@ -246,8 +246,8 @@ class RPCFSInterface(object):
     def remove(self,path):
         return self.fs.remove(path)
 
-    def removedir(self,path,recursive=False):
-        return self.fs.removedir(path,recursive)
+    def removedir(self,path,recursive=False,force=False):
+        return self.fs.removedir(path,recursive,force)
         
     def rename(self,src,dst):
         return self.fs.rename(src,dst)
@@ -267,14 +267,14 @@ class RPCFSInterface(object):
     def copy(self,src,dst,overwrite=False,chunk_size=16384):
         return self.fs.copy(src,dst,overwrite,chunk_size)
 
-    def move(self,src,dst,chunk_size=16384):
-        return self.fs.move(src,dst,chunk_size)
+    def move(self,src,dst,overwrite=False,chunk_size=16384):
+        return self.fs.move(src,dst,overwrite,chunk_size)
 
-    def movedir(self,src,dst,ignore_errors=False,chunk_size=16384):
-        return self.fs.movedir(src,dst,ignore_errors,chunk_size)
+    def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        return self.fs.movedir(src,dst,overwrite,ignore_errors,chunk_size)
 
-    def copydir(self,src,dst,ignore_errors=False,chunk_size=16384):
-        return self.fs.copydir(src,dst,ignore_errors,chunk_size)
+    def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        return self.fs.copydir(src,dst,overwrite,ignore_errors,chunk_size)
 
 
 class RPCFSServer(SimpleXMLRPCServer):

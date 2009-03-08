@@ -370,7 +370,7 @@ class MemoryFS(FS):
         finally:
             self._lock.release()
 
-    def removedir(self, path, recursive=False):
+    def removedir(self, path, recursive=False, force=False):
         self._lock.acquire()
         try:
             dir_entry = self._get_dir_entry(path)
@@ -382,7 +382,7 @@ class MemoryFS(FS):
             if not dir_entry.isdir():
                 raise ResourceInvalid("WRONG_TYPE", path, msg="Can't remove resource, its not a directory: %(path)s" )
 
-            if dir_entry.contents:
+            if dir_entry.contents and not force:
                 raise OperationFailedError("REMOVEDIR_FAILED", "Directory is not empty: %(path)s")
 
             if recursive:
