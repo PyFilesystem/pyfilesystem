@@ -23,6 +23,7 @@ def _check_mode(mode, mode_chars):
 class MemoryFile(object):
 
     def __init__(self, path, memory_fs, value, mode):
+        self.closed = False
         self.path = path
         self.memory_fs = memory_fs
         self.mode = mode
@@ -54,7 +55,6 @@ class MemoryFile(object):
                 self.mem_file = StringIO()
 
         assert self.mem_file is not None, "self.mem_file should have a value"
-        self.closed = False
 
     def __str__(self):
         return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
@@ -69,7 +69,8 @@ class MemoryFile(object):
             self.close()
 
     def flush(self):
-        pass
+        value = self.mem_file.getvalue()
+        self.memory_fs._on_flush_memory_file(self.path, value)
 
     def __iter__(self):
         return iter(self.mem_file)
@@ -81,9 +82,9 @@ class MemoryFile(object):
         return self.mem_file.readline(*args, **kwargs)
 
     def close(self):
-        if not self.closed:
+        if not self.closed and self.mem_file is not None:
             value = self.mem_file.getvalue()
-            self.memory_fs._on_close_memory_file(self.path, value)
+            self.memory_fs._on_close_memory_file(self, self.path, value)
             self.mem_file.close()
             self.closed = True
 
@@ -123,6 +124,7 @@ class MemoryFS(FS):
             if contents is None and type == "dir":
                 contents = {}
 
+            self.open_files = []
             self.contents = contents
             self.data = None
             self.locks = 0
@@ -285,6 +287,10 @@ class MemoryFS(FS):
         finally:
             self._lock.release()
 
+    def _orphan_files(self, file_dir_entry):
+        for f in file_dir_entry.open_files:
+            f.close()
+
     def _lock_dir_entry(self, path):
         self._lock.acquire()
         try:
@@ -329,6 +335,7 @@ class MemoryFS(FS):
 
                 self._lock_dir_entry(path)
                 mem_file = self.file_factory(path, self, file_dir_entry.data, mode)
+                file_dir_entry.open_files.append(mem_file)
                 return mem_file
 
             elif 'w' in mode:
@@ -344,6 +351,7 @@ class MemoryFS(FS):
                 self._lock_dir_entry(path)
 
                 mem_file = self.file_factory(path, self, None, mode)
+                file_dir_entry.open_files.append(mem_file)
                 return mem_file
 
             if parent_dir_entry is None:
@@ -360,7 +368,8 @@ class MemoryFS(FS):
                 raise ResourceNotFoundError("NO_FILE", path)
 
             if dir_entry.islocked():
-                raise ResourceLockedError("FILE_LOCKED", path)
+                self._orphan_files(dir_entry)
+                #raise ResourceLockedError("FILE_LOCKED", path)
 
             pathname, dirname = pathsplit(path)
 
@@ -401,14 +410,22 @@ class MemoryFS(FS):
 
     def rename(self, src, dst):
         if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
+            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         self._lock.acquire()
         try:
+
+            dst = pathsplit(dst)[-1]
+
             dir_entry = self._get_dir_entry(src)
             if dir_entry is None:
                 raise ResourceNotFoundError("NO_DIR", src)
-            if dir_entry.islocked():
-                raise ResourceLockedError("FILE_LOCKED", src)
+            #if dir_entry.islocked():
+            #    raise ResourceLockedError("FILE_LOCKED", src)
+
+            open_files = dir_entry.open_files[:]
+            for f in open_files:
+                f.flush()
+                f.path = dst
 
             dst_dir_entry = self._get_dir_entry(dst)
             if dst_dir_entry is not None:
@@ -417,20 +434,35 @@ class MemoryFS(FS):
             pathname, dirname = pathsplit(src)
             parent_dir = self._get_dir_entry(pathname)
             parent_dir.contents[dst] = parent_dir.contents[dirname]
+            parent_dir.name = dst
             del parent_dir.contents[dirname]
+
         finally:
             self._lock.release()
 
 
-    def _on_close_memory_file(self, path, value):
+    def _on_close_memory_file(self, open_file, path, value):
+        self._lock.acquire()
+        try:
+            filepath, filename = pathsplit(path)
+            dir_entry = self._get_dir_entry(path)
+            if dir_entry is not None and value is not None:
+                dir_entry.data = value
+                dir_entry.open_files.remove(open_file)
+                self._unlock_dir_entry(path)
+        finally:
+            self._lock.release()
+
+    def _on_flush_memory_file(self, path, value):
         self._lock.acquire()
         try:
             filepath, filename = pathsplit(path)
             dir_entry = self._get_dir_entry(path)
             dir_entry.data = value
-            self._unlock_dir_entry(path)
         finally:
             self._lock.release()
+
+
 
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
         self._lock.acquire()
@@ -455,7 +487,7 @@ class MemoryFS(FS):
             info['created_time'] = dir_entry.created_time
 
             if dir_entry.isfile():
-                info['size'] = len(dir_entry.data)
+                info['size'] = len(dir_entry.data or '')
 
             return info
         finally:

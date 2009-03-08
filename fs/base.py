@@ -12,6 +12,11 @@ except ImportError:
     import dummy_threading as threading
 import dummy_threading
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 error_msgs = {
 
     "UNKNOWN_ERROR" :   "No information on error: %(path)s",
@@ -430,6 +435,7 @@ class FS(object):
         finally:
             if f is not None:
                 f.close()
+    setcontents = createfile
 
     def opendir(self, path):
         """Opens a directory and returns a FS object representing its contents.
@@ -611,6 +617,42 @@ class FS(object):
         else:
             self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
             self.remove(src)
+
+
+    def _get_attr_path(self, path):
+        if self.isdir(path):
+            return pathjoin(path, '.dirattrs')
+        else:
+            dir_path, file_path = pathsplit(path)
+            return pathjoin(path, '.attrs.'+file_path)
+
+    def _get_attr_dict(self, path):
+        attr_path = self._get_attr_path(path)
+        if self.exists(attr_path):
+            return pickle.loads(self.getcontents(attr_path))
+        else:
+            return {}
+
+
+    def _set_attr_dict(self, path, attrs):
+        attr_path = self._get_attr_path(path)
+        self.setcontents(path, self.pickle.dumps(attrs))
+
+    def setattr(self, path, key, value):
+        attrs = self._get_attr_dict(path)
+        attrs[key] = value
+        self._set_attr_dict(path, attrs)
+
+    def getattr(self, path, key, default):
+        return self._get_attr_dict(path).get(key, default)
+
+    def removeattr(self, path, key):
+        attrs = self._get_attrs()
+        if path in self._get_attrs():
+            del attrs[key]
+
+    def listattrs(self, path):
+        return self._get_attr_dict(path).keys()
 
 
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
