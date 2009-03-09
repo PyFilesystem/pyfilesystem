@@ -86,7 +86,12 @@ class S3FS(FS):
         try:
             return self.__dict__['_s3bukt']
         except KeyError:
-            b = self._s3conn.create_bucket(self._bucket_name)
+            try:
+                b = self._s3conn.get_bucket(self._bucket_name)
+            except S3ResponseError, e:
+                if "404 Not Found" not in str(e):
+                    raise e
+                b = self._s3conn.create_bucket(self._bucket_name)
             self.__dict__['_s3bukt'] = b
             return b
     _s3bukt = property(_s3bukt)
