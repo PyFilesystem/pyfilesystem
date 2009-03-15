@@ -145,7 +145,7 @@ class TestOSFS(unittest.TestCase):
         self.fs = osfs.OSFS(self.temp_dir)
         print "Temp dir is", self.temp_dir
 
-    def tearDown(self):        
+    def tearDown(self):
         shutil.rmtree(self.temp_dir)
 
     def check(self, p):
@@ -349,7 +349,7 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("a/2.txt"))
         self.assert_(check("a/3.txt"))
         self.assert_(check("a/foo/bar/baz.txt"))
-        
+
 
     def test_copyfile(self):
         check = self.check
@@ -420,7 +420,7 @@ class TestOSFS(unittest.TestCase):
         self.assert_(check("b/2.txt"))
         self.assert_(check("b/3.txt"))
         self.assert_(check("b/foo/bar/baz.txt"))
-       
+
 
     def test_copydir_with_hidden(self):
         check = self.check
@@ -489,7 +489,7 @@ class TestOSFS(unittest.TestCase):
         for s in test_strings:
             f5.write(s+"\n")
         f5.close()
-        f6 = self.fs.open("c.txt", "rb")        
+        f6 = self.fs.open("c.txt", "rb")
         for s, t in zip(f6, test_strings):
             self.assertEqual(s, t+"\n")
         f6.close()
@@ -504,7 +504,7 @@ class TestOSFS(unittest.TestCase):
         word = f7.read(7)
         self.assertEqual(word, "complex")
         f7.close()
-        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)        
+        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)
 
 
 
@@ -753,7 +753,7 @@ class TestS3FS(TestOSFS):
             code = compile(code,"<string>",'exec')
             self.assertRaises(ValueError,eval,code,globals(),locals())
             self.assertEquals(self.fs.getcontents('f.txt'),contents)
-           
+
 
 
 import rpcfs

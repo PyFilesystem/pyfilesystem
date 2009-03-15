@@ -36,6 +36,7 @@ error_msgs = {
     "GETSIZE_FAILED" :      "Unable to retrieve size of resource: %(path)s",
     "COPYFILE_FAILED" :     "Unable to copy file: %(path)s",
     "READ_FAILED" :         "Unable to read from file: %(path)s",
+    "XATTR_FAILED" :        "Unable to access extended-attribute: %(path)s",
 
     # NoSysPathError
     "NO_SYS_PATH" :     "No mapping to OS filesytem: %(path)s,",
@@ -621,10 +622,10 @@ class FS(object):
 
     def _get_attr_path(self, path):
         if self.isdir(path):
-            return pathjoin(path, '.dirattrs')
+            return pathjoin(path, '.dirxattrs')
         else:
             dir_path, file_path = pathsplit(path)
-            return pathjoin(path, '.attrs.'+file_path)
+            return pathjoin(dir_path, '.xattrs.'+file_path)
 
     def _get_attr_dict(self, path):
         attr_path = self._get_attr_path(path)
@@ -633,27 +634,38 @@ class FS(object):
         else:
             return {}
 
-
     def _set_attr_dict(self, path, attrs):
         attr_path = self._get_attr_path(path)
-        self.setcontents(path, self.pickle.dumps(attrs))
+        self.setcontents(self._get_attr_path(path), pickle.dumps(attrs))
 
-    def setattr(self, path, key, value):
+    def setxattr(self, path, key, value):
         attrs = self._get_attr_dict(path)
         attrs[key] = value
         self._set_attr_dict(path, attrs)
 
-    def getattr(self, path, key, default):
-        return self._get_attr_dict(path).get(key, default)
+    def getxattr(self, path, key, default):
+        attrs = self._get_attr_dict(path)
+        return attrs.get(key, default)
 
-    def removeattr(self, path, key):
-        attrs = self._get_attrs()
-        if path in self._get_attrs():
+    def removexattr(self, path, key):
+        attrs = self._get_attr_dict(path)
+        try:
             del attrs[key]
+        except KeyError:
+            pass
+        self._set_attr_dict(path, attrs)
 
-    def listattrs(self, path):
+    def listxattrs(self, path):
+        attrs = self._get_attr_dict(path)
         return self._get_attr_dict(path).keys()
 
+    def updatexattrs(self, path, update_dict):
+        d = self._get_attr_dict()
+        d.update( dict([(k, v) for k,v in update_dict.iteritems()]) )
+        self.set_attr_dict(self, path, d)
+
+    def getxattrs(self, path):
+        return dict( [(k, self.getxattr(path, k)) for k in self.listxattrs(path)] )
 
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Moves a directory from one location to another.

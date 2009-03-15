@@ -3,6 +3,11 @@
 from base import *
 from helpers import *
 
+try:
+    import xattr
+except ImportError:
+    xattr = None
+
 class OSFS(FS):
 
     """The most basic of filesystems. Simply shadows the underlaying filesytem
@@ -87,7 +92,7 @@ class OSFS(FS):
                             raise OperationFailedError("MAKEDIR_FAILED", path)
                     else:
                         raise OperationFailedError("MAKEDIR_FAILED", path)
-                    
+
         except OSError, e:
             if e.errno == 17:
                 return
@@ -171,39 +176,122 @@ class OSFS(FS):
         return stats.st_size
 
 
+    def setxattr(self, path, key, value):
+        self._lock.acquire()
+        try:
+            if xattr is None:
+                return FS.setxattr(self, path, key, value)
+            try:
+                xattr.xattr(self.getsyspath(path))[key]=value
+            except IOError, e:
+                if e.errno == 95:
+                    return FS.setxattr(self, path, key, value)
+                else:
+                    raise OperationFailedError('XATTR_FAILED', path, details=e)
+        finally:
+            self._lock.release()
+
+    def getxattr(self, path, key, default=None):
+        self._lock.acquire()
+        try:
+            if xattr is None:
+                return FS.getxattr(self, path, key, default)
+            try:
+                return xattr.xattr(self.getsyspath(path)).get(key)
+            except IOError, e:
+                if e.errno == 95:
+                    return FS.getxattr(self, path, key, default)
+                else:
+                    raise OperationFailedError('XATTR_FAILED', path, details=e)
+        finally:
+            self._lock.release()
+
+    def removexattr(self, path, key):
+        self._lock.acquire()
+        try:
+            if xattr is None:
+                return FS.removexattr(self, path, key)
+            try:
+                del xattr.xattr(self.getsyspath(path))[key]
+            except KeyError:
+                pass
+            except IOError, e:
+                if e.errono == 95:
+                    return FS.removexattr(self, path, key)
+                else:
+                    raise OperationFailedError('XATTR_FAILED', path, details=e)
+        finally:
+            self._lock.release()
+
+    def listxattrs(self, path):
+        self._lock.acquire()
+        try:
+            if xattr is None:
+                return FS.listxattrs(self, path)
+            try:
+                return xattr.xattr(self.getsyspath(path)).keys()
+            except IOError, e:
+                if errono == 95:
+                    return FS.listxattrs(self, path)
+                else:
+                    raise OperationFailedError('XATTR_FAILED', path, details=e)
+        finally:
+            self._lock.release()
+
+
 
 if __name__ == "__main__":
 
-    osfs = OSFS("~/projects")
+
+    osfs = OSFS('testfs')
 
 
-    for p in osfs.walk("tagging-trunk", search='depth'):
-        print p
 
-    import browsewin
-    browsewin.browse(osfs)
 
-    print_fs(osfs)
+    #a = xattr.xattr('/home/will/projects/pyfilesystem/fs/testfs/test.txt')
+    #a['user.comment'] = 'world'
 
-    #print osfs.listdir("/projects/fs")
+    #print xattr.xattr('/home/will/projects/pyfilesystem/fs/testfs/test.txt').keys()
 
-    #sub_fs = osfs.open_dir("projects/")
+    print osfs.listxattrs('test.txt')
+    osfs.removexattr('test.txt', 'user.foo')
+    #print osfs.listxattrs('test.txt')
+    osfs.setxattr('test.txt', 'user.foo', 'bar')
+    print osfs.getxattr('test.txt', 'user.foo')
+    print osfs.listxattrs('test.txt')
+    print osfs.getxattrs('test.txt')
 
-    #print sub_fs
-
-    #sub_fs.open('test.txt')
-
-    #print sub_fs.listdir(dirs_only=True)
-    #print sub_fs.listdir()
-    #print_fs(sub_fs, max_levels=2)
-
-    #for f in osfs.listdir():
-    #    print f
-
-    #print osfs.listdir('projects', dirs_only=True, wildcard="d*")
-
-    #print_fs(osfs, 'projects/')
-
-    print pathjoin('/', 'a')
-
-    print pathjoin('a/b/c', '../../e/f')
+    #
+    #osfs = OSFS("~/projects")
+    #
+    #
+    ##for p in osfs.walk("tagging-trunk", search='depth'):
+    ##    print p
+    #
+    #import browsewin
+    #browsewin.browse(osfs)
+    #
+    #print_fs(osfs)
+    #
+    ##print osfs.listdir("/projects/fs")
+    #
+    ##sub_fs = osfs.open_dir("projects/")
+    #
+    ##print sub_fs
+    #
+    ##sub_fs.open('test.txt')
+    #
+    ##print sub_fs.listdir(dirs_only=True)
+    ##print sub_fs.listdir()
+    ##print_fs(sub_fs, max_levels=2)
+    #
+    ##for f in osfs.listdir():
+    ##    print f
+    #
+    ##print osfs.listdir('projects', dirs_only=True, wildcard="d*")
+    #
+    ##print_fs(osfs, 'projects/')
+    #
+    #print pathjoin('/', 'a')
+    #
+    #print pathjoin('a/b/c', '../../e/f')
