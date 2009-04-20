@@ -711,7 +711,7 @@ class TestAppendZipFS(TestWriteZipFS):
 import s3fs
 class TestS3FS(TestOSFS):
 
-    bucket = "test-s3fs-new.rfk.id.au"
+    bucket = "test-s3fs.rfk.id.au"
 
     def setUp(self):
         self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
@@ -728,7 +728,7 @@ class TestS3FS(TestOSFS):
         self._clear()
         for k in self.fs._s3bukt.list():
             self.fs._s3bukt.delete_key(k)
-        #self.fs._s3conn.delete_bucket(self.bucket)
+        self.fs._s3conn.delete_bucket(self.bucket)
 
     def check(self, p):
         return self.fs.exists(p)

@@ -65,7 +65,7 @@ class S3FS(FS):
         # Normalise prefix to this form: path/to/files/
         while prefix.startswith(separator):
             prefix = prefix[1:]
-        if not prefix.endswith(separator):
+        if not prefix.endswith(separator) and prefix != "":
             prefix = prefix + separator
         self._prefix = prefix
         FS.__init__(self, thread_syncronize=thread_syncronize)
@@ -448,4 +448,8 @@ class S3FS(FS):
         """Move a file from one location to another."""
         self.copy(src,dst,overwrite=overwrite)
         self._s3bukt.delete_key(self._s3path(src))
+
+    def get_total_size(self):
+        """Get total size of all files in this FS."""
+        return sum(k.size for k in self._s3bukt.list(prefix=self._prefix))
 
