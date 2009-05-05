@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """
-A filesystem that exists only in memory, which obviously makes it very fast.
+
+  fs.memoryfs:  A filesystem that exists only in memory
+
+Obviously that makes this particular filesystem very fast...
 
 """
 
-import os
 import datetime
-from helpers import _iteratepath
+from helpers import iteratepath
 from base import *
 
 try:
@@ -14,11 +16,13 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+
 def _check_mode(mode, mode_chars):
     for c in mode_chars:
         if c not in mode:
             return False
     return True
+
 
 class MemoryFile(object):
 
@@ -108,59 +112,67 @@ class MemoryFile(object):
     def writelines(self, *args, **kwargs):
         return self.mem_file.writelines(*args, **kwargs)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self,exc_type,exc_value,traceback):
+        self.close()
+        return False
+
+
+
+class DirEntry(object):
+
+    def __init__(self, type, name, contents=None):
+
+        assert type in ("dir", "file"), "Type must be dir or file!"
+
+        self.type = type
+        self.name = name
+
+        if contents is None and type == "dir":
+            contents = {}
+
+        self.open_files = []
+        self.contents = contents
+        self.data = None
+        self.locks = 0
+        self.created_time = datetime.datetime.now()
+
+    def lock(self):
+        self.locks += 1
+
+    def unlock(self):
+        self.locks -=1
+        assert self.locks >=0, "Lock / Unlock mismatch!"
+
+    def desc_contents(self):
+        if self.isfile():
+            return "<file %s>"%self.name
+        elif self.isdir():
+            return "<dir %s>"%"".join( "%s: %s"% (k, v.desc_contents()) for k, v in self.contents.iteritems())
+
+    def isdir(self):
+        return self.type == "dir"
+
+    def isfile(self):
+        return self.type == "file"
+
+    def islocked(self):
+        return self.locks > 0
+
+    def __str__(self):
+        return "%s: %s" % (self.name, self.desc_contents())
+
 
 class MemoryFS(FS):
-
-    class DirEntry(object):
-
-        def __init__(self, type, name, contents=None):
-
-            assert type in ("dir", "file"), "Type must be dir or file!"
-
-            self.type = type
-            self.name = name
-            self.permissions = None
-
-            if contents is None and type == "dir":
-                contents = {}
-
-            self.open_files = []
-            self.contents = contents
-            self.data = None
-            self.locks = 0
-            self.created_time = datetime.datetime.now()
-
-        def lock(self):
-            self.locks += 1
-
-        def unlock(self):
-            self.locks -=1
-            assert self.locks >=0, "Lock / Unlock mismatch!"
-
-        def desc_contents(self):
-            if self.isfile():
-                return "<file %s>"%self.name
-            elif self.isdir():
-                return "<dir %s>"%"".join( "%s: %s"% (k, v.desc_contents()) for k, v in self.contents.iteritems())
-
-        def isdir(self):
-            return self.type == "dir"
-
-        def isfile(self):
-            return self.type == "file"
-
-        def islocked(self):
-            return self.locks > 0
-
-        def __str__(self):
-            return "%s: %s" % (self.name, self.desc_contents())
 
     def _make_dir_entry(self, *args, **kwargs):
         return self.dir_entry_factory(*args, **kwargs)
 
     def __init__(self, file_factory=None):
-        FS.__init__(self, thread_syncronize=True)
-        self.dir_entry_factory = MemoryFS.DirEntry
+        FS.__init__(self, thread_synchronize=True)
+        self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
 
         self.root = self._make_dir_entry('dir', 'root')
@@ -177,7 +189,7 @@ class MemoryFS(FS):
         self._lock.acquire()
         try:
             current_dir = self.root
-            for path_component in _iteratepath(dirpath):
+            for path_component in iteratepath(dirpath):
                 if current_dir.contents is None:
                     return None
                 dir_entry = current_dir.contents.get(path_component, None)
@@ -204,7 +216,7 @@ class MemoryFS(FS):
     def isdir(self, path):
         self._lock.acquire()
         try:
-            dir_item = self._get_dir_entry(self._resolve(path))
+            dir_item = self._get_dir_entry(normpath(path))
             if dir_item is None:
                 return False
             return dir_item.isdir()
@@ -214,7 +226,7 @@ class MemoryFS(FS):
     def isfile(self, path):
         self._lock.acquire()
         try:
-            dir_item = self._get_dir_entry(self._resolve(path))
+            dir_item = self._get_dir_entry(normpath(path))
             if dir_item is None:
                 return False
             return dir_item.isfile()
@@ -230,7 +242,7 @@ class MemoryFS(FS):
 
     def makedir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
         if not dirname:
-            raise PathError("INVALID_PATH", "Path is empty")
+            raise PathError("", "Path is empty")
         self._lock.acquire()
         try:
             fullpath = dirname
@@ -240,23 +252,23 @@ class MemoryFS(FS):
                 parent_dir = self._get_dir_entry(dirpath)
                 if parent_dir is not None:
                     if parent_dir.isfile():
-                        raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                        raise ResourceInvalidError(dirname, msg="Can not create a directory, because path references a file: %(path)s")
                     else:
                         if not allow_recreate:
                             if dirname in parent_dir.contents:
-                                raise OperationFailedError("MAKEDIR_FAILED", dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+                                raise DestinationExistsError(dirname, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
 
                 current_dir = self.root
-                for path_component in _iteratepath(dirpath)[:-1]:
+                for path_component in iteratepath(dirpath)[:-1]:
                     dir_item = current_dir.contents.get(path_component, None)
                     if dir_item is None:
                         break
                     if not dir_item.isdir():
-                        raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                        raise ResourceInvalidError(dirname, msg="Can not create a directory, because path references a file: %(path)s")
                     current_dir = dir_item
 
                 current_dir = self.root
-                for path_component in _iteratepath(dirpath):
+                for path_component in iteratepath(dirpath):
                     dir_item = current_dir.contents.get(path_component, None)
                     if dir_item is None:
                         new_dir = self._make_dir_entry("dir", path_component)
@@ -270,15 +282,15 @@ class MemoryFS(FS):
             else:
                 parent_dir = self._get_dir_entry(dirpath)
                 if parent_dir is None:
-                    raise ResourceNotFoundError("NO_DIR", dirname, msg="Could not make dir, as parent dir does not exist: %(path)s")
+                    raise ParentDirectoryMissingError(dirname, msg="Could not make dir, as parent dir does not exist: %(path)s")
 
             dir_item = parent_dir.contents.get(dirname, None)
             if dir_item is not None:
                 if dir_item.isdir():
                     if not allow_recreate:
-                        raise FSError("DIR_EXISTS", dirname)
+                        raise DestinationExistsError(dirname)
                 else:
-                    raise ResourceNotFoundError("NO_DIR", dirname, msg="Can not create a directory, because path references a file: %(path)s")
+                    raise ResourceInvalidError(dirname, msg="Can not create a directory, because path references a file: %(path)s")
 
             if dir_item is None:
                 parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
@@ -322,16 +334,16 @@ class MemoryFS(FS):
             parent_dir_entry = self._get_dir_entry(filepath)
 
             if parent_dir_entry is None or not parent_dir_entry.isdir():
-                raise ResourceNotFoundError("NO_FILE", path)
+                raise FileNotFoundError(path)
 
             if 'r' in mode or 'a' in mode:
                 if filename not in parent_dir_entry.contents:
-                    raise ResourceNotFoundError("NO_FILE", path)
+                    raise FileNotFoundError(path)
 
                 file_dir_entry = parent_dir_entry.contents[filename]
 
                 if 'a' in mode and  file_dir_entry.islocked():
-                    raise ResourceLockedError("FILE_LOCKED", path)
+                    raise ResourceLockedError(path)
 
                 self._lock_dir_entry(path)
                 mem_file = self.file_factory(path, self, file_dir_entry.data, mode)
@@ -346,7 +358,7 @@ class MemoryFS(FS):
                     file_dir_entry = parent_dir_entry.contents[filename]
 
                 if file_dir_entry.islocked():
-                    raise ResourceLockedError("FILE_LOCKED", path)
+                    raise ResourceLockedError(path)
 
                 self._lock_dir_entry(path)
 
@@ -355,7 +367,7 @@ class MemoryFS(FS):
                 return mem_file
 
             if parent_dir_entry is None:
-                raise ResourceNotFoundError("NO_FILE", path)
+                raise FileNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -365,11 +377,14 @@ class MemoryFS(FS):
             dir_entry = self._get_dir_entry(path)
 
             if dir_entry is None:
-                raise ResourceNotFoundError("NO_FILE", path)
+                raise FileNotFoundError(path)
 
             if dir_entry.islocked():
                 self._orphan_files(dir_entry)
                 #raise ResourceLockedError("FILE_LOCKED", path)
+
+            if dir_entry.isdir():
+                raise ResourceInvalidError(path,msg="That's a directory, not a file: %(path)s")
 
             pathname, dirname = pathsplit(path)
 
@@ -385,14 +400,14 @@ class MemoryFS(FS):
             dir_entry = self._get_dir_entry(path)
 
             if dir_entry is None:
-                raise ResourceNotFoundError("NO_DIR", path)
+                raise DirectoryNotFoundError(path)
             if dir_entry.islocked():
-                raise ResourceLockedError("FILE_LOCKED", path)
+                raise ResourceLockedError(path)
             if not dir_entry.isdir():
-                raise ResourceInvalid("WRONG_TYPE", path, msg="Can't remove resource, its not a directory: %(path)s" )
+                raise ResourceInvalidError(path, msg="Can't remove resource, its not a directory: %(path)s" )
 
             if dir_entry.contents and not force:
-                raise OperationFailedError("REMOVEDIR_FAILED", "Directory is not empty: %(path)s")
+                raise DirectoryNotEmptyError(path)
 
             if recursive:
                 rpathname = path
@@ -418,7 +433,7 @@ class MemoryFS(FS):
 
             dir_entry = self._get_dir_entry(src)
             if dir_entry is None:
-                raise ResourceNotFoundError("NO_DIR", src)
+                raise DirectoryNotFoundError(src)
             #if dir_entry.islocked():
             #    raise ResourceLockedError("FILE_LOCKED", src)
 
@@ -429,7 +444,7 @@ class MemoryFS(FS):
 
             dst_dir_entry = self._get_dir_entry(dst)
             if dst_dir_entry is not None:
-                raise OperationFailedError("RENAME_FAILED", "Destination exists: %(path)s", src + " -> " + dst )
+                raise DestinationExistsError(path)
 
             pathname, dirname = pathsplit(src)
             parent_dir = self._get_dir_entry(pathname)
@@ -464,14 +479,16 @@ class MemoryFS(FS):
 
 
 
-    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         self._lock.acquire()
         try:
             dir_entry = self._get_dir_entry(path)
             if dir_entry is None:
-                raise ResourceNotFoundError("NO_DIR", path)
+                raise DirectoryNotFoundError(path)
+            if dir_entry.isfile():
+                raise ResourceInvalidError(path,msg="that's a file, not a directory: %(path)s")
             paths = dir_entry.contents.keys()
-            return self._listdir_helper(path, paths, wildcard, full, absolute, hidden, dirs_only, files_only)
+            return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
         finally:
             self._lock.release()
 
@@ -481,7 +498,7 @@ class MemoryFS(FS):
             dir_entry = self._get_dir_entry(path)
 
             if dir_entry is None:
-                raise ResourceNotFoundError("NO_RESOURCE", path)
+                raise ResourceNotFoundError(path)
 
             info = {}
             info['created_time'] = dir_entry.created_time
@@ -502,14 +519,10 @@ def main():
     mem_fs.makedir('test/A', recursive=True)
     mem_fs.makedir('test/A/B', recursive=True)
 
-
-
     mem_fs.open("test/readme.txt", 'w').write("Hello, World!")
-
     mem_fs.open("test/readme.txt", 'wa').write("\nSecond Line")
 
     print mem_fs.open("test/readme.txt", 'r').read()
-
 
     f1 = mem_fs.open("/test/readme.txt", 'r')
     f2 = mem_fs.open("/test/readme.txt", 'r')
@@ -518,12 +531,6 @@ def main():
     f1.close()
     f2.close()
     f3 = mem_fs.open("/test/readme.txt", 'w')
-
-
-
-    #print mem_fs.listdir('test')
-    #print mem_fs.isdir("test/test2")
-    #print mem_fs.root
     print_fs(mem_fs)
 
     from browsewin import browse
@@ -531,5 +538,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()
