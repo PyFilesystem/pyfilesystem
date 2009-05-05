@@ -1,47 +1,91 @@
-"""Contains a number of standalone functions for path manipulation."""
+"""
+
+  fs.helpers: useful standalone functions for FS path manipulation.
+
+"""
 
 from itertools import chain
 
-def _iteratepath(path, numsplits=None):
 
-    path = resolvepath(path)
+def iteratepath(path, numsplits=None):
+    """Iterate over the individual components of a path."""
+    path = normpath(path)
     if not path:
         return []
-
+    if path[0] == "/":
+        path = path[1:]
     if numsplits == None:
-        return filter(lambda p:bool(p), path.split('/'))
+        return path.split('/')
     else:
-        return filter(lambda p:bool(p), path.split('/', numsplits))
+        return path.split('/', numsplits)
 
-
-
-def isabsolutepath(path):
-    """Returns True if a given path is absolute.
-
-    >>> isabsolutepath("a/b/c")
-    False
-
-    >>> isabsolutepath("/foo/bar")
-    True
-
-    """
-    if path:
-        return path[0] in '\\/'
-    return False
 
 def normpath(path):
-    """Normalizes a path to be in the formated expected by FS objects.
-    Returns a new path string.
+    """Normalizes a path to be in the format expected by FS objects.
+
+    This function remove any leading or trailing slashes, collapses
+    duplicate slashes, replaces forward with backward slashes, and generally
+    tries very hard to return a new path string the canonical FS format.
+    If the path is invalid, ValueError will be raised.
 
     >>> normpath(r"foo\\bar\\baz")
     'foo/bar/baz'
 
+    >>> normpath("/foo//bar/frob/../baz")
+    '/foo/bar/baz'
+
+    >>> normpath("foo/../../bar")
+    Traceback (most recent call last)
+        ...
+    ValueError: too many backrefs in path 'foo/../../bar'
+
     """
-    return path.replace('\\', '/')
+    if not path:
+        return path
+
+    components = []
+    for comp in path.replace('\\','/').split("/"):
+        if not comp or comp == ".":
+            pass
+        elif comp == "..":
+            try:
+                components.pop()
+            except IndexError:
+                err = "too many backrefs in path '%s'" % (path,)
+                raise ValueError(err)
+        else:
+            components.append(comp)
+
+    if path[0] in "\\/":
+        components.insert(0,"")
+
+    return "/".join(components)
+
+
+def abspath(path):
+    """Convert the given path to a normalized, absolute path.
+
+    path -- A FS path
+    """
+    path = normpath(path)
+    if not path or path[0] != "/":
+        path = "/" + path
+    return path
+
+
+def relpath(path):
+    """Convert the given path to a normalized, relative path.
+
+    path -- A FS path
+    """
+    path = normpath(path)
+    if path and path[0] == "/":
+        path = path[1:]
+    return path
 
 
 def pathjoin(*paths):
-    """Joins any number of paths together. Returns a new path string.
+    """Joins any number of paths together, returning a new path string.
 
     paths -- An iterable of path strings
 
@@ -51,38 +95,31 @@ def pathjoin(*paths):
     >>> pathjoin('foo/bar', '../baz')
     'foo/baz'
 
+    >>> pathjoin('foo/bar', '/baz')
+    '/baz'
+
     """
     absolute = False
 
     relpaths = []
     for p in paths:
         if p:
-         if p[0] in '\\/':
-             del relpaths[:]
-             absolute = True
-         relpaths.append(p)
+             if p[0] in '\\/':
+                 del relpaths[:]
+                 absolute = True
+             relpaths.append(p)
 
-    pathstack = []
-
-    for component in chain(*(normpath(path).split('/') for path in relpaths)):
-        if component == "..":
-            if not pathstack:
-                raise ValueError("Relative path is invalid")
-            sub = pathstack.pop()
-        elif component == ".":
-            pass
-        elif component:
-            pathstack.append(component)
-
+    path = normpath("/".join(relpaths))
     if absolute:
-        return "/" + "/".join(pathstack)
-    else:
-        return "/".join(pathstack)
+        path = "/" + path
+    return path
 
 
 def pathsplit(path):
     """Splits a path on a path separator. Returns a tuple containing the path up
     to that last separator and the remaining path component.
+
+    path -- A FS path
 
     >>> pathsplit("foo/bar")
     ('foo', 'bar')
@@ -91,11 +128,11 @@ def pathsplit(path):
     ('foo/bar', 'baz')
 
     """
-
     split = normpath(path).rsplit('/', 1)
     if len(split) == 1:
         return ('', split[0])
     return tuple(split)
+
 
 def dirname(path):
     """Returns the parent directory of a path.
@@ -108,6 +145,7 @@ def dirname(path):
     """
     return pathsplit(path)[0]
 
+
 def resourcename(path):
     """Returns the resource references by a path.
 
@@ -119,21 +157,11 @@ def resourcename(path):
     """
     return pathsplit(path)[1]
 
-def resolvepath(path):
-    """Normalises the path and removes any relative path components.
-
-    path -- A path string
-
-    >>> resolvepath(r"foo\\bar\\..\\baz")
-    'foo/baz'
-
-    """
-    return pathjoin(path)
 
 def makerelative(path):
     """Makes a path relative by removing initial separator.
 
-    path -- A path
+    path -- A FS path
 
     >>> makerelative("/foo/bar")
     'foo/bar'
@@ -144,10 +172,11 @@ def makerelative(path):
         return path[1:]
     return path
 
-def makeabsolute(path):
-    """Makes a path absolute by adding a separater at the beginning of the path.
 
-    path -- A path
+def makeabsolute(path):
+    """Makes a path absolute by adding a separator at the start of the path.
+
+    path -- A FS path
 
     >>> makeabsolute("foo/bar/baz")
     '/foo/bar/baz'
@@ -157,6 +186,7 @@ def makeabsolute(path):
     if not path.startswith('/'):
         return '/'+path
     return path
+
 
 def issamedir(path1, path2):
     """Return true if two paths reference a resource in the same directory.
@@ -169,4 +199,6 @@ def issamedir(path1, path2):
     >>> issamedir("foo/bar/baz/txt", "spam/eggs/spam.txt")
     False
     """
-    return pathsplit(resolvepath(path1))[0] == pathsplit(resolvepath(path2))[0]
+    return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
+
+

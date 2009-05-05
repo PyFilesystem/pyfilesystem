@@ -1,4 +1,8 @@
-"""Contains a number of high level utility functions for working with FS objects."""
+"""
+
+  fs.utils: high level utility functions for working with FS objects.
+
+"""
 
 import shutil
 from mountfs import MountFS
@@ -82,6 +86,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
         if dst is not None:
             dst.close()
 
+
 def movedir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     """Moves contents of a directory from one filesystem to another.
 
@@ -103,6 +108,7 @@ def movedir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     mount_fs.mount('dir2', fs2)
     mount_fs.movedir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
 
+
 def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     """Copies contents of a directory from one filesystem to another.
 
@@ -123,6 +129,7 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     mount_fs.mount('dir1', fs1)
     mount_fs.mount('dir2', fs2)
     mount_fs.copydir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
+
 
 def countbytes(count_fs):
     """Returns the total number of bytes contained within files in a filesystem.
