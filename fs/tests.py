@@ -32,18 +32,15 @@ class BaseFSTestCase(unittest.TestCase):
         return self.fs.exists(p)
 
     def test_root_dir(self):
-        """Test that the root directory is in fact a directory."""
         self.assertTrue(self.fs.isdir(""))
         self.assertTrue(self.fs.isdir("/"))
 
     def test_debug(self):
-        """Test that the FS can be printed for debugging"""
         str(self.fs)
         repr(self.fs)
         self.assert_(hasattr(self.fs, 'desc'))
 
     def test_writefile(self):
-        """Test that basic file reading/writing works as expected."""
         self.assertRaises(fs.ResourceNotFoundError,self.fs.open,"test1.txt")
         f = self.fs.open("test1.txt","w")
         f.write("testing")
@@ -52,7 +49,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assertEquals(f.read(),"testing")
 
     def test_isdir_isfile(self):
-        """Test that the existience-checking methods work correctly."""
         self.assertFalse(self.fs.exists("dir1"))
         self.assertFalse(self.fs.isdir("dir1"))
         self.assertFalse(self.fs.isfile("a.txt"))
@@ -68,7 +64,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assertFalse(self.fs.exists("a.txt"))
 
     def test_listdir(self):
-        """Test the directory listing works, including keyword arguments."""
         self.fs.createfile("a")
         self.fs.createfile("b")
         self.fs.createfile("foo")
@@ -117,7 +112,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assertRaises(fs.ResourceInvalidError,self.fs.listdir,"foo")
         
     def test_makedir(self):
-        """Test for proper functioning of makedir."""
         check = self.check
         self.fs.makedir("a")
         self.assertTrue(check("a"))
@@ -134,7 +128,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assertRaises(fs.ResourceInvalidError,self.fs.makedir,"a/file")
 
     def test_remove(self):
-        """Test that removing files works correctly."""
         self.fs.createfile("a.txt")
         self.assertTrue(self.check("a.txt"))
         self.fs.remove("a.txt")
@@ -148,7 +141,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assertFalse(self.check("/dir1/a.txt"))
 
     def test_removedir(self):
-        """Test for proper functioning of removedir."""
         check = self.check
         self.fs.makedir("a")
         self.assert_(check("a"))
@@ -177,7 +169,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assert_(not check("frollic"))
 
     def test_rename(self):
-        """Test that the rename() method works correctly."""
         check = self.check
         self.fs.open("foo.txt", 'wt').write("Hello, World!")
         self.assert_(check("foo.txt"))
@@ -186,7 +177,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assert_(not check("foo.txt"))
 
     def test_info(self):
-        """Test that getinfo() returns an appropriate structure."""
         test_str = "Hello, World!"
         self.fs.createfile("info.txt",test_str)
         info = self.fs.getinfo("info.txt")
@@ -194,7 +184,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.fs.desc("info.txt")
 
     def test_getsize(self):
-        """Test that file sizes are correctly reported."""
         test_str = "*"*23
         self.fs.createfile("info.txt",test_str)
         size = self.fs.getsize("info.txt")
@@ -342,7 +331,6 @@ class BaseFSTestCase(unittest.TestCase):
         self.assert_(check("b/3.txt"))
         self.assert_(check("b/foo/bar/baz.txt"))
         checkcontents("b/1.txt")
-
 
     def test_copydir_with_dotfile(self):
         check = self.check
