@@ -687,11 +687,7 @@ class FS(object):
                 dst_filename = pathjoin(dst_dirpath, filename)
                 movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
-#            attr_path = self._get_attr_path(dirname)
-#            if self.exists(attr_path):
-#                 self.move(attr_path,self._get_attr_path(dst_dirname),overwrite=True)
-#
-#            self.removedir(dirname)
+            self.removedir(dirname)
 
 
 
@@ -734,10 +730,6 @@ class FS(object):
                 dst_filename = pathjoin(dst_dirpath, filename)
                 copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
-#            attr_path = self._get_attr_path(dirname)
-#            if self.exists(attr_path):
-#                 self.copy(attr_path,self._get_attr_path(dst_dirname),overwrite=True)
-
 
     def isdirempty(self, path):
         """Return True if a path contains no files.
@@ -766,7 +758,7 @@ class SubFS(FS):
 
     def __init__(self, parent, sub_dir):
         self.parent = parent
-        self.sub_dir = parent._abspath(sub_dir)
+        self.sub_dir = abspath(sub_dir)
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
@@ -809,9 +801,6 @@ class SubFS(FS):
     def isfile(self, path):
         return self.parent.isfile(self._delegate(path))
 
-    def ishidden(self, path):
-        return self.parent.ishidden(self._delegate(path))
-
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         paths = self.parent.listdir(self._delegate(path),
                                     wildcard,
@@ -829,7 +818,7 @@ class SubFS(FS):
 
 
     def makedir(self, path, recursive=False, allow_recreate=False):
-        return self.parent.makedir(self._delegate(path), mode=mode, recursive=recursive, allow_recreate=allow_recreate)
+        return self.parent.makedir(self._delegate(path), recursive=recursive, allow_recreate=allow_recreate)
 
     def remove(self, path):
         return self.parent.remove(self._delegate(path))
