@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-from helpers import _iteratepath, pathsplit
 
 class _ObjectDict(dict):
     pass
 
-class ObjectTree(object):
 
+class ObjectTree(object):
     """A class to facilitate the creation of tree structures."""
 
     def __init__(self):
