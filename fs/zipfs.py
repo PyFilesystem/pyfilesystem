@@ -50,17 +50,17 @@ class ZipFS(FS):
 
     """A FileSystem that represents a zip file."""
 
-    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, thread_syncronize=True):
+    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, thread_synchronize=True):
         """Create a FS that maps on to a zip file.
 
         zip_file -- A (system) path, or a file-like object
         mode -- Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
         compression -- Can be 'deflated' (default) to compress data or 'stored' to just store date
         allowZip64 -- Set to True to use zip files greater than 2 MB, default is False
-        thread_syncronize -- Set to True (default) to enable thread-safety
+        thread_synchronize -- Set to True (default) to enable thread-safety
 
         """
-        FS.__init__(self, thread_syncronize=thread_syncronize)
+        FS.__init__(self, thread_synchronize=thread_synchronize)
         if compression == "deflated":
             compression_type = ZIP_DEFLATED
         elif compression == "stored":
@@ -75,7 +75,7 @@ class ZipFS(FS):
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
         except IOError:
-            raise ResourceNotFoundError("NO_FILE", str(zip_file), msg="Zip file does not exist: %(path)s")
+            raise FileNotFoundError(str(zip_file), msg="Zip file does not exist: %(path)s")
         self.zip_path = str(zip_file)
 
         self.temp_fs = None
@@ -129,11 +129,11 @@ class ZipFS(FS):
 
             if 'r' in mode:
                 if self.zip_mode not in 'ra':
-                    raise OperationFailedError("OPEN_FAILED", path, msg="Zip file must be opened for reading ('r') or appending ('a')")
+                    raise OperationFailedError("open file", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
                 try:
                     contents = self.zf.read(path)
                 except KeyError:
-                    raise ResourceNotFoundError("NO_FILE", path)
+                    raise FileNotFoundError(path)
                 return StringIO(contents)
 
             if 'w' in mode:
@@ -154,14 +154,14 @@ class ZipFS(FS):
         self._lock.acquire()
         try:
             if not self.exists(path):
-                raise ResourceNotFoundError("NO_FILE", path)
+                raise FileNotFoundError(path)
             path = normpath(path)
             try:
                 contents = self.zf.read(path)
             except KeyError:
-                raise ResourceNotFoundError("NO_FILE", path)
+                raise FileNotFoundError(path)
             except RuntimeError:
-                raise OperationFailedError("READ_FAILED", path, "Zip file must be oppened with 'r' or 'a' to read")
+                raise OperationFailedError("read file", path=path, msg="Zip file must be oppened with 'r' or 'a' to read")
             return contents
         finally:
             self._lock.release()
@@ -194,23 +194,23 @@ class ZipFS(FS):
         try:
             dirname = normpath(dirname)
             if self.zip_mode not in "wa":
-                raise OperationFailedError("MAKEDIR_FAILED", dirname, "Zip file must be opened for writing ('w') or appending ('a')")
+                raise OperationFailedError("create directory", path=dirname, msg="Zip file must be opened for writing ('w') or appending ('a')")
             if not dirname.endswith('/'):
                 dirname += '/'
             self._add_resource(dirname)
         finally:
             self._lock.release()
 
-    def listdir(self, path="/", wildcard=None, full=False, absolute=False, hidden=True, dirs_only=False, files_only=False):
+    def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
 
-        return self._path_fs.listdir(path, wildcard, full, absolute, hidden, dirs_only, files_only)
+        return self._path_fs.listdir(path, wildcard, full, absolute, dirs_only, files_only)
 
 
     def getinfo(self, path):
         self._lock.acquire()
         try:
             if not self.exists(path):
-                return ResourceNotFoundError("NO_RESOURCE", path)
+                return ResourceNotFoundError(path)
             path = normpath(path).lstrip('/')
             try:
                 zi = self.zf.getinfo(path)

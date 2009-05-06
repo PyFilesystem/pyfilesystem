@@ -38,10 +38,10 @@ class S3FS(FS):
         PATH_MAX = None
         NAME_MAX = None
 
-    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_syncronize=True,key_sync_timeout=1):
+    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_synchronize=True,key_sync_timeout=1):
         """Constructor for S3FS objects.
 
-        S3FS objects required the name of the S3 bucket in which to store
+        S3FS objects require the name of the S3 bucket in which to store
         files, and can optionally be given a prefix under which the files
         shoud be stored.  The AWS public and private keys may be specified
         as additional arguments; if they are not specified they will be
@@ -63,12 +63,13 @@ class S3FS(FS):
         self._separator = separator
         self._key_sync_timeout = key_sync_timeout
         # Normalise prefix to this form: path/to/files/
+        prefix = normpath(prefix)
         while prefix.startswith(separator):
             prefix = prefix[1:]
         if not prefix.endswith(separator) and prefix != "":
             prefix = prefix + separator
         self._prefix = prefix
-        FS.__init__(self, thread_syncronize=thread_syncronize)
+        FS.__init__(self, thread_synchronize=thread_synchronize)
 
     #  Make _s3conn and _s3bukt properties that are created on demand,
     #  since they cannot be stored during pickling.
@@ -115,15 +116,12 @@ class S3FS(FS):
 
     def _s3path(self,path):
         """Get the absolute path to a file stored in S3."""
-        path = self._prefix + path
-        path = self._separator.join(self._pathbits(path))
-        return path
-
-    def _pathbits(self,path):
-        """Iterator over path components."""
-        for bit in path.split("/"):
-            if bit and bit != ".":
-              yield bit
+        path = makerelative(path)
+        path = self._separator.join(iteratepath(path))
+        s3path = self._prefix + path
+        if s3path[-1] == self._separator:
+            s3path = s3path[:-1]
+        return s3path
 
     def _sync_key(self,k):
         """Synchronise on contents of the given key.
@@ -177,9 +175,9 @@ class S3FS(FS):
         if k is None:
             # Create the file if it's missing
             if "w" not in mode and "a" not in mode:
-                raise ResourceNotFoundError("NO_FILE",path)
+                raise FileNotFoundError(path)
             if not self.isdir(dirname(path)):
-                raise OperationFailedError("OPEN_FAILED", path,msg="Parent directory does not exist")
+                raise ParentDirectoryMissingError(path)
             k = self._sync_set_contents(s3path,"")
         else:
             # Get the file contents into the tempfile.
@@ -258,7 +256,7 @@ class S3FS(FS):
           return True
         return False
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         """List contents of a directory."""
         s3path = self._s3path(path) + self._separator
         if s3path == "/":
@@ -278,10 +276,12 @@ class S3FS(FS):
                 paths.append(nm)
         if not isDir:
             if s3path != self._prefix:
-                raise OperationFailedError("LISTDIR_FAILED",path)
-        return self._listdir_helper(path,paths,wildcard,full,absolute,hidden,dirs_only,files_only)
+                if self.isfile(path):
+                    raise ResourceInvalidError(path,msg="that's not a directory: %(path)s")
+                raise DirectoryNotFoundError(path)
+        return self._listdir_helper(path,paths,wildcard,full,absolute,dirs_only,files_only)
 
-    def _listdir_helper(self,path,paths,wildcard,full,absolute,hidden,dirs_only,files_only):
+    def _listdir_helper(self,path,paths,wildcard,full,absolute,dirs_only,files_only):
         """Modify listdir helper to avoid additional calls to the server."""
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
@@ -299,17 +299,14 @@ class S3FS(FS):
             match = fnmatch.fnmatch
             paths = [p for p in paths if match(p, wildcard)]
 
-        if not hidden:
-            paths = [p for p in paths if not self.ishidden(p)]
-
         if full:
             paths = [pathjoin(path, p) for p in paths]
         elif absolute:
-            paths = [self._abspath(pathjoin(path, p)) for p in paths]
+            paths = [abspath(pathjoin(path, p)) for p in paths]
 
         return paths
         
-    def makedir(self,path,mode=0777,recursive=False,allow_recreate=False):
+    def makedir(self,path,recursive=False,allow_recreate=False):
         """Create a directory at the given path.
 
         The 'mode' argument is accepted for compatability with the standard
@@ -320,8 +317,8 @@ class S3FS(FS):
         if s3pathD == self._prefix:
             if allow_recreate:
                 return
-            raise OperationFailedError("MAKEDIR_FAILED", path, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
-        s3pathP = self._s3path(dirname(path[:-1])) + self._separator
+            raise DestinationExistsError(path, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+        s3pathP = self._s3path(dirname(path)) + self._separator
         # Check various preconditions using list of parent dir
         ks = self._s3bukt.list(prefix=s3pathP,delimiter=self._separator)
         if s3pathP == self._prefix:
@@ -333,26 +330,33 @@ class S3FS(FS):
                 parentExists = True
             if k.name == s3path:
                 # It's already a file
-                raise OperationFailedError("MAKEDIR_FAILED", path, msg="Can not create a directory that already exists: %(path)s")
+                raise ResourceInvalidError(path, msg="Destination exists as a regular file: %(path)s")
             if k.name == s3pathD:
                 # It's already a directory
                 if allow_recreate:
                     return
-                raise OperationFailedError("MAKEDIR_FAILED", path, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+                raise DestinationExistsError(path, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
         # Create parent if required
         if not parentExists:
             if recursive:
-                self.makedir(dirname(path[:-1]),mode,recursive,allow_recreate)
+                self.makedir(dirname(path),recursive,allow_recreate)
             else:
-                raise OperationFailedError("MAKEDIR_FAILED",path, msg="Parent directory does not exist: %(path)s")
+                raise ParentDirectoryMissingError(path, msg="Parent directory does not exist: %(path)s")
         # Create an empty file representing the directory
         # TODO: is there some standard scheme for representing empty dirs?
         self._sync_set_contents(s3pathD,"")
 
     def remove(self,path):
         """Remove the file at the given path."""
-        # TODO: This will fail silently if the key doesn't exist
         s3path = self._s3path(path)
+        ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
+        for k in ks:
+            if k.name == s3path:
+                break
+            if k.name.startswith(s3path + "/"):
+                raise ResourceInvalidError(path,msg="that's not a file: %(path)s")
+        else:
+            raise FileNotFoundError(path)
         self._s3bukt.delete_key(s3path)
         k = self._s3bukt.get_key(s3path)
         while k:
@@ -368,17 +372,23 @@ class S3FS(FS):
         else:
             ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
         # Fail if the directory is not empty, or remove them if forced
+        found = False
         for k in ks:
+            found = True
             if k.name != s3path:
                 if not force:
-                    raise OperationFailedError("REMOVEDIR_FAILED",path)
+                    raise DirectoryNotEmptyError(path)
                 self._s3bukt.delete_key(k.name)
+        if not found:
+            if self.isfile(path):
+                raise ResourceInvalidError(path,msg="removedir() called on a regular file: %(path)s")
+            raise DirectoryNotFoundError(path)
         self._s3bukt.delete_key(s3path)
-        if recursive:
+        if recursive and path not in ("","/"):
             pdir = dirname(path)
             try:
                 self.removedir(pdir,recursive=True,force=False)
-            except OperationFailedError:
+            except DirectoryNotEmptyError:
                 pass
         
     def rename(self,src,dst):
@@ -419,7 +429,7 @@ class S3FS(FS):
             # It exists as a regular file
             if k.name == s3path_dst:
                 if not overwrite:
-                    raise DestinationExistsError("COPYFILE_FAILED",src,dst,msg="Destination file exists: %(path2)s")
+                    raise DestinationExistsError(dst)
                 dstOK = True
                 break
             # Check if it refers to a directory.  If so, we copy *into* it.
@@ -431,14 +441,14 @@ class S3FS(FS):
                 s3path_dst = s3path_dstD + nm
                 dstOK = True
         if not dstOK and not self.isdir(dirname(dst)):
-            raise OperationFailedError("COPYFILE_FAILED",src,dst,msg="Destination directory does not exist")
+            raise ParentDirectoryMissingError(dst,msg="Destination directory does not exist: %(path)s")
         # OK, now we can copy the file.
         s3path_src = self._s3path(src)
         try:
             self._s3bukt.copy_key(s3path_dst,self._bucket_name,s3path_src)
         except S3ResponseError, e:
             if "404 Not Found" in str(e):
-                raise ResourceInvalid("WRONG_TYPE", src, msg="Source is not a file: %(path)s")
+                raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
             raise e
         else:
             k = self._s3bukt.get_key(s3path_dst)

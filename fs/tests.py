@@ -18,14 +18,20 @@ from helpers import *
 ####################
 
 
-class BaseFSTestCase(unittest.TestCase):
+class BaseFSTestCases:
     """Base suite of testcases for filesystem implementations.
 
     Any FS subclass should be capable of passing all of these tests.
     To apply the tests to your own FS implementation, simply subclass
     BaseFSTestCase and have the setUp method set self.fs to an instance
     of your FS implementation.
+
+    Note that you'll also need to subclass
     """
+
+    def setUp(self):
+        import nose
+        raise nose.SkipTest("this is an abstract base class")
         
     def check(self, p):
         """Check that a file exists within self.fs"""
@@ -571,7 +577,7 @@ class TestObjectTree(unittest.TestCase):
 import osfs
 import os
 
-class TestOSFS(BaseFSTestCase):
+class TestOSFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp("fstest")
@@ -585,7 +591,7 @@ class TestOSFS(BaseFSTestCase):
 
 
 
-class TestSubFS(BaseFSTestCase):
+class TestSubFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp("fstest")
@@ -603,14 +609,14 @@ class TestSubFS(BaseFSTestCase):
 
 
 import memoryfs
-class TestMemoryFS(BaseFSTestCase):
+class TestMemoryFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.fs = memoryfs.MemoryFS()
 
 
 import mountfs
-class TestMountFS(BaseFSTestCase):
+class TestMountFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.mount_fs = mountfs.MountFS()
@@ -626,7 +632,7 @@ class TestMountFS(BaseFSTestCase):
 
 
 import tempfs
-class TestTempFS(BaseFSTestCase):
+class TestTempFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.fs = tempfs.TempFS()
@@ -642,7 +648,7 @@ class TestTempFS(BaseFSTestCase):
 
 
 import s3fs
-class TestS3FS(BaseFSTestCase):
+class TestS3FS(unittest.TestCase,BaseFSTestCases):
 
     bucket = "test-s3fs.rfk.id.au"
 
@@ -667,7 +673,7 @@ class TestS3FS(BaseFSTestCase):
 import rpcfs
 import socket
 import threading
-class TestRPCFS(TestOSFS):
+class TestRPCFS(unittest.TestCase,BaseFSTestCases):
 
     def setUp(self):
         self.port = 8000

@@ -17,7 +17,7 @@ class FSError(Exception):
 
     def __str__(self):
         keys = dict((k,str(v)) for k,v in self.__dict__.iteritems())
-        return "FSError: " + (self.msg % keys)
+        return self.msg % keys
 
     def __unicode__(self):
         return unicode(str(self))

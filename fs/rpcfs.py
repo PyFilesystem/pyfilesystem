@@ -25,19 +25,16 @@ from fs.base import *
 
 from StringIO import StringIO
 
-
-class ObjProxy:
-    """Simple object proxy allowing us to replace read-only attributes.
-
-    This is used to put a modified 'close' method on files returned by
-    open(), such that they will be uploaded to the server when closed.
-    """
-
-    def __init__(self,obj):
-        self._obj = obj
-
-    def __getattr__(self,attr):
-        return getattr(self._obj,attr)
+if hasattr(StringIO,"__exit__"):
+    class StringIO(StringIO):
+        pass
+else:
+    class StringIO(StringIO):
+        def __enter__(self):
+            return self
+        def __exit__(self,exc_type,exc_value,traceback):
+            self.close()
+            return False
 
 
 def re_raise_faults(func):
@@ -119,18 +116,34 @@ class RPCFS(FS):
         object along with the 'transport' argument if it is provided.
         """
         self.uri = uri
-        if transport is not None:
-            proxy = xmlrpclib.ServerProxy(uri,transport,allow_none=True)
+        self._transport = transport
+        self.proxy = self._make_proxy()
+
+    def _make_proxy(self):
+        kwds = dict(allow_none=True)
+        if self._transport is not None:
+            proxy = xmlrpclib.ServerProxy(self.uri,self._transport,**kwds)
         else:
-            proxy = xmlrpclib.ServerProxy(uri,allow_none=True)
-        self.proxy = ReRaiseFaults(proxy)
+            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)
+        return ReRaiseFaults(proxy)
 
     def __str__(self):
         return '<RPCFS: %s>' % (self.uri,)
 
-    __repr__ = __str__
+    def __getstate__(self):
+        state = super(RPCFS,self).__getstate__()
+        try:
+            del state['proxy']
+        except KeyError:
+            pass
+        return state
 
-    def open(self,path,mode):
+    def __setstate__(self,state):
+        for (k,v) in state.iteritems():
+            self.__dict__[k] = v
+        self.proxy = self._make_proxy()
+
+    def open(self,path,mode="r"):
         # TODO: chunked transport of large files
         if "w" in mode:
             self.proxy.set_contents(path,xmlrpclib.Binary(""))
@@ -139,13 +152,13 @@ class RPCFS(FS):
                 data = self.proxy.get_contents(path).data
             except IOError:
                 if "w" not in mode and "a" not in mode:
-                    raise ResourceNotFoundError("NO_FILE",path)
+                    raise FileNotFoundError(path)
                 if not self.isdir(dirname(path)):
-                    raise OperationFailedError("OPEN_FAILED", path,msg="Parent directory does not exist")
+                    raise ParentDirectoryMissingError(path)
                 self.proxy.set_contents(path,xmlrpclib.Binary(""))
         else:
             data = ""
-        f = ObjProxy(StringIO(data))
+        f = StringIO(data)
         if "a" not in mode:
             f.seek(0,0)
         else:
@@ -154,6 +167,7 @@ class RPCFS(FS):
         oldclose = f.close
         def newflush():
             oldflush()
+            print "SENDING:", f.getvalue()
             self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
         def newclose():
             f.flush()
@@ -171,11 +185,11 @@ class RPCFS(FS):
     def isfile(self,path):
         return self.proxy.isfile(path)
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
-        return self.proxy.listdir(path,wildcard,full,absolute,hidden,dirs_only,files_only)
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        return self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
 
-    def makedir(self,path,mode=0777,recursive=False,allow_recreate=False):
-        return self.proxy.makedir(path,mode,recursive,allow_recreate)
+    def makedir(self,path,recursive=False,allow_recreate=False):
+        return self.proxy.makedir(path,recursive,allow_recreate)
 
     def remove(self,path):
         return self.proxy.remove(path)
@@ -214,7 +228,7 @@ class RPCFS(FS):
 class RPCFSInterface(object):
     """Wrapper to expose an FS via a XML-RPC compatible interface.
 
-    The only real trick is using xmlrpclib.Binary objects to trasnport
+    The only real trick is using xmlrpclib.Binary objects to transport
     the contents of files.
     """
 
@@ -237,11 +251,11 @@ class RPCFSInterface(object):
     def isfile(self,path):
         return self.fs.isfile(path)
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
-        return list(self.fs.listdir(path,wildcard,full,absolute,hidden,dirs_only,files_only))
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        return list(self.fs.listdir(path,wildcard,full,absolute,dirs_only,files_only))
 
-    def makedir(self,path,mode=0777,recursive=False,allow_recreate=False):
-        return self.fs.makedir(path,mode,recursive,allow_recreate)
+    def makedir(self,path,recursive=False,allow_recreate=False):
+        return self.fs.makedir(path,recursive,allow_recreate)
 
     def remove(self,path):
         return self.fs.remove(path)

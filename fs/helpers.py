@@ -110,7 +110,7 @@ def pathjoin(*paths):
              relpaths.append(p)
 
     path = normpath("/".join(relpaths))
-    if absolute:
+    if absolute and not path.startswith("/"):
         path = "/" + path
     return path
 

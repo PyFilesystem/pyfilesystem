@@ -124,7 +124,7 @@ class OSFS(FS):
         if recursive:
             try:
                 self.removedir(dirname(path),recursive=True)
-            except OperationFailedError:
+            except DirectoryNotEmptyError:
                 pass
 
     def rename(self, src, dst):
