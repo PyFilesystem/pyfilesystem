@@ -166,66 +166,31 @@ class OSFS(FS):
         return stats.st_size
 
 
-#    def setxattr(self, path, key, value):
-#        self._lock.acquire()
-#        try:
-#            if xattr is None:
-#                return FS.setxattr(self, path, key, value)
-#            try:
-#                xattr.xattr(self.getsyspath(path))[key]=value
-#            except IOError, e:
-#                if e.errno == 95:
-#                    return FS.setxattr(self, path, key, value)
-#                else:
-#                    raise OperationFailedError('XATTR_FAILED', path, details=e)
-#        finally:
-#            self._lock.release()
-#
-#    def getxattr(self, path, key, default=None):
-#        self._lock.acquire()
-#        try:
-#            if xattr is None:
-#                return FS.getxattr(self, path, key, default)
-#            try:
-#                return xattr.xattr(self.getsyspath(path)).get(key)
-#            except IOError, e:
-#                if e.errno == 95:
-#                    return FS.getxattr(self, path, key, default)
-#                else:
-#                    raise OperationFailedError('XATTR_FAILED', path, details=e)
-#        finally:
-#            self._lock.release()
-#
-#    def removexattr(self, path, key):
-#        self._lock.acquire()
-#        try:
-#            if xattr is None:
-#                return FS.removexattr(self, path, key)
-#            try:
-#                del xattr.xattr(self.getsyspath(path))[key]
-#            except KeyError:
-#                pass
-#            except IOError, e:
-#                if e.errono == 95:
-#                    return FS.removexattr(self, path, key)
-#                else:
-#                    raise OperationFailedError('XATTR_FAILED', path, details=e)
-#        finally:
-#            self._lock.release()
-#
-#    def listxattrs(self, path):
-#        self._lock.acquire()
-#        try:
-#            if xattr is None:
-#                return FS.listxattrs(self, path)
-#            try:
-#                return xattr.xattr(self.getsyspath(path)).keys()
-#            except IOError, e:
-#                if errono == 95:
-#                    return FS.listxattrs(self, path)
-#                else:
-#                    raise OperationFailedError('XATTR_FAILED', path, details=e)
-#        finally:
-#            self._lock.release()
-#
+    #  Provide native xattr support if available
+    if xattr:
+        def setxattr(self, path, key, value):
+            try:
+                xattr.xattr(self.getsyspath(path))[key]=value
+            except IOError, e:
+                raise OperationFailedError('set extended attribute', path=path, details=e)
+
+        def getxattr(self, path, key, default=None):
+            try:
+                return xattr.xattr(self.getsyspath(path)).get(key,default)
+            except IOError, e:
+                raise OperationFailedError('get extended attribute', path=path, details=e)
+
+        def delxattr(self, path, key):
+            try:
+                del xattr.xattr(self.getsyspath(path))[key]
+            except KeyError:
+                pass
+            except IOError, e:
+                raise OperationFailedError('delete extended attribute', path=path, details=e)
+
+        def xattrs(self, path):
+            try:
+                return xattr.xattr(self.getsyspath(path)).keys()
+            except IOError, e:
+                raise OperationFailedError('list extended attributes', path=path, details=e)
 

@@ -537,15 +537,12 @@ class FS(object):
                      will be raised.
         chunk_size -- Size of chunks to use if a simple copy is required
 
-        If the destination path exists and is a directory, the file will
-        be copied into that directory.
         """
 
-        if self.isdir(dst):
-            dst = pathjoin( dirname(dst), resourcename(src) )
-
         if not self.isfile(src):
-            raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
+            if self.isdir(src):
+                raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
+            raise FileNotFoundError(src)
         if not overwrite and self.exists(dst):
             raise DestinationExistsError(dst)
 
@@ -588,7 +585,9 @@ class FS(object):
 
         if src_syspath is not None and dst_syspath is not None:
             if not self.isfile(src):
-                raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
+                if self.isdir(src):
+                    raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
+                raise FileNotFoundError(src)
             if not overwrite and self.exists(dst):
                 raise DestinationExistsError(dst)
             shutil.move(src_syspath, dst_syspath)
@@ -596,48 +595,6 @@ class FS(object):
             self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
             self.remove(src)
 
-
-#    def _get_attr_path(self, path):
-#        if self.isdir(path):
-#            return pathjoin(path, '.xattrs.')
-#        else:
-#            dir_path, file_path = pathsplit(path)
-#            return pathjoin(dir_path, '.xattrs.'+file_path)
-#
-#    def _get_attr_dict(self, path):
-#        attr_path = self._get_attr_path(path)
-#        if self.exists(attr_path):
-#            return pickle.loads(self.getcontents(attr_path))
-#        else:
-#            return {}
-#
-#    def _set_attr_dict(self, path, attrs):
-#        attr_path = self._get_attr_path(path)
-#        self.setcontents(self._get_attr_path(path), pickle.dumps(attrs))
-#
-#    def setxattr(self, path, key, value):
-#        attrs = self._get_attr_dict(path)
-#        attrs[key] = value
-#        self._set_attr_dict(path, attrs)
-#
-#    def getxattr(self, path, key, default):
-#        attrs = self._get_attr_dict(path)
-#        return attrs.get(key, default)
-#
-#    def delxattr(self, path, key):
-#        attrs = self._get_attr_dict(path)
-#        try:
-#            del attrs[key]
-#        except KeyError:
-#            pass
-#        self._set_attr_dict(path, attrs)
-#
-#    def listxattrs(self, path):
-#        attrs = self._get_attr_dict(path)
-#        return self._get_attr_dict(path).keys()
-#
-#    def getxattrs(self, path):
-#        return dict( [(k, self.getxattr(path, k)) for k in self.listxattrs(path)] )
 
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Moves a directory from one location to another.

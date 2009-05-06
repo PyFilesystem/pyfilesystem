@@ -18,21 +18,19 @@ from helpers import *
 ####################
 
 
-class BaseFSTestCases:
+class FSTestCases:
     """Base suite of testcases for filesystem implementations.
 
     Any FS subclass should be capable of passing all of these tests.
     To apply the tests to your own FS implementation, simply subclass
-    BaseFSTestCase and have the setUp method set self.fs to an instance
+    FSTestCase and have the setUp method set self.fs to an instance
     of your FS implementation.
 
-    Note that you'll also need to subclass
+    Note that you'll also need to subclass unittest.TestCase - this class
+    is designed as a mixin so that it's not picked up by test tools such
+    as nose.
     """
 
-    def setUp(self):
-        import nose
-        raise nose.SkipTest("this is an abstract base class")
-        
     def check(self, p):
         """Check that a file exists within self.fs"""
         return self.fs.exists(p)
@@ -443,6 +441,76 @@ class BaseFSTestCases:
 
 
 
+class XAttrTestCases:
+    """Testcases for filesystems providing extended attribute support."""
+
+    def test_getsetdel(self):
+        def do_getsetdel(p):
+            self.assertEqual(self.fs.getxattr(p,"xattr1"),None)
+            self.fs.setxattr(p,"xattr1","value1")
+            self.assertEqual(self.fs.getxattr(p,"xattr1"),"value1")
+            self.fs.delxattr(p,"xattr1")
+            self.assertEqual(self.fs.getxattr(p,"xattr1"),None)
+        self.fs.createfile("test.txt","hello")
+        do_getsetdel("test.txt")
+        self.assertRaises(fs.ResourceNotFoundError,self.fs.getxattr,"test2.txt","xattr1")
+        self.fs.makedir("mystuff")
+        self.fs.createfile("/mystuff/test.txt","")
+        do_getsetdel("mystuff")
+        do_getsetdel("mystuff/test.txt")
+
+    def test_list_xattrs(self):
+        def do_list(p):
+            self.assertEquals(self.fs.xattrs(p),[])
+            self.fs.setxattr(p,"xattr1","value1")
+            self.assertEquals(self.fs.xattrs(p),["xattr1"])
+            self.fs.setxattr(p,"attr2","value2")
+            self.assertEquals(sorted(self.fs.xattrs(p)),["attr2","xattr1"])
+            self.fs.delxattr(p,"xattr1")
+            self.assertEquals(self.fs.xattrs(p),["attr2"])
+            self.fs.delxattr(p,"attr2")
+            self.assertEquals(self.fs.xattrs(p),[])
+        self.fs.createfile("test.txt","hello")
+        do_list("test.txt")
+        self.fs.makedir("mystuff")
+        self.fs.createfile("/mystuff/test.txt","")
+        do_list("mystuff")
+        do_list("mystuff/test.txt")
+
+    def test_copy_xattrs(self):
+        self.fs.createfile("a.txt","content")
+        self.fs.setxattr("a.txt","myattr","myvalue")
+        self.fs.setxattr("a.txt","testattr","testvalue")
+        self.fs.makedir("stuff")
+        self.fs.copy("a.txt","stuff/a.txt")
+        self.assertTrue(self.fs.exists("stuff/a.txt"))
+        self.assertEquals(self.fs.getxattr("stuff/a.txt","myattr"),"myvalue")
+        self.assertEquals(self.fs.getxattr("stuff/a.txt","testattr"),"testvalue")
+        self.assertEquals(self.fs.getxattr("a.txt","myattr"),"myvalue")
+        self.assertEquals(self.fs.getxattr("a.txt","testattr"),"testvalue")
+        self.fs.setxattr("stuff","dirattr","a directory")
+        self.fs.copydir("stuff","stuff2")
+        self.assertEquals(self.fs.getxattr("stuff2/a.txt","myattr"),"myvalue")
+        self.assertEquals(self.fs.getxattr("stuff2/a.txt","testattr"),"testvalue")
+        self.assertEquals(self.fs.getxattr("stuff2","dirattr"),"a directory")
+        self.assertEquals(self.fs.getxattr("stuff","dirattr"),"a directory")
+
+    def test_move_xattrs(self):
+        self.fs.createfile("a.txt","content")
+        self.fs.setxattr("a.txt","myattr","myvalue")
+        self.fs.setxattr("a.txt","testattr","testvalue")
+        self.fs.makedir("stuff")
+        self.fs.move("a.txt","stuff/a.txt")
+        self.assertTrue(self.fs.exists("stuff/a.txt"))
+        self.assertEquals(self.fs.getxattr("stuff/a.txt","myattr"),"myvalue")
+        self.assertEquals(self.fs.getxattr("stuff/a.txt","testattr"),"testvalue")
+        self.fs.setxattr("stuff","dirattr","a directory")
+        self.fs.movedir("stuff","stuff2")
+        self.assertEquals(self.fs.getxattr("stuff2/a.txt","myattr"),"myvalue")
+        self.assertEquals(self.fs.getxattr("stuff2/a.txt","testattr"),"testvalue")
+        self.assertEquals(self.fs.getxattr("stuff2","dirattr"),"a directory")
+ 
+
 ####################
 
 
@@ -577,7 +645,7 @@ class TestObjectTree(unittest.TestCase):
 import osfs
 import os
 
-class TestOSFS(unittest.TestCase,BaseFSTestCases):
+class TestOSFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp("fstest")
@@ -591,7 +659,7 @@ class TestOSFS(unittest.TestCase,BaseFSTestCases):
 
 
 
-class TestSubFS(unittest.TestCase,BaseFSTestCases):
+class TestSubFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp("fstest")
@@ -609,14 +677,14 @@ class TestSubFS(unittest.TestCase,BaseFSTestCases):
 
 
 import memoryfs
-class TestMemoryFS(unittest.TestCase,BaseFSTestCases):
+class TestMemoryFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.fs = memoryfs.MemoryFS()
 
 
 import mountfs
-class TestMountFS(unittest.TestCase,BaseFSTestCases):
+class TestMountFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.mount_fs = mountfs.MountFS()
@@ -632,7 +700,7 @@ class TestMountFS(unittest.TestCase,BaseFSTestCases):
 
 
 import tempfs
-class TestTempFS(unittest.TestCase,BaseFSTestCases):
+class TestTempFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.fs = tempfs.TempFS()
@@ -648,7 +716,7 @@ class TestTempFS(unittest.TestCase,BaseFSTestCases):
 
 
 import s3fs
-class TestS3FS(unittest.TestCase,BaseFSTestCases):
+class TestS3FS(unittest.TestCase,FSTestCases):
 
     bucket = "test-s3fs.rfk.id.au"
 
@@ -673,7 +741,7 @@ class TestS3FS(unittest.TestCase,BaseFSTestCases):
 import rpcfs
 import socket
 import threading
-class TestRPCFS(unittest.TestCase,BaseFSTestCases):
+class TestRPCFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
         self.port = 8000
@@ -706,6 +774,22 @@ class TestRPCFS(unittest.TestCase,BaseFSTestCases):
           self.fs.exists("/")
         except Exception:
           pass
+
+
+from fs.wrappers.xattr import SimulateXAttr
+class TestSimulateXAttr(unittest.TestCase,FSTestCases,XAttrTestCases):
+
+    def setUp(self):
+        self.fs = SimulateXAttr(tempfs.TempFS())
+
+    def tearDown(self):
+        td = self.fs._temp_dir
+        self.fs.close()
+        self.assert_(not os.path.exists(td))
+
+    def check(self, p):
+        td = self.fs._temp_dir
+        return os.path.exists(os.path.join(td, makerelative(p)))
 
 
 ####################

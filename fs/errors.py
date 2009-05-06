@@ -30,7 +30,7 @@ class PathError(FSError):
 
     def __init__(self,path,**kwds):
         self.path = path
-        super(ResourceError,self).__init__(**kwds)
+        super(PathError,self).__init__(**kwds)
  
 
 class OperationFailedError(FSError):
