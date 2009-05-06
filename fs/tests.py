@@ -523,6 +523,7 @@ class TestHelpers(unittest.TestCase):
                     ("/a/b/c", "/a/b/c"),
                     ("a/b/c", "a/b/c"),
                     ("a/b/../c/", "a/c"),
+                    ("/","/"),
                     ]
         for path, result in tests:
             self.assertEqual(normpath(path), result)
@@ -657,6 +658,13 @@ class TestOSFS(unittest.TestCase,FSTestCases):
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, makerelative(p)))
 
+#try:
+#    import xattr
+#except ImportError:
+#    pass
+#else:
+#    TestOSFS.__bases__ = TestOSFS.__bases__ + (XAttrTestCases,)
+
 
 
 class TestSubFS(unittest.TestCase,FSTestCases):
@@ -721,6 +729,8 @@ class TestS3FS(unittest.TestCase,FSTestCases):
     bucket = "test-s3fs.rfk.id.au"
 
     def setUp(self):
+        import nose
+        raise nose.SkipTest
         self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
         self._clear()
 

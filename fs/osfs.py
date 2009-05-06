@@ -22,8 +22,7 @@ class OSFS(FS):
     def __init__(self, root_path, dir_mode=0700, thread_synchronize=True):
         FS.__init__(self, thread_synchronize=thread_synchronize)
 
-        expanded_path = normpath(os.path.expanduser(os.path.expandvars(root_path)))
-
+        expanded_path = makeabsolute(normpath(os.path.expanduser(os.path.expandvars(root_path))))
         if not os.path.exists(expanded_path):
             raise DirectoryNotFoundError(expanded_path, msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
@@ -176,7 +175,9 @@ class OSFS(FS):
 
         def getxattr(self, path, key, default=None):
             try:
-                return xattr.xattr(self.getsyspath(path)).get(key,default)
+                return xattr.xattr(self.getsyspath(path)).get(key)
+            except KeyError:
+                return default
             except IOError, e:
                 raise OperationFailedError('get extended attribute', path=path, details=e)
 

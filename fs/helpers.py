@@ -9,11 +9,9 @@ from itertools import chain
 
 def iteratepath(path, numsplits=None):
     """Iterate over the individual components of a path."""
-    path = normpath(path)
+    path = makerelative(normpath(path))
     if not path:
         return []
-    if path[0] == "/":
-        path = path[1:]
     if numsplits == None:
         return path.split('/')
     else:
@@ -57,6 +55,8 @@ def normpath(path):
             components.append(comp)
 
     if path[0] in "\\/":
+        if not components:
+            components = [""]
         components.insert(0,"")
 
     return "/".join(components)
