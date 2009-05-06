@@ -461,15 +461,15 @@ class XAttrTestCases:
 
     def test_list_xattrs(self):
         def do_list(p):
-            self.assertEquals(self.fs.xattrs(p),[])
+            self.assertEquals(sorted(self.fs.xattrs(p)),[])
             self.fs.setxattr(p,"xattr1","value1")
-            self.assertEquals(self.fs.xattrs(p),["xattr1"])
+            self.assertEquals(sorted(self.fs.xattrs(p)),["xattr1"])
             self.fs.setxattr(p,"attr2","value2")
             self.assertEquals(sorted(self.fs.xattrs(p)),["attr2","xattr1"])
             self.fs.delxattr(p,"xattr1")
-            self.assertEquals(self.fs.xattrs(p),["attr2"])
+            self.assertEquals(sorted(self.fs.xattrs(p)),["attr2"])
             self.fs.delxattr(p,"attr2")
-            self.assertEquals(self.fs.xattrs(p),[])
+            self.assertEquals(sorted(self.fs.xattrs(p)),[])
         self.fs.createfile("test.txt","hello")
         do_list("test.txt")
         self.fs.makedir("mystuff")
@@ -729,8 +729,8 @@ class TestS3FS(unittest.TestCase,FSTestCases):
     bucket = "test-s3fs.rfk.id.au"
 
     def setUp(self):
-        import nose
-        raise nose.SkipTest
+        #import nose
+        #raise nose.SkipTest
         self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
         self._clear()
 

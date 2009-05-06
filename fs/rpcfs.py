@@ -167,7 +167,6 @@ class RPCFS(FS):
         oldclose = f.close
         def newflush():
             oldflush()
-            print "SENDING:", f.getvalue()
             self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
         def newclose():
             f.flush()
