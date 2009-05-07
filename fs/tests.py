@@ -256,9 +256,11 @@ class FSTestCases:
         self.assert_(not check("a"))
 
         self.fs.makedir("a")
+        print self.fs.listdir("a")
         self.assertRaises(fs.DestinationExistsError,self.fs.movedir,"copy of a","a")
         self.fs.movedir("copy of a","a",overwrite=True)
         self.assert_(not check("copy of a"))
+        print self.fs.listdir("a")
         self.assert_(check("a/1.txt"))
         self.assert_(check("a/2.txt"))
         self.assert_(check("a/3.txt"))
@@ -729,8 +731,8 @@ class TestS3FS(unittest.TestCase,FSTestCases):
     bucket = "test-s3fs.rfk.id.au"
 
     def setUp(self):
-        #import nose
-        #raise nose.SkipTest
+        import nose
+        raise nose.SkipTest
         self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
         self._clear()
 

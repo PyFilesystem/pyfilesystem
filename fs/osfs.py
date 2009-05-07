@@ -22,7 +22,7 @@ class OSFS(FS):
     def __init__(self, root_path, dir_mode=0700, thread_synchronize=True):
         FS.__init__(self, thread_synchronize=thread_synchronize)
 
-        expanded_path = makeabsolute(normpath(os.path.expanduser(os.path.expandvars(root_path))))
+        expanded_path = normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(root_path))))
         if not os.path.exists(expanded_path):
             raise DirectoryNotFoundError(expanded_path, msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
@@ -39,6 +39,7 @@ class OSFS(FS):
         return sys_path
 
     def open(self, path, mode="r", **kwargs):
+        mode = filter(lambda c: c in "rwabt+",mode)
         try:
             f = open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
         except IOError, e:
@@ -66,7 +67,7 @@ class OSFS(FS):
         except (OSError, IOError), e:
             if e.errno == 2:
                 raise ResourceNotFoundError(path)
-            if e.errno == 20:
+            if e.errno in (20,22,):
                 raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
             raise OperationFailedError("list directory", path=path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
@@ -86,6 +87,8 @@ class OSFS(FS):
                     raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
             elif e.errno == 2:
                 raise ParentDirectoryMissingError(path)
+            elif e.errno == 22:
+                raise ResourceInvalidError(path)
             else:
                 raise OperationFailedError("make directory",path=path,details=e)
                 

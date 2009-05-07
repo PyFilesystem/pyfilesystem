@@ -10,6 +10,7 @@ start by sublcassing the base FS class.
 
 """
 
+import os, os.path
 import shutil
 import fnmatch
 import datetime
@@ -583,17 +584,22 @@ class FS(object):
         src_syspath = self.getsyspath(src, allow_none=True)
         dst_syspath = self.getsyspath(dst, allow_none=True)
 
+        #  Try to do an os-level rename if possible.
+        #  Otherwise, fall back to copy-and-remove.
         if src_syspath is not None and dst_syspath is not None:
-            if not self.isfile(src):
-                if self.isdir(src):
+            if not os.path.isfile(src_syspath):
+                if os.path.isdir(src_syspath):
                     raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
                 raise FileNotFoundError(src)
-            if not overwrite and self.exists(dst):
+            if not overwrite and os.path.exists(dst):
                 raise DestinationExistsError(dst)
-            shutil.move(src_syspath, dst_syspath)
-        else:
-            self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
-            self.remove(src)
+            try:
+                os.rename(src_syspath,dst_syspath)
+                return
+            except OSError:
+                pass
+        self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
+        self.remove(src)
 
 
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
@@ -616,9 +622,9 @@ class FS(object):
 
         if src_syspath is not None and dst_syspath is not None:
             try:
-                shutil.move(src_syspath, dst_syspath)
+                os.rename(src_syspath,dst_syspath)
                 return
-            except WindowsError:
+            except OSError:
                 pass
 
         def movefile_noerrors(src, dst, overwrite):

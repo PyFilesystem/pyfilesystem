@@ -36,11 +36,12 @@ class PathError(FSError):
 class OperationFailedError(FSError):
     """Base exception class for errors associated with a specific operation."""
     
-    default_message = "Unable to %(opname)s: unspecified error"
+    default_message = "Unable to %(opname)s: unspecified error [%(errno)s - %(details)s]"
 
     def __init__(self,opname,path=None,**kwds):
         self.opname = opname
         self.path = path
+        self.errno = getattr(kwds.get("details",None),"errno",None)
         super(OperationFailedError,self).__init__(**kwds)
 
 

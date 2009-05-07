@@ -23,15 +23,16 @@ class SimulateXAttr(FSWrapper):
     def _get_attr_path(self, path):
         """Get the path of the file containing xattrs for the given path."""
         if self.wrapped_fs.isdir(path):
-            return pathjoin(path, '.xattrs.')
+            attr_path = pathjoin(path, '.xattrs')
         else:
             dir_path, file_name = pathsplit(path)
-            return pathjoin(dir_path, '.xattrs.'+file_name)
+            attr_path = pathjoin(dir_path, '.xattrs.'+file_name)
+        return attr_path
 
     def _is_attr_path(self, path):
         """Check whether the given path references an xattrs file."""
         _,name = pathsplit(path)
-        if name.startswith(".xattrs."):
+        if name.startswith(".xattrs"):
             return True
         return False
 
@@ -46,7 +47,7 @@ class SimulateXAttr(FSWrapper):
     def _set_attr_dict(self, path, attrs):
         """Store the xattr dictionary for the given path."""
         attr_path = self._get_attr_path(path)
-        self.wrapped_fs.setcontents(self._get_attr_path(path), pickle.dumps(attrs))
+        self.wrapped_fs.setcontents(attr_path, pickle.dumps(attrs))
 
     def setxattr(self, path, key, value):
         """Set an extended attribute on the given path."""
@@ -82,7 +83,7 @@ class SimulateXAttr(FSWrapper):
     def _encode(self,path):
         """Prevent requests for operations on .xattr files."""
         if self._is_attr_path(path):
-            raise PathError(path,msg="Paths cannot contain '.xattrs.': %(path)s")
+            raise PathError(path,msg="Paths cannot contain '.xattrs': %(path)s")
         return path
 
     def _decode(self,path):

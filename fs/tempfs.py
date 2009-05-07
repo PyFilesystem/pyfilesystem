@@ -9,14 +9,14 @@ class TempFS(OSFS):
     """Create a Filesystem in a tempory directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
 
-    def __init__(self, identifier=None, dir_mode=0700, thread_synchronize=True):
+    def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=True):
         """Creates a temporary Filesystem
 
         identifier -- A string that is included in the name of the temporary directory,
         default uses "TempFS"
 
         """
-        self._temp_dir = tempfile.mkdtemp(identifier or "TempFS")
+        self._temp_dir = tempfile.mkdtemp(identifier or "TempFS",dir=temp_dir)
         self._cleaned = False
         OSFS.__init__(self, self._temp_dir, dir_mode=dir_mode, thread_synchronize=thread_synchronize)
 
