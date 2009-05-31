@@ -591,7 +591,7 @@ class FS(object):
                 if os.path.isdir(src_syspath):
                     raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
                 raise FileNotFoundError(src)
-            if not overwrite and os.path.exists(dst):
+            if not overwrite and os.path.exists(dst_syspath):
                 raise DestinationExistsError(dst)
             try:
                 os.rename(src_syspath,dst_syspath)
