@@ -2,6 +2,13 @@
 
   fs.wrappers.xattr:  FS wrapper for simulating extended-attribute support.
 
+This module defines a standard interface for FS subclasses that want to
+support extended attributes, and an FSWrapper subclass that can simulate
+extended attributes on top of an ordinery FS.
+
+If extended attributes are required by FS-consuming code, it should use the
+function 'ensure_xattr'.  This will interrogate an FS object to determine
+if it has native xattr support, and return a wrapped version if it does not.
 """
 
 try:
@@ -13,11 +20,34 @@ from fs.helpers import *
 from fs.errors import *
 from fs.wrappers import FSWrapper
 
+
+def ensure_xattr(fs):
+    """Ensure that the given FS supports xattrs, simulating them if required.
+
+    Given an FS object, this function returns an equivalent FS that has support
+    for extended attributes.  This may be the original object if they are
+    supported natively, or a wrapper class is they must be simulated.
+    """
+    try:
+        #  This doesn't have to exist, it should return None by default
+        fs.getxattr("/","testingx-xattr")
+        return fs
+    except Exception:
+        return SimulateXAttr(fs)
+
 class SimulateXAttr(FSWrapper):
     """FS wrapper class that simulates xattr support.
 
-    For each file in the underlying FS, this class managed a corresponding 
-    '.xattr' file containing its extended attributes.
+    The following methods are supplied for manipulating extended attributes:
+        * xattrs:    list all extended attribute names for a path
+        * getxattr:  get an xattr of a path by name
+        * setxattr:  set an xattr of a path by name
+        * delxattr:  delete an xattr of a path by name
+
+    For each file in the underlying FS, this class maintains a corresponding 
+    file '.xattrs.FILENAME' containing its extended attributes.  Extended
+    attributes of a directory are stored in the file '.xattrs' within the
+    directory itself.
     """
 
     def _get_attr_path(self, path):

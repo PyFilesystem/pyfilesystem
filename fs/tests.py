@@ -831,11 +831,11 @@ class TestSFTPFS(unittest.TestCase,FSTestCases):
 
 ####################
 
-from fs.wrappers.xattr import SimulateXAttr
-class TestSimulateXAttr(unittest.TestCase,FSTestCases,XAttrTestCases):
+from fs.wrappers.xattr import ensure_xattr
+class TestXAttr(unittest.TestCase,FSTestCases,XAttrTestCases):
 
     def setUp(self):
-        self.fs = SimulateXAttr(tempfs.TempFS())
+        self.fs = ensure_xattr(tempfs.TempFS())
 
     def tearDown(self):
         td = self.fs._temp_dir
