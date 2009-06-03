@@ -202,3 +202,18 @@ def issamedir(path1, path2):
     return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
 
 
+def isprefix(path1,path2):
+    """Return true is path1 is a prefix of path2."""
+    bits1 = path1.split("/")
+    bits2 = path2.split("/")
+    while bits1 and bits1[-1] == "":
+        bits1.pop()
+    if len(bits1) > len(bits2):
+        return False
+    for (bit1,bit2) in zip(bits1,bits2):
+        if bit1 != bit2:
+            return False
+    return True
+        
+    
+

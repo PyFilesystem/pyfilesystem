@@ -788,6 +788,19 @@ class TestRPCFS(unittest.TestCase,FSTestCases):
           pass
 
 
+import sftpfs
+class TestSFTPFS(unittest.TestCase,FSTestCases):
+
+    creds = dict(username="rfk",password="obviously-not-my-real-password")
+
+    def setUp(self):
+        self.temp_fs = tempfs.TempFS()
+        self.fs = sftpfs.SFTPFS("localhost",self.temp_fs.root_path,**self.creds)
+
+    def tearDown(self):
+        self.temp_fs.close()
+
+
 from fs.wrappers.xattr import SimulateXAttr
 class TestSimulateXAttr(unittest.TestCase,FSTestCases,XAttrTestCases):
 
