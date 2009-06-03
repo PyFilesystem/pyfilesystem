@@ -14,6 +14,8 @@ import unittest
 import shutil
 import tempfile
 import pickle
+import socket
+import threading
 
 import base as fs
 from helpers import *
@@ -755,8 +757,7 @@ class TestS3FS(unittest.TestCase,FSTestCases):
 
 
 import rpcfs
-import socket
-import threading
+from fs.expose.xmlrpc import RPCFSServer
 class TestRPCFS(unittest.TestCase,FSTestCases):
 
     def setUp(self):
@@ -764,7 +765,7 @@ class TestRPCFS(unittest.TestCase,FSTestCases):
         self.server = None
         while not self.server:
             try:
-                self.server = rpcfs.RPCFSServer(tempfs.TempFS(),("localhost",self.port),logRequests=False)
+                self.server = RPCFSServer(tempfs.TempFS(),("localhost",self.port),logRequests=False)
             except socket.error, e:
                 if e.args[1] == "Address already in use":
                     self.port += 1
