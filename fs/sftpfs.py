@@ -5,6 +5,7 @@
 """
 
 import datetime 
+import stat as statinfo
 
 import paramiko
 
@@ -113,25 +114,24 @@ class SFTPFS(FS):
             return True
         
     def isdir(self,path):
-        # TODO: there must be a better way to distinguish files and directories
         npath = self._normpath(path)
         try:
-            self.client.listdir(npath)
-            return True
+            stat = self.client.stat(npath)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 return False
             raise OperationFailedError("isdir",path,details=e)
+        return statinfo.S_ISDIR(stat)
 
     def isfile(self,path):
         npath = self._normpath(path)
         try:
-            self.client.listdir(npath)
-            return False
+            stat = self.client.stat(npath)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                return self.exists(path)
+                return False
             raise OperationFailedError("isfile",path,details=e)
+        return statinfo.S_ISREG(stat)
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         npath = self._normpath(path)
