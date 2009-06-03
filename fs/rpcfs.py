@@ -53,6 +53,7 @@ def re_raise_faults(func):
 
 def _object_by_name(name,root=None):
     """Look up an object by dotted-name notation."""
+    print name, root
     bits = name.split(".")
     if root is None:
         try:

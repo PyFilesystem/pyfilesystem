@@ -455,7 +455,6 @@ class MemoryFS(FS):
         finally:
             self._lock.release()
 
-
     def _on_close_memory_file(self, open_file, path, value):
         self._lock.acquire()
         try:
@@ -476,8 +475,6 @@ class MemoryFS(FS):
             dir_entry.data = value
         finally:
             self._lock.release()
-
-
 
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         self._lock.acquire()
@@ -511,31 +508,3 @@ class MemoryFS(FS):
             self._lock.release()
 
 
-
-def main():
-
-    mem_fs = MemoryFS()
-    mem_fs.makedir('test/test2', recursive=True)
-    mem_fs.makedir('test/A', recursive=True)
-    mem_fs.makedir('test/A/B', recursive=True)
-
-    mem_fs.open("test/readme.txt", 'w').write("Hello, World!")
-    mem_fs.open("test/readme.txt", 'wa').write("\nSecond Line")
-
-    print mem_fs.open("test/readme.txt", 'r').read()
-
-    f1 = mem_fs.open("/test/readme.txt", 'r')
-    f2 = mem_fs.open("/test/readme.txt", 'r')
-    print f1.read(10)
-    print f2.read(10)
-    f1.close()
-    f2.close()
-    f3 = mem_fs.open("/test/readme.txt", 'w')
-    print_fs(mem_fs)
-
-    from browsewin import browse
-    browse(mem_fs)
-
-
-if __name__ == "__main__":
-    main()

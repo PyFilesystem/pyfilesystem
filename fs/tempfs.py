@@ -44,7 +44,4 @@ class TempFS(OSFS):
     def __del__(self):
         self.close()
 
-if __name__ == "__main__":
 
-    tfs = TempFS()
-    print tfs

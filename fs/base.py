@@ -19,11 +19,6 @@ try:
 except ImportError:
     import dummy_threading as threading
 import dummy_threading
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
 
 from helpers import *
 from errors import *
@@ -91,44 +86,7 @@ class NullFile(object):
         pass
 
 
-def print_fs(fs, path="/", max_levels=5, indent=' '*2):
-    """Prints a filesystem listing to stdout (including sub dirs).
-
-    Useful as a debugging aid. Be careful about printing a OSFS, or any other
-    large filesystem - without max_levels set, this function will traverse the 
-    entire directory tree.
-
-    fs -- A filesystem object
-    path -- Path of root to list (default "/")
-    max_levels -- Maximum levels of dirs to list (default 5), set to None
-                  for no maximum
-    indent -- String to indent each directory level (default two spaces)
-
-    """
-    def print_dir(fs, path, level):
-        try:
-            dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
-        except FSError, e:
-            print indent*level + "... unabled to retrieve directory list (reason: %s) ..." % str(e)
-            return
-
-        dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
-
-        for is_dir, item in dir_listing:
-
-            if is_dir:
-                print indent*level + '[%s]' % item
-                if max_levels is None or level < max_levels:
-                    print_dir(fs, pathjoin(path, item), level+1)
-                if max_levels is not None:
-                    if level >= max_levels:
-                        print indent*(level+1) + "..."
-            else:
-                print indent*level + '%s' % item
-    print_dir(fs, path, 0)
-
-
-def _synchronize(func):
+def synchronize(func):
     """Decorator to synchronize a method on self._lock."""
     def acquire_lock(self, *args, **kwargs):
         self._lock.acquire()
@@ -177,7 +135,6 @@ class FS(object):
 
         thread_synconize -- If True, a lock object will be created for the
         object, otherwise a dummy lock will be used.
-
         """
         if thread_synchronize:
             self._lock = threading.RLock()
@@ -218,7 +175,6 @@ class FS(object):
         path -- A path within the filesystem
         allow_none -- If True, this method should return None if there is no
                       system path, rather than raising NoSysPathError
-
         """
         if not allow_none:
             raise NoSysPathError(path=path)
@@ -228,7 +184,6 @@ class FS(object):
         """Return True if the path maps to a system path.
 
         path -- Pach to check
-
         """
         return self.getsyspath(path, None) is not None
 
@@ -241,7 +196,6 @@ class FS(object):
                in 'file' and 'open' builtins
         kwargs -- Additional (optional) keyword parameters that may
                   be required to open the file
-
         """
         raise UnsupportedError("open file")
 
@@ -285,7 +239,6 @@ class FS(object):
         The directory contents are returned as a list of paths.  If the
         given path is not found then ResourceNotFoundError is raised;
         if it exists but is not a directory, ResourceInvalidError is raised.
-
         """
         raise UnsupportedError("list directory")
 
@@ -301,7 +254,6 @@ class FS(object):
         that directory, this method applies the semantics of the listdir()
         keyword arguments.  An appropriately modified and filtered list of
         directory entries is returned.
-
         """
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
@@ -336,7 +288,6 @@ class FS(object):
           * ParentDirectoryMissingError, if a containing directory is missing
                                          and recursive is False
           * ResourceInvalidError, if path is an existing file
-
         """
         raise UnsupportedError("make directory")
 
@@ -348,7 +299,6 @@ class FS(object):
         This method can raise the following errors:
           * ResourceNotFoundError, if the path does not exist
           * ResourceInvalidError, if the path is a directory
-
         """
         raise UnsupportedError("remove resource")
 
@@ -364,7 +314,6 @@ class FS(object):
           * ResourceInvalidError, if the path is not a directory
           * DirectoryNotEmptyError, if the directory is not empty and
                                    force is False
-
         """
         raise UnsupportedError("remove directory")
 
@@ -373,7 +322,6 @@ class FS(object):
 
         src -- Path to rename
         dst -- New name (not a path)
-
         """
         raise UnsupportedError("rename resource")
 
@@ -381,7 +329,6 @@ class FS(object):
         """Returns information for a path as a dictionary.
 
         path -- A path to retrieve information for
-
         """
         raise UnsupportedError("get resource info")
 
@@ -392,7 +339,6 @@ class FS(object):
         path -- A path to describe
 
         This is mainly for use as a debugging aid.
-
         """
         if not self.exists(path):
             return "No description available"
@@ -410,7 +356,6 @@ class FS(object):
         """Returns the contents of a file as a string.
 
         path -- path of file to read.
-
         """
         f = None
         try:
@@ -426,7 +371,6 @@ class FS(object):
 
         path -- Path of the file to create
         data -- A string containing the contents of the file
-
         """
         f = None
         try:
@@ -441,7 +385,6 @@ class FS(object):
         """Opens a directory and returns a FS object representing its contents.
 
         path -- Path to directory to open
-
         """
         if not self.exists(path):
             raise DirectoryNotFoundError(path)
@@ -451,16 +394,16 @@ class FS(object):
 
     def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth"):
         """Walks a directory tree and yields the root path and contents.
-        Yields a tuple of the path of each directory and a list of its file contents.
+        Yields a tuple of the path of each directory and a list of its file
+        contents.
 
         path -- Root path to start walking
         wildcard -- If given, only return files that match this wildcard
-        dir_wildcard -- If given, only walk in to directories that match this wildcard
-        search -- A string that identifies the method used to walk the directories,
-        can be 'breadth' for a breadth first search, or 'depth' for a depth first
-        search. Use 'depth' if you plan to create / delete files as you go.
-
-
+        dir_wildcard -- If given, only walk directories that match the wildcard
+        search -- A string dentifying the method used to walk the directories.
+                  Can be 'breadth' for a breadth first search, or 'depth' for a
+                  depth first search. Use 'depth' if you plan to create or 
+                  delete files as you go.
         """
         if search == "breadth":
             dirs = [path]
@@ -504,13 +447,12 @@ class FS(object):
 
         path -- Root path to start walking
         wildcard -- If given, only return files that match this wildcard
-        dir_wildcard -- If given, only walk in to directories that match this wildcard
-        search -- A string that identifies the method used to walk the directories,
-        can be 'breadth' for a breadth first search, or 'depth' for a depth first
-        search. Use 'depth' if you plan to create / delete files as you go.
-
+        dir_wildcard -- If given, only walk directories that match the wildcard
+        search -- A string dentifying the method used to walk the directories.
+                  Can be 'breadth' for a breadth first search, or 'depth' for a
+                  depth first search. Use 'depth' if you plan to create or 
+                  delete files as you go.
         """
-
         for path, files in self.walk(path, wildcard, dir_wildcard, search):
             for f in files:
                 yield pathjoin(path, f)
@@ -520,7 +462,6 @@ class FS(object):
         """Returns the size (in bytes) of a resource.
 
         path -- A path to the resource
-
         """
         info = self.getinfo(path)
         size = info.get('size', None)
@@ -537,7 +478,6 @@ class FS(object):
                      be overwritten; If False then DestinationExistsError
                      will be raised.
         chunk_size -- Size of chunks to use if a simple copy is required
-
         """
 
         if not self.isfile(src):
@@ -578,7 +518,6 @@ class FS(object):
         overwrite -- If True, then an existing file at the destination path
                      will be silently overwritte; if False then an exception
                      will be raised in this case.
-
         """
 
         src_syspath = self.getsyspath(src, allow_none=True)
@@ -607,10 +546,12 @@ class FS(object):
 
         src -- Source directory path
         dst -- Destination directory path
-        overwrite -- If True then any existing files in the destination directory will be overwritten
-        ignore_errors -- If True then this method will ignore FSError exceptions when moving files
-        chunk_size -- Size of chunks to use when copying, if a simple copy is required
-
+        overwrite -- If True then any existing files in the destination
+                     directory will be overwritten
+        ignore_errors -- If True then this method will ignore FSError
+                         exceptions when moving files
+        chunk_size -- Size of chunks to use when copying, if a simple copy
+                      is required
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
@@ -659,10 +600,11 @@ class FS(object):
 
         src -- Source directory path
         dst -- Destination directory path
-        overwrite -- If True then any existing files in the destination directory will be overwritten
+        overwrite -- If True then any existing files in the destination
+                     directory will be overwritten
         ignore_errors -- If True, exceptions when copying will be ignored
-        chunk_size -- Size of chunks to use when copying, if a simple copy is required
-
+        chunk_size -- Size of chunks to use when copying, if a simple copy
+                       is required
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
@@ -698,7 +640,6 @@ class FS(object):
         """Return True if a path contains no files.
 
         path -- Path of a directory
-
         """
         path = normpath(path)
         iter_dir = iter(self.listdir(path))
@@ -714,9 +655,8 @@ class SubFS(FS):
     """A SubFS represents a sub directory of another filesystem object.
 
     SubFS objects are returned by opendir, which effectively creates a 'sandbox'
-    filesystem that can only access files/dirs under a root path within its
-    'parent' dir.
-
+    'sandbox' filesystem that can only access files/dirs under a root path
+    within its 'parent' dir.
     """
 
     def __init__(self, parent, sub_dir):
@@ -798,23 +738,3 @@ class SubFS(FS):
     def rename(self, src, dst):
         return self.parent.rename(self._delegate(src), self._delegate(dst))
 
-
-
-if __name__ == "__main__":
-    import osfs
-    import browsewin
-
-    fs1 = osfs.OSFS('~/')
-    fs2 = fs1.opendir("projects").opendir('prettycharts')
-
-    for d, f in fs1.walk('/projects/prettycharts'):
-        print d, f
-
-    for f in fs1.walkfiles("/projects/prettycharts"):
-        print f
-
-    #print_fs(fs2)
-
-
-    #browsewin.browse(fs1)
-    browsewin.browse(fs2)

@@ -1,6 +1,6 @@
 """
 
-  fs.utils: high level utility functions for working with FS objects.
+  fs.utils: high-level utility functions for working with FS objects.
 
 """
 
@@ -131,11 +131,12 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
     mount_fs.copydir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
 
 
-def countbytes(count_fs):
+def countbytes(fs):
     """Returns the total number of bytes contained within files in a filesystem.
 
-    count_fs -- A filesystem object
+    fs -- A filesystem object
 
     """
-    total = sum(count_fs.getsize(f) for f in count_fs.walkfiles())
+    total = sum(fs.getsize(f) for f in fs.walkfiles())
     return total
+

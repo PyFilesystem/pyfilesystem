@@ -4,17 +4,11 @@ A filesystem abstraction.
 """
 
 __version__ = "0.1.1dev"
-
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
+#  'base' imports * from 'helpers' and 'errors'
 from base import *
-from helpers import *
-__all__ = ['memoryfs',
-           'mountfs',
-           'multifs',
-           'osfs',
-           'utils',
-           'zipfs',
-           'helpers',
-           'tempfs']
+
+import errors
+import helpers
 

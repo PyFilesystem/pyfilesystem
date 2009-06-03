@@ -225,46 +225,4 @@ class ZipFS(FS):
         finally:
             self._lock.release()
 
-if __name__ == "__main__":
-    def test():
-        zfs = ZipFS("t.zip", "w")
-        zfs.createfile("t.txt", "Hello, World!")
-        zfs.close()
-        rfs = ZipFS("t.zip", 'r')
-        print rfs.getcontents("t.txt")
-        print rfs.getcontents("w.txt")
 
-    def test2():
-        zfs = ZipFS("t2.zip", "r")
-        print zfs.listdir("/tagging-trunk")
-        print zfs.listdir("/")
-        import browsewin
-        browsewin.browse(zfs)
-        zfs.close()
-        #zfs.open("t.txt")
-        #print zfs.listdir("/")
-
-    test2()
-
-    zfs = ZipFS("t3.zip", "w")
-    zfs.createfile("t.txt", "Hello, World!")
-    zfs.createfile("foo/bar/baz/t.txt", "Hello, World!")
-
-    print zfs.getcontents('t.txt')
-    #print zfs.isdir("t.txt")
-    #print zfs.isfile("t.txt")
-    #print zfs.isfile("foo/bar")
-    zfs.close()
-    zfs = ZipFS("t3.zip", "r")
-    print "--"
-    print zfs.listdir("foo")
-    print zfs.isdir("foo/bar")
-    print zfs.listdir("foo/bar")
-    print zfs.listdir("foo/bar/baz")
-    print_fs(zfs)
-
-
-    #zfs = ZipFS("t3.zip", "r")
-    #print zfs.zf.getinfo("asd.txt")
-
-    #zfs.close()

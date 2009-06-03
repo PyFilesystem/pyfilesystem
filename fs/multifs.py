@@ -226,27 +226,3 @@ class MultiFS(FS):
         finally:
             self._lock.release()
 
-
-if __name__ == "__main__":
-
-    import fs
-    import osfs
-    osfs = osfs.OSFS('~/')
-    import memoryfs
-
-    mem_fs = memoryfs.MemoryFS()
-    mem_fs.makedir('projects/test2', recursive=True)
-    mem_fs.makedir('projects/A', recursive=True)
-    mem_fs.makedir('projects/A/B', recursive=True)
-
-
-    mem_fs.open("projects/test2/readme.txt", 'w').write("Hello, World!")
-    mem_fs.open("projects/A/readme.txt", 'w').write("\nSecond Line")
-
-    multifs = MultiFS()
-    multifs.addfs("osfs", osfs)
-    multifs.addfs("mem_fs", mem_fs)
-
-    import browsewin
-
-    browsewin.browse(multifs)
