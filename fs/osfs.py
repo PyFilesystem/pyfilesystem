@@ -144,6 +144,8 @@ class OSFS(FS):
         try:
             stats = os.stat(sys_path)
         except OSError, e:
+            if e.errno == 2:
+                raise ResourceNotFoundError(path)
             raise ResourceError(path, details=e)
         info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
         info['size'] = info['st_size']

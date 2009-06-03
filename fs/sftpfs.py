@@ -121,7 +121,7 @@ class SFTPFS(FS):
             if getattr(e,"errno",None) == 2:
                 return False
             raise OperationFailedError("isdir",path,details=e)
-        return statinfo.S_ISDIR(stat)
+        return statinfo.S_ISDIR(stat.st_mode)
 
     def isfile(self,path):
         npath = self._normpath(path)
@@ -131,7 +131,7 @@ class SFTPFS(FS):
             if getattr(e,"errno",None) == 2:
                 return False
             raise OperationFailedError("isfile",path,details=e)
-        return statinfo.S_ISREG(stat)
+        return statinfo.S_ISREG(stat.st_mode)
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         npath = self._normpath(path)
@@ -139,9 +139,11 @@ class SFTPFS(FS):
             paths = self.client.listdir(npath)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                if self.exists(path):
+                if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
                 raise ResourceNotFoundError(path)
+            elif self.isfile(path):
+                raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
             raise OperationFailedError("list directory", path=path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
@@ -150,19 +152,26 @@ class SFTPFS(FS):
         try:
             self.client.mkdir(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
-               if recursive:
-                  self.makedir(dirname(path),recursive=True,allow_recreate=True)
-                  self.makedir(path,allow_recreate=allow_recreate)
-               else:
-                  raise ParentDirectoryMissingError(path)
-            elif getattr(e,"errno",None) is not None:
-                raise OperationFailedError("make directory",path=path,details=e)
+            # Error code is unreliable, try to figure out what went wrong
+            try:
+                stat = self.client.stat(npath)
+            except IOError:
+                if not self.isdir(dirname(path)):
+                    # Parent dir is missing
+                    if not recursive:
+                        raise ParentDirectoryMissingError(path)
+                    self.makedir(dirname(path),recursive=True)
+                    self.makedir(path,allow_recreate=allow_recreate)
+                else:
+                    # Undetermined error
+                    raise OperationFailedError("make directory",path=path,details=e)
             else:
-                if self.isfile(path):
-                    raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
-                if not allow_recreate:
-                    raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+                # Destination exists
+                if statinfo.S_ISDIR(stat.st_mode):
+                    if not allow_recreate:
+                        raise DestinationExistsError(path,msg="Can't create a directory that already exists (try allow_recreate=True): %(path)s")
+                else:
+                    raise ResourceInvalidError(path,msg="Can't create directory, there's already a file of that name: %(path)s")
 
     def remove(self,path):
         npath = self._normpath(path)

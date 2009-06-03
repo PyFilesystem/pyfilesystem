@@ -5,6 +5,10 @@
 
 """
 
+import sys
+import logging
+logging.basicConfig(level=logging.ERROR,stream=sys.stdout)
+
 import unittest
 
 import shutil
@@ -789,17 +793,42 @@ class TestRPCFS(unittest.TestCase,FSTestCases):
 
 
 import sftpfs
+from fs.expose.sftp import BaseSFTPServer
 class TestSFTPFS(unittest.TestCase,FSTestCases):
-
-    creds = dict(username="rfk",password="obviously-not-my-real-password")
 
     def setUp(self):
         self.temp_fs = tempfs.TempFS()
-        self.fs = sftpfs.SFTPFS("localhost",self.temp_fs.root_path,**self.creds)
+        self.port = 8000
+        self.server = None
+        while not self.server:
+          try:
+            self.server = BaseSFTPServer(("localhost",self.port),self.temp_fs)
+          except socket.error, e:
+            if e.args[1] == "Address already in use":
+              self.port += 1
+            else:
+              raise
+        self.server_thread = threading.Thread(target=self._run_server)
+        self.server_thread.start()
+        self.fs = sftpfs.SFTPFS(("localhost",self.port))
+
+    def _run_server(self):
+        """Run the server, swallowing shutdown-related execptions."""
+        try:
+            self.server.serve_forever()
+        except:
+            pass
 
     def tearDown(self):
+        try:
+            self.server.shutdown()
+            self.fs.exists("/")
+        except Exception:
+            pass
         self.temp_fs.close()
 
+
+####################
 
 from fs.wrappers.xattr import SimulateXAttr
 class TestSimulateXAttr(unittest.TestCase,FSTestCases,XAttrTestCases):
