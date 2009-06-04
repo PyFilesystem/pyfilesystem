@@ -16,7 +16,7 @@ try:
 except ImportError:
     import pickle
 
-from fs.helpers import *
+from fs.path import *
 from fs.errors import *
 from fs.wrappers import FSWrapper
 

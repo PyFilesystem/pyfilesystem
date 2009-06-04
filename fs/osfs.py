@@ -2,8 +2,8 @@
 
 import os
 
-from base import *
-from helpers import *
+from fs.base import *
+from fs.path import *
 
 try:
     import xattr
@@ -35,7 +35,7 @@ class OSFS(FS):
         return "<OSFS: %s>" % self.root_path
 
     def getsyspath(self, path, allow_none=False):
-        sys_path = os.path.join(self.root_path, makerelative(normpath(path))).replace('/', os.sep)
+        sys_path = os.path.join(self.root_path, relpath(path)).replace('/', os.sep)
         return sys_path
 
     def open(self, path, mode="r", **kwargs):

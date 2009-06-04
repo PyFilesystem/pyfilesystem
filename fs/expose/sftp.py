@@ -31,8 +31,8 @@ from StringIO import StringIO
 
 import paramiko
 
+from fs.path import *
 from fs.errors import *
-from fs.helpers import *
 
 
 try:
@@ -99,7 +99,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
     def stat(self,path):
         info = self.fs.getinfo(path)
         stat = paramiko.SFTPAttributes()
-        stat.filename = resourcename(path)
+        stat.filename = basename(path)
         stat.st_size = info.get("size")
         stat.st_atime = time.mktime(info.get("accessed_time").timetuple())
         stat.st_mtime = time.mktime(info.get("modified_time").timetuple())
@@ -136,7 +136,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def canonicalize(self,path):
-        return makeabsolute(path)
+        return abspath(path)
 
     def chattr(self,path,attr):
         return paramiko.SFTP_OP_UNSUPPORTED
@@ -299,5 +299,5 @@ if __name__ == "__main__":
     try:
         server.serve_forever()
     except (SystemExit,KeyboardInterrupt):
-        server.shutdown()
+        server.server_close()
 

@@ -18,7 +18,6 @@ except ImportError:
    from tempfile import NamedTemporaryFile as TempFile
 
 from fs.base import *
-from fs.helpers import *
 
     
 class S3FS(FS):
@@ -116,7 +115,7 @@ class S3FS(FS):
 
     def _s3path(self,path):
         """Get the absolute path to a file stored in S3."""
-        path = makerelative(path)
+        path = relpath(path)
         path = self._separator.join(iteratepath(path))
         s3path = self._prefix + path
         if s3path[-1] == self._separator:
@@ -436,7 +435,7 @@ class S3FS(FS):
             # Since S3 lists in lexicographic order, subsequent iterations
             # of the loop will check for the existence of the new filename.
             if k.name == s3path_dstD:
-                nm = resourcename(src)
+                nm = basename(src)
                 dst = pathjoin(dirname(dst),nm)
                 s3path_dst = s3path_dstD + nm
                 dstOK = True

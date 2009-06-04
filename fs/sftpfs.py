@@ -10,7 +10,6 @@ import stat as statinfo
 import paramiko
 
 from fs.base import *
-from fs.helpers import *
 
 
 if not hasattr(paramiko.SFTPFile,"__enter__"):
@@ -53,7 +52,7 @@ class SFTPFS(FS):
             if not connection.is_authenticated():
                 connection.connect(**credentials)
             self.client = paramiko.SFTPClient.from_transport(connection)
-        self.root = makeabsolute(root)
+        self.root = abspath(root)
 
     def __del__(self):
         self.close()
@@ -84,7 +83,7 @@ class SFTPFS(FS):
             self.client = None
 
     def _normpath(self,path):
-        npath = pathjoin(self.root,makerelative(path))
+        npath = pathjoin(self.root,relpath(path))
         if not isprefix(self.root,npath):
             raise PathError(path,msg="Path is outside root: %(path)s")
         return npath

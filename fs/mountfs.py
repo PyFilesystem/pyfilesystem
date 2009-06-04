@@ -128,9 +128,9 @@ class MountFS(FS):
                                    files_only=files_only)
                 if full or absolute:
                     if full:
-                        path = makeabsolute(path)
+                        path = abspath(path)
                     else:
-                        path = makerelative(path)
+                        path = relpath(path)
                     paths = [pathjoin(path, p) for p in paths]
 
                 return paths

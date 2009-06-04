@@ -8,8 +8,8 @@ Obviously that makes this particular filesystem very fast...
 """
 
 import datetime
-from helpers import iteratepath
-from base import *
+from fs.path import iteratepath
+from fs.base import *
 
 try:
     from cStringIO import StringIO

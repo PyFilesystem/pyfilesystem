@@ -4,7 +4,7 @@
 
 """
 
-from fs.helpers import *
+from fs.path import *
 from fs.errors import *
 from fs.wrappers import FSWrapper
 
@@ -19,7 +19,7 @@ class HideDotFiles(FSWrapper):
 
     def is_hidden(self,path):
         """Check whether the given path should be hidden."""
-        return path and resourcename(path)[0] == "."
+        return path and basename(path)[0] == "."
 
     def _encode(self,path):
         return path

@@ -1,21 +1,12 @@
 """
 
-  fs.helpers: useful standalone functions for FS path manipulation.
+  fs.path: useful functions for FS path manipulation.
+
+This is broadly similar to the standard 'os.path' module but works with
+paths in the canonical format expected by all FS objects (backslash-separated,
+optional leading slash).
 
 """
-
-from itertools import chain
-
-
-def iteratepath(path, numsplits=None):
-    """Iterate over the individual components of a path."""
-    path = makerelative(normpath(path))
-    if not path:
-        return []
-    if numsplits == None:
-        return path.split('/')
-    else:
-        return path.split('/', numsplits)
 
 
 def normpath(path):
@@ -40,7 +31,6 @@ def normpath(path):
     """
     if not path:
         return path
-
     components = []
     for comp in path.replace('\\','/').split("/"):
         if not comp or comp == ".":
@@ -53,41 +43,54 @@ def normpath(path):
                 raise ValueError(err)
         else:
             components.append(comp)
-
     if path[0] in "\\/":
         if not components:
             components = [""]
         components.insert(0,"")
-
     return "/".join(components)
+
+
+def iteratepath(path, numsplits=None):
+    """Iterate over the individual components of a path."""
+    path = relpath(normpath(path))
+    if not path:
+        return []
+    if numsplits == None:
+        return path.split('/')
+    else:
+        return path.split('/', numsplits)
 
 
 def abspath(path):
     """Convert the given path to a normalized, absolute path.
 
-    path -- A FS path
+    Since FS objects have no concept of a 'current directory' this simply
+    adds a leading '/' character if the path doesn't already have one.
+
     """
     path = normpath(path)
-    if not path or path[0] != "/":
-        path = "/" + path
+    if not path:
+        return "/"
+    if path[0] != "/":
+        return "/" + path
     return path
 
 
 def relpath(path):
     """Convert the given path to a normalized, relative path.
 
-    path -- A FS path
+    This is the inverse of abspath(), stripping a leading '/' from the
+    path if it is present.
+
     """
     path = normpath(path)
-    if path and path[0] == "/":
+    while path and path[0] == "/":
         path = path[1:]
     return path
 
 
 def pathjoin(*paths):
     """Joins any number of paths together, returning a new path string.
-
-    paths -- An iterable of path strings
 
     >>> pathjoin('foo', 'bar', 'baz')
     'foo/bar/baz'
@@ -100,7 +103,6 @@ def pathjoin(*paths):
 
     """
     absolute = False
-
     relpaths = []
     for p in paths:
         if p:
@@ -114,12 +116,15 @@ def pathjoin(*paths):
         path = "/" + path
     return path
 
+# Allow pathjoin() to be used as fs.path.join()
+join = pathjoin
+
 
 def pathsplit(path):
-    """Splits a path on a path separator. Returns a tuple containing the path up
-    to that last separator and the remaining path component.
+    """Splits a path into (head,tail) pair.
 
-    path -- A FS path
+    This function splits a path into a pair (head,tail) where 'tail' is the
+    last pathname component and 'head' is all preceeding components.
 
     >>> pathsplit("foo/bar")
     ('foo', 'bar')
@@ -133,11 +138,15 @@ def pathsplit(path):
         return ('', split[0])
     return tuple(split)
 
+# Allow pathsplit() to be used as fs.path.split()
+split = pathsplit
+
 
 def dirname(path):
     """Returns the parent directory of a path.
 
-    path -- A FS path
+    This is always equivalent to the 'head' component of the value returned
+    by pathsplit(path).
 
     >>> dirname('foo/bar/baz')
     'foo/bar'
@@ -146,64 +155,44 @@ def dirname(path):
     return pathsplit(path)[0]
 
 
-def resourcename(path):
-    """Returns the resource references by a path.
+def basename(path):
+    """Returns the basename of the resource referenced by a path.
 
-    path -- A FS path
+    This is always equivalent to the 'head' component of the value returned
+    by pathsplit(path).
 
-    >>> resourcename('foo/bar/baz')
+    >>> basename('foo/bar/baz')
     'baz'
 
     """
     return pathsplit(path)[1]
 
 
-def makerelative(path):
-    """Makes a path relative by removing initial separator.
-
-    path -- A FS path
-
-    >>> makerelative("/foo/bar")
-    'foo/bar'
-
-    """
-    path = normpath(path)
-    if path.startswith('/'):
-        return path[1:]
-    return path
-
-
-def makeabsolute(path):
-    """Makes a path absolute by adding a separator at the start of the path.
-
-    path -- A FS path
-
-    >>> makeabsolute("foo/bar/baz")
-    '/foo/bar/baz'
-
-    """
-    path = normpath(path)
-    if not path.startswith('/'):
-        return '/'+path
-    return path
-
-
 def issamedir(path1, path2):
     """Return true if two paths reference a resource in the same directory.
-
-    path1 -- First path
-    path2 -- Second path
 
     >>> issamedir("foo/bar/baz.txt", "foo/bar/spam.txt")
     True
     >>> issamedir("foo/bar/baz/txt", "spam/eggs/spam.txt")
     False
+
     """
     return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
 
 
 def isprefix(path1,path2):
-    """Return true is path1 is a prefix of path2."""
+    """Return true is path1 is a prefix of path2.
+
+    >>> isprefix("foo/bar", "foo/bar/spam.txt")
+    True
+    >>> isprefix("foo/bar/", "foo/bar")
+    True
+    >>> isprefix("foo/barry", "foo/baz/bar")
+    False
+    >>> isprefix("foo/bar/baz/", "foo/baz/bar")
+    False
+
+    """
     bits1 = path1.split("/")
     bits2 = path2.split("/")
     while bits1 and bits1[-1] == "":
@@ -214,6 +203,4 @@ def isprefix(path1,path2):
         if bit1 != bit2:
             return False
     return True
-        
-    
 

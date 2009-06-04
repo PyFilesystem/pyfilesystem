@@ -20,8 +20,8 @@ except ImportError:
     import dummy_threading as threading
 import dummy_threading
 
-from helpers import *
-from errors import *
+from fs.path import *
+from fs.errors import *
 
 
 def silence_fserrors(f, *args, **kwargs):
@@ -581,7 +581,7 @@ class FS(object):
         self.makedir(dst, allow_recreate=True)
         for dirname, filenames in self.walk(src, search="depth"):
 
-            dst_dirname = makerelative(dirname[len(src):])
+            dst_dirname = relpath(dirname[len(src):])
             dst_dirpath = pathjoin(dst, dst_dirname)
             self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
 
@@ -625,7 +625,7 @@ class FS(object):
         self.makedir(dst, allow_recreate=True)
         for dirname, filenames in self.walk(src):
 
-            dst_dirname = makerelative(dirname[len(src):])
+            dst_dirname = relpath(dirname[len(src):])
             dst_dirpath = pathjoin(dst, dst_dirname)
             self.makedir(dst_dirpath, allow_recreate=True)
 
@@ -713,10 +713,10 @@ class SubFS(FS):
                                     files_only)
         if absolute:
             listpath = normpath(path)
-            paths = [makeabsolute(pathjoin(listpath, path)) for path in paths]
+            paths = [abspath(pathjoin(listpath, path)) for path in paths]
         elif full:
             listpath = normpath(path)
-            paths = [makerelative(pathjoin(listpath, path)) for path in paths]
+            paths = [relpath(pathjoin(listpath, path)) for path in paths]
         return paths
 
 
