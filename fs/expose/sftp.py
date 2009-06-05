@@ -31,6 +31,7 @@ from StringIO import StringIO
 
 import paramiko
 
+from fs.base import flags_to_mode
 from fs.path import *
 from fs.errors import *
 
@@ -157,32 +158,10 @@ class SFTPHandle(paramiko.SFTPHandle):
 
     def __init__(self,owner,path,flags):
         super(SFTPHandle,self).__init__(flags)
-        mode = self._flags_to_mode(flags)
+        mode = flags_to_mode(flags)
         self.owner = owner
         self.path = path
         self._file = owner.fs.open(path,mode)
-
-    def _flags_to_mode(self,flags):
-        """Convert an os.O_* bitmask into an FS mode string."""
-        if flags & os.O_EXCL:
-            raise UnsupportedError("open",msg="O_EXCL is not supported")
-        if flags & os.O_WRONLY:
-            if flags & os.O_TRUNC:
-                mode = "w"
-            elif flags & os.O_APPEND:
-                mode = "a"
-            else:
-                mode = "r+"
-        elif flags & os.O_RDWR:
-            if flags & os.O_TRUNC:
-                mode = "w+"
-            elif flags & os.O_APPEND:
-                mode = "a+"
-            else:
-                mode = "r+"
-        else:
-            mode = "r"
-        return mode
 
     @report_sftp_errors
     def close(self):

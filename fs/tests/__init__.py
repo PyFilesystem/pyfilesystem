@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.ERROR,stream=sys.stdout)
 
 from fs.base import *
 
+import os, os.path
 import pickle
-
 
 
 class FSTestCases:

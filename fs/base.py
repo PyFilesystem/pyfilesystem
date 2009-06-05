@@ -738,3 +738,26 @@ class SubFS(FS):
     def rename(self, src, dst):
         return self.parent.rename(self._delegate(src), self._delegate(dst))
 
+
+def flags_to_mode(flags):
+    """Convert an os.O_* bitmask into an FS mode string."""
+    if flags & os.O_EXCL:
+         raise UnsupportedError("open",msg="O_EXCL is not supported")
+    if flags & os.O_WRONLY:
+        if flags & os.O_TRUNC:
+            mode = "w"
+        elif flags & os.O_APPEND:
+            mode = "a"
+        else:
+            mode = "r+"
+    elif flags & os.O_RDWR:
+        if flags & os.O_TRUNC:
+            mode = "w+"
+        elif flags & os.O_APPEND:
+            mode = "a+"
+        else:
+            mode = "r+"
+    else:
+        mode = "r"
+    return mode
+

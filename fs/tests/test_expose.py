@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 
   fs.tests.test_expose:  testcases for fs.expose and associated FS classes
@@ -6,11 +5,15 @@
 """
 
 import unittest
+import sys
+import os, os.path
 import socket
 import threading
+import time
 
 from fs.tests import FSTestCases
 from fs.tempfs import TempFS
+from fs.path import *
 
 from fs import rpcfs
 from fs.expose.xmlrpc import RPCFSServer
@@ -92,4 +95,23 @@ class TestSFTPFS(TestRPCFS):
         # TODO: do this using a paramiko.Transport() connection
         pass
 
+
+from fs.expose import fuse
+from fs.osfs import OSFS
+class TestFUSE(unittest.TestCase,FSTestCases):
+
+    def setUp(self):
+        self.temp_fs = TempFS()
+        self.temp_fs.makedir("root")
+        self.temp_fs.makedir("mount")
+        self.mounted_fs = self.temp_fs.opendir("root")
+        self.mount_point = self.temp_fs.getsyspath("mount")
+        self.fs = self.temp_fs.opendir("mount")
+        self.mount_proc = fuse.mount(self.mounted_fs,self.mount_point)
+
+    def tearDown(self):
+        self.mount_proc.unmount()
+
+    def check(self,p):
+        return self.mounted_fs.exists(p)
 

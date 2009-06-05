@@ -205,7 +205,7 @@ class MultiFS(FS):
 
     def rename(self, src, dst):
         if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
+            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         self._lock.acquire()
         try:
             for fs in self:
