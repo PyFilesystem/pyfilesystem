@@ -192,7 +192,7 @@ class FSOperations(Operations):
     @handle_fs_errors
     def listxattr(self,path):
         try:
-            return self.fs.xattrs(path)
+            return self.fs.listxattrs(path)
         except AttributeError:
             raise UnsupportedError("listxattr")
 

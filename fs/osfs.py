@@ -194,7 +194,7 @@ class OSFS(FS):
             except IOError, e:
                 raise OperationFailedError('delete extended attribute', path=path, details=e)
 
-        def xattrs(self, path):
+        def listxattrs(self, path):
             try:
                 return xattr.xattr(self.getsyspath(path)).keys()
             except IOError, e:

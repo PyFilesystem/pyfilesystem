@@ -36,15 +36,15 @@ class XAttrTestCases:
 
     def test_list_xattrs(self):
         def do_list(p):
-            self.assertEquals(sorted(self.fs.xattrs(p)),[])
+            self.assertEquals(sorted(self.fs.listxattrs(p)),[])
             self.fs.setxattr(p,"xattr1","value1")
-            self.assertEquals(sorted(self.fs.xattrs(p)),["xattr1"])
+            self.assertEquals(sorted(self.fs.listxattrs(p)),["xattr1"])
             self.fs.setxattr(p,"attr2","value2")
-            self.assertEquals(sorted(self.fs.xattrs(p)),["attr2","xattr1"])
+            self.assertEquals(sorted(self.fs.listxattrs(p)),["attr2","xattr1"])
             self.fs.delxattr(p,"xattr1")
-            self.assertEquals(sorted(self.fs.xattrs(p)),["attr2"])
+            self.assertEquals(sorted(self.fs.listxattrs(p)),["attr2"])
             self.fs.delxattr(p,"attr2")
-            self.assertEquals(sorted(self.fs.xattrs(p)),[])
+            self.assertEquals(sorted(self.fs.listxattrs(p)),[])
         self.fs.createfile("test.txt","hello")
         do_list("test.txt")
         self.fs.makedir("mystuff")
@@ -87,13 +87,13 @@ class XAttrTestCases:
  
 
 
-from fs.wrappers.xattr import ensure_xattr
+from fs.xattrs import ensure_xattrs
 
 from fs import tempfs
 class TestXAttr_TempFS(unittest.TestCase,FSTestCases,XAttrTestCases):
 
     def setUp(self):
-        self.fs = ensure_xattr(tempfs.TempFS())
+        self.fs = ensure_xattrs(tempfs.TempFS())
 
     def tearDown(self):
         td = self.fs._temp_dir
@@ -109,7 +109,7 @@ from fs import memoryfs
 class TestXAttr_MemoryFS(unittest.TestCase,FSTestCases,XAttrTestCases):
 
     def setUp(self):
-        self.fs = ensure_xattr(memoryfs.MemoryFS())
+        self.fs = ensure_xattrs(memoryfs.MemoryFS())
 
     def check(self, p):
         return self.fs.exists(p)

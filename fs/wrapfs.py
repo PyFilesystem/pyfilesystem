@@ -1,25 +1,46 @@
 """
 
-  fs.wrappers:  clases to transform files in a filesystem
+  fs.wrapfs:  class for wrapping an existing FS object with added functionality
 
-This sub-module provides facilities for easily wrapping an FS object inside
-some sort of transformation - for example, to transparently compress or encrypt
-files.
+This module provides the class WrapFS, a base class for objects that wrap
+another FS object and provide some transformation of its contents.  It could
+be very useful for implementing e.g. transparent encryption or compression
+services.
+
+As a simple example of how this class could be used, the 'HideDotFiles' class
+implements the standard unix shell functionality of hiding dot files in
+directory listings.
 
 """
 
 from fs.base import FS
 
-class FSWrapper(FS):
+
+class WrapFS(FS):
     """FS that wraps another FS, providing translation etc.
 
     This class allows simple transforms to be applied to the names
-    and/or contents of files in an FS.  It's particularly handy in
-    conjunction with wrappers from the "filelike" module.
+    and/or contents of files in an FS.  It could be used to implement
+    e.g. compression or encryption in a relatively painless manner.
+
+    The following methods can be overridden to control how files are 
+    accessed in the underlying FS object:
+
+        _file_wrap(file,mode):  called for each file that is opened from
+                                the underlying FS; may return a modified
+                                file-like object.
+
+        _encode(path):  encode a path for access in the underlying FS
+
+        _decode(path):  decode a path from the underlying FS
+
+    If the required path translation proceeds one component at a time,
+    it may be simpler to override the _encode_name() and _decode_name()
+    methods.
     """
 
     def __init__(self,fs):
-        super(FSWrapper,self).__init__()
+        super(WrapFS,self).__init__()
         self.wrapped_fs = fs
 
     def _file_wrap(self,f,mode):
@@ -62,6 +83,10 @@ class FSWrapper(FS):
         This method takes the mode given when opening a file, and should
         return a two-tuple giving the mode to be used in this FS as first
         item, and the mode to be used in the underlying FS as the second.
+
+        An example of why this is needed is a WrapFS subclass that does
+        transparent file compression - in this case files from the wrapped
+        FS cannot be opened in append mode.
         """
         return (mode,mode)
 
@@ -127,4 +152,72 @@ class FSWrapper(FS):
     def close(self):
         if hasattr(self.wrapped_fs,"close"):
             self.wrapped_fs.close()
+
+
+class HideDotFiles(WrapFS):
+    """FS wrapper class that hides dot-files in directory listings.
+
+    The listdir() function takes an extra keyword argument 'hidden'
+    indicating whether hidden dotfiles shoud be included in the output.
+    It is False by default.
+    """
+
+    def is_hidden(self,path):
+        """Check whether the given path should be hidden."""
+        return path and basename(path)[0] == "."
+
+    def _encode(self,path):
+        return path
+
+    def _decode(self,path):
+        return path
+
+    def listdir(self,path="",**kwds):
+        hidden = kwds.pop("hidden",True)
+        entries = self.wrapped_fs.listdir(path,**kwds)
+        if not hidden:
+            entries = [e for e in entries if not self.is_hidden(e)]
+        return entries
+
+    def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth",hidden=False):
+        if search == "breadth":
+            dirs = [path]
+            while dirs:
+                current_path = dirs.pop()
+                paths = []
+                for filename in self.listdir(current_path,hidden=hidden):
+                    path = pathjoin(current_path, filename)
+                    if self.isdir(path):
+                        if dir_wildcard is not None:
+                            if fnmatch.fnmatch(path, dir_wilcard):
+                                dirs.append(path)
+                        else:
+                            dirs.append(path)
+                    else:
+                        if wildcard is not None:
+                            if fnmatch.fnmatch(path, wildcard):
+                                paths.append(filename)
+                        else:
+                            paths.append(filename)
+                yield (current_path, paths)
+        elif search == "depth":
+            def recurse(recurse_path):
+                for path in self.listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True,hidden=hidden):
+                    for p in recurse(path):
+                        yield p
+                yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, files_only=True,hidden=hidden))
+            for p in recurse(path):
+                yield p
+        else:
+            raise ValueError("Search should be 'breadth' or 'depth'")
+
+
+    def isdirempty(self, path):
+        path = normpath(path)
+        iter_dir = iter(self.listdir(path,hidden=True))
+        try:
+            iter_dir.next()
+        except StopIteration:
+            return True
+        return False
 
