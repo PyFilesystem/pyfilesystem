@@ -18,12 +18,12 @@ from fs import s3fs
 class TestS3FS(unittest.TestCase,FSTestCases):
 
     #  Disable the tests by default
-    __test__ = False
+#    __test__ = False
 
     bucket = "test-s3fs.rfk.id.au"
 
     def setUp(self):
-        self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
+        self.fs = s3fs.S3FS(self.bucket)
         self._clear()
 
     def _clear(self):
@@ -38,4 +38,12 @@ class TestS3FS(unittest.TestCase,FSTestCases):
         for k in self.fs._s3bukt.list():
             self.fs._s3bukt.delete_key(k)
         self.fs._s3conn.delete_bucket(self.bucket)
+
+
+
+class TestS3FS_prefix(TestS3FS):
+
+    def setUp(self):
+        self.fs = s3fs.S3FS(self.bucket,"/unittest/files")
+        self._clear()
 
