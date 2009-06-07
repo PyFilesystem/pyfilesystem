@@ -118,7 +118,7 @@ class S3FS(FS):
         path = relpath(path)
         path = self._separator.join(iteratepath(path))
         s3path = self._prefix + path
-        if s3path[-1] == self._separator:
+        if s3path and s3path[-1] == self._separator:
             s3path = s3path[:-1]
         return s3path
 
@@ -234,7 +234,7 @@ class S3FS(FS):
         """Check whether a path exists and is a directory."""
         s3path = self._s3path(path) + self._separator
         # Root is always a directory
-        if s3path == self._prefix:
+        if s3path == "/" or s3path == self._prefix:
             return True
         # Use a list request so that we return true if there are any files
         # in that directory.  This avoids requiring a special file for the
@@ -317,7 +317,9 @@ class S3FS(FS):
             if allow_recreate:
                 return
             raise DestinationExistsError(path, msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
-        s3pathP = self._s3path(dirname(path)) + self._separator
+        s3pathP = self._s3path(dirname(path))
+        if s3pathP:
+            s3pathP = s3pathP + self._separator
         # Check various preconditions using list of parent dir
         ks = self._s3bukt.list(prefix=s3pathP,delimiter=self._separator)
         if s3pathP == self._prefix:
@@ -363,7 +365,9 @@ class S3FS(FS):
 
     def removedir(self,path,recursive=False,force=False):
         """Remove the directory at the given path."""
-        s3path = self._s3path(path) + self._separator
+        s3path = self._s3path(path)
+        if s3path != self._prefix:
+            s3path = s3path + self._separator
         if force:
             #  If we will be forcibly removing any directory contents, we 
             #  might as well get the un-delimited list straight away.
@@ -399,11 +403,17 @@ class S3FS(FS):
 
     def getinfo(self,path):
         s3path = self._s3path(path)
+        if path in ("","/"):
+            return {}
         k = self._s3bukt.get_key(s3path)
+        if k is None:
+            raise ResourceNotFoundError(path)
         info = {}
-        info['size'] = int(k.size)
+        if hasattr(k,"size"):
+            info['size'] = int(k.size)
         fmt = "%a, %d %b %Y %H:%M:%S %Z"
-        info['modified_time'] = datetime.datetime.strptime(k.last_modified,fmt)
+        if hasattr(k,"last_modified"):
+            info['modified_time'] = datetime.datetime.strptime(k.last_modified,fmt)
         return info
 
     def desc(self,path):
