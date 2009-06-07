@@ -97,7 +97,7 @@ class SimulateXAttr(WrapFS):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         attrs = self._get_attr_dict(path)
-        attrs[key] = value
+        attrs[key] = str(value)
         self._set_attr_dict(path, attrs)
 
     def getxattr(self, path, key, default=None):
