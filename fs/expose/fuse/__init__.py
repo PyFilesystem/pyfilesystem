@@ -55,6 +55,7 @@ import pickle
 from fs.base import flags_to_mode
 from fs.errors import *
 from fs.path import *
+from fs.xattrs import ensure_xattrs
 
 import fuse_ctypes as fuse
 try:
@@ -129,7 +130,7 @@ class FSOperations(Operations):
     """FUSE Operations interface delegating all activities to an FS object."""
 
     def __init__(self,fs,on_init=None,on_destroy=None):
-        self.fs = fs
+        self.fs = ensure_xattrs(fs)
         self._fhmap = {}
         self._on_init = on_init
         self._on_destroy = on_destroy
@@ -181,9 +182,13 @@ class FSOperations(Operations):
     @handle_fs_errors
     def getxattr(self,path,name,position=0):
         try:
-            return self.fs.getxattr(path,name)
+            value = self.fs.getxattr(path,name)
         except AttributeError:
             raise UnsupportedError("getxattr")
+        else:
+            if value is None:
+                raise OSError(errno.ENOENT,"no attribute '%s'" % (name,))
+            return value
 
     @handle_fs_errors
     def link(self,target,souce):
@@ -386,7 +391,6 @@ class MountProcess(subprocess.Popen):
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
-            print os.getpid(), "WAITING"
             os.read(r,1)
 
     def unmount(self):
