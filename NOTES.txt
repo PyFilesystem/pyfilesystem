@@ -7,16 +7,19 @@ Minify the contained functions:
    - remove isabsolutepath(), it wasn't used
 
 Put error class definitions in separate submodule 'errors'
-   - deeper exception heirachy and less redundancy
-     (e.g. no more `raise UnsupportedError("UNSUPPORTED")`)
+   - less redundancy (e.g. no more `raise UnsupportedError("UNSUPPORTED")`)
+   - deeper exception heirachy (e.g. `ParentDirectoryMissingError`)
+This is designed to allow me to be more optimistic; rather than checking all
+preconditions before trying an action, I can just let it fail and branch on
+the exception.  Important for reducing the number of accesses to a remote FS.
 
 Remove the notion of hidden files from the base FS class.
-   - it's not the filesystem's business to decide what files I want to see
    - has lead to several bugs with copying/moving directories
-   - moved the logic into a separate wrapper class, currently
-     in fs.wrapfs.HideDotFiles
+   - it's not the filesystem's business to decide what files I want to see
+   - moved the logic into a separate wrapper class "HideDotFiles"
 
 Remove xattr support from base FS class, making it a separate interface.
+   - has lead to several bugs with copying/moving files and directories
    - now defined in fs.xattrs module
    - SimulateXAttr wrapper class contains the same logic
    - removexattr() -> delxattr() in line with python's get/set/del tradition
@@ -31,5 +34,5 @@ Split up the test definitions a little:
    - use a separate FSTestCases mixin rather than subclassing TestOSFS
    - path helpers testcases in their own module
    - zipfs in its own module since it's different to all the others
-   - s3fs in its own module since it's very slow
+   - s3fs in its own module since it's very slow and costs money to test
 
