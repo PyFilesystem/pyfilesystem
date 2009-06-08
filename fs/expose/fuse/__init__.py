@@ -391,7 +391,8 @@ class MountProcess(subprocess.Popen):
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
-            os.read(r,1)
+            if os.read(r,1) != "S":
+                raise RuntimeError("A FUSE error occurred")
 
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""
@@ -413,8 +414,19 @@ class MountProcess(subprocess.Popen):
         (fs,path,opts,r,w) = pickle.loads(data)
         os.close(r)
         opts["foreground"] = True
-        opts["ready_callback"] = lambda: os.close(w)
-        mount(fs,path,**opts)
+        successful = []
+        def ready_callback():
+            successful.append(True)
+            os.write(w,"S")
+            os.close(w)
+        opts["ready_callback"] = ready_callback
+        try:
+            mount(fs,path,**opts)
+        except Exception:
+            pass
+        if not successful:
+            os.write(w,"E")
+
 
 
 if __name__ == "__main__":
