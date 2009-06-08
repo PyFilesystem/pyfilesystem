@@ -400,6 +400,7 @@ class MountProcess(subprocess.Popen):
             self.terminate()
         else:
             os.kill(self.pid,signal.SIGTERM)
+        self.wait()
 
     @staticmethod
     def _do_mount_nowait(data):
