@@ -50,6 +50,12 @@ class UnsupportedError(OperationFailedError):
     default_message = "Unable to %(opname)s: not supported by this filesystem"
 
 
+class RemoteConnectionError(OperationFailedError):
+    """Exception raised when operation encounter remote connection trouble."""
+    default_message = "Unable to %(opname)s: remote connection errror"
+
+
+
 class ResourceError(FSError):
     """Base exception class for error associated with a specific resource."""
 
