@@ -172,7 +172,7 @@ class FSTestCases:
 
     def test_rename(self):
         check = self.check
-        self.fs.open("foo.txt", 'wt').write("Hello, World!")
+        self.fs.createfile("foo.txt","Hello, World!")
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))

@@ -19,7 +19,64 @@ except ImportError:
 
 from fs.base import *
 
+
+class RemoteFileBuffer(object):
+    """File-like object providing buffer for local file operations.
+
+    Instances of this class manage a local tempfile buffer corresponding
+    to the contents of a remote file.  All reads and writes happen locally,
+    with the content being copied to the remote file only on flush() or
+    close().
+
+    Instances of this class are returned by S3FS.open, but it is desgined
+    to be usable by any FS subclass that manages remote files.
+    """
+
+    def __init__(self,fs,path,mode):
+        self.file = TempFile()
+        self.fs = fs
+        self.path = path
+        self.mode = mode
+
+    def __del__(self):
+        if not self.closed:
+            self.close()
+
+    #  This is lifted straight from the stdlib's tempfile.py
+    def __getattr__(self,name):
+        file = self.__dict__['file']
+        a = getattr(file, name)
+        if not issubclass(type(a), type(0)):
+            setattr(self, name, a)
+        return a
+
+    def __enter__(self):
+        self.file.__enter__()
+        return self
+
+    def __exit__(self,exc,value,tb):
+        self.close()
+        return False
+
+    def __iter__(self):
+        return iter(self.file)
+
+    def flush(self):
+        self.file.flush()
+        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+            pos = self.file.tell()
+            self.file.seek(0)
+            self.fs.setcontents(self.path,self.file)
+            self.file.seek(pos)
+
+    def close(self):
+        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+            self.file.seek(0)
+            self.fs.setcontents(self.path,self.file)
+        self.file.close()
+
     
+
 class S3FS(FS):
     """A filesystem stored in Amazon S3.
 
@@ -157,6 +214,10 @@ class S3FS(FS):
             key.set_contents_from_file(contents)
         return self._sync_key(key)
 
+    def setcontents(self,path,contents):
+        s3path = self._s3path(path)
+        self._sync_set_contents(s3path,contents)
+
     def open(self,path,mode="r"):
         """Open the named file in the given mode.
 
@@ -164,7 +225,7 @@ class S3FS(FS):
         so that it can be worked on efficiently.  Any changes made to the
         file are only sent back to S3 when the file is flushed or closed.
         """
-        tf = TempFile()
+        buf = RemoteFileBuffer(self,path,mode)
         s3path = self._s3path(path)
         # Truncate the file if requested
         if "w" in mode:
@@ -181,37 +242,10 @@ class S3FS(FS):
         else:
             # Get the file contents into the tempfile.
             if "r" in mode or "+" in mode or "a" in mode:
-                k.get_contents_to_file(tf)
+                k.get_contents_to_file(buf)
                 if "a" not in mode:
-                    tf.seek(0)
-        # Upload the tempfile when it is flushed or closed
-        if "w" in mode or "a" in mode or "+" in mode:
-            # Override flush()
-            oldflush = tf.flush
-            def newflush():
-                oldflush()
-                pos = tf.tell()
-                tf.seek(0)
-                self._sync_set_contents(k,tf)
-                tf.seek(pos)
-            tf.flush = newflush
-            # Override close()
-            oldclose = tf.close
-            def newclose():
-                tf.seek(0)
-                self._sync_set_contents(k,tf)
-                oldclose()
-            tf.close = newclose
-            # Override __exit__ if it exists
-            try:
-                oldexit = tf.__exit__
-                def newexit(exc,value,tb):
-                    tf.close()
-                    return False
-                tf.__exit__ = newexit
-            except AttributeError:
-                pass
-        return tf
+                    buf.seek(0)
+        return buf
 
     def exists(self,path):
         """Check whether a path exists."""
