@@ -375,7 +375,13 @@ class FS(object):
         f = None
         try:
             f = self.open(path, 'wb')
-            f.write(data)
+            if hasattr(data,"read"):
+                chunk = data.read(1024*512)
+                while chunk:
+                    f.write(chunk)
+                    chunk = data.read(1024*512)
+            else:
+                f.write(data)
         finally:
             if f is not None:
                 f.close()
