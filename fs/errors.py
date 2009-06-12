@@ -6,7 +6,6 @@
 
 class FSError(Exception):
     """Base exception class for the FS module."""
-
     default_message = "Unspecified error"
 
     def __init__(self,msg=None,details=None):
@@ -25,7 +24,6 @@ class FSError(Exception):
 
 class PathError(FSError):
     """Exception for errors to do with a path string."""
-
     default_message = "Path is invalid: %(path)s"
 
     def __init__(self,path,**kwds):
@@ -35,7 +33,6 @@ class PathError(FSError):
 
 class OperationFailedError(FSError):
     """Base exception class for errors associated with a specific operation."""
-    
     default_message = "Unable to %(opname)s: unspecified error [%(errno)s - %(details)s]"
 
     def __init__(self,opname,path=None,**kwds):
@@ -51,14 +48,18 @@ class UnsupportedError(OperationFailedError):
 
 
 class RemoteConnectionError(OperationFailedError):
-    """Exception raised when operation encounter remote connection trouble."""
+    """Exception raised when operations encounter remote connection trouble."""
+    default_message = "Unable to %(opname)s: remote connection errror"
+
+
+class StorageSpaceError(OperationFailedError):
+    """Exception raised when operations encounter storage space trouble."""
     default_message = "Unable to %(opname)s: remote connection errror"
 
 
 
 class ResourceError(FSError):
     """Base exception class for error associated with a specific resource."""
-
     default_message = "Unspecified resource error: %(path)s"
 
     def __init__(self,path,**kwds):
@@ -87,8 +88,18 @@ class FileNotFoundError(ResourceNotFoundError):
 
 
 class ResourceInvalidError(ResourceError):
-    """Exception raised when a required file is not found."""
+    """Exception raised when a resource is the wrong type."""
     default_message = "Resource is invalid: %(path)s"
+
+
+class NotAFileError(ResourceError):
+    """Exception raised when a required file is not found."""
+    default_message = "That's not a file: %(path)s"
+
+
+class NotADirectoryError(ResourceError):
+    """Exception raised when a required file is not found."""
+    default_message = "That's not a directory: %(path)s"
 
 
 class DestinationExistsError(ResourceError):
@@ -109,3 +120,4 @@ class ParentDirectoryMissingError(ResourceError):
 class ResourceLockedError(ResourceError):
     """Exception raised when a resource can't be used because it is locked."""
     default_message = "Resource is locked: %(path)s"
+
