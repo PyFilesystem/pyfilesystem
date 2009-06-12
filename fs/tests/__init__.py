@@ -47,8 +47,16 @@ class FSTestCases:
         f = self.fs.open("test1.txt","w")
         f.write("testing")
         f.close()
+        self.check("test1.txt")
         f = self.fs.open("test1.txt","r")
         self.assertEquals(f.read(),"testing")
+        f.close()
+        f = self.fs.open("test1.txt","w")
+        f.write("test file overwrite")
+        f.close()
+        self.check("test1.txt")
+        f = self.fs.open("test1.txt","r")
+        self.assertEquals(f.read(),"test file overwrite")
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))
@@ -437,7 +445,8 @@ class FSTestCases:
 
     def test_pickling(self):
         self.fs.createfile("test1","hello world")
-        oldfs = self.fs
-        self.fs = pickle.loads(pickle.dumps(self.fs))
-        self.assert_(self.fs.isfile("test1"))
+        fs2 = pickle.loads(pickle.dumps(self.fs))
+        self.assert_(fs2.isfile("test1"))
+        if hasattr(fs2,"close"):
+            fs2.close()
 
