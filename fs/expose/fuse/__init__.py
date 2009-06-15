@@ -182,7 +182,7 @@ class FSOperations(Operations):
             raise UnsupportedError("getxattr")
         else:
             if value is None:
-                raise OSError(errno.ENOENT,"no attribute '%s'" % (name,))
+                raise OSError(errno.ENODATA,"no attribute '%s'" % (name,))
             return value
 
     @handle_fs_errors
