@@ -393,7 +393,7 @@ class FS(object):
         path -- Path to directory to open
         """
         if not self.exists(path):
-            raise DirectoryNotFoundError(path)
+            raise ResourceNotFoundError(path)
         sub_fs = SubFS(self, path)
         return sub_fs
 
@@ -489,7 +489,7 @@ class FS(object):
         if not self.isfile(src):
             if self.isdir(src):
                 raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
-            raise FileNotFoundError(src)
+            raise ResourceNotFoundError(src)
         if not overwrite and self.exists(dst):
             raise DestinationExistsError(dst)
 
@@ -535,7 +535,7 @@ class FS(object):
             if not os.path.isfile(src_syspath):
                 if os.path.isdir(src_syspath):
                     raise ResourceInvalidError(src,msg="Source is not a file: %(path)s")
-                raise FileNotFoundError(src)
+                raise ResourceNotFoundError(src)
             if not overwrite and os.path.exists(dst_syspath):
                 raise DestinationExistsError(dst)
             try:
@@ -667,7 +667,7 @@ class SubFS(FS):
 
     def __init__(self, parent, sub_dir):
         self.parent = parent
-        self.sub_dir = abspath(sub_dir)
+        self.sub_dir = abspath(normpath(sub_dir))
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
@@ -685,7 +685,7 @@ class SubFS(FS):
             return "File in sub dir of %s"%str(self.parent)
 
     def _delegate(self, path):
-        return pathjoin(self.sub_dir, relpath(path))
+        return pathjoin(self.sub_dir, relpath(normpath(path)))
 
     def getsyspath(self, path, allow_none=False):
         return self.parent.getsyspath(self._delegate(path), allow_none=allow_none)
@@ -698,7 +698,7 @@ class SubFS(FS):
 
     def opendir(self, path):
         if not self.exists(path):
-            raise DirectoryNotFoundError(path)
+            raise ResourceNotFoundError(path)
 
         path = self._delegate(path)
         sub_fs = self.parent.opendir(path)
@@ -733,7 +733,20 @@ class SubFS(FS):
         return self.parent.remove(self._delegate(path))
 
     def removedir(self, path, recursive=False,force=False):
-        self.parent.removedir(self._delegate(path), recursive=recursive, force=force)
+        # Careful not to recurse outside the subdir
+        if path in ("","/"):
+            if force:
+                for path2 in self.listdir(path,absolute=True,files_only=True):
+                    self.remove(path2)
+                for path2 in self.listdir(path,absolute=True,dirs_only=True):
+                    self.removedir(path2,force=True)
+        else:
+            self.parent.removedir(self._delegate(path),force=force)
+            if recursive:
+                try:
+                    self.removedir(dirname(path),recursive=True)
+                except DirectoryNotEmptyError:
+                    pass
 
     def getinfo(self, path):
         return self.parent.getinfo(self._delegate(path))
