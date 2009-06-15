@@ -88,14 +88,14 @@ class OSFS(FS):
     @convert_os_errors
     def removedir(self, path, recursive=False,force=False):
         sys_path = self.getsyspath(path)
-        #  Don't remove the root directory of this FS
-        if path in ("","/"):
-            return
         if force:
             for path2 in self.listdir(path,absolute=True,files_only=True):
                 self.remove(path2)
             for path2 in self.listdir(path,absolute=True,dirs_only=True):
                 self.removedir(path2,force=True)
+        #  Don't remove the root directory of this FS
+        if path in ("","/"):
+            return
         os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
