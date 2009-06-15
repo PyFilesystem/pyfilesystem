@@ -1,7 +1,8 @@
 #!/usr/in/env python
 
-from base import FS, FSError
-from helpers import *
+from fs.base import FS, FSError
+from fs.path import *
+
 
 class MultiFS(FS):
 
@@ -13,7 +14,7 @@ class MultiFS(FS):
     """
 
     def __init__(self):
-        FS.__init__(self, thread_syncronize=True)
+        FS.__init__(self, thread_synchronize=True)
 
         self.fs_sequence = []
         self.fs_lookup =  {}
@@ -99,7 +100,7 @@ class MultiFS(FS):
                     for fs_name, fs_object in self.fs_lookup.iteritems():
                         if fs is fs_object:
                             return fs_name, fs
-            raise ResourceNotFoundError("NO_RESOURCE", path, msg="Path does not map to any filesystem: %(path)s")
+            raise ResourceNotFoundError(path, msg="Path does not map to any filesystem: %(path)s")
         finally:
             self._lock.release()
 
@@ -109,7 +110,7 @@ class MultiFS(FS):
             fs = self._delegate_search(path)
             if fs is not None:
                 return fs.getsyspath(path, allow_none=allow_none)
-            raise ResourceNotFoundError("NO_RESOURCE", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -117,7 +118,7 @@ class MultiFS(FS):
         self._lock.acquire()
         try:
             if not self.exists(path):
-                raise ResourceNotFoundError("NO_RESOURCE", path)
+                raise ResourceNotFoundError(path)
 
             name, fs = self.which(path)
             if name is None:
@@ -135,7 +136,7 @@ class MultiFS(FS):
                     fs_file = fs.open(path, mode, **kwargs)
                     return fs_file
 
-            raise ResourceNotFoundError("NO_FILE", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -166,16 +167,6 @@ class MultiFS(FS):
         finally:
             self._lock.release()
 
-    def ishidden(self, path):
-        self._lock.acquire()
-        try:
-            fs = self._delegate_search(path)
-            if fs is not None:
-                return fs.isfile(path)
-            return False
-        finally:
-            self._lock.release()
-
     def listdir(self, path="./", *args, **kwargs):
         self._lock.acquire()
         try:
@@ -197,7 +188,7 @@ class MultiFS(FS):
                 if fs.exists(path):
                     fs.remove(path)
                     return
-            raise ResourceNotFoundError("NO_FILE", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -208,20 +199,20 @@ class MultiFS(FS):
                 if fs.isdir(path):
                     fs.removedir(path, recursive)
                     return
-            raise ResourceNotFoundError("NO_DIR", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
     def rename(self, src, dst):
         if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (user the move method for moving to a different directory)")
+            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         self._lock.acquire()
         try:
             for fs in self:
                 if fs.exists(src):
                     fs.rename(src, dst)
                     return
-            raise FSError("NO_RESOURCE", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -232,31 +223,7 @@ class MultiFS(FS):
                 if fs.exists(path):
                     return fs.getinfo(path)
 
-            raise ResourceNotFoundError("NO_FILE", path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
-
-if __name__ == "__main__":
-
-    import fs
-    import osfs
-    osfs = osfs.OSFS('~/')
-    import memoryfs
-
-    mem_fs = memoryfs.MemoryFS()
-    mem_fs.makedir('projects/test2', recursive=True)
-    mem_fs.makedir('projects/A', recursive=True)
-    mem_fs.makedir('projects/A/B', recursive=True)
-
-
-    mem_fs.open("projects/test2/readme.txt", 'w').write("Hello, World!")
-    mem_fs.open("projects/A/readme.txt", 'w').write("\nSecond Line")
-
-    multifs = MultiFS()
-    multifs.addfs("osfs", osfs)
-    multifs.addfs("mem_fs", mem_fs)
-
-    import browsewin
-
-    browsewin.browse(multifs)

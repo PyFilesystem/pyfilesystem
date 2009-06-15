@@ -1,43 +1,28 @@
 """
 
-  fs.rpcfs:  Client and Server to expose an FS via XML-RPC
+  fs.rpcfs:  client to access an FS via XML-RPC
 
-This module provides the following pair of classes that can be used to expose
-a remote filesystem using XML-RPC:
-
-   RPCFSServer:   a subclass of SimpleXMLRPCServer that exposes the methods
-                  of an FS instance via XML-RPC
-
-   RPCFS:   a subclass of FS that delegates all filesystem operations to
-            a remote server using XML-RPC.
-
-If you need to use a more powerful server than SimpleXMLRPCServer, you can
-use the RPCFSInterface class to provide an XML-RPC-compatible wrapper around
-an FS object, which can then be exposed using whatever server you choose
-(e.g. Twisted's XML-RPC server).
+This module provides the class 'RPCFS' to access a remote FS object over
+XML-RPC.  You probably want to use this in conjunction with the 'RPCFSServer'
+class from the fs.expose.xmlrpc module.
 
 """
 
 import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 from fs.base import *
 
 from StringIO import StringIO
-
-
-class ObjProxy:
-    """Simple object proxy allowing us to replace read-only attributes.
-
-    This is used to put a modified 'close' method on files returned by
-    open(), such that they will be uploaded to the server when closed.
-    """
-
-    def __init__(self,obj):
-        self._obj = obj
-
-    def __getattr__(self,attr):
-        return getattr(self._obj,attr)
+if hasattr(StringIO,"__exit__"):
+    class StringIO(StringIO):
+        pass
+else:
+    class StringIO(StringIO):
+        def __enter__(self):
+            return self
+        def __exit__(self,exc_type,exc_value,traceback):
+            self.close()
+            return False
 
 
 def re_raise_faults(func):
@@ -103,7 +88,7 @@ class RPCFS(FS):
     """Access a filesystem exposed via XML-RPC.
 
     This class provides the client-side logic for accessing a remote FS
-    object, and is dual to the RPCFSServer class also defined in this module.
+    object, and is dual to the RPCFSServer class defined in fs.expose.xmlrpc.
 
     Example:
 
@@ -116,21 +101,37 @@ class RPCFS(FS):
 
         The only required argument is the uri of the server to connect
         to.  This will be passed to the underlying XML-RPC server proxy
-        object along with the 'transport' argument if it is provided.
+        object, along with the 'transport' argument if it is provided.
         """
         self.uri = uri
-        if transport is not None:
-            proxy = xmlrpclib.ServerProxy(uri,transport,allow_none=True)
+        self._transport = transport
+        self.proxy = self._make_proxy()
+
+    def _make_proxy(self):
+        kwds = dict(allow_none=True)
+        if self._transport is not None:
+            proxy = xmlrpclib.ServerProxy(self.uri,self._transport,**kwds)
         else:
-            proxy = xmlrpclib.ServerProxy(uri,allow_none=True)
-        self.proxy = ReRaiseFaults(proxy)
+            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)
+        return ReRaiseFaults(proxy)
 
     def __str__(self):
         return '<RPCFS: %s>' % (self.uri,)
 
-    __repr__ = __str__
+    def __getstate__(self):
+        state = super(RPCFS,self).__getstate__()
+        try:
+            del state['proxy']
+        except KeyError:
+            pass
+        return state
 
-    def open(self,path,mode):
+    def __setstate__(self,state):
+        for (k,v) in state.iteritems():
+            self.__dict__[k] = v
+        self.proxy = self._make_proxy()
+
+    def open(self,path,mode="r"):
         # TODO: chunked transport of large files
         if "w" in mode:
             self.proxy.set_contents(path,xmlrpclib.Binary(""))
@@ -139,13 +140,13 @@ class RPCFS(FS):
                 data = self.proxy.get_contents(path).data
             except IOError:
                 if "w" not in mode and "a" not in mode:
-                    raise ResourceNotFoundError("NO_FILE",path)
+                    raise ResourceNotFoundError(path)
                 if not self.isdir(dirname(path)):
-                    raise OperationFailedError("OPEN_FAILED", path,msg="Parent directory does not exist")
+                    raise ParentDirectoryMissingError(path)
                 self.proxy.set_contents(path,xmlrpclib.Binary(""))
         else:
             data = ""
-        f = ObjProxy(StringIO(data))
+        f = StringIO(data)
         if "a" not in mode:
             f.seek(0,0)
         else:
@@ -171,11 +172,11 @@ class RPCFS(FS):
     def isfile(self,path):
         return self.proxy.isfile(path)
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
-        return self.proxy.listdir(path,wildcard,full,absolute,hidden,dirs_only,files_only)
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        return self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
 
-    def makedir(self,path,mode=0777,recursive=False,allow_recreate=False):
-        return self.proxy.makedir(path,mode,recursive,allow_recreate)
+    def makedir(self,path,recursive=False,allow_recreate=False):
+        return self.proxy.makedir(path,recursive,allow_recreate)
 
     def remove(self,path):
         return self.proxy.remove(path)
@@ -210,100 +211,4 @@ class RPCFS(FS):
     def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
         return self.proxy.copydir(src,dst,overwrite,ignore_errors,chunk_size)
 
-
-class RPCFSInterface(object):
-    """Wrapper to expose an FS via a XML-RPC compatible interface.
-
-    The only real trick is using xmlrpclib.Binary objects to trasnport
-    the contents of files.
-    """
-
-    def __init__(self,fs):
-        self.fs = fs
-
-    def get_contents(self,path):
-        data = self.fs.getcontents(path)
-        return xmlrpclib.Binary(data)
-
-    def set_contents(self,path,data):
-        self.fs.createfile(path,data.data)
-
-    def exists(self,path):
-        return self.fs.exists(path)
-
-    def isdir(self,path):
-        return self.fs.isdir(path)
-
-    def isfile(self,path):
-        return self.fs.isfile(path)
-
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,hidden=True,dirs_only=False,files_only=False):
-        return list(self.fs.listdir(path,wildcard,full,absolute,hidden,dirs_only,files_only))
-
-    def makedir(self,path,mode=0777,recursive=False,allow_recreate=False):
-        return self.fs.makedir(path,mode,recursive,allow_recreate)
-
-    def remove(self,path):
-        return self.fs.remove(path)
-
-    def removedir(self,path,recursive=False,force=False):
-        return self.fs.removedir(path,recursive,force)
-        
-    def rename(self,src,dst):
-        return self.fs.rename(src,dst)
-
-    def getinfo(self,path):
-        return self.fs.getinfo(path)
-
-    def desc(self,path):
-        return self.fs.desc(path)
-
-    def getattr(self,path,attr):
-        return self.fs.getattr(path,attr)
-
-    def setattr(self,path,attr,value):
-        return self.fs.setattr(path,attr,value)
-
-    def copy(self,src,dst,overwrite=False,chunk_size=16384):
-        return self.fs.copy(src,dst,overwrite,chunk_size)
-
-    def move(self,src,dst,overwrite=False,chunk_size=16384):
-        return self.fs.move(src,dst,overwrite,chunk_size)
-
-    def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
-        return self.fs.movedir(src,dst,overwrite,ignore_errors,chunk_size)
-
-    def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
-        return self.fs.copydir(src,dst,overwrite,ignore_errors,chunk_size)
-
-
-class RPCFSServer(SimpleXMLRPCServer):
-    """Server to expose an FS object via XML-RPC.
-
-    This class takes as its first argument an FS instance, and as its second
-    argument a (hostname,port) tuple on which to listen for XML-RPC requests.
-    Example:
-
-        fs = OSFS('/var/srv/myfiles')
-        s = RPCFSServer(fs,("",8080))
-        s.serve_forever()
-
-    To cleanly shut down the server after calling serve_forever, set the
-    attribute "serve_more_requests" to False.
-    """
-
-    def __init__(self,fs,addr,requestHandler=None,logRequests=None):
-        kwds = dict(allow_none=True)
-        if requestHandler is not None:
-            kwds['requestHandler'] = requestHandler
-        if logRequests is not None:
-            kwds['logRequests'] = logRequests
-        self.serve_more_requests = True
-        SimpleXMLRPCServer.__init__(self,addr,**kwds)
-        self.register_instance(RPCFSInterface(fs))
-
-    def serve_forever(self):
-        """Override serve_forever to allow graceful shutdown."""
-        while self.serve_more_requests:
-            self.handle_request()
 

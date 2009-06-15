@@ -1,12 +1,10 @@
-#!/usr/bin/env python
 
-from helpers import _iteratepath, pathsplit
 
 class _ObjectDict(dict):
     pass
 
-class ObjectTree(object):
 
+class ObjectTree(object):
     """A class to facilitate the creation of tree structures."""
 
     def __init__(self):
@@ -105,15 +103,3 @@ class ObjectTree(object):
         return self.root.iteritems()
 
 
-if __name__ == "__main__":
-
-    ot = ObjectTree()
-    ot['a/b/c'] = "Hai!"
-
-    print ot['a/b/c']
-
-    print ot.partialget("/a/b/c/d/e/f")
-
-    ot['a/b/c/d'] = "?"
-
-    print ot['a/b/c'].keys()

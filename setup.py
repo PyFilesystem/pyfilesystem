@@ -23,6 +23,6 @@ setup(name='fs',
       url="http://code.google.com/p/pyfilesystem/",
       download_url="http://code.google.com/p/pyfilesystem/downloads/list",
       platforms = ['any'],
-      packages=['fs'],
+      packages=['fs','fs.expose','fs.expose.fuse','fs.tests'],
       classifiers=classifiers,
       )

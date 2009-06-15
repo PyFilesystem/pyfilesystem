@@ -151,15 +151,16 @@ class BrowseFrame(wx.Frame):
         info_frame = InfoFrame(path, self.fs.desc(path), info)
         info_frame.Show()
 
-def browse(fs):
 
+def browse(fs):
     app = wx.PySimpleApp()
     frame = BrowseFrame(fs)
     frame.Show()
     app.MainLoop()
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     from osfs import OSFS
     home_fs = OSFS("~/")
     browse(home_fs)
+
