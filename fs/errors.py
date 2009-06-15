@@ -4,6 +4,20 @@
 
 """
 
+import sys
+import errno
+
+try:
+    from functools import wraps
+except ImportError:
+    def wraps(func):
+        def decorator(wfunc):
+            wfunc.__name__ == func.__name__
+            wfunc.__doc__ == func.__doc__
+            wfunc.__module__ == func.__module__
+        return decorator
+
+
 class FSError(Exception):
     """Base exception class for the FS module."""
     default_message = "Unspecified error"
@@ -54,7 +68,11 @@ class RemoteConnectionError(OperationFailedError):
 
 class StorageSpaceError(OperationFailedError):
     """Exception raised when operations encounter storage space trouble."""
-    default_message = "Unable to %(opname)s: remote connection errror"
+    default_message = "Unable to %(opname)s: insufficient storage space"
+
+
+class PermissionDeniedError(OperationFailedError):
+    default_message = "Unable to %(opname)s: permission denied"
 
 
 
@@ -64,6 +82,7 @@ class ResourceError(FSError):
 
     def __init__(self,path,**kwds):
         self.path = path
+        self.opname = kwds.pop("opname",None)
         super(ResourceError,self).__init__(**kwds)
 
 
@@ -77,29 +96,9 @@ class ResourceNotFoundError(ResourceError):
     default_message = "Resource not found: %(path)s"
 
 
-class DirectoryNotFoundError(ResourceNotFoundError):
-    """Exception raised when a required directory is not found."""
-    default_message = "Directory not found: %(path)s"
-
-
-class FileNotFoundError(ResourceNotFoundError):
-    """Exception raised when a required file is not found."""
-    default_message = "File not found: %(path)s"
-
-
 class ResourceInvalidError(ResourceError):
     """Exception raised when a resource is the wrong type."""
     default_message = "Resource is invalid: %(path)s"
-
-
-class NotAFileError(ResourceError):
-    """Exception raised when a required file is not found."""
-    default_message = "That's not a file: %(path)s"
-
-
-class NotADirectoryError(ResourceError):
-    """Exception raised when a required file is not found."""
-    default_message = "That's not a directory: %(path)s"
 
 
 class DestinationExistsError(ResourceError):
@@ -120,4 +119,61 @@ class ParentDirectoryMissingError(ResourceError):
 class ResourceLockedError(ResourceError):
     """Exception raised when a resource can't be used because it is locked."""
     default_message = "Resource is locked: %(path)s"
+
+
+
+def convert_fs_errors(func):
+    """Function wrapper to convert FSError instances into OSErrors."""
+    @wraps(func)
+    def wrapper(*args,**kwds):
+        try:
+            return func(*args,**kwds)
+        except ResourceNotFoundError, e:
+            raise OSError(errno.ENOENT,str(e))
+        except ResourceInvalidError, e:
+            raise OSError(errno.EINVAL,str(e))
+        except PermissionDeniedError, e:
+            raise OSError(errno.EACCESS,str(e))
+        except DirectoryNotEmptyError, e:
+            raise OSError(errno.ENOTEMPTY,str(e))
+        except DestinationExistsError, e:
+            raise OSError(errno.EEXIST,str(e))
+        except StorageSpaceError, e:
+            raise OSError(errno.ENOSPC,str(e))
+        except RemoteConnectionError, e:
+            raise OSError(errno.ENONET,str(e))
+        except UnsupportedError, e:
+            raise OSError(errno.ENOSYS,str(e))
+        except FSError, e:
+            raise OSError(errno.EFAULT,str(e))
+    return wrapper
+
+
+def convert_os_errors(func):
+    """Function wrapper to convert OSError/IOError instances into FSErrors."""
+    opname = func.__name__
+    @wraps(func)
+    def wrapper(*args,**kwds):
+        try:
+            return func(*args,**kwds)
+        except (OSError,IOError), e:
+            if not hasattr(e,"errno") or not e.errno:
+                raise OperationFailedError(opname,details=e)
+            if e.errno == errno.ENOENT:
+                raise ResourceNotFoundError(e.filename,opname=opname,details=e)
+            if e.errno == errno.ENOTEMPTY:
+                raise DirectoryNotEmptyError(e.filename,opname=opname,details=e)
+            if e.errno == errno.EEXIST:
+                raise DestinationExistsError(e.filename,opname=opname,details=e)
+            if e.errno == 183: # some sort of win32 equivalent to EEXIST
+                raise DestinationExistsError(e.filename,opname=opname,details=e)
+            if e.errno == errno.ENOTDIR:
+                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+            if e.errno == errno.EISDIR:
+                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+            if e.errno == errno.EINVAL:
+                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+            raise OperationFailedError(opname,details=e)
+    return wrapper
+
 

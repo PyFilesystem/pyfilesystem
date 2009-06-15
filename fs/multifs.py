@@ -136,7 +136,7 @@ class MultiFS(FS):
                     fs_file = fs.open(path, mode, **kwargs)
                     return fs_file
 
-            raise FileNotFoundError(path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -188,7 +188,7 @@ class MultiFS(FS):
                 if fs.exists(path):
                     fs.remove(path)
                     return
-            raise FileNotFoundError(path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 
@@ -199,7 +199,7 @@ class MultiFS(FS):
                 if fs.isdir(path):
                     fs.removedir(path, recursive)
                     return
-            raise DirectoryNotFoundError(path)
+            raise ResourceNotFoundError(path)
         finally:
             self._lock.release()
 

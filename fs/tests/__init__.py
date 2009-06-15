@@ -447,6 +447,4 @@ class FSTestCases:
         self.fs.createfile("test1","hello world")
         fs2 = pickle.loads(pickle.dumps(self.fs))
         self.assert_(fs2.isfile("test1"))
-        if hasattr(fs2,"close"):
-            fs2.close()
 

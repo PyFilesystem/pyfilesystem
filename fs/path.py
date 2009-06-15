@@ -62,13 +62,12 @@ def iteratepath(path, numsplits=None):
 
 
 def abspath(path):
-    """Convert the given path to a normalized, absolute path.
+    """Convert the given path to an absolute path.
 
     Since FS objects have no concept of a 'current directory' this simply
     adds a leading '/' character if the path doesn't already have one.
 
     """
-    path = normpath(path)
     if not path:
         return "/"
     if path[0] != "/":
@@ -77,13 +76,12 @@ def abspath(path):
 
 
 def relpath(path):
-    """Convert the given path to a normalized, relative path.
+    """Convert the given path to a relative path.
 
     This is the inverse of abspath(), stripping a leading '/' from the
     path if it is present.
 
     """
-    path = normpath(path)
     while path and path[0] == "/":
         path = path[1:]
     return path

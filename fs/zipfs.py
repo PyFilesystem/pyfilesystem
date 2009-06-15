@@ -74,7 +74,7 @@ class ZipFS(FS):
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
         except IOError:
-            raise FileNotFoundError(str(zip_file), msg="Zip file does not exist: %(path)s")
+            raise ResourceNotFoundError(str(zip_file), msg="Zip file does not exist: %(path)s")
         self.zip_path = str(zip_file)
 
         self.temp_fs = None
@@ -132,7 +132,7 @@ class ZipFS(FS):
                 try:
                     contents = self.zf.read(path)
                 except KeyError:
-                    raise FileNotFoundError(path)
+                    raise ResourceNotFoundError(path)
                 return StringIO(contents)
 
             if 'w' in mode:
@@ -153,12 +153,12 @@ class ZipFS(FS):
         self._lock.acquire()
         try:
             if not self.exists(path):
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             path = normpath(path)
             try:
                 contents = self.zf.read(path)
             except KeyError:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             except RuntimeError:
                 raise OperationFailedError("read file", path=path, msg="Zip file must be oppened with 'r' or 'a' to read")
             return contents

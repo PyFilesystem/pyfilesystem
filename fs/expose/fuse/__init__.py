@@ -78,15 +78,10 @@ def handle_fs_errors(func):
     equivalent OSError.  It also makes the function return zero instead
     of None as an indication of successful execution.
     """
+    func = convert_fs_errors(func)
+    @wraps(func)
     def wrapper(*args,**kwds):
-        try:
-            res = func(*args,**kwds)
-        except ResourceNotFoundError, e:
-            raise OSError(errno.ENOENT,str(e))
-        except FSError, e:
-            raise OSError(errno.EFAULT,str(e))
-        except Exception, e:
-            raise
+        res = func(*args,**kwds)
         if res is None:
             return 0
         return res

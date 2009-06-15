@@ -36,11 +36,7 @@ from fs.path import *
 from fs.errors import *
 
 
-try:
-    from functools import wraps
-except ImportError:
-    def wraps(f):
-        return f
+from fs.errors import wraps
 
 
 # Default host key used by BaseSFTPServer
@@ -137,7 +133,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def canonicalize(self,path):
-        return abspath(path)
+        return abspath(normpath(path))
 
     def chattr(self,path,attr):
         return paramiko.SFTP_OP_UNSUPPORTED

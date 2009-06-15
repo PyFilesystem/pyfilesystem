@@ -21,13 +21,11 @@ class OSFS(FS):
 
     def __init__(self, root_path, dir_mode=0700, thread_synchronize=True):
         FS.__init__(self, thread_synchronize=thread_synchronize)
-
         expanded_path = normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(root_path))))
         if not os.path.exists(expanded_path):
-            raise DirectoryNotFoundError(expanded_path, msg="Root directory does not exist: %(path)s")
+            raise ResourceNotFoundError(expanded_path,msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(expanded_path):
-            raise InvalidResourceError(expanded_path, msg="Root path is not a directory: %(path)s")
-
+            raise ResourceInvalidError(expanded_path,msg="Root path is not a directory: %(path)s")
         self.root_path = normpath(os.path.abspath(expanded_path))
         self.dir_mode = dir_mode
 
@@ -38,40 +36,32 @@ class OSFS(FS):
         sys_path = os.path.join(self.root_path, relpath(path)).replace('/', os.sep)
         return sys_path
 
+    @convert_os_errors
     def open(self, path, mode="r", **kwargs):
         mode = filter(lambda c: c in "rwabt+",mode)
-        try:
-            f = open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
-        except IOError, e:
-            if e.errno == 2:
-                raise FileNotFoundError(path)
-            raise OperationFailedError("open file", details=e, msg=str(e))
+        return open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
 
-        return f
-
+    @convert_os_errors
     def exists(self, path):
         path = self.getsyspath(path)
         return os.path.exists(path)
 
+    @convert_os_errors
     def isdir(self, path):
         path = self.getsyspath(path)
         return os.path.isdir(path)
 
+    @convert_os_errors
     def isfile(self, path):
         path = self.getsyspath(path)
         return os.path.isfile(path)
 
+    @convert_os_errors
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        try:
-            paths = os.listdir(self.getsyspath(path))
-        except (OSError, IOError), e:
-            if e.errno == 2:
-                raise ResourceNotFoundError(path)
-            if e.errno in (20,22,):
-                raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
-            raise OperationFailedError("list directory", path=path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
+        paths = os.listdir(self.getsyspath(path))
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
+    @convert_os_errors
     def makedir(self, path, recursive=False, allow_recreate=False):
         sys_path = self.getsyspath(path)
         try:
@@ -87,22 +77,15 @@ class OSFS(FS):
                     raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
             elif e.errno == 2:
                 raise ParentDirectoryMissingError(path)
-            elif e.errno == 22:
-                raise ResourceInvalidError(path)
             else:
-                raise OperationFailedError("make directory",path=path,details=e)
+                raise
                 
+    @convert_os_errors
     def remove(self, path):
         sys_path = self.getsyspath(path)
-        try:
-            os.remove(sys_path)
-        except OSError, e:
-            if not self.exists(path):
-                raise ResourceNotFoundError(path)
-            if self.isdir(path):
-                raise ResourceInvalidError(path,msg="Cannot use remove() on a directory: %(path)s")
-            raise OperationFailedError("remove file", path=path, details=e)
+        os.remove(sys_path)
 
+    @convert_os_errors
     def removedir(self, path, recursive=False,force=False):
         sys_path = self.getsyspath(path)
         #  Don't remove the root directory of this FS
@@ -113,14 +96,7 @@ class OSFS(FS):
                 self.remove(path2)
             for path2 in self.listdir(path,absolute=True,dirs_only=True):
                 self.removedir(path2,force=True)
-        try:
-            os.rmdir(sys_path)
-        except OSError, e:
-            if self.isfile(path):
-                raise ResourceInvalidError(path,msg="Can't use removedir() on a file: %(path)s")
-            if self.listdir(path):
-                raise DirectoryNotEmptyError(path)
-            raise OperationFailedError("remove directory", path=path, details=e)
+        os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
         if recursive:
@@ -129,26 +105,21 @@ class OSFS(FS):
             except DirectoryNotEmptyError:
                 pass
 
+    @convert_os_errors
     def rename(self, src, dst):
         if not issamedir(src, dst):
             raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         path_src = self.getsyspath(src)
         path_dst = self.getsyspath(dst)
-        try:
-            os.rename(path_src, path_dst)
-        except OSError, e:
-            raise OperationFailedError("rename resource", path=src, details=e)
+        os.rename(path_src, path_dst)
 
+    @convert_os_errors
     def getinfo(self, path):
         sys_path = self.getsyspath(path)
-        try:
-            stats = os.stat(sys_path)
-        except OSError, e:
-            if e.errno == 2:
-                raise ResourceNotFoundError(path)
-            raise ResourceError(path, details=e)
+        stats = os.stat(sys_path)
         info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
         info['size'] = info['st_size']
+        #  TODO: this doesn't actually mean 'creation time' on unix
         ct = info.get('st_ctime', None)
         if ct is not None:
             info['created_time'] = datetime.datetime.fromtimestamp(ct)
@@ -160,43 +131,35 @@ class OSFS(FS):
             info['modified_time'] = datetime.datetime.fromtimestamp(at)
         return info
 
-
+    @convert_os_errors
     def getsize(self, path):
         sys_path = self.getsyspath(path)
-        try:
-            stats = os.stat(sys_path)
-        except OSError, e:
-            raise ResourceError(path, details=e)
+        stats = os.stat(sys_path)
         return stats.st_size
 
 
     #  Provide native xattr support if available
     if xattr:
+        @convert_os_errors
         def setxattr(self, path, key, value):
-            try:
-                xattr.xattr(self.getsyspath(path))[key]=value
-            except IOError, e:
-                raise OperationFailedError('set extended attribute', path=path, details=e)
+            xattr.xattr(self.getsyspath(path))[key]=value
 
+        @convert_os_errors
         def getxattr(self, path, key, default=None):
             try:
                 return xattr.xattr(self.getsyspath(path)).get(key)
             except KeyError:
                 return default
-            except IOError, e:
-                raise OperationFailedError('get extended attribute', path=path, details=e)
 
+        @convert_os_errors
         def delxattr(self, path, key):
             try:
                 del xattr.xattr(self.getsyspath(path))[key]
             except KeyError:
                 pass
-            except IOError, e:
-                raise OperationFailedError('delete extended attribute', path=path, details=e)
 
+        @convert_os_errors
         def listxattrs(self, path):
-            try:
-                return xattr.xattr(self.getsyspath(path)).keys()
-            except IOError, e:
-                raise OperationFailedError('list extended attributes', path=path, details=e)
+            return xattr.xattr(self.getsyspath(path)).keys()
+
 

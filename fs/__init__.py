@@ -17,10 +17,12 @@ implementations of this interface such as:
 __version__ = "0.1.1dev"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
-#  'base' imports * from 'path' and 'errors', so they'll
-#  be available here as well
+#  'base' imports * from 'path' and 'errors', so their contents
+#  will be available here as well.
 from base import *
 
+#  provide these by default so people cna be 'fs.path.basename' etc.
 import errors
 import path
+
 

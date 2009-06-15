@@ -172,7 +172,7 @@ class S3FS(FS):
 
     def _s3path(self,path):
         """Get the absolute path to a file stored in S3."""
-        path = relpath(path)
+        path = relpath(normpath(path))
         path = self._separator.join(iteratepath(path))
         s3path = self._prefix + path
         if s3path and s3path[-1] == self._separator:
@@ -235,7 +235,7 @@ class S3FS(FS):
         if k is None:
             # Create the file if it's missing
             if "w" not in mode and "a" not in mode:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             if not self.isdir(dirname(path)):
                 raise ParentDirectoryMissingError(path)
             k = self._sync_set_contents(s3path,"")
@@ -311,7 +311,7 @@ class S3FS(FS):
             if s3path != self._prefix:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="that's not a directory: %(path)s")
-                raise DirectoryNotFoundError(path)
+                raise ResourceNotFoundError(path)
         return self._listdir_helper(path,paths,wildcard,full,absolute,dirs_only,files_only)
 
     def _listdir_helper(self,path,paths,wildcard,full,absolute,dirs_only,files_only):
@@ -391,7 +391,7 @@ class S3FS(FS):
             if k.name.startswith(s3path + "/"):
                 raise ResourceInvalidError(path,msg="that's not a file: %(path)s")
         else:
-            raise FileNotFoundError(path)
+            raise ResourceNotFoundError(path)
         self._s3bukt.delete_key(s3path)
         k = self._s3bukt.get_key(s3path)
         while k:
@@ -419,7 +419,7 @@ class S3FS(FS):
         if not found:
             if self.isfile(path):
                 raise ResourceInvalidError(path,msg="removedir() called on a regular file: %(path)s")
-            raise DirectoryNotFoundError(path)
+            raise ResourceNotFoundError(path)
         self._s3bukt.delete_key(s3path)
         if recursive and path not in ("","/"):
             pdir = dirname(path)

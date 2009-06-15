@@ -52,7 +52,7 @@ class SFTPFS(FS):
             if not connection.is_authenticated():
                 connection.connect(**credentials)
             self.client = paramiko.SFTPClient.from_transport(connection)
-        self.root = abspath(root)
+        self.root = abspath(normpath(root))
 
     def __del__(self):
         self.close()
@@ -83,24 +83,21 @@ class SFTPFS(FS):
             self.client = None
 
     def _normpath(self,path):
-        npath = pathjoin(self.root,relpath(path))
+        npath = pathjoin(self.root,relpath(normpath(path)))
         if not isprefix(self.root,npath):
             raise PathError(path,msg="Path is outside root: %(path)s")
         return npath
 
+    @convert_os_errors
     def open(self,path,mode="r",bufsize=-1):
         npath = self._normpath(path)
-        try:
-            f = self.client.open(npath,mode,bufsize)
-        except IOError, e:
-            if getattr(e,"errno",None) == 2:
-                raise FileNotFoundError(path)
-            raise OperationFailedError("open file",path=path,details=e)
+        f = self.client.open(npath,mode,bufsize)
         if self.isdir(path):
             msg = "that's a directory: %(path)s"
             raise ResourceInvalidError(path,msg=msg)
         return f
 
+    @convert_os_errors
     def exists(self,path):
         npath = self._normpath(path)
         try:
@@ -108,10 +105,10 @@ class SFTPFS(FS):
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 return False
-            raise OperationFailedError("exists",path,details=e)
-        else:
-            return True
+            raise
+        return True
         
+    @convert_os_errors
     def isdir(self,path):
         npath = self._normpath(path)
         try:
@@ -119,9 +116,10 @@ class SFTPFS(FS):
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 return False
-            raise OperationFailedError("isdir",path,details=e)
+            raise
         return statinfo.S_ISDIR(stat.st_mode)
 
+    @convert_os_errors
     def isfile(self,path):
         npath = self._normpath(path)
         try:
@@ -129,9 +127,10 @@ class SFTPFS(FS):
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 return False
-            raise OperationFailedError("isfile",path,details=e)
+            raise
         return statinfo.S_ISREG(stat.st_mode)
 
+    @convert_os_errors
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         npath = self._normpath(path)
         try:
@@ -143,9 +142,10 @@ class SFTPFS(FS):
                 raise ResourceNotFoundError(path)
             elif self.isfile(path):
                 raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
-            raise OperationFailedError("list directory", path=path, details=e, msg="Unable to get directory listing: %(path)s - (%(details)s)")
+            raise
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
+    @convert_os_errors
     def makedir(self,path,recursive=False,allow_recreate=False):
         npath = self._normpath(path)
         try:
@@ -162,8 +162,8 @@ class SFTPFS(FS):
                     self.makedir(dirname(path),recursive=True)
                     self.makedir(path,allow_recreate=allow_recreate)
                 else:
-                    # Undetermined error
-                    raise OperationFailedError("make directory",path=path,details=e)
+                    # Undetermined error, let the decorator handle it
+                    raise 
             else:
                 # Destination exists
                 if statinfo.S_ISDIR(stat.st_mode):
@@ -172,17 +172,19 @@ class SFTPFS(FS):
                 else:
                     raise ResourceInvalidError(path,msg="Can't create directory, there's already a file of that name: %(path)s")
 
+    @convert_os_errors
     def remove(self,path):
         npath = self._normpath(path)
         try:
             self.client.remove(npath)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             elif self.isdir(path):
                 raise ResourceInvalidError(path,msg="Cannot use remove() on a directory: %(path)s")
-            raise OperationFailedError("remove file", path=path, details=e)
+            raise
 
+    @convert_os_errors
     def removedir(self,path,recursive=False,force=False):
         npath = self._normpath(path)
         if path in ("","/"):
@@ -199,16 +201,17 @@ class SFTPFS(FS):
             if getattr(e,"errno",None) == 2:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't use removedir() on a file: %(path)s")
-                raise DirectoryNotFoundError(path)
+                raise ResourceNotFoundError(path)
             elif self.listdir(path):
                 raise DirectoryNotEmptyError(path)
-            raise OperationFailedError("remove directory", path=path, details=e)
+            raise
         if recursive:
             try:
                 self.removedir(dirname(path),recursive=True)
             except DirectoryNotEmptyError:
                 pass
 
+    @convert_os_errors
     def rename(self,src,dst):
         if not issamedir(src, dst):
             raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
@@ -218,9 +221,10 @@ class SFTPFS(FS):
             self.client.rename(nsrc,ndst)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                raise FileNotFoundError(path)
-            raise OperationFailedError("rename resource", path=src, details=e)
+                raise ResourceNotFoundError(path)
+            raise
 
+    @convert_os_errors
     def move(self,src,dst,overwrite=False,chunk_size=16384):
         nsrc = self._normpath(src)
         ndst = self._normpath(dst)
@@ -230,13 +234,14 @@ class SFTPFS(FS):
             self.client.rename(nsrc,ndst)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             if self.exists(dst):
                 raise DestinationExistsError(dst)
             if not self.isdir(dirname(dst)):
                 raise ParentDirectoryMissingError(dst,msg="Destination directory does not exist: %(path)s")
-            raise OperationFailedError("move file", path=src, details=e)
+            raise
 
+    @convert_os_errors
     def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
         nsrc = self._normpath(src)
         ndst = self._normpath(dst)
@@ -246,19 +251,17 @@ class SFTPFS(FS):
             self.client.rename(nsrc,ndst)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                raise DirNotFoundError(path)
+                raise ResourceNotFoundError(path)
             if self.exists(dst):
                 raise DestinationExistsError(dst)
             if not self.isdir(dirname(dst)):
                 raise ParentDirectoryMissingError(dst,msg="Destination directory does not exist: %(path)s")
-            raise OperationFailedError("move directory", path=src, details=e)
+            raise
 
+    @convert_os_errors
     def getinfo(self, path):
         npath = self._normpath(path)
-        try:
-            stats = self.client.stat(npath)
-        except IOError, e:
-            raise ResourceError(path, details=e)
+        stats = self.client.stat(npath)
         info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
         info['size'] = info['st_size']
         ct = info.get('st_ctime', None)
@@ -272,12 +275,10 @@ class SFTPFS(FS):
             info['modified_time'] = datetime.datetime.fromtimestamp(at)
         return info
 
+    @convert_os_errors
     def getsize(self, path):
         npath = self._normpath(path)
-        try:
-            stats = self.client.stat(npath)
-        except OSError, e:
-            raise ResourceError(path, details=e)
+        stats = self.client.stat(npath)
         return stats.st_size
  
 

@@ -105,7 +105,7 @@ class MountFS(FS):
             fs, mount_path, delegate_path = self._delegate(path)
 
             if fs is None:
-                raise DirectoryNotFoundError(path)
+                raise ResourceNotFoundError(path)
 
             if fs is self:
                 if files_only:
@@ -128,9 +128,9 @@ class MountFS(FS):
                                    files_only=files_only)
                 if full or absolute:
                     if full:
-                        path = abspath(path)
+                        path = abspath(normpath(path))
                     else:
-                        path = relpath(path)
+                        path = relpath(normpath(path))
                     paths = [pathjoin(path, p) for p in paths]
 
                 return paths
@@ -161,7 +161,7 @@ class MountFS(FS):
             fs, mount_path, delegate_path = self._delegate(path)
 
             if fs is None:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
 
             return fs.open(delegate_path, mode, **kwargs)
 
@@ -193,7 +193,7 @@ class MountFS(FS):
             path = normpath(path)
             fs, mount_path, delegate_path = self._delegate(path)
             if fs is None:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
             if fs is self:
                 raise UnsupportedError("remove file", msg="Can only remove paths within a mounted dir")
             return fs.remove(delegate_path)
@@ -300,13 +300,13 @@ class MountFS(FS):
             fs, mount_path, delegate_path = self._delegate(path)
 
             if fs is None:
-                raise FileNotFoundError(path)
+                raise ResourceNotFoundError(path)
 
             if fs is self:
                 object = self.mount_tree.get(path, None)
 
                 if object is None or isinstance(object, dict):
-                    raise FileNotFoundError(path)
+                    raise ResourceNotFoundError(path)
 
                 size = self.mount_tree[path].info_callable(path).get("size", None)
                 return size

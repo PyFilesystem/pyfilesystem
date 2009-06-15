@@ -141,7 +141,7 @@ class RPCFS(FS):
                 data = self.proxy.get_contents(path).data
             except IOError:
                 if "w" not in mode and "a" not in mode:
-                    raise FileNotFoundError(path)
+                    raise ResourceNotFoundError(path)
                 if not self.isdir(dirname(path)):
                     raise ParentDirectoryMissingError(path)
                 self.proxy.set_contents(path,xmlrpclib.Binary(""))
