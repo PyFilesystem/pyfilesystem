@@ -227,7 +227,7 @@ def _operation_wrapper(func, *args, **kwargs):
     except OSError, e:
         return -(e.errno or EFAULT)
     except:
-        print_exc()
+        #print_exc()
         return -EFAULT
 
 _libfuse = CDLL(find_library("fuse"))

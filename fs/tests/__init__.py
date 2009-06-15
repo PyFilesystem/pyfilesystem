@@ -262,11 +262,9 @@ class FSTestCases:
         self.assert_(not check("a"))
 
         self.fs.makedir("a")
-        print self.fs.listdir("a")
         self.assertRaises(DestinationExistsError,self.fs.movedir,"copy of a","a")
         self.fs.movedir("copy of a","a",overwrite=True)
         self.assert_(not check("copy of a"))
-        print self.fs.listdir("a")
         self.assert_(check("a/1.txt"))
         self.assert_(check("a/2.txt"))
         self.assert_(check("a/3.txt"))

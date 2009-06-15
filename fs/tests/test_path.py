@@ -57,7 +57,6 @@ class TestPathFunctions(unittest.TestCase):
                     ("/", "") ]
 
         for path, result in tests:
-            print path, result
             self.assertEqual(fs.relpath(path), result)
 
     def test_abspath(self):
@@ -75,7 +74,6 @@ class TestPathFunctions(unittest.TestCase):
                     ("a/b/c/../d", ["a", "b", "d"]) ]
 
         for path, results in tests:
-            print repr(path), results
             for path_component, expected in zip(iteratepath(path), results):
                 self.assertEqual(path_component, expected)
 
