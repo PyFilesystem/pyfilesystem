@@ -69,7 +69,7 @@ Operations = fuse.Operations
 fuse_get_context = fuse.fuse_get_context
 
 STARTUP_TIME = time.time()
-
+NATIVE_ENCODING = sys.getfilesystemencoding()
 
 def handle_fs_errors(func):
     """Method decorator to report FS errors in the appropriate way.
@@ -220,7 +220,8 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def readdir(self,path,fh=None):
-        return ['.', '..'] + self.fs.listdir(path)
+        entries = [e.encode(NATIVE_ENCODING) for e in self.fs.listdir(path)]
+        return ['.', '..'] + entries
 
     @handle_fs_errors
     def readlink(self,path):
@@ -292,7 +293,7 @@ class FSOperations(Operations):
         return len(data)
 
 
-def mount(fs,path,foreground=False,ready_callback=None,**kwds):
+def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**kwds):
     """Mount the given FS at the given path, using FUSE.
 
     By default, this function spawns a new background process to manage the
@@ -313,12 +314,18 @@ def mount(fs,path,foreground=False,ready_callback=None,**kwds):
 
     """
     if foreground:
-        ops = FSOperations(fs,on_init=ready_callback)
-        return FUSE(ops,path,foreground=foreground,**kwds)
+        op = FSOperations(fs,on_init=ready_callback,on_destroy=unmount_callback)
+        return FUSE(op,path,foreground=foreground,**kwds)
     else:
         mp = MountProcess(fs,path,kwds)
         if ready_callback:
             ready_callback()
+        if unmount_callback:
+            orig_unmount = mp.unmount
+            def new_unmount():
+                orig_unmount()
+                unmount_callback()
+            mp.unmount = new_unmount
         return mp
 
 
@@ -395,13 +402,17 @@ class MountProcess(subprocess.Popen):
             self.terminate()
         else:
             os.kill(self.pid,signal.SIGTERM)
-        self.wait()
+        self.communicate()
 
     @staticmethod
     def _do_mount_nowait(data):
         """Perform the specified mount, return without waiting."""
         (fs,path,opts) = pickle.loads(data)
         opts["foreground"] = True
+        if hasattr(fs,"close"):
+            def unmount_callback():
+                fs.close()
+            opts["unmount_callback"] = unmount_callback
         mount(fs,path,*opts)
 
     @staticmethod
@@ -416,6 +427,10 @@ class MountProcess(subprocess.Popen):
             os.write(w,"S")
             os.close(w)
         opts["ready_callback"] = ready_callback
+        if hasattr(fs,"close"):
+            def unmount_callback():
+                fs.close()
+            opts["unmount_callback"] = unmount_callback
         try:
             mount(fs,path,**opts)
         except Exception:
