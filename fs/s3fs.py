@@ -21,9 +21,9 @@ from fs.base import *
 
 
 # Boto is not thread-safe, so we need to use a per-thread S3 connection.
-try:
-    from threading import local as thread_local
-except ImportError:
+if hasattr(threading,"local"):
+    thread_local = threading.local
+else:
     class thread_local(object):
         def __init__(self):
             self._map = {}
