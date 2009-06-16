@@ -55,7 +55,6 @@ import pickle
 from fs.base import flags_to_mode, threading
 from fs.errors import *
 from fs.path import *
-from fs.xattrs import ensure_xattrs
 
 import fuse_ctypes as fuse
 try:
@@ -126,7 +125,7 @@ class FSOperations(Operations):
     """FUSE Operations interface delegating all activities to an FS object."""
 
     def __init__(self,fs,on_init=None,on_destroy=None):
-        self.fs = ensure_xattrs(fs)
+        self.fs = fs
         self._on_init = on_init
         self._on_destroy = on_destroy
         self._fhmap = {}
@@ -184,8 +183,7 @@ class FSOperations(Operations):
         try:
             value = self.fs.getxattr(path,name)
         except AttributeError:
-            # TODO: raise ENODATA, avoid the need for ensure_xattrs
-            raise UnsupportedError("getxattr")
+            raise OSError(errno.ENODATA,"no attribute '%s'" % (name,))
         else:
             if value is None:
                 raise OSError(errno.ENODATA,"no attribute '%s'" % (name,))
@@ -200,7 +198,7 @@ class FSOperations(Operations):
         try:
             return self.fs.listxattrs(path)
         except AttributeError:
-            raise UnsupportedError("listxattr")
+            return []
 
     @handle_fs_errors
     def mkdir(self,path,mode):
