@@ -305,6 +305,7 @@ class FSTestCases:
         self.assert_(checkcontents("/c.txt"))
 
         makefile("foo/bar/a.txt","different contents")
+        self.assert_(checkcontents("foo/bar/a.txt","different contents"))
         self.assertRaises(DestinationExistsError,self.fs.copy,"foo/bar/a.txt","/c.txt")
         self.assert_(checkcontents("/c.txt"))
         self.fs.copy("foo/bar/a.txt","/c.txt",overwrite=True)
@@ -627,4 +628,19 @@ class ThreadingTestCases:
         self.assertEqual(self.fs.getcontents("copy of a/b/parrot.txt"),"pining for the fiords")
         self.assertEqual(self.fs.getcontents("copy of a/hello.txt"),"hello world")
         self.assertEqual(self.fs.getcontents("copy of a/guido.txt"),"is a space alien")
+
+    def test_multiple_overwrite(self):
+        contents = ["contents one","contents the second","number three"]
+        def thread1():
+            for i in xrange(30):
+                for c in contents:
+                    self.fs.setcontents("thread1.txt",c)
+                    self.assertEquals(self.fs.getcontents("thread1.txt"),c)
+        def thread2():
+            for i in xrange(30):
+                for c in contents:
+                    self.fs.setcontents("thread2.txt",c)
+                    self.assertEquals(self.fs.getcontents("thread2.txt"),c)
+        self._runThreads(thread1,thread2)
+
 
