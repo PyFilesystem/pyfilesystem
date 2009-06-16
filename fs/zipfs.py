@@ -119,59 +119,49 @@ class ZipFS(FS):
     def __del__(self):
         self.close()
 
+    @synchronize
     def open(self, path, mode="r", **kwargs):
+        path = normpath(path)
+        self.zip_path = path
 
-        self._lock.acquire()
-        try:
-            path = normpath(path)
-            self.zip_path = path
-
-            if 'r' in mode:
-                if self.zip_mode not in 'ra':
-                    raise OperationFailedError("open file", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
-                try:
-                    contents = self.zf.read(path)
-                except KeyError:
-                    raise ResourceNotFoundError(path)
-                return StringIO(contents)
-
-            if 'w' in mode:
-                dirname, filename = pathsplit(path)
-                if dirname:
-                    self.temp_fs.makedir(dirname, recursive=True, allow_recreate=True)
-
-                self._add_resource(path)
-                f = _TempWriteFile(self.temp_fs, path, self._on_write_close)
-
-                return f
-
-            raise ValueError("Mode must contain be 'r' or 'w'")
-        finally:
-            self._lock.release()
-
-    def getcontents(self, path):
-        self._lock.acquire()
-        try:
-            if not self.exists(path):
-                raise ResourceNotFoundError(path)
-            path = normpath(path)
+        if 'r' in mode:
+            if self.zip_mode not in 'ra':
+                raise OperationFailedError("open file", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
             try:
                 contents = self.zf.read(path)
             except KeyError:
                 raise ResourceNotFoundError(path)
-            except RuntimeError:
-                raise OperationFailedError("read file", path=path, msg="Zip file must be oppened with 'r' or 'a' to read")
-            return contents
-        finally:
-            self._lock.release()
+            return StringIO(contents)
 
-    def _on_write_close(self, filename):
-        self._lock.acquire()
+        if 'w' in mode:
+            dirname, filename = pathsplit(path)
+            if dirname:
+                self.temp_fs.makedir(dirname, recursive=True, allow_recreate=True)
+
+            self._add_resource(path)
+            f = _TempWriteFile(self.temp_fs, path, self._on_write_close)
+
+            return f
+
+        raise ValueError("Mode must contain be 'r' or 'w'")
+
+    @synchronize
+    def getcontents(self, path):
+        if not self.exists(path):
+            raise ResourceNotFoundError(path)
+        path = normpath(path)
         try:
-            sys_path = self.temp_fs.getsyspath(filename)
-            self.zf.write(sys_path, filename)
-        finally:
-            self._lock.release()
+            contents = self.zf.read(path)
+        except KeyError:
+            raise ResourceNotFoundError(path)
+        except RuntimeError:
+            raise OperationFailedError("read file", path=path, msg="Zip file must be oppened with 'r' or 'a' to read")
+        return contents
+
+    @synchronize
+    def _on_write_close(self, filename):
+        sys_path = self.temp_fs.getsyspath(filename)
+        self.zf.write(sys_path, filename)
 
     def desc(self, path):
         if self.isdir(path):
@@ -188,40 +178,34 @@ class ZipFS(FS):
     def exists(self, path):
         return self._path_fs.exists(path)
 
-    def makedir(self, dirname, mode=0777, recursive=False, allow_recreate=False):
-        self._lock.acquire()
-        try:
-            dirname = normpath(dirname)
-            if self.zip_mode not in "wa":
-                raise OperationFailedError("create directory", path=dirname, msg="Zip file must be opened for writing ('w') or appending ('a')")
-            if not dirname.endswith('/'):
-                dirname += '/'
-            self._add_resource(dirname)
-        finally:
-            self._lock.release()
+    @synchronize
+    def makedir(self, dirname, recursive=False, allow_recreate=False):
+        dirname = normpath(dirname)
+        if self.zip_mode not in "wa":
+            raise OperationFailedError("create directory", path=dirname, msg="Zip file must be opened for writing ('w') or appending ('a')")
+        if not dirname.endswith('/'):
+            dirname += '/'
+        self._add_resource(dirname)
 
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
 
         return self._path_fs.listdir(path, wildcard, full, absolute, dirs_only, files_only)
 
 
+    @synchronize
     def getinfo(self, path):
-        self._lock.acquire()
+        if not self.exists(path):
+            return ResourceNotFoundError(path)
+        path = normpath(path).lstrip('/')
         try:
-            if not self.exists(path):
-                return ResourceNotFoundError(path)
-            path = normpath(path).lstrip('/')
-            try:
-                zi = self.zf.getinfo(path)
-                zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
-            except KeyError:
-                zinfo = {'file_size':0}
-            info = {'size' : zinfo['file_size'] }
-            if 'date_time' in zinfo:
-                info['created_time'] = datetime.datetime(*zinfo['date_time'])
-            info.update(zinfo)
-            return info
-        finally:
-            self._lock.release()
+            zi = self.zf.getinfo(path)
+            zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
+        except KeyError:
+            zinfo = {'file_size':0}
+        info = {'size' : zinfo['file_size'] }
+        if 'date_time' in zinfo:
+            info['created_time'] = datetime.datetime(*zinfo['date_time'])
+        info.update(zinfo)
+        return info
 
 

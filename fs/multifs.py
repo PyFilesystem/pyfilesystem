@@ -19,12 +19,9 @@ class MultiFS(FS):
         self.fs_sequence = []
         self.fs_lookup =  {}
 
+    @synchronize
     def __str__(self):
-        self._lock.acquire()
-        try:
-            return "<MultiFS: %s>" % ", ".join(str(fs) for fs in self.fs_sequence)
-        finally:
-            self._lock.release()
+        return "<MultiFS: %s>" % ", ".join(str(fs) for fs in self.fs_sequence)
 
     __repr__ = __str__
 
@@ -32,6 +29,7 @@ class MultiFS(FS):
         return unicode(self.__str__())
 
 
+    @synchronize
     def addfs(self, name, fs):
         """Adds a filesystem to the MultiFS.
 
@@ -39,46 +37,32 @@ class MultiFS(FS):
         fs -- The filesystem to add
 
         """
-        self._lock.acquire()
-        try:
-            if name in self.fs_lookup:
-                raise ValueError("Name already exists.")
+        if name in self.fs_lookup:
+            raise ValueError("Name already exists.")
 
-            self.fs_sequence.append(fs)
-            self.fs_lookup[name] = fs
-        finally:
-            self._lock.release()
+        self.fs_sequence.append(fs)
+        self.fs_lookup[name] = fs
 
+    @synchronize
     def removefs(self, name):
         """Removes a filesystem from the sequence.
 
         name -- The name of the filesystem, as used in addfs
 
         """
-        self._lock.acquire()
-        try:
-            if name not in self.fs_lookup:
-                raise ValueError("No filesystem called '%s'"%name)
-            fs = self.fs_lookup[name]
-            self.fs_sequence.remove(fs)
-            del self.fs_lookup[name]
-        finally:
-            self._lock.release()
+        if name not in self.fs_lookup:
+            raise ValueError("No filesystem called '%s'"%name)
+        fs = self.fs_lookup[name]
+        self.fs_sequence.remove(fs)
+        del self.fs_lookup[name]
 
+    @synchronize
     def __getitem__(self, name):
-        self._lock.acquire()
-        try:
-            return self.fs_lookup[name]
-        finally:
-            self._lock.release()
+        return self.fs_lookup[name]
 
+    @synchronize
     def __iter__(self):
-        self._lock.acquire()
-        try:
-            return iter(self.fs_sequence[:])
-        finally:
-            self._lock.release()
-
+        return iter(self.fs_sequence[:])
 
     def _delegate_search(self, path):
         for fs in self:
@@ -86,6 +70,7 @@ class MultiFS(FS):
                 return fs
         return None
 
+    @synchronize
     def which(self, path):
         """Retrieves the filesystem that a given path would delegate to.
         Returns a tuple of the filesystem's name and the filesystem object itself.
@@ -93,137 +78,98 @@ class MultiFS(FS):
         path -- A path in MultiFS
 
         """
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.exists(path):
-                    for fs_name, fs_object in self.fs_lookup.iteritems():
-                        if fs is fs_object:
-                            return fs_name, fs
-            raise ResourceNotFoundError(path, msg="Path does not map to any filesystem: %(path)s")
-        finally:
-            self._lock.release()
+        for fs in self:
+            if fs.exists(path):
+                for fs_name, fs_object in self.fs_lookup.iteritems():
+                    if fs is fs_object:
+                        return fs_name, fs
+        raise ResourceNotFoundError(path, msg="Path does not map to any filesystem: %(path)s")
 
+    @synchronize
     def getsyspath(self, path, allow_none=False):
-        self._lock.acquire()
-        try:
-            fs = self._delegate_search(path)
-            if fs is not None:
-                return fs.getsyspath(path, allow_none=allow_none)
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        fs = self._delegate_search(path)
+        if fs is not None:
+            return fs.getsyspath(path, allow_none=allow_none)
+        raise ResourceNotFoundError(path)
 
+    @synchronize
     def desc(self, path):
-        self._lock.acquire()
-        try:
-            if not self.exists(path):
-                raise ResourceNotFoundError(path)
+        if not self.exists(path):
+            raise ResourceNotFoundError(path)
 
-            name, fs = self.which(path)
-            if name is None:
-                return ""
-            return "%s, on %s (%s)" % (fs.desc(path), name, fs)
-        finally:
-            self._lock.release()
+        name, fs = self.which(path)
+        if name is None:
+            return ""
+        return "%s, on %s (%s)" % (fs.desc(path), name, fs)
 
-
+    @synchronize
     def open(self, path, mode="r",**kwargs):
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.exists(path):
-                    fs_file = fs.open(path, mode, **kwargs)
-                    return fs_file
+        for fs in self:
+            if fs.exists(path):
+                fs_file = fs.open(path, mode, **kwargs)
+                return fs_file
 
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        raise ResourceNotFoundError(path)
 
+    @synchronize
     def exists(self, path):
-        self._lock.acquire()
-        try:
-            return self._delegate_search(path) is not None
-        finally:
-            self._lock.release()
+        return self._delegate_search(path) is not None
 
+    @synchronize
     def isdir(self, path):
-        self._lock.acquire()
-        try:
-            fs = self._delegate_search(path)
-            if fs is not None:
-                return fs.isdir(path)
-            return False
-        finally:
-            self._lock.release()
+        fs = self._delegate_search(path)
+        if fs is not None:
+            return fs.isdir(path)
+        return False
 
+    @synchronize
     def isfile(self, path):
-        self._lock.acquire()
-        try:
-            fs = self._delegate_search(path)
-            if fs is not None:
-                return fs.isfile(path)
-            return False
-        finally:
-            self._lock.release()
+        fs = self._delegate_search(path)
+        if fs is not None:
+            return fs.isfile(path)
+        return False
 
+    @synchronize
     def listdir(self, path="./", *args, **kwargs):
-        self._lock.acquire()
-        try:
-            paths = []
-            for fs in self:
-                try:
-                    paths += fs.listdir(path, *args, **kwargs)
-                except FSError, e:
-                    pass
+        paths = []
+        for fs in self:
+            try:
+                paths += fs.listdir(path, *args, **kwargs)
+            except FSError, e:
+                pass
 
-            return list(set(paths))
-        finally:
-            self._lock.release()
+        return list(set(paths))
 
+    @synchronize
     def remove(self, path):
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.exists(path):
-                    fs.remove(path)
-                    return
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        for fs in self:
+            if fs.exists(path):
+                fs.remove(path)
+                return
+        raise ResourceNotFoundError(path)
 
+    @synchronize
     def removedir(self, path, recursive=False):
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.isdir(path):
-                    fs.removedir(path, recursive)
-                    return
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        for fs in self:
+            if fs.isdir(path):
+                fs.removedir(path, recursive)
+                return
+        raise ResourceNotFoundError(path)
 
+    @synchronize
     def rename(self, src, dst):
         if not issamedir(src, dst):
             raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.exists(src):
-                    fs.rename(src, dst)
-                    return
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        for fs in self:
+            if fs.exists(src):
+                fs.rename(src, dst)
+                return
+        raise ResourceNotFoundError(path)
 
+    @synchronize
     def getinfo(self, path):
-        self._lock.acquire()
-        try:
-            for fs in self:
-                if fs.exists(path):
-                    return fs.getinfo(path)
-
-            raise ResourceNotFoundError(path)
-        finally:
-            self._lock.release()
+        for fs in self:
+            if fs.exists(path):
+                return fs.getinfo(path)
+        raise ResourceNotFoundError(path)
 
