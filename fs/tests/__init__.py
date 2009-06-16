@@ -43,6 +43,8 @@ class FSTestCases:
     def test_root_dir(self):
         self.assertTrue(self.fs.isdir(""))
         self.assertTrue(self.fs.isdir("/"))
+        self.assertTrue(self.fs.getinfo(""))
+        self.assertTrue(self.fs.getinfo("/"))
 
     def test_debug(self):
         str(self.fs)
@@ -327,7 +329,7 @@ class FSTestCases:
         makefile("a/3.txt")
         self.fs.makedir("a/foo/bar", recursive=True)
         makefile("a/foo/bar/baz.txt")
-
+ 
         self.fs.copydir("a", "copy of a")
         self.assert_(check("copy of a/1.txt"))
         self.assert_(check("copy of a/2.txt"))
@@ -458,8 +460,16 @@ class FSTestCases:
 class ThreadingTestCases:
     """Testcases for thread-safety of FS implementations."""
 
+    _ThreadingTestCasesLock = threading.RLock()
+
     def _yield(self):
         time.sleep(0.01)
+
+    def _lock(self):
+        self._ThreadingTestCasesLock.acquire()
+
+    def _unlock(self):
+        self._ThreadingTestCasesLock.release()
 
     def _makeThread(self,func,errors):
         def runThread():
@@ -532,6 +542,7 @@ class ThreadingTestCases:
         class RunFSTestCases(unittest.TestCase,FSTestCases):
             """Run all FSTestCases against a subdir of self.fs"""
             def __init__(this,subdir):
+                this.subdir = subdir
                 for meth in dir(this):
                     if not meth.startswith("test_"):
                         continue
@@ -543,6 +554,8 @@ class ThreadingTestCases:
                     this.fs = self.fs.opendir(subdir)
                     self._yield()
                     getattr(this,meth)()
+            def check(this,p):
+                return self.check(pathjoin(this.subdir,relpath(p)))
         def thread1():
             RunFSTestCases("thread1")
         def thread2():
@@ -588,7 +601,7 @@ class ThreadingTestCases:
         self._runThreads(makedir,removedir)
         if self.fs.isdir("testdir"):
             self.assertEquals(len(errors),1)
-            self.assertTrue(isinstance(errors[0]),ResourceNotFoundError)
+            self.assertTrue(isinstance(errors[0],ResourceNotFoundError))
             self.fs.removedir("testdir")
         else:
             self.assertEquals(len(errors),0)
