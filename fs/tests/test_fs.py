@@ -4,11 +4,12 @@
 
 """
 
-from fs.tests import FSTestCases
+from fs.tests import FSTestCases, ThreadingTestCases
 
 import unittest
 
 import os
+import sys
 import shutil
 import tempfile
 
@@ -16,9 +17,10 @@ from fs.path import *
 
 
 from fs import osfs
-class TestOSFS(unittest.TestCase,FSTestCases):
+class TestOSFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
+        sys.setcheckinterval(1)
         self.temp_dir = tempfile.mkdtemp("fstest")
         self.fs = osfs.OSFS(self.temp_dir)
 
@@ -30,9 +32,10 @@ class TestOSFS(unittest.TestCase,FSTestCases):
 
 
 
-class TestSubFS(unittest.TestCase,FSTestCases):
+class TestSubFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
+        sys.setcheckinterval(1)
         self.temp_dir = tempfile.mkdtemp("fstest")
         self.parent_fs = osfs.OSFS(self.temp_dir)
         self.parent_fs.makedir("foo/bar", recursive=True)
@@ -48,16 +51,18 @@ class TestSubFS(unittest.TestCase,FSTestCases):
 
 
 from fs import memoryfs
-class TestMemoryFS(unittest.TestCase,FSTestCases):
+class TestMemoryFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
+        sys.setcheckinterval(1)
         self.fs = memoryfs.MemoryFS()
 
 
 from fs import mountfs
-class TestMountFS(unittest.TestCase,FSTestCases):
+class TestMountFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
+        sys.setcheckinterval(1)
         self.mount_fs = mountfs.MountFS()
         self.mem_fs = memoryfs.MemoryFS()
         self.mount_fs.mountdir("mounted/memfs", self.mem_fs)

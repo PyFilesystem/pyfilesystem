@@ -13,8 +13,15 @@ logging.basicConfig(level=logging.ERROR,stream=sys.stdout)
 
 from fs.base import *
 
+import unittest
 import os, os.path
 import pickle
+
+import time
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
 
 
 class FSTestCases:
@@ -445,4 +452,165 @@ class FSTestCases:
         self.fs.createfile("test1","hello world")
         fs2 = pickle.loads(pickle.dumps(self.fs))
         self.assert_(fs2.isfile("test1"))
+
+
+
+class ThreadingTestCases:
+    """Testcases for thread-safety of FS implementations."""
+
+    def _yield(self):
+        time.sleep(0.01)
+
+    def _makeThread(self,func,errors):
+        def runThread():
+            try:
+                func()
+            except Exception:
+                errors.append(sys.exc_info())
+        return threading.Thread(target=runThread)
+
+    def _runThreads(self,*funcs):
+        errors = []
+        threads = [self._makeThread(f,errors) for f in funcs]
+        for t in threads:
+            t.start() 
+        for t in threads:
+            t.join() 
+        for (c,e,t) in errors:
+            raise c,e,t
+
+    def test_setcontents(self):
+        def setcontents(name,contents):
+            f = self.fs.open(name,"w")
+            self._yield()
+            try:
+                f.write(contents)
+                self._yield()
+            finally:
+                f.close()
+        def thread1():
+            c = "thread1 was 'ere"
+            setcontents("thread1.txt",c)
+            self.assertEquals(self.fs.getcontents("thread1.txt"),c)
+        def thread2():
+            c = "thread2 was 'ere"
+            setcontents("thread2.txt",c)
+            self.assertEquals(self.fs.getcontents("thread2.txt"),c)
+        self._runThreads(thread1,thread2)
+
+    def test_setcontents_samefile(self):
+        def setcontents(name,contents):
+            f = self.fs.open(name,"w")
+            self._yield()
+            try:
+                f.write(contents)
+                self._yield()
+            finally:
+                f.close()
+        def thread1():
+            c = "thread1 was 'ere"
+            setcontents("threads.txt",c)
+            self._yield()
+            self.assertEquals(self.fs.listdir("/"),["threads.txt"])
+        def thread2():
+            c = "thread2 was 'ere"
+            setcontents("threads.txt",c)
+            self._yield()
+            self.assertEquals(self.fs.listdir("/"),["threads.txt"])
+        def thread3():
+            c = "thread3 was 'ere"
+            setcontents("threads.txt",c)
+            self._yield()
+            self.assertEquals(self.fs.listdir("/"),["threads.txt"])
+        try:
+            self._runThreads(thread1,thread2,thread3)
+        except ResourceLockedError:
+            # that's ok, some platforms don't support concurrent writes
+            pass
+
+    def test_FSTestCases_in_separate_dirs(self):
+        class RunFSTestCases(unittest.TestCase,FSTestCases):
+            """Run all FSTestCases against a subdir of self.fs"""
+            def __init__(this,subdir):
+                for meth in dir(this):
+                    if not meth.startswith("test_"):
+                        continue
+                    if self.fs.exists(subdir):
+                        self.fs.removedir(subdir,force=True)
+                    self.fs.makedir(subdir)
+                    this.fs = self.fs.opendir(subdir)
+                    self._yield()
+                    getattr(this,meth)()
+        def thread1():
+            RunFSTestCases("thread1")
+        def thread2():
+            RunFSTestCases("thread2")
+        def thread3():
+            RunFSTestCases("thread3")
+        self._runThreads(thread1,thread2,thread3)
+
+    def test_makedir_winner(self):
+        errors = []
+        def makedir():
+            try:
+                self.fs.makedir("testdir")
+            except DestinationExistsError, e:
+                errors.append(e)
+        def makedir_noerror():
+            try:
+                self.fs.makedir("testdir",allow_recreate=True)
+            except DestinationExistsError, e:
+                errors.append(e)
+        def removedir():
+            try:
+                self.fs.removedir("testdir")
+            except ResourceNotFoundError, e:
+                errors.append(e)
+        # One thread should succeed, one should error
+        self._runThreads(makedir,makedir)
+        self.assertEquals(len(errors),1)
+        self.fs.removedir("testdir")
+        # One thread should succeed, two should error
+        errors = []
+        self._runThreads(makedir,makedir,makedir)
+        self.assertEquals(len(errors),2)
+        self.fs.removedir("testdir")
+        # All threads should succeed
+        errors = []
+        self._runThreads(makedir_noerror,makedir_noerror,makedir_noerror)
+        self.assertEquals(len(errors),0)
+        self.assertTrue(self.fs.isdir("testdir"))
+        self.fs.removedir("testdir")
+        # makedir() can beat removedir() and vice-versa
+        errors = []
+        self._runThreads(makedir,removedir)
+        if self.fs.isdir("testdir"):
+            self.assertEquals(len(errors),1)
+            self.assertTrue(isinstance(errors[0]),ResourceNotFoundError)
+            self.fs.removedir("testdir")
+        else:
+            self.assertEquals(len(errors),0)
+
+
+    def test_concurrent_copydir(self):
+        self.fs.makedir("a")
+        self.fs.makedir("a/b")
+        self.fs.setcontents("a/hello.txt","hello world")
+        self.fs.setcontents("a/guido.txt","is a space alien")
+        self.fs.setcontents("a/b/parrot.txt","pining for the fiords")
+        def copydir():
+            self._yield()
+            self.fs.copydir("a","copy of a")
+        def copydir_overwrite():
+            self._yield()
+            self.fs.copydir("a","copy of a",overwrite=True)
+        # This should error out since we're not overwriting
+        self.assertRaises(DestinationExistsError,self._runThreads,copydir,copydir)
+        # This should run to completion and give a valid state
+        self._runThreads(copydir_overwrite,copydir_overwrite)
+        self.assertTrue(self.fs.isdir("copy of a"))
+        self.assertTrue(self.fs.isdir("copy of a/b"))
+        self.assertEqual(self.fs.getcontents("copy of a/b/parrot.txt"),"pining for the fiords")
+        self.assertEqual(self.fs.getcontents("copy of a/hello.txt"),"hello world")
+        self.assertEqual(self.fs.getcontents("copy of a/guido.txt"),"is a space alien")
 
