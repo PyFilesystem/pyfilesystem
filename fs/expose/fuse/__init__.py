@@ -52,7 +52,7 @@ import stat as statinfo
 import subprocess
 import pickle
 
-from fs.base import flags_to_mode
+from fs.base import flags_to_mode, threading
 from fs.errors import *
 from fs.path import *
 from fs.xattrs import ensure_xattrs
@@ -70,6 +70,7 @@ fuse_get_context = fuse.fuse_get_context
 
 STARTUP_TIME = time.time()
 NATIVE_ENCODING = sys.getfilesystemencoding()
+
 
 def handle_fs_errors(func):
     """Method decorator to report FS errors in the appropriate way.
@@ -126,9 +127,11 @@ class FSOperations(Operations):
 
     def __init__(self,fs,on_init=None,on_destroy=None):
         self.fs = ensure_xattrs(fs)
-        self._fhmap = {}
         self._on_init = on_init
         self._on_destroy = on_destroy
+        self._fhmap = {}
+        self._fh_lock = threading.Lock()
+        self._fh_next = 1
 
     def _get_file(self,fh):
         try:
@@ -137,12 +140,14 @@ class FSOperations(Operations):
             raise FSError("invalid file handle")
 
     def _reg_file(self,f):
-        # TODO: a better handle-generation routine
-        fh = int(time.time()*1000)
-        self._fhmap.setdefault(fh,f)
-        if self._fhmap[fh] is not f:
-            return self._reg_file(f)
-        return fh
+        self._fh_lock.acquire()
+        try:
+            fh = self._fh_next
+            self._fh_next += 1
+            self._fhmap[fh] = f
+            return fh
+        finally:
+            self._fh_lock.release()
 
     def init(self,conn):
         if self._on_init:
@@ -179,6 +184,7 @@ class FSOperations(Operations):
         try:
             value = self.fs.getxattr(path,name)
         except AttributeError:
+            # TODO: raise ENODATA, avoid the need for ensure_xattrs
             raise UnsupportedError("getxattr")
         else:
             if value is None:
@@ -274,7 +280,7 @@ class FSOperations(Operations):
             else:
                 f = self._get_file(fh)
             if not hasattr(f,"truncate"):
-                raise UnsupportedError("trunace")
+                raise UnsupportedError("truncate")
             f.truncate(length)
 
     @handle_fs_errors
