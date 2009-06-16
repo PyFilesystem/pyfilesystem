@@ -11,14 +11,14 @@ import socket
 import threading
 import time
 
-from fs.tests import FSTestCases
+from fs.tests import FSTestCases, ThreadingTestCases
 from fs.tempfs import TempFS
 from fs.osfs import OSFS
 from fs.path import *
 
 from fs import rpcfs
 from fs.expose.xmlrpc import RPCFSServer
-class TestRPCFS(unittest.TestCase,FSTestCases):
+class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def makeServer(self,fs,addr):
         return RPCFSServer(fs,addr,logRequests=False)
@@ -99,7 +99,7 @@ class TestSFTPFS(TestRPCFS):
 
 from fs.expose import fuse
 from fs.osfs import OSFS
-class TestFUSE(unittest.TestCase,FSTestCases):
+class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
         self.temp_fs = TempFS()

@@ -76,7 +76,7 @@ class TestMountFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
 
 from fs import tempfs
-class TestTempFS(unittest.TestCase,FSTestCases):
+class TestTempFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
         self.fs = tempfs.TempFS()
@@ -89,5 +89,4 @@ class TestTempFS(unittest.TestCase,FSTestCases):
     def check(self, p):
         td = self.fs._temp_dir
         return os.path.exists(os.path.join(td, relpath(p)))
-
 

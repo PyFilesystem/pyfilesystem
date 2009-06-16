@@ -535,6 +535,8 @@ class ThreadingTestCases:
                 for meth in dir(this):
                     if not meth.startswith("test_"):
                         continue
+                    if meth == "test_pickling":
+                        continue
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
                     self.fs.makedir(subdir)
@@ -590,7 +592,6 @@ class ThreadingTestCases:
             self.fs.removedir("testdir")
         else:
             self.assertEquals(len(errors),0)
-
 
     def test_concurrent_copydir(self):
         self.fs.makedir("a")
