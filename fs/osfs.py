@@ -90,9 +90,15 @@ class OSFS(FS):
         sys_path = self.getsyspath(path)
         if force:
             for path2 in self.listdir(path,absolute=True,files_only=True):
-                self.remove(path2)
+                try:
+                    self.remove(path2)
+                except ResourceNotFoundError:
+                    pass
             for path2 in self.listdir(path,absolute=True,dirs_only=True):
-                self.removedir(path2,force=True)
+                try:
+                    self.removedir(path2,force=True)
+                except ResourceNotFoundError:
+                    pass
         #  Don't remove the root directory of this FS
         if path in ("","/"):
             return
