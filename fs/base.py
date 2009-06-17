@@ -517,7 +517,14 @@ class FS(object):
 
     @convert_os_errors
     def _shutil_copyfile(self,src_syspath,dst_syspath):
-        shutil.copyfile(src_syspath,dst_syspath)
+        try:
+            shutil.copyfile(src_syspath,dst_syspath)
+        except IOError, e:
+            #  shutil reports ENOENT when a parent directory is missing
+            if getattr(e,"errno",None) == 2:
+                if not os.path.exists(dirname(dst_syspath)):
+                    raise ParentDirectoryMissingError(dst_syspath)
+            raise
 
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         """Moves a file from one location to another.
