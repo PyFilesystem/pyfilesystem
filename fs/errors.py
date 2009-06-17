@@ -7,6 +7,8 @@
 import sys
 import errno
 
+from fs.path import *
+
 try:
     from functools import wraps
 except ImportError:
@@ -153,26 +155,31 @@ def convert_os_errors(func):
     """Function wrapper to convert OSError/IOError instances into FSErrors."""
     opname = func.__name__
     @wraps(func)
-    def wrapper(*args,**kwds):
+    def wrapper(self,*args,**kwds):
         try:
-            return func(*args,**kwds)
+            return func(self,*args,**kwds)
         except (OSError,IOError), e:
+            path = getattr(e,"filename",None)
+            if path and path[0] == "/" and hasattr(self,"root_path"):
+                path = normpath(path)
+                if isprefix(self.root_path,path):
+                    path = path[len(self.root_path):]
             if not hasattr(e,"errno") or not e.errno:
                 raise OperationFailedError(opname,details=e)
             if e.errno == errno.ENOENT:
-                raise ResourceNotFoundError(e.filename,opname=opname,details=e)
+                raise ResourceNotFoundError(path,opname=opname,details=e)
             if e.errno == errno.ENOTEMPTY:
-                raise DirectoryNotEmptyError(e.filename,opname=opname,details=e)
+                raise DirectoryNotEmptyError(path,opname=opname,details=e)
             if e.errno == errno.EEXIST:
-                raise DestinationExistsError(e.filename,opname=opname,details=e)
+                raise DestinationExistsError(path,opname=opname,details=e)
             if e.errno == 183: # some sort of win32 equivalent to EEXIST
-                raise DestinationExistsError(e.filename,opname=opname,details=e)
+                raise DestinationExistsError(path,opname=opname,details=e)
             if e.errno == errno.ENOTDIR:
-                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e)
             if e.errno == errno.EISDIR:
-                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e)
             if e.errno == errno.EINVAL:
-                raise ResourceInvalidError(e.filename,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e)
             raise OperationFailedError(opname,details=e)
     return wrapper
 

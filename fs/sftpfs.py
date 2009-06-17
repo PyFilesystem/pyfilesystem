@@ -40,7 +40,7 @@ class SFTPFS(FS):
     class in the paramiko module.
     """
 
-    def __init__(self,connection,root="/",**credentials):
+    def __init__(self,connection,root_path="/",**credentials):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
@@ -52,7 +52,7 @@ class SFTPFS(FS):
             * a paramiko.Transport instance
             * a paramiko.Channel instance in "sftp" mode
 
-        The kwd argument 'root' specifies the root directory on the remote
+        The kwd argument 'root_path' specifies the root directory on the remote
         machine - access to files outsite this root wil be prevented. Any
         other keyword arguments are assumed to be credentials to be used when
         connecting the transport.
@@ -71,7 +71,7 @@ class SFTPFS(FS):
             if not connection.is_authenticated():
                 connection.connect(**credentials)
             self._transport = connection
-        self.root = abspath(normpath(root))
+        self.root_path = abspath(normpath(root_path))
 
     def __del__(self):
         self.close()
@@ -111,8 +111,8 @@ class SFTPFS(FS):
                 self._transport.close()
 
     def _normpath(self,path):
-        npath = pathjoin(self.root,relpath(normpath(path)))
-        if not isprefix(self.root,npath):
+        npath = pathjoin(self.root_path,relpath(normpath(path)))
+        if not isprefix(self.root_path,npath):
             raise PathError(path,msg="Path is outside root: %(path)s")
         return npath
 
