@@ -43,8 +43,9 @@ class FSTestCases:
     def test_root_dir(self):
         self.assertTrue(self.fs.isdir(""))
         self.assertTrue(self.fs.isdir("/"))
-        self.assertTrue(self.fs.getinfo(""))
-        self.assertTrue(self.fs.getinfo("/"))
+        # These may be false (e.g. empty dict) but mustn't raise errors
+        self.fs.getinfo("")
+        self.fs.getinfo("/")
 
     def test_debug(self):
         str(self.fs)
