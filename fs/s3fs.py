@@ -53,6 +53,7 @@ class RemoteFileBuffer(object):
         self.fs = fs
         self.path = path
         self.mode = mode
+        self.closed = False
 
     def __del__(self):
         if not self.closed:
@@ -86,6 +87,7 @@ class RemoteFileBuffer(object):
             self.file.seek(pos)
 
     def close(self):
+        self.closed = True
         if "w" in self.mode or "a" in self.mode or "+" in self.mode:
             self.file.seek(0)
             self.fs.setcontents(self.path,self.file)
