@@ -497,7 +497,7 @@ class FS(object):
         dst_syspath = self.getsyspath(dst, allow_none=True)
 
         if src_syspath is not None and dst_syspath is not None:
-            shutil.copyfile(src_syspath, dst_syspath)
+            self._shutil_copyfile(src_syspath, dst_syspath)
         else:
             src_file, dst_file = None, None
             try:
@@ -515,6 +515,9 @@ class FS(object):
                 if dst_file is not None:
                     dst_file.close()
 
+    @convert_os_errors
+    def _shutil_copyfile(self,src_syspath,dst_syspath):
+        shutil.copyfile(src_syspath,dst_syspath)
 
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         """Moves a file from one location to another.
