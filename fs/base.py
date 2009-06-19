@@ -594,7 +594,7 @@ class FS(object):
         else:
             movefile = self.move
 
-        self.makedir(dst, allow_recreate=True)
+        self.makedir(dst, allow_recreate=overwrite)
         for dirname, filenames in self.walk(src, search="depth"):
 
             dst_dirname = relpath(dirname[len(src):])
@@ -624,9 +624,6 @@ class FS(object):
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
-        if not overwrite and self.exists(dst):
-            raise DestinationExistsError(dst)
-
         def copyfile_noerrors(src, dst, overwrite):
             try:
                 return self.copy(src, dst, overwrite=overwrite)
@@ -638,7 +635,7 @@ class FS(object):
             copyfile = self.copy
 
         copyfile = self.copy
-        self.makedir(dst, allow_recreate=True)
+        self.makedir(dst, allow_recreate=overwrite)
         for dirname, filenames in self.walk(src):
 
             dst_dirname = relpath(dirname[len(src):])
