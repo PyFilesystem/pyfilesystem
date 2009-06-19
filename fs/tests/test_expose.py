@@ -112,7 +112,13 @@ class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def tearDown(self):
         self.mount_proc.unmount()
-        self.temp_fs.close()
+        try:
+            self.temp_fs.close()
+        except OSError:
+            # Sometimes FUSE hangs onto the mountpoint if mount_proc is
+            # forcibly killed.  Shell out to fusermount to make sure.
+            fuse.unmount(self.mount_point)
+            self.temp_fs.close()
 
     def check(self,p):
         return self.mounted_fs.exists(p)

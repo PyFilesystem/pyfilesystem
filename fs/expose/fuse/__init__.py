@@ -380,6 +380,8 @@ class MountProcess(subprocess.Popen):
     #  just copy the relevant bits of the Popen interface.  For now, this
     #  spawn-a-new-interpreter solution is the easiest to get up and running.
 
+    unmount_timeout = 5
+
     def __init__(self,fs,path,fuse_opts={},nowait=False,**kwds):
         self.path = path
         if nowait or kwds.get("close_fds",False):
@@ -402,11 +404,21 @@ class MountProcess(subprocess.Popen):
 
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""
-        if hasattr(self,"terminate"):
-            self.terminate()
-        else:
+        self.terminate()
+        tmr = threading.Timer(self.unmount_timeout,self.kill)
+        tmr.start()
+        self.wait()
+        tmr.cancel()
+
+    if not hasattr(subprocess.Popen,"terminate"):
+        def terminate(self):
+            """Gracefully terminate the subprocess."""
             os.kill(self.pid,signal.SIGTERM)
-        self.communicate()
+
+    if not hasattr(subprocess.Popen,"kill"):
+        def kill(self):
+            """Forcibly terminate the subprocess."""
+            os.kill(self.pid,signal.SIGKILL)
 
     @staticmethod
     def _do_mount_nowait(data):
@@ -441,7 +453,6 @@ class MountProcess(subprocess.Popen):
             pass
         if not successful:
             os.write(w,"E")
-
 
 
 if __name__ == "__main__":

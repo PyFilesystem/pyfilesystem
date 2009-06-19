@@ -622,8 +622,12 @@ class ThreadingTestCases:
             self.fs.copydir("a","copy of a",overwrite=True)
         # This should error out since we're not overwriting
         self.assertRaises(DestinationExistsError,self._runThreads,copydir,copydir)
-        # This should run to completion and give a valid state
-        self._runThreads(copydir_overwrite,copydir_overwrite)
+        # This should run to completion and give a valid state, unless
+        # files get locked when written to.
+        try:
+            self._runThreads(copydir_overwrite,copydir_overwrite)
+        except ResourceLockedError:
+            pass
         self.assertTrue(self.fs.isdir("copy of a"))
         self.assertTrue(self.fs.isdir("copy of a/b"))
         self.assertEqual(self.fs.getcontents("copy of a/b/parrot.txt"),"pining for the fiords")
