@@ -28,12 +28,13 @@ else:
         def __init__(self):
             self._map = {}
         def __getattr__(self,attr):
+            
             try:
-                return self._map[(threading.currentThread().ident,attr)]
+                return self._map[(threading.currentThread(),attr)]
             except KeyError:
                 raise AttributeError, attr
         def __setattr__(self,attr,value):
-            self._map[(threading.currentThread().ident,attr)] = value
+            self._map[(threading.currentThread(),attr)] = value
 
 
 class RemoteFileBuffer(object):
