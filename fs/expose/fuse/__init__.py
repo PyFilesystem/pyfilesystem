@@ -405,7 +405,13 @@ class MountProcess(subprocess.Popen):
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""
         self.terminate()
-        tmr = threading.Timer(self.unmount_timeout,self.kill)
+        def killme():
+            self.kill()
+            try:
+                unmount(self.path)
+            except OSError:
+                pass
+        tmr = threading.Timer(self.unmount_timeout,killme)
         tmr.start()
         self.wait()
         tmr.cancel()
