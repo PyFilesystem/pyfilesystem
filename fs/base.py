@@ -719,11 +719,11 @@ class SubFS(FS):
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         paths = self.parent.listdir(self._delegate(path),
-                                    wildcard,
-                                    False,
-                                    False,
-                                    dirs_only,
-                                    files_only)
+                                    wildcard=wildcard,
+                                    full=False,
+                                    absolute=False,
+                                    dirs_only=dirs_only,
+                                    files_only=files_only)
         if absolute:
             listpath = normpath(path)
             paths = [abspath(pathjoin(listpath, path)) for path in paths]
