@@ -764,6 +764,18 @@ class SubFS(FS):
     def rename(self, src, dst):
         return self.parent.rename(self._delegate(src), self._delegate(dst))
 
+    def move(self, src, dst, **kwds):
+        self.parent.move(self._delegate(src),self._delegate(dst),**kwds)
+
+    def movedir(self, src, dst, **kwds):
+        self.parent.movedir(self._delegate(src),self._delegate(dst),**kwds)
+
+    def copy(self, src, dst, **kwds):
+        self.parent.copy(self._delegate(src),self._delegate(dst),**kwds)
+
+    def copydir(self, src, dst, **kwds):
+        self.parent.copydir(self._delegate(src),self._delegate(dst),**kwds)
+
 
 def flags_to_mode(flags):
     """Convert an os.O_* flag bitmask into an FS mode string."""
