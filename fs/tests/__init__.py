@@ -462,16 +462,16 @@ class FSTestCases:
 class ThreadingTestCases:
     """Testcases for thread-safety of FS implementations."""
 
-    _ThreadingTestCasesLock = threading.RLock()
+    __lock = threading.RLock()
 
     def _yield(self):
         time.sleep(0.01)
 
     def _lock(self):
-        self._ThreadingTestCasesLock.acquire()
+        self.__lock.acquire()
 
     def _unlock(self):
-        self._ThreadingTestCasesLock.release()
+        self.__lock.release()
 
     def _makeThread(self,func,errors):
         def runThread():
@@ -537,7 +537,7 @@ class ThreadingTestCases:
         try:
             self._runThreads(thread1,thread2,thread3)
         except ResourceLockedError:
-            # that's ok, some platforms don't support concurrent writes
+            # that's ok, some implementations don't support concurrent writes
             pass
 
     def test_FSTestCases_in_separate_dirs(self):

@@ -119,6 +119,8 @@ class SFTPFS(FS):
     @convert_os_errors
     def open(self,path,mode="r",bufsize=-1):
         npath = self._normpath(path)
+        #  paramiko implements its own buffering and write-back logic,
+        #  so we don't need to use a RemoteFileBuffer here.
         f = self.client.open(npath,mode,bufsize)
         if self.isdir(path):
             msg = "that's a directory: %(path)s"

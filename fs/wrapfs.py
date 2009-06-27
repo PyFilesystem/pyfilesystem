@@ -13,9 +13,10 @@ directory listings.
 
 """
 
+from fnmatch import fnmatch
+
 from fs.base import FS, threading, synchronize
 from fs.errors import *
-
 
 def rewrite_errors(func):
     @wraps(func)
@@ -136,11 +137,21 @@ class WrapFS(FS):
         return self.wrapped_fs.isfile(self._encode(path))
 
     @rewrite_errors
-    def listdir(self,path="",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+    def listdir(self,path="",**kwds):
+        wildcard = kwds.pop("wildcard","*")
+        info = kwds.get("info",False)
         entries = []
-        for name in self.wrapped_fs.listdir(self._encode(path),wildcard=None,full=full,absolute=absolute,dirs_only=dirs_only,files_only=files_only):
-            entries.append(self._decode(name))
-        return self._listdir_helper(path,entries,wildcard=wildcard,full=False,absolute=False,dirs_only=False,files_only=False)
+        for e in self.wrapped_fs.listdir(self._encode(path),**kwds):
+            if info:
+                e["name"] = self._decode(e["name"])
+                if wildcard is not None and not fnmatch(e["name"],wildcard):
+                    continue
+            else:
+                e = self._decode(e)
+                if wildcard is not None and not fnmatch(e,wildcard):
+                    continue
+            entries.append(e) 
+        return entries
 
     @rewrite_errors
     def makedir(self,path,*args,**kwds):
@@ -226,13 +237,13 @@ class HideDotFiles(WrapFS):
                     path = pathjoin(current_path, filename)
                     if self.isdir(path):
                         if dir_wildcard is not None:
-                            if fnmatch.fnmatch(path, dir_wilcard):
+                            if fnmatch(path, dir_wilcard):
                                 dirs.append(path)
                         else:
                             dirs.append(path)
                     else:
                         if wildcard is not None:
-                            if fnmatch.fnmatch(path, wildcard):
+                            if fnmatch(path, wildcard):
                                 paths.append(filename)
                         else:
                             paths.append(filename)

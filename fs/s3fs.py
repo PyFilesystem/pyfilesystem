@@ -7,17 +7,16 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 
 """
 
-import boto.s3.connection
-from boto.exception import S3ResponseError
-
 import time
 import datetime
-try:
-   from tempfile import SpooledTemporaryFile as TempFile
-except ImportError:
-   from tempfile import NamedTemporaryFile as TempFile
+import stat as statinfo
+
+import boto.s3.connection
+from boto.s3.prefix import Prefix
+from boto.exception import S3ResponseError
 
 from fs.base import *
+from fs.remote import *
 
 
 # Boto is not thread-safe, so we need to use a per-thread S3 connection.
@@ -36,65 +35,6 @@ else:
         def __setattr__(self,attr,value):
             self._map[(threading.currentThread(),attr)] = value
 
-
-class RemoteFileBuffer(object):
-    """File-like object providing buffer for local file operations.
-
-    Instances of this class manage a local tempfile buffer corresponding
-    to the contents of a remote file.  All reads and writes happen locally,
-    with the content being copied to the remote file only on flush() or
-    close().
-
-    Instances of this class are returned by S3FS.open, but it is desgined
-    to be usable by any FS subclass that manages remote files.
-    """
-
-    def __init__(self,fs,path,mode):
-        self.file = TempFile()
-        self.fs = fs
-        self.path = path
-        self.mode = mode
-        self.closed = False
-
-    def __del__(self):
-        if not self.closed:
-            self.close()
-
-    #  This is lifted straight from the stdlib's tempfile.py
-    def __getattr__(self,name):
-        file = self.__dict__['file']
-        a = getattr(file, name)
-        if not issubclass(type(a), type(0)):
-            setattr(self, name, a)
-        return a
-
-    def __enter__(self):
-        self.file.__enter__()
-        return self
-
-    def __exit__(self,exc,value,tb):
-        self.close()
-        return False
-
-    def __iter__(self):
-        return iter(self.file)
-
-    def flush(self):
-        self.file.flush()
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            pos = self.file.tell()
-            self.file.seek(0)
-            self.fs.setcontents(self.path,self.file)
-            self.file.seek(pos)
-
-    def close(self):
-        self.closed = True
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            self.file.seek(0)
-            self.fs.setcontents(self.path,self.file)
-        self.file.close()
-
-    
 
 class S3FS(FS):
     """A filesystem stored in Amazon S3.
@@ -242,7 +182,6 @@ class S3FS(FS):
         so that it can be worked on efficiently.  Any changes made to the
         file are only sent back to S3 when the file is flushed or closed.
         """
-        buf = RemoteFileBuffer(self,path,mode)
         s3path = self._s3path(path)
         # Truncate the file if requested
         if "w" in mode:
@@ -256,13 +195,7 @@ class S3FS(FS):
             if not self.isdir(dirname(path)):
                 raise ParentDirectoryMissingError(path)
             k = self._sync_set_contents(s3path,"")
-        else:
-            # Get the file contents into the tempfile.
-            if "r" in mode or "+" in mode or "a" in mode:
-                k.get_contents_to_file(buf)
-                if "a" not in mode:
-                    buf.seek(0)
-        return buf
+        return RemoteFileBuffer(self,path,mode,k)
 
     def exists(self,path):
         """Check whether a path exists."""
@@ -309,55 +242,55 @@ class S3FS(FS):
           return True
         return False
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,info=False,dirs_only=False,files_only=False):
         """List contents of a directory."""
         s3path = self._s3path(path) + self._separator
         if s3path == "/":
             s3path = ""
         i = len(s3path)
-        ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
-        paths = []
+        keys = []
         isDir = False
-        for k in ks:
+        for k in self._s3bukt.list(prefix=s3path,delimiter=self._separator):
             if not isDir:
                 isDir = True
-            nm = k.name[i:]
             # Skip over the entry for the directory itself, if it exists
-            if nm != "":
-                if type(path) is not unicode:
-                    nm = nm.encode()
-                paths.append(nm)
+            if k.name[i:] != "":
+                k.name = k.name[i:]
+                keys.append(k)
         if not isDir:
             if s3path != self._prefix:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="that's not a directory: %(path)s")
                 raise ResourceNotFoundError(path)
-        return self._listdir_helper(path,paths,wildcard,full,absolute,dirs_only,files_only)
+        return self._listdir_helper(path,keys,wildcard,full,absolute,info,dirs_only,files_only)
 
-    def _listdir_helper(self,path,paths,wildcard,full,absolute,dirs_only,files_only):
+    def _listdir_helper(self,path,keys,wildcard,full,absolute,info,dirs_only,files_only):
         """Modify listdir helper to avoid additional calls to the server."""
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
-        dirs = [p[:-1] for p in paths if p.endswith(self._separator)]
-        files = [p for p in paths if not p.endswith(self._separator)]
-
         if dirs_only:
-            paths = dirs
+            keys = [k for k in keys if k.name.endswith(self._separator)]
         elif files_only:
-            paths = files
-        else:
-            paths = dirs + files
+            keys = [k for k in keys if not k.name.endswith(self._separator)]
+
+        for k in keys:
+            if k.name.endswith(self._separator):
+                k.name = k.name[:-1]
+            if type(path) is not unicode:
+                k.name = k.name.encode()
 
         if wildcard is not None:
-            match = fnmatch.fnmatch
-            paths = [p for p in paths if match(p, wildcard)]
+            keys = [k for k in keys if fnmatch.fnmatch(k.name, wildcard)]
 
         if full:
-            paths = [pathjoin(path, p) for p in paths]
+            entries = [relpath(pathjoin(path, k.name)) for k in keys]
         elif absolute:
-            paths = [abspath(pathjoin(path, p)) for p in paths]
-
-        return paths
+            entries = [abspath(pathjoin(path, k.name)) for k in keys]
+        elif info:
+            entries = [self._get_key_info(k) for k in keys]
+        else:
+            entries = [k.name for k in keys]
+        return entries
         
     def makedir(self,path,recursive=False,allow_recreate=False):
         """Create a directory at the given path.
@@ -458,19 +391,33 @@ class S3FS(FS):
     def getinfo(self,path):
         s3path = self._s3path(path)
         if path in ("","/"):
-            return {}
-        k = self._s3bukt.get_key(s3path)
-        if k is None:
-            k = self._s3bukt.get_key(s3path+"/")
+            k = Prefix(bucket=self._s3bukt,name="/")
+        else:
+            k = self._s3bukt.get_key(s3path)
             if k is None:
-                raise ResourceNotFoundError(path)
-            return {}
+                k = self._s3bukt.get_key(s3path+"/")
+                if k is None:
+                    raise ResourceNotFoundError(path)
+                k = Prefix(bucket=self._s3bukt,name=k.name)
+        return self._get_key_info(k)
+
+    def _get_key_info(self,key):
         info = {}
-        if hasattr(k,"size"):
-            info['size'] = int(k.size)
-        fmt = "%a, %d %b %Y %H:%M:%S %Z"
-        if hasattr(k,"last_modified"):
-            info['modified_time'] = datetime.datetime.strptime(k.last_modified,fmt)
+        info["name"] = basename(key.name)
+        if isinstance(key,Prefix):
+            info["st_mode"] = 0700 | statinfo.S_IFDIR
+        else:
+            info["st_mode"] =  0700 | statinfo.S_IFREG
+        if hasattr(key,"size"):
+            info['size'] = int(key.size)
+        if hasattr(key,"last_modified"):
+            # TODO: does S3 use any other formats?
+            fmt = "%a, %d %b %Y %H:%M:%S %Z"
+            try:
+                mtime = datetime.datetime.strptime(key.last_modified,fmt)
+                info['modified_time'] = mtime
+            except ValueError:
+                pass
         return info
 
     def desc(self,path):
