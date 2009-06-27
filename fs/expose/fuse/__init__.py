@@ -2,7 +2,7 @@
 
   fs.expose.fuse:  expose an FS object to the native filesystem via FUSE
 
-This module provides the necessay interfaces to mount an FS object into
+This module provides the necessary interfaces to mount an FS object into
 the local filesystem via FUSE:
 
     http://fuse.sourceforge.net/
@@ -90,8 +90,13 @@ def handle_fs_errors(func):
 
 def get_stat_dict(fs,path):
     """Build a 'stat' dictionary for the given file."""
-    uid, gid, pid = fuse_get_context()
     info = fs.getinfo(path)
+    fill_stat_dict(fs,path,info)
+    return info
+
+def fill_stat_dict(fs,path,info):
+    """Fill default values in the stat dict."""
+    uid, gid, pid = fuse_get_context()
     private_keys = [k for k in info if k.startswith("_")]
     for k in private_keys:
         del info[k]
@@ -105,13 +110,14 @@ def get_stat_dict(fs,path):
     info.setdefault("st_blocks",1)
     #  The interesting stuff
     info.setdefault("st_size",info.get("size",1024))
-    info.setdefault("st_mode",info.get('st_mode',0700))
-    if fs.isdir(path):
-        info["st_mode"] = info["st_mode"] | statinfo.S_IFDIR
-        info.setdefault("st_nlink",2)
-    else:
-        info["st_mode"] = info["st_mode"] | statinfo.S_IFREG
-        info.setdefault("st_nlink",1)
+    mode = info.get("st_mode",0700)
+    if not statinfo.S_ISDIR(mode) and not statinfo.S_ISREG(mode):
+        if fs.isdir(path):
+            info["st_mode"] = mode | statinfo.S_IFDIR
+            info.setdefault("st_nlink",2)
+        else:
+            info["st_mode"] = mode | statinfo.S_IFREG
+            info.setdefault("st_nlink",1)
     for (key1,key2) in [("st_atime","accessed_time"),("st_mtime","modified_time"),("st_ctime","created_time")]:
         if key1 not in info:
             if key2 in info:
@@ -119,7 +125,7 @@ def get_stat_dict(fs,path):
             else:
                 info[key1] = STARTUP_TIME
     return info
- 
+
 
 class FSOperations(Operations):
     """FUSE Operations interface delegating all activities to an FS object."""
@@ -224,8 +230,19 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def readdir(self,path,fh=None):
-        entries = [e.encode(NATIVE_ENCODING) for e in self.fs.listdir(path)]
-        return ['.', '..'] + entries
+        #  If listdir() can return info dicts directly, it will save FUSE 
+        #  having to call getinfo() on each entry individually.
+        try:
+            entries = self.fs.listdir(path,info=True)
+        except TypeError:
+            entries = self.fs.listdir(path)
+            entries = [e.encode(NATIVE_ENCODING) for e in entries]
+        else:
+            entries = [(e["name"].encode(NATIVE_ENCODING),e,0) for e in entries]
+            for (name,attrs,offset) in entries:
+                fill_stat_dict(self.fs,pathjoin(path,name),attrs)
+        entries = [".",".."] + entries
+        return entries
 
     @handle_fs_errors
     def readlink(self,path):
@@ -246,12 +263,16 @@ class FSOperations(Operations):
     @handle_fs_errors
     def rename(self,old,new):
         if issamedir(old,new):
-            self.fs.rename(old,new)
-        else:
-            if self.fs.isdir(old):
-                self.fs.movedir(old,new)
+            try:
+                self.fs.rename(old,new)
+            except ResourceInvalidError:
+                 pass
             else:
-                self.fs.move(old,new)
+                return None
+        if self.fs.isdir(old):
+            self.fs.movedir(old,new)
+        else:
+            self.fs.move(old,new)
 
     @handle_fs_errors
     def rmdir(self, path):
@@ -340,7 +361,9 @@ def unmount(path):
     FUSE filesystem.  It works, but it would probably be better to use the
     'unmount' method on the MountProcess class if you have it.
     """
-    if os.system("fusermount -u '" + path + "'"):
+    p = subprocess.Popen(["fusermount","-u",path],stderr=subprocess.PIPE)
+    (stdout,stderr) = p.communicate()
+    if p.returncode != 0 and "not mounted" not in stderr:
         raise OSError("filesystem could not be unmounted: " + path)
 
 
