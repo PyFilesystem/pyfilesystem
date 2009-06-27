@@ -117,10 +117,10 @@ def cached(func):
                 raise
             else:
                 self._cache_set(path,func.__name__,args,kwds,(True,res))
-                return res
+                return copy.copy(res)
         else:
             if not success:
-                raise copy.copy(result)
+                raise result
             else:
                 return copy.copy(result)
     return wrapper
@@ -180,27 +180,10 @@ class CacheFS(WrapFS):
                 if cache is None:
                     return 
             # Adjust cached 'listdir' for parent directory.
-            # Currently we only do this for argment-less listdir() calls.
-            # There's probably a better way to manage this...
+            # TODO: account for whether it was added, removed, or unmoved
             cache[""].pop("getinfo",None)
             cache[""].pop("getsize",None)
-            if added:
-                for (key,val) in list(cache[""].get("listdir",{}).items()):
-                    if key == ((),()):
-                        val[1][1].append(basename(path))
-                    else:
-                        cache[""].pop(key,None)
-            elif removed:
-                for (key,val) in list(cache[""].get("listdir",{}).items()):
-                    if key == ((),()):
-                        try:
-                            val[1][1].remove(basename(path))
-                        except ValueError:
-                            pass
-                    else:
-                        cache[""].pop(key,None)
-            elif not unmoved:
-                cache[""].pop("listdir",None)
+            cache[""].pop("listdir",None)
         # Clear all cached info for the path itself.
         cache[names[-1]] = {"":{}}
 

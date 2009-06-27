@@ -143,6 +143,7 @@ class WrapFS(FS):
         entries = []
         for e in self.wrapped_fs.listdir(self._encode(path),**kwds):
             if info:
+                e = e.copy()
                 e["name"] = self._decode(e["name"])
                 if wildcard is not None and not fnmatch(e["name"],wildcard):
                     continue
