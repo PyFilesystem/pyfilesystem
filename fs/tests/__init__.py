@@ -553,9 +553,11 @@ class ThreadingTestCases:
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
                     self.fs.makedir(subdir)
-                    this.fs = self.fs.opendir(subdir)
                     self._yield()
                     getattr(this,meth)()
+            @property
+            def fs(this):
+                return self.fs.opendir(this.subdir)
             def check(this,p):
                 return self.check(pathjoin(this.subdir,relpath(p)))
         def thread1():
