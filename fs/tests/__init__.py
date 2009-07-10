@@ -552,6 +552,7 @@ class ThreadingTestCases:
                         continue
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
+                    self.assertFalse(self.fs.isdir(subdir))
                     self.fs.makedir(subdir)
                     self._yield()
                     getattr(this,meth)()

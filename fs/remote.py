@@ -7,9 +7,10 @@
 import time
 import copy
 
+from fs.base import FS, threading
+from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.path import *
 from fs.errors import *
-from fs.wrapfs import WrapFS
 
 try:
    from tempfile import SpooledTemporaryFile as TempFile
@@ -56,10 +57,13 @@ class RemoteFileBuffer(object):
         self.mode = mode
         self.closed = False
         if rfile is not None:
-            data = rfile.read(1024*256)
-            while data:
-                self.file.write(data)
+            if hasattr(rfile,"read"):
                 data = rfile.read(1024*256)
+                while data:
+                    self.file.write(data)
+                    data = rfile.read(1024*256)
+            else:
+                self.file.write(str(rfile))
             if "a" not in mode:
                 self.file.seek(0)
 
@@ -102,8 +106,147 @@ class RemoteFileBuffer(object):
         self.file.close()
 
 
+class ConnectionManagerFS(WrapFS):
+    """FS wrapper providing simple connection management of a remote FS.
 
-def cached(func):
+    The ConnectionManagerFS class is designed to wrap a remote FS object
+    and provide some convenience methods for dealing with its remote
+    connection state.
+
+    The boolean attribute 'connected' indicates whether the remote fileystem
+    has an active connection, and is initially True.  If any of the remote
+    filesystem methods raises a RemoteConnectionError, 'connected' will
+    switch to False and remain so until a successful remote method call.
+
+    Application code can use the method 'wait_for_connection' to block
+    until the connection is re-established.  Currently this reconnection
+    is checked by a simple polling loop; eventually more sophisticated
+    operating-system integration may be added.
+
+    Since some remote FS classes can raise RemoteConnectionError during
+    initialisation, this class also provides a simple "lazy initialisation"
+    facility.  The remote FS can be specified as an FS instance, an FS
+    subclass, or a (class,args) or (class,args,kwds) tuple. For example:
+
+        >>> fs = ConnectionManagerFS(MyRemoteFS("http://www.example.com/"))
+        Traceback (most recent call last):
+            ...
+        RemoteConnectionError: couldn't connect to "http://www.example.com/"
+        >>> fs = ConnectionManagerFS((MyRemoteFS,["http://www.example.com/"]))
+        >>> fs.connected
+        False
+        >>>
+
+    """
+
+    poll_interval = 1
+
+    def __init__(self,fs,poll_interval=None):
+        if poll_interval is not None:
+            self.poll_interval = poll_interval
+        if isinstance(fs,FS):
+            self.__dict__["wrapped_fs"] = fs
+        elif isinstance(fs,type):
+            self._fsclass = fs
+            self._fsargs = []
+            self._fskwds = {}
+        else:
+            self._fsclass = fs[0]
+            try:
+                self._fsargs = fs[1]
+            except IndexError:
+                self._fsargs = []
+            try:
+                self._fskwds = fs[2]
+            except IndexError:
+                self._fskwds = {}
+        self._connection_cond = threading.Condition()
+        self._poll_thread = None
+        try:
+            self.wrapped_fs.isdir("")
+        except RemoteConnectionError:
+            self.connected = False
+        else:
+            self.connected = True
+
+    @property
+    def wrapped_fs(self):
+        try:
+            return self.__dict__["wrapped_fs"]
+        except KeyError:
+            self._connection_cond.acquire()
+            try:
+                try:
+                    return self.__dict__["wrapped_fs"]
+                except KeyError:
+                    fs = self._fsclass(*self._fsargs,**self._fskwds)
+                    self.__dict__["wrapped_fs"] = fs
+                    return fs
+            finally:
+                self._connection_cond.release()
+
+    def __getstate__(self):
+        state = super(ConnectionManagerFS,self).__getstate__()
+        del state["_connection_cond"]
+        state["_poll_thread"] = None
+        return state
+
+    def __setstate__(self,state):
+        super(ConnectionManagerFS,self).__setstate__(state)
+        self._connection_cond = threading.Condition()
+        
+    def wait_for_connection(self,timeout=None):
+        self._connection_cond.acquire()
+        if not self.connected:
+            if not self._poll_thread:
+                target = self._poll_connection
+                self._poll_thread=threading.Thread(target=target)
+                self._poll_thread.start()
+            self._connection_cond.wait(timeout)
+        self._connection_cond.release()
+
+    def _poll_connection(self):
+        while not self.connected:
+            try:
+                self.wrapped_fs.isdir("")
+            except RemoteConnectionError:
+                time.sleep(self.poll_interval)
+                continue
+            except FSError:
+                break
+            else:
+                break
+        self._connection_cond.acquire()
+        self.connected = True
+        self._poll_thread = None
+        self._connection_cond.notifyAll()
+        self._connection_cond.release()
+
+def _ConnectionManagerFS_method_wrapper(func):
+    """Method wrapper for ConnectionManagerFS.
+
+    This method wrapper keeps an eye out for RemoteConnectionErrors and
+    adjusts self.connected accordingly.
+    """
+    @wraps(func)
+    def wrapper(self,*args,**kwds):
+        try:
+            result = func(self,*args,**kwds)
+        except RemoteConnectionError:
+            self.connected = False
+            raise
+        except FSError:
+            self.connected = True
+            raise
+        else:
+            self.connected = True
+            return result
+    return wrapper
+ 
+wrap_fs_methods(_ConnectionManagerFS_method_wrapper,ConnectionManagerFS)
+
+
+def _cached_method(func):
     """Method decorator that caches results for CacheFS."""
     @wraps(func)
     def wrapper(self,path="",*args,**kwds):
@@ -187,35 +330,35 @@ class CacheFS(WrapFS):
         # Clear all cached info for the path itself.
         cache[names[-1]] = {"":{}}
 
-    @cached
+    @_cached_method
     def exists(self,path):
         return super(CacheFS,self).exists(path)
 
-    @cached
+    @_cached_method
     def isdir(self,path):
         return super(CacheFS,self).isdir(path)
 
-    @cached
+    @_cached_method
     def isfile(self,path):
         return super(CacheFS,self).isfile(path)
 
-    @cached
+    @_cached_method
     def listdir(self,path="",**kwds):
         return super(CacheFS,self).listdir(path,**kwds)
 
-    @cached
+    @_cached_method
     def getinfo(self,path):
         return super(CacheFS,self).getinfo(path)
 
-    @cached
+    @_cached_method
     def getsize(self,path):
         return super(CacheFS,self).getsize(path)
 
-    @cached
+    @_cached_method
     def getxattr(self,path,name):
         return super(CacheFS,self).getxattr(path,name)
 
-    @cached
+    @_cached_method
     def listxattrs(self,path):
         return super(CacheFS,self).listxattrs(path)
 

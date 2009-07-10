@@ -59,7 +59,7 @@ class WrapFS(FS):
         super(WrapFS,self).__init__()
         try:
             self._lock = fs._lock
-        except AttributeError:
+        except (AttributeError,FSError):
             self._lock = None
         self.wrapped_fs = fs
 
@@ -194,6 +194,22 @@ class WrapFS(FS):
     def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
         return self.wrapped_fs.copydir(self._encode(src),self._encode(dst),overwrite,ignore_errors,chunk_size)
 
+    @rewrite_errors
+    def getxattr(self,path,name,default=None):
+        return self.wrapped_fs.getxattr(self._encode(path),name,default)
+
+    @rewrite_errors
+    def setxattr(self,path,name,value):
+        return self.wrapped_fs.setxattr(self._encode(path),name,value)
+
+    @rewrite_errors
+    def delxattr(self,path,name):
+        return self.wrapped_fs.delxattr(self._encode(path),name)
+
+    @rewrite_errors
+    def listxattrs(self,path):
+        return self.wrapped_fs.listxattrs(self._encode(path))
+
     def __getattr__(self,attr):
         return getattr(self.wrapped_fs,attr)
 
@@ -202,6 +218,38 @@ class WrapFS(FS):
         if hasattr(self.wrapped_fs,"close"):
             self.wrapped_fs.close()
 
+def wrap_fs_methods(decorator,cls=None):
+    """Apply the given decorator to all FS methods on the given class.
+
+    This function can be used in two ways.  When called with two arguments it
+    applies the given function 'decorator' to each FS method of the given
+    class.  When called with just a single argument, it creates and returns
+    a class decorator which will do the same thing when applied.  So you can
+    use it like this:
+
+        wrap_fs_methods(mydecorator,MyFSClass)
+
+    Or on more recent Python versions, like this:
+
+        @wrap_fs_methods(mydecorator)
+        class MyFSClass(FS):
+            ...
+
+    """
+    methods = ("open","exists","isdir","isfile","listdir","makedir","remove",
+               "removedir","rename","getinfo","copy","move","copydir",
+               "movedir","close","getxattr","setxattr","delxattr","listxattrs")
+    def apply_decorator(cls):
+        for method_name in methods:
+            method = getattr(cls,method_name,None)
+            if method is not None:
+                setattr(cls,method_name,decorator(method))
+        return cls
+    if cls is not None:
+        return apply_decorator(cls)
+    else:
+        return apply_decorator
+       
 
 class HideDotFiles(WrapFS):
     """FS wrapper class that hides dot-files in directory listings.

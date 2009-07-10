@@ -38,6 +38,7 @@ class XAttrTestCases:
         def do_list(p):
             self.assertEquals(sorted(self.fs.listxattrs(p)),[])
             self.fs.setxattr(p,"xattr1","value1")
+            self.assertEquals(self.fs.getxattr(p,"xattr1"),"value1")
             self.assertEquals(sorted(self.fs.listxattrs(p)),["xattr1"])
             self.fs.setxattr(p,"attr2","value2")
             self.assertEquals(sorted(self.fs.listxattrs(p)),["attr2","xattr1"])
@@ -113,4 +114,5 @@ class TestXAttr_MemoryFS(unittest.TestCase,FSTestCases,XAttrTestCases):
 
     def check(self, p):
         return self.fs.exists(p)
+
 
