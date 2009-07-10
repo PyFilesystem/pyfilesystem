@@ -33,7 +33,8 @@ class OSFS(FS):
         return "<OSFS: %s>" % self.root_path
 
     def getsyspath(self, path, allow_none=False):
-        sys_path = os.path.join(self.root_path, relpath(path)).replace('/', os.sep)
+        path = relpath(path).replace('/', os.sep)
+        sys_path = os.path.join(self.root_path, path)
         return sys_path
 
     @convert_os_errors

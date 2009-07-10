@@ -410,7 +410,6 @@ class MountProcess(subprocess.Popen):
         if nowait or kwds.get("close_fds",False):
             cmd = 'from fs.expose.fuse import MountProcess; '
             cmd = cmd + 'MountProcess._do_mount_nowait(%s)'
-            cmd = cmd % (pickle.dumps((fs,path,fuse_opts)),)
             cmd = cmd % (repr(pickle.dumps((fs,path,fuse_opts),-1)),)
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
@@ -430,6 +429,7 @@ class MountProcess(subprocess.Popen):
         self.terminate()
         def killme():
             self.kill()
+            time.sleep(0.1)
             try:
                 unmount(self.path)
             except OSError:

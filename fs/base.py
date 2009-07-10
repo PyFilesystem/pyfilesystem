@@ -584,9 +584,9 @@ class FS(object):
             except OSError:
                 pass
 
-        def movefile_noerrors(src, dst, overwrite):
+        def movefile_noerrors(src, dst, overwrite, chunk_size):
             try:
-                return self.move(src, dst, overwrite)
+                return self.move(src, dst, overwrite, chunk_size)
             except FSError:
                 return
         if ignore_errors:

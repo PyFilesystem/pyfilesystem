@@ -258,6 +258,7 @@ class FSTestCases:
 
         self.fs.movedir("a", "copy of a")
 
+        self.assert_(self.fs.isdir("copy of a"))
         self.assert_(check("copy of a/1.txt"))
         self.assert_(check("copy of a/2.txt"))
         self.assert_(check("copy of a/3.txt"))
@@ -456,6 +457,8 @@ class FSTestCases:
         self.fs.createfile("test1","hello world")
         fs2 = pickle.loads(pickle.dumps(self.fs))
         self.assert_(fs2.isfile("test1"))
+        fs3 = pickle.loads(pickle.dumps(self.fs,-1))
+        self.assert_(fs3.isfile("test1"))
 
 
 
