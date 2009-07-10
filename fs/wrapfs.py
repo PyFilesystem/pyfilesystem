@@ -179,20 +179,20 @@ class WrapFS(FS):
         return self.wrapped_fs.desc(self._encode(path))
 
     @rewrite_errors
-    def copy(self,src,dst,overwrite=False,chunk_size=16384):
-        return self.wrapped_fs.copy(self._encode(src),self._encode(dst),overwrite,chunk_size)
+    def copy(self,src,dst,**kwds):
+        return self.wrapped_fs.copy(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def move(self,src,dst,overwrite=False,chunk_size=16384):
-        return self.wrapped_fs.move(self._encode(src),self._encode(dst),overwrite,chunk_size)
+    def move(self,src,dst,**kwds):
+        return self.wrapped_fs.move(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
-        return self.wrapped_fs.movedir(self._encode(src),self._encode(dst),overwrite,ignore_errors,chunk_size)
+    def movedir(self,src,dst,**kwds):
+        return self.wrapped_fs.movedir(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
-        return self.wrapped_fs.copydir(self._encode(src),self._encode(dst),overwrite,ignore_errors,chunk_size)
+    def copydir(self,src,dst,**kwds):
+        return self.wrapped_fs.copydir(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
     def getxattr(self,path,name,default=None):
