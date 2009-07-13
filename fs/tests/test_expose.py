@@ -42,7 +42,8 @@ class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def runServer(self):
         """Run the server, swallowing shutdown-related execptions."""
-        self.server.socket.settimeout(0.1)
+        if sys.platform != "win32":
+            self.server.socket.settimeout(0.1)
         try:
             while self.serve_more_requests:
                 self.server.handle_request()
@@ -97,29 +98,33 @@ class TestSFTPFS(TestRPCFS):
         pass
 
 
-from fs.expose import fuse
-from fs.osfs import OSFS
-class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
+try:
+    from fs.expose import fuse
+except ImportError:
+    pass
+else:
+    from fs.osfs import OSFS
+    class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
-    def setUp(self):
-        self.temp_fs = TempFS()
-        self.temp_fs.makedir("root")
-        self.temp_fs.makedir("mount")
-        self.mounted_fs = self.temp_fs.opendir("root")
-        self.mount_point = self.temp_fs.getsyspath("mount")
-        self.fs = OSFS(self.temp_fs.getsyspath("mount"))
-        self.mount_proc = fuse.mount(self.mounted_fs,self.mount_point)
+        def setUp(self):
+            self.temp_fs = TempFS()
+            self.temp_fs.makedir("root")
+            self.temp_fs.makedir("mount")
+            self.mounted_fs = self.temp_fs.opendir("root")
+            self.mount_point = self.temp_fs.getsyspath("mount")
+            self.fs = OSFS(self.temp_fs.getsyspath("mount"))
+            self.mount_proc = fuse.mount(self.mounted_fs,self.mount_point)
 
-    def tearDown(self):
-        self.mount_proc.unmount()
-        try:
-            self.temp_fs.close()
-        except OSError:
-            # Sometimes FUSE hangs onto the mountpoint if mount_proc is
-            # forcibly killed.  Shell out to fusermount to make sure.
-            fuse.unmount(self.mount_point)
-            self.temp_fs.close()
+        def tearDown(self):
+            self.mount_proc.unmount()
+            try:
+                self.temp_fs.close()
+            except OSError:
+                # Sometimes FUSE hangs onto the mountpoint if mount_proc is
+                # forcibly killed.  Shell out to fusermount to make sure.
+                fuse.unmount(self.mount_point)
+                self.temp_fs.close()
 
-    def check(self,p):
-        return self.mounted_fs.exists(p)
+        def check(self,p):
+            return self.mounted_fs.exists(p)
 

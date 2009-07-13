@@ -67,6 +67,7 @@ class FSTestCases:
         self.check("test1.txt")
         f = self.fs.open("test1.txt","r")
         self.assertEquals(f.read(),"test file overwrite")
+        f.close()
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))

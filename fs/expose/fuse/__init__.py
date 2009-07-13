@@ -56,7 +56,10 @@ from fs.base import flags_to_mode, threading
 from fs.errors import *
 from fs.path import *
 
-import fuse_ctypes as fuse
+try:
+    import fuse_ctypes as fuse
+except NotImplementedError:
+    raise ImportError("FUSE found but not usable")
 try:
     fuse._libfuse.fuse_get_context
 except AttributeError:
