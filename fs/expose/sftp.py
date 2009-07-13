@@ -154,7 +154,7 @@ class SFTPHandle(paramiko.SFTPHandle):
 
     def __init__(self,owner,path,flags):
         super(SFTPHandle,self).__init__(flags)
-        mode = flags_to_mode(flags)
+        mode = flags_to_mode(flags) + "b"
         self.owner = owner
         self.path = path
         self._file = owner.fs.open(path,mode)
