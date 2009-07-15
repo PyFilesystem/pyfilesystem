@@ -16,6 +16,7 @@ from fs.base import *
 import unittest
 import os, os.path
 import pickle
+import random
 
 import time
 try:
@@ -461,6 +462,33 @@ class FSTestCases:
         fs3 = pickle.loads(pickle.dumps(self.fs,-1))
         self.assert_(fs3.isfile("test1"))
 
+    def test_big_file(self):
+        chunk_size = 1024 * 256
+        num_chunks = 4
+        def chunk_stream():
+            """Generate predictable-but-randomy binary content."""
+            r = random.Random(0)
+            for i in xrange(num_chunks):
+                yield "".join(chr(r.randint(0,255)) for j in xrange(chunk_size))
+        for i in xrange(5):
+            f = self.fs.open("bigfile","wb")
+            try:
+                for chunk in chunk_stream():
+                    f.write(chunk)
+            finally:
+                f.close()
+            chunks = chunk_stream()
+            f = self.fs.open("bigfile","rb")
+            try:
+                try:
+                    while True:
+                        if chunks.next() != f.read(chunk_size):
+                            assert False, "bigfile was corrupted"
+                except StopIteration:
+                    if f.read() != "":
+                        assert False, "bigfile was corrupted"
+            finally:
+                f.close()
 
 
 class ThreadingTestCases:

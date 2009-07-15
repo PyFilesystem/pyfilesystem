@@ -138,8 +138,8 @@ class FSOperations(Operations):
         self._on_init = on_init
         self._on_destroy = on_destroy
         self._fhmap = {}
-        self._fh_lock = threading.Lock()
-        self._fh_next = 1
+        self._fhmap_lock = threading.Lock()
+        self._fhmap_next = 1
 
     def _get_file(self,fh):
         try:
@@ -148,14 +148,14 @@ class FSOperations(Operations):
             raise FSError("invalid file handle")
 
     def _reg_file(self,f):
-        self._fh_lock.acquire()
+        self._fhmap_lock.acquire()
         try:
-            fh = self._fh_next
-            self._fh_next += 1
-            self._fhmap[fh] = f
+            fh = self._fhmap_next
+            self._fhmap_next += 1
+            self._fhmap[fh] = (f,threading.Lock())
             return fh
         finally:
-            self._fh_lock.release()
+            self._fhmap_lock.release()
 
     def init(self,conn):
         if self._on_init:
@@ -181,7 +181,12 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def flush(self,path,fh):
-        self._get_file(fh).flush()
+        (file,lock) = self._get_file(fh)
+        lock.acquire()
+        try:
+            file.flush()
+        finally:
+            lock.release()
 
     @handle_fs_errors
     def getattr(self,path,fh=None):
@@ -227,9 +232,13 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def read(self,path,size,offset,fh):
-        f = self._get_file(fh)
-        f.seek(offset)
-        return f.read(size)
+        (file,lock) = self._get_file(fh)
+        lock.acquire()
+        try:
+            file.seek(offset)
+            return file.read(size)
+        finally:
+            lock.release()
 
     @handle_fs_errors
     def readdir(self,path,fh=None):
@@ -253,8 +262,13 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def release(self,path,fh):
-        self._get_file(fh).close()
-        del self._fhmap[fh]
+        (file,lock) = self._get_file(fh)
+        lock.acquire()
+        try:
+            file.close()
+            del self._fhmap[fh]
+        finally:
+            lock.release()
 
     @handle_fs_errors
     def removexattr(self,path,name):
@@ -299,11 +313,18 @@ class FSOperations(Operations):
         else:
             if fh is None:
                 f = self.fs.open(path,"w+")
+                if not hasattr(f,"truncate"):
+                    raise UnsupportedError("truncate")
+                f.truncate(length)
             else:
-                f = self._get_file(fh)
-            if not hasattr(f,"truncate"):
-                raise UnsupportedError("truncate")
-            f.truncate(length)
+                (file,lock) = self._get_file(fh)
+                lock.acquire()
+                try:
+                    if not hasattr(file,"truncate"):
+                        raise UnsupportedError("truncate")
+                    file.truncate(length)
+                finally:
+                    lock.release()
 
     @handle_fs_errors
     def unlink(self, path):
@@ -315,10 +336,14 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def write(self, path, data, offset, fh):
-        f = self._get_file(fh)
-        f.seek(offset)
-        f.write(data)
-        return len(data)
+        (file,lock) = self._get_file(fh)
+        lock.acquire()
+        try:
+            file.seek(offset)
+            file.write(data)
+            return len(data)
+        finally:
+            lock.release()
 
 
 def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**kwds):
