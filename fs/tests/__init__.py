@@ -580,13 +580,16 @@ class ThreadingTestCases:
                 for meth in dir(this):
                     if not meth.startswith("test_"):
                         continue
-                    if meth in ("test_pickling","test_cases_in_separate_dirs"):
+                    if meth in ("test_pickling",):
+                        continue
+                    if not hasattr(FSTestCases,meth):
                         continue
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
                     self.assertFalse(self.fs.isdir(subdir))
                     self.fs.makedir(subdir)
                     self._yield()
+                    print subdir, meth
                     getattr(this,meth)()
             @property
             def fs(this):
