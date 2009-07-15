@@ -43,7 +43,10 @@ class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
     def runServer(self):
         """Run the server, swallowing shutdown-related execptions."""
         if sys.platform != "win32":
-            self.server.socket.settimeout(0.1)
+            try:
+                self.server.socket.settimeout(0.1)
+            except socket.error:
+                pass
         try:
             while self.serve_more_requests:
                 self.server.handle_request()
