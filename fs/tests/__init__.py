@@ -17,6 +17,7 @@ import unittest
 import os, os.path
 import pickle
 import random
+import copy
 
 import time
 try:
@@ -470,25 +471,24 @@ class FSTestCases:
             r = random.Random(0)
             for i in xrange(num_chunks):
                 yield "".join(chr(r.randint(0,255)) for j in xrange(chunk_size))
-        for i in xrange(5):
-            f = self.fs.open("bigfile","wb")
+        f = self.fs.open("bigfile","wb")
+        try:
+            for chunk in chunk_stream():
+                f.write(chunk)
+        finally:
+            f.close()
+        chunks = chunk_stream()
+        f = self.fs.open("bigfile","rb")
+        try:
             try:
-                for chunk in chunk_stream():
-                    f.write(chunk)
-            finally:
-                f.close()
-            chunks = chunk_stream()
-            f = self.fs.open("bigfile","rb")
-            try:
-                try:
-                    while True:
-                        if chunks.next() != f.read(chunk_size):
-                            assert False, "bigfile was corrupted"
-                except StopIteration:
-                    if f.read() != "":
+                while True:
+                    if chunks.next() != f.read(chunk_size):
                         assert False, "bigfile was corrupted"
-            finally:
-                f.close()
+            except StopIteration:
+                if f.read() != "":
+                    assert False, "bigfile was corrupted"
+        finally:
+            f.close()
 
 
 class ThreadingTestCases:
@@ -572,15 +572,15 @@ class ThreadingTestCases:
             # that's ok, some implementations don't support concurrent writes
             pass
 
-    def test_FSTestCases_in_separate_dirs(self):
-        class RunFSTestCases(unittest.TestCase,FSTestCases):
-            """Run all FSTestCases against a subdir of self.fs"""
+    def test_cases_in_separate_dirs(self):
+        class TestCases_in_subdir(self.__class__):
+            """Run all testcases against a subdir of self.fs"""
             def __init__(this,subdir):
                 this.subdir = subdir
                 for meth in dir(this):
                     if not meth.startswith("test_"):
                         continue
-                    if meth == "test_pickling":
+                    if meth in ("test_pickling","test_cases_in_separate_dirs"):
                         continue
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
@@ -594,11 +594,11 @@ class ThreadingTestCases:
             def check(this,p):
                 return self.check(pathjoin(this.subdir,relpath(p)))
         def thread1():
-            RunFSTestCases("thread1")
+            TestCases_in_subdir("thread1")
         def thread2():
-            RunFSTestCases("thread2")
+            TestCases_in_subdir("thread2")
         def thread3():
-            RunFSTestCases("thread3")
+            TestCases_in_subdir("thread3")
         self._runThreads(thread1,thread2,thread3)
 
     def test_makedir_winner(self):
