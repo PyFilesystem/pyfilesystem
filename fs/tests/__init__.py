@@ -589,7 +589,6 @@ class ThreadingTestCases:
                     self.assertFalse(self.fs.isdir(subdir))
                     self.fs.makedir(subdir)
                     self._yield()
-                    print subdir, meth
                     getattr(this,meth)()
             @property
             def fs(this):
