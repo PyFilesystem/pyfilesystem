@@ -196,19 +196,31 @@ class WrapFS(FS):
 
     @rewrite_errors
     def getxattr(self,path,name,default=None):
-        return self.wrapped_fs.getxattr(self._encode(path),name,default)
+        try:
+            return self.wrapped_fs.getxattr(self._encode(path),name,default)
+        except AttributeError:
+            raise UnsupportedError("getxattr")
 
     @rewrite_errors
     def setxattr(self,path,name,value):
-        return self.wrapped_fs.setxattr(self._encode(path),name,value)
+        try:
+            return self.wrapped_fs.setxattr(self._encode(path),name,value)
+        except AttributeError:
+            raise UnsupportedError("setxattr")
 
     @rewrite_errors
     def delxattr(self,path,name):
-        return self.wrapped_fs.delxattr(self._encode(path),name)
+        try:
+            return self.wrapped_fs.delxattr(self._encode(path),name)
+        except AttributeError:
+            raise UnsupportedError("delxattr")
 
     @rewrite_errors
     def listxattrs(self,path):
-        return self.wrapped_fs.listxattrs(self._encode(path))
+        try:
+            return self.wrapped_fs.listxattrs(self._encode(path))
+        except AttributeError:
+            raise UnsupportedError("listxattrs")
 
     def __getattr__(self,attr):
         return getattr(self.wrapped_fs,attr)

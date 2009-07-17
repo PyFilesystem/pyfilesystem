@@ -31,6 +31,7 @@ except ImportError:
 from fs.path import *
 from fs.errors import *
 from fs.wrapfs import WrapFS
+from fs.base import synchronize
 
 
 def ensure_xattrs(fs):
@@ -42,9 +43,9 @@ def ensure_xattrs(fs):
     """
     try:
         #  This attr doesn't have to exist, None should be returned by default
-        fs.getxattr("/","testingx-xattr")
+        fs.getxattr("/","testing-xattr")
         return fs
-    except Exception:
+    except (AttributeError,UnsupportedError):
         return SimulateXAttr(fs)
 
 
@@ -52,7 +53,7 @@ class SimulateXAttr(WrapFS):
     """FS wrapper class that simulates xattr support.
 
     The following methods are supplied for manipulating extended attributes:
-        * xattrs:    list all extended attribute names for a path
+        * listxattrs:    list all extended attribute names for a path
         * getxattr:  get an xattr of a path by name
         * setxattr:  set an xattr of a path by name
         * delxattr:  delete an xattr of a path by name
@@ -83,7 +84,10 @@ class SimulateXAttr(WrapFS):
         """Retrieve the xattr dictionary for the given path."""
         attr_path = self._get_attr_path(path)
         if self.wrapped_fs.exists(attr_path):
-            return pickle.loads(self.wrapped_fs.getcontents(attr_path))
+            try:
+                return pickle.loads(self.wrapped_fs.getcontents(attr_path))
+            except EOFError:
+                return {}
         else:
             return {}
 
@@ -92,6 +96,7 @@ class SimulateXAttr(WrapFS):
         attr_path = self._get_attr_path(path)
         self.wrapped_fs.setcontents(attr_path, pickle.dumps(attrs))
 
+    @synchronize
     def setxattr(self, path, key, value):
         """Set an extended attribute on the given path."""
         if not self.exists(path):
@@ -100,6 +105,7 @@ class SimulateXAttr(WrapFS):
         attrs[key] = str(value)
         self._set_attr_dict(path, attrs)
 
+    @synchronize
     def getxattr(self, path, key, default=None):
         """Retrieve an extended attribute for the given path."""
         if not self.exists(path):
@@ -107,6 +113,7 @@ class SimulateXAttr(WrapFS):
         attrs = self._get_attr_dict(path)
         return attrs.get(key, default)
 
+    @synchronize
     def delxattr(self, path, key):
         if not self.exists(path):
             raise ResourceNotFoundError(path)

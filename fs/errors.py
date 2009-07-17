@@ -180,6 +180,8 @@ def convert_os_errors(func):
                 raise ResourceInvalidError(path,opname=opname,details=e)
             if e.errno == errno.EINVAL:
                 raise ResourceInvalidError(path,opname=opname,details=e)
+            if e.errno == errno.EOPNOTSUPP:
+                raise UnsupportedError(opname,details=e)
             # Sometimes windows gives some random errors...
             if sys.platform == "win32":
                 if e.errno in (13,):
