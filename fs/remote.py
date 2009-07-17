@@ -141,7 +141,7 @@ class ConnectionManagerFS(WrapFS):
 
     poll_interval = 1
 
-    def __init__(self,fs,poll_interval=None):
+    def __init__(self,fs,poll_interval=None,connected=True):
         if poll_interval is not None:
             self.poll_interval = poll_interval
         if isinstance(fs,FS):
@@ -162,12 +162,7 @@ class ConnectionManagerFS(WrapFS):
                 self._fskwds = {}
         self._connection_cond = threading.Condition()
         self._poll_thread = None
-        try:
-            self.wrapped_fs.isdir("")
-        except RemoteConnectionError:
-            self.connected = False
-        else:
-            self.connected = True
+        self.connected = connected
 
     @property
     def wrapped_fs(self):
