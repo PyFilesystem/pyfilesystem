@@ -255,3 +255,44 @@ class MountFS(FS):
 
         return fs.getinfo(delegate_path).get("size", None)
 
+    @synchronize
+    def getxattr(self,path,name,default=None):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ResourceNotFoundError(path)
+        if fs is self:
+            return default
+        return fs.getxattr(delegate_path,name,default)
+
+    @synchronize
+    def setxattr(self,path,name,value):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ResourceNotFoundError(path)
+        if fs is self:
+            raise UnsupportedError("setxattr")
+        return fs.setxattr(delegate_path,name,value)
+
+    @synchronize
+    def delxattr(self,path,name):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ResourceNotFoundError(path)
+        if fs is self:
+            return True
+        return fs.delxattr(delegate_path,name)
+
+    @synchronize
+    def listxattrs(self,path):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ResourceNotFoundError(path)
+        if fs is self:
+            return []
+        return fs.listxattrs(delegate_path)
+
+
