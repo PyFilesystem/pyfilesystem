@@ -66,8 +66,7 @@ class MountFS(FS):
     def isdir(self, path):
         fs, mount_path, delegate_path = self._delegate(path)
         if fs is None:
-            raise ResourceNotFoundError(path)
-
+            return False
         if fs is self:
             object = self.mount_tree.get(path, None)
             return isinstance(object, dict)
@@ -78,8 +77,7 @@ class MountFS(FS):
     def isfile(self, path):
         fs, mount_path, delegate_path = self._delegate(path)
         if fs is None:
-            return ResourceNotFoundError(path)
-
+            return False
         if fs is self:
             object = self.mount_tree.get(path, None)
             return type(object) is MountFS.FileMount
