@@ -220,6 +220,11 @@ class MountFS(FS):
         self.mount_tree[path] = MountFS.FileMount(path, callable, info_callable)
 
     @synchronize
+    def unmount(self,path):
+        path = normpath(path)
+        del self.mount_tree[path]
+
+    @synchronize
     def getinfo(self, path):
         path = normpath(path)
 
