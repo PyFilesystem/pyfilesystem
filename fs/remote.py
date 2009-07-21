@@ -162,6 +162,7 @@ class ConnectionManagerFS(WrapFS):
                 self._fskwds = {}
         self._connection_cond = threading.Condition()
         self._poll_thread = None
+        self._poll_sleeper = threading.Event()
         self.connected = connected
 
     @property
@@ -183,12 +184,14 @@ class ConnectionManagerFS(WrapFS):
     def __getstate__(self):
         state = super(ConnectionManagerFS,self).__getstate__()
         del state["_connection_cond"]
+        del state["_poll_sleeper"]
         state["_poll_thread"] = None
         return state
 
     def __setstate__(self,state):
         super(ConnectionManagerFS,self).__setstate__(state)
         self._connection_cond = threading.Condition()
+        self._poll_sleeper = threading.Event()
         
     def wait_for_connection(self,timeout=None):
         self._connection_cond.acquire()
@@ -205,7 +208,8 @@ class ConnectionManagerFS(WrapFS):
             try:
                 self.wrapped_fs.isdir("")
             except RemoteConnectionError:
-                time.sleep(self.poll_interval)
+                self._poll_sleeper.wait(self.poll_interval)
+                self._poll_sleeper.clear()
                 continue
             except FSError:
                 break
@@ -216,6 +220,17 @@ class ConnectionManagerFS(WrapFS):
         self._poll_thread = None
         self._connection_cond.notifyAll()
         self._connection_cond.release()
+
+    def close(self):
+        try:
+            self.wrapped_fs.close()
+        except (RemoteConnectionError,AttributeError):
+            pass
+        if self._poll_thread:
+            self.connected = True
+            self._poll_sleeper.set()
+            self._poll_thread.join()
+            self._poll_thread = None
 
 def _ConnectionManagerFS_method_wrapper(func):
     """Method wrapper for ConnectionManagerFS.

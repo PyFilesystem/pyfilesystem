@@ -125,6 +125,10 @@ class WrapFS(FS):
         return self._file_wrap(f,mode)
 
     @rewrite_errors
+    def setcontents(self,path,contents):
+        self.wrapped_fs.setcontents(self._encode(path),contents)
+
+    @rewrite_errors
     def exists(self,path):
         return self.wrapped_fs.exists(self._encode(path))
 
