@@ -195,13 +195,15 @@ class ConnectionManagerFS(WrapFS):
         
     def wait_for_connection(self,timeout=None):
         self._connection_cond.acquire()
-        if not self.connected:
-            if not self._poll_thread:
-                target = self._poll_connection
-                self._poll_thread=threading.Thread(target=target)
-                self._poll_thread.start()
-            self._connection_cond.wait(timeout)
-        self._connection_cond.release()
+        try:
+            if not self.connected:
+                if not self._poll_thread:
+                    target = self._poll_connection
+                    self._poll_thread = threading.Thread(target=target)
+                    self._poll_thread.start()
+                self._connection_cond.wait(timeout)
+        finally:
+            self._connection_cond.release()
 
     def _poll_connection(self):
         while not self.connected:
@@ -210,16 +212,17 @@ class ConnectionManagerFS(WrapFS):
             except RemoteConnectionError:
                 self._poll_sleeper.wait(self.poll_interval)
                 self._poll_sleeper.clear()
-                continue
             except FSError:
                 break
             else:
                 break
         self._connection_cond.acquire()
-        self.connected = True
-        self._poll_thread = None
-        self._connection_cond.notifyAll()
-        self._connection_cond.release()
+        try:
+            self.connected = True
+            self._poll_thread = None
+            self._connection_cond.notifyAll()
+        finally:
+            self._connection_cond.release()
 
     def close(self):
         try:
