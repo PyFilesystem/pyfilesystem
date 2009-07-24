@@ -10,6 +10,7 @@ implementations of this interface such as:
     TempFS:     a temporary filesystem that's automatically cleared on exit
     MemoryFS:   a filesystem that exists only in memory
     ZipFS:      access a zipfile like a filesystem
+    SFTPFS:     access files on a SFTP server
     S3FS:       access files stored in Amazon S3
 
 """
@@ -17,11 +18,11 @@ implementations of this interface such as:
 __version__ = "0.2.0"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
-#  'base' imports * from 'path' and 'errors', so their contents
-#  will be available here as well.
+#  'base' imports * from 'path' and 'errors', so their
+#  contents will be available here as well.
 from base import *
 
-#  provide these by default so people cna be 'fs.path.basename' etc.
+#  provide these by default so people can use 'fs.path.basename' etc.
 import errors
 import path
 

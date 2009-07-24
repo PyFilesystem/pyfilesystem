@@ -2,6 +2,20 @@
 
   fs.remote:  utilities for interfacing with remote filesystems
 
+
+This module provides reusable utility functions that can be used to construct
+FS subclasses interfacing with a remote filesystem.  These include:
+
+  RemoteFileBuffer:  a file-like object that locally buffers the contents
+                     of a remote file, writing them back on flush() or close().
+
+  ConnectionManagerFS:  a WrapFS subclass that tracks the connection state
+                        of a remote FS, and allows client code to wait for
+                        a connection to be re-established.
+
+  CacheFS:  a WrapFS subclass that caces file and directory meta-data in
+            memory, to speed access to a remote FS.
+
 """
 
 import time
@@ -49,13 +63,18 @@ class RemoteFileBuffer(object):
 
         The owning filesystem, path and mode must be provided.  If the
         optional argument 'rfile' is provided, it must be a read()-able
-        object containing the initial file contents.
+        object or a string containing the initial file contents.
         """
         self.file = TempFile()
         self.fs = fs
         self.path = path
         self.mode = mode
         self.closed = False
+        self._flushed = False
+        if hasattr(fs,"_lock"):
+            self._lock = copy.deepcopy(fs._lock)
+        else:
+            self._lock = threading.RLock()
         if rfile is not None:
             if hasattr(rfile,"read"):
                 data = rfile.read(1024*256)
@@ -66,18 +85,26 @@ class RemoteFileBuffer(object):
                 self.file.write(str(rfile))
             if "a" not in mode:
                 self.file.seek(0)
-
+        
     def __del__(self):
         if not self.closed:
             self.close()
 
-    #  This is lifted straight from the stdlib's tempfile.py
     def __getattr__(self,name):
         file = self.__dict__['file']
         a = getattr(file, name)
-        if not issubclass(type(a), type(0)):
-            setattr(self, name, a)
-        return a
+        if not callable(a):
+            return a
+        @wraps(a)
+        def call_with_lock(*args,**kwds):
+            self._lock.acquire()
+            try:
+                self._flushed = False
+                return a(*args,**kwds)
+            finally:
+                self._lock.release()
+        setattr(self, name, call_with_lock)
+        return call_with_lock
 
     def __enter__(self):
         self.file.__enter__()
@@ -90,20 +117,37 @@ class RemoteFileBuffer(object):
     def __iter__(self):
         return iter(self.file)
 
+    def truncate(self,size=None):
+        self._lock.acquire()
+        try:
+            self.file.truncate(size)
+            self.flush()
+        finally:
+            self._lock.release()
+
     def flush(self):
-        self.file.flush()
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            pos = self.file.tell()
-            self.file.seek(0)
-            self.fs.setcontents(self.path,self.file)
-            self.file.seek(pos)
+        self._lock.acquire()
+        try:
+            self.file.flush()
+            if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+                pos = self.file.tell()
+                self.file.seek(0)
+                self.fs.setcontents(self.path,self.file)
+                self.file.seek(pos)
+                self._flushed = True
+        finally:
+            self._lock.release()
 
     def close(self):
-        self.closed = True
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            self.file.seek(0)
-            self.fs.setcontents(self.path,self.file)
-        self.file.close()
+        self._lock.acquire()
+        try:
+            self.closed = True
+            if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+                self.file.seek(0)
+                self.fs.setcontents(self.path,self.file)
+            self.file.close()
+        finally:
+            self._lock.release()
 
 
 class ConnectionManagerFS(WrapFS):
@@ -285,7 +329,7 @@ def _cached_method(func):
 class CacheFS(WrapFS):
     """Simple wrapper to cache meta-data of a remote filesystems.
 
-    This FS wrapper implements a simplistic cache that can help speedup
+    This FS wrapper implements a simplistic cache that can help speed up
     access to a remote filesystem.  File and directory meta-data is cached
     but the actual file contents are not.
     """
