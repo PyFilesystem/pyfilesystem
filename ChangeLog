@@ -1,0 +1,20 @@
+
+0.2:
+
+    * New FS implementations:
+        * S3FS:    access remote files stored in Amazon S3
+        * RPCFS:   access remote files using a simple XML-RPC protocol
+        * SFTPFS:  access remote files on a SFTP server
+        * WrapFS:  filesystem that wraps an FS object and transparently
+                   modifies its contents (think encryption, compression, ...)
+    * Ability to expose FS objects to the outside world:
+        * expose.fuse:    expose an FS object using FUSE
+        * expose.xmlrpc:  expose an FS object a simple XML-RPC protocol
+        * expose.sftp:    expose an FS object SFTP
+        * expose.django_storage:  convert FS object to Django Storage object
+    * fs.remote:  utilities for implementing FS classes that interface
+                  with a remote filesystem
+    * Extended attribute support (getxattr/setxattr/delxattr/listxattrs)
+    * Renamed "fs.helpers" to "fs.path", and renamed to contained functions
+      to match those offered by os.path
+
