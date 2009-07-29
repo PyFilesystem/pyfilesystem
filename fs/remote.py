@@ -72,7 +72,7 @@ class RemoteFileBuffer(object):
         self.closed = False
         self._flushed = False
         if hasattr(fs,"_lock"):
-            self._lock = copy.deepcopy(fs._lock)
+            self._lock = fs._lock.__class__()
         else:
             self._lock = threading.RLock()
         if rfile is not None:
