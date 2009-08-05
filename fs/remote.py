@@ -75,7 +75,7 @@ class RemoteFileBuffer(object):
             self._lock = fs._lock.__class__()
         else:
             self._lock = threading.RLock()
-        if "r" in mode or "+" in mode:
+        if "r" in mode or "+" in mode or "a" in mode:
             if rfile is not None:
                 if hasattr(rfile,"read"):
                     data = rfile.read(1024*256)
