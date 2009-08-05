@@ -143,7 +143,7 @@ class FSOperations(Operations):
 
     def _get_file(self,fh):
         try:
-            return self._fhmap[fh]
+            return self._fhmap[fh.fh]
         except KeyError:
             raise FSError("invalid file handle")
 
@@ -156,6 +156,9 @@ class FSOperations(Operations):
             return fh
         finally:
             self._fhmap_lock.release()
+
+    def _del_file(self,fh):
+        del self._fhmap[fh.fh]
 
     def init(self,conn):
         if self._on_init:
@@ -174,10 +177,10 @@ class FSOperations(Operations):
         raise UnsupportedError("chown")
 
     @handle_fs_errors
-    def create(self,path,mode,fi=None):
-        if fi is not None:
-            raise UnsupportedError("raw_fi")
-        return self._reg_file(self.fs.open(path,"w"))
+    def create(self,path,mode,fi):
+        fh = self._reg_file(self.fs.open(path,"w"))
+        fi.fh = fh
+        fi.keep_cache = 0
 
     @handle_fs_errors
     def flush(self,path,fh):
@@ -226,9 +229,11 @@ class FSOperations(Operations):
         raise UnsupportedError("mknod")
 
     @handle_fs_errors
-    def open(self,path,flags):
-        mode = flags_to_mode(flags)
-        return self._reg_file(self.fs.open(path,mode))
+    def open(self,path,fi):
+        mode = flags_to_mode(fi.flags)
+        fi.fh = self._reg_file(self.fs.open(path,mode))
+        fi.keep_cache = 0
+        return 0
 
     @handle_fs_errors
     def read(self,path,size,offset,fh):
@@ -236,7 +241,8 @@ class FSOperations(Operations):
         lock.acquire()
         try:
             file.seek(offset)
-            return file.read(size)
+            data = file.read(size)
+            return data
         finally:
             lock.release()
 
@@ -266,7 +272,7 @@ class FSOperations(Operations):
         lock.acquire()
         try:
             file.close()
-            del self._fhmap[fh]
+            self._del_file(fh)
         finally:
             lock.release()
 
@@ -368,7 +374,7 @@ def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**k
     """
     if foreground:
         op = FSOperations(fs,on_init=ready_callback,on_destroy=unmount_callback)
-        return FUSE(op,path,foreground=foreground,**kwds)
+        return FUSE(op,path,raw_fi=True,foreground=foreground,**kwds)
     else:
         mp = MountProcess(fs,path,kwds)
         if ready_callback:
