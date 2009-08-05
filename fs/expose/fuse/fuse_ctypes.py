@@ -220,16 +220,6 @@ def set_st_attrs(st, attrs):
         elif hasattr(st, key):
             setattr(st, key, val)
 
-def _operation_wrapper(func, *args, **kwargs):
-    """Decorator for the methods of class FUSE"""
-    try:
-        return func(*args, **kwargs) or 0
-    except OSError, e:
-        return -(e.errno or EFAULT)
-    except:
-        #print_exc()
-        return -EFAULT
-
 _libfuse = CDLL(find_library("fuse"))
 
 
@@ -269,11 +259,21 @@ class FUSE(object):
         fuse_ops = fuse_operations()
         for name, prototype in fuse_operations._fields_:
             if prototype != c_voidp and getattr(operations, name, None):
-                op = partial(_operation_wrapper, getattr(self, name))
+                op = partial(self._wrapper_, getattr(self, name))
                 setattr(fuse_ops, name, prototype(op))
         _libfuse.fuse_main_real(len(args), argv, pointer(fuse_ops),
             sizeof(fuse_ops), None)
         del self.operations     # Invoke the destructor
+
+    def _wrapper_(self, func, *args, **kwargs):
+        """Decorator for the methods that follow"""
+        try:
+            return func(*args, **kwargs) or 0
+        except OSError, e:
+            return -(e.errno or EFAULT)
+        except:
+            print_exc()
+            return -EFAULT
 
     def init(self,conn):
         return self.operations("init",conn)
@@ -286,7 +286,8 @@ class FUSE(object):
     
     def readlink(self, path, buf, bufsize):
         ret = self.operations('readlink', path)
-        memmove(buf, create_string_buffer(ret), bufsize)
+        strbuf = create_string_buffer(ret[:bufsize - 1])
+        memmove(buf, strbuf, len(strbuf))
         return 0
     
     def mknod(self, path, mode, dev):
@@ -331,7 +332,8 @@ class FUSE(object):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         ret = self.operations('read', path, size, offset, fh)
         if ret:
-            memmove(buf, create_string_buffer(ret), size)
+            strbuf = create_string_buffer(ret[:size - 1])
+            memmove(buf, strbuf, len(strbuf))
         return len(ret)
     
     def write(self, path, buf, size, offset, fip):
@@ -399,7 +401,8 @@ class FUSE(object):
                     set_st_attrs(st, attrs)
                 else:
                     st = None
-            filler(buf, name, st, offset)
+            if filler(buf, name, st, offset) != 0:
+                break
         return 0
     
     def releasedir(self, path, fip):
