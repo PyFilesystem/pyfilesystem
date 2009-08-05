@@ -73,10 +73,15 @@ class DisconnectingFS(WrapFS):
         self._connected = True
         self.wrapped_fs.close()
 
-    def _encode(self,path):
+def disconnecting_wrapper(func):
+    """Method wrapper to raise RemoteConnectionError if not connected."""
+    @wraps(func)
+    def wrapper(self,*args,**kwds):
         if not self._connected:
             raise RemoteConnectionError("")
-        return path
+        return func(self,*args,**kwds)
+    return wrapper
+DisconnectingFS = wrap_fs_methods(disconnecting_wrapper)(DisconnectingFS)
 
 
 class DisconnectRecoveryFS(WrapFS):

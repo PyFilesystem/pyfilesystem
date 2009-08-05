@@ -269,15 +269,21 @@ class ConnectionManagerFS(WrapFS):
             self._connection_cond.release()
 
     def close(self):
+        # Don't close if we haven't created it
         try:
-            self.wrapped_fs.close()
-        except (RemoteConnectionError,AttributeError):
+            fs = self.__dict__["wrapped_fs"]
+        except KeyError:
             pass
-        if self._poll_thread:
-            self.connected = True
-            self._poll_sleeper.set()
-            self._poll_thread.join()
-            self._poll_thread = None
+        else:
+            try:
+                fs.close()
+            except (RemoteConnectionError,AttributeError):
+                pass
+            if self._poll_thread:
+                self.connected = True
+                self._poll_sleeper.set()
+                self._poll_thread.join()
+                self._poll_thread = None
 
 def _ConnectionManagerFS_method_wrapper(func):
     """Method wrapper for ConnectionManagerFS.
