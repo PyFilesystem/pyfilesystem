@@ -253,8 +253,10 @@ def wrap_fs_methods(decorator,cls=None):
 
     """
     methods = ("open","exists","isdir","isfile","listdir","makedir","remove",
-               "removedir","rename","getinfo","copy","move","copydir",
-               "movedir","close","getxattr","setxattr","delxattr","listxattrs")
+               "setcontents","removedir","rename","getinfo","copy","move",
+               "copydir","movedir","close","getxattr","setxattr","delxattr",
+               "listxattrs")
+               
     def apply_decorator(cls):
         for method_name in methods:
             method = getattr(cls,method_name,None)
