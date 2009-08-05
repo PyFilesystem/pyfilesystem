@@ -71,20 +71,21 @@ class RemoteFileBuffer(object):
         self.mode = mode
         self.closed = False
         self._flushed = False
-        if hasattr(fs,"_lock"):
+        if getattr(fs,"_lock",None) is not None:
             self._lock = fs._lock.__class__()
         else:
             self._lock = threading.RLock()
-        if rfile is not None:
-            if hasattr(rfile,"read"):
-                data = rfile.read(1024*256)
-                while data:
-                    self.file.write(data)
+        if "r" in mode or "+" in mode:
+            if rfile is not None:
+                if hasattr(rfile,"read"):
                     data = rfile.read(1024*256)
-            else:
-                self.file.write(str(rfile))
-            if "a" not in mode:
-                self.file.seek(0)
+                    while data:
+                        self.file.write(data)
+                        data = rfile.read(1024*256)
+                else:
+                    self.file.write(str(rfile))
+                if "a" not in mode:
+                    self.file.seek(0)
         
     def __del__(self):
         if not self.closed:
@@ -99,7 +100,8 @@ class RemoteFileBuffer(object):
         def call_with_lock(*args,**kwds):
             self._lock.acquire()
             try:
-                self._flushed = False
+                if "write" in name:
+                    self._flushed = False
                 return a(*args,**kwds)
             finally:
                 self._lock.release()
@@ -130,22 +132,27 @@ class RemoteFileBuffer(object):
         try:
             self.file.flush()
             if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-                pos = self.file.tell()
-                self.file.seek(0)
-                self.fs.setcontents(self.path,self.file)
-                self.file.seek(pos)
-                self._flushed = True
+                if not self._flushed:
+                    pos = self.file.tell()
+                    self.file.seek(0)
+                    self.file.seek(0)
+                    self.fs.setcontents(self.path,self.file)
+                    self.file.seek(pos)
+                    self._flushed = True
         finally:
             self._lock.release()
 
     def close(self):
         self._lock.acquire()
         try:
-            self.closed = True
-            if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-                self.file.seek(0)
-                self.fs.setcontents(self.path,self.file)
-            self.file.close()
+            if not self.closed:
+                self.closed = True
+                if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+                    if not self._flushed:
+                        self.file.seek(0)
+                        self.file.seek(0)
+                        self.fs.setcontents(self.path,self.file)
+                self.file.close()
         finally:
             self._lock.release()
 
