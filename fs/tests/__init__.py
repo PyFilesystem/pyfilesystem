@@ -495,6 +495,10 @@ class FSTestCases:
 class ThreadingTestCases:
     """Testcases for thread-safety of FS implementations."""
 
+    #  These are either too slow to be worth repeating,
+    #  or cannot possibly break cross-thread.
+    _dont_retest = ("test_pickling","test_multiple_overwrite",)
+
     __lock = threading.RLock()
 
     def _yield(self):
@@ -581,7 +585,7 @@ class ThreadingTestCases:
                 for meth in dir(this):
                     if not meth.startswith("test_"):
                         continue
-                    if meth in ("test_pickling",):
+                    if meth in self._dont_retest:
                         continue
                     if not hasattr(FSTestCases,meth):
                         continue
@@ -678,11 +682,13 @@ class ThreadingTestCases:
             for i in xrange(30):
                 for c in contents:
                     self.fs.setcontents("thread1.txt",c)
+                    self.assertEquals(self.fs.getsize("thread1.txt"),len(c))
                     self.assertEquals(self.fs.getcontents("thread1.txt"),c)
         def thread2():
             for i in xrange(30):
                 for c in contents:
                     self.fs.setcontents("thread2.txt",c)
+                    self.assertEquals(self.fs.getsize("thread2.txt"),len(c))
                     self.assertEquals(self.fs.getcontents("thread2.txt"),c)
         self._runThreads(thread1,thread2)
 
