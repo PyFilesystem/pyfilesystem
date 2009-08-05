@@ -332,7 +332,7 @@ class FUSE(object):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         ret = self.operations('read', path, size, offset, fh)
         if ret:
-            strbuf = create_string_buffer(ret[:size - 1])
+            strbuf = create_string_buffer(ret)
             memmove(buf, strbuf, len(strbuf))
         return len(ret)
     
@@ -369,7 +369,7 @@ class FUSE(object):
         ret = self.operations('getxattr', path, name, *args)
         buf = create_string_buffer(ret)
         if bool(value):
-            memmove(value, buf, size)
+            memmove(value, buf, len(buf))
         return len(ret)
     
     def listxattr(self, path, namebuf, size):
@@ -378,7 +378,7 @@ class FUSE(object):
             return 0
         buf = create_string_buffer('\x00'.join(ret))
         if bool(namebuf):
-            memmove(namebuf, buf, size)
+            memmove(namebuf, buf, len(buf))
         return len(buf)
     
     def removexattr(self, path, name):
