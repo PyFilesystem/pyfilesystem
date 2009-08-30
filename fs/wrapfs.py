@@ -26,7 +26,7 @@ def rewrite_errors(func):
         except ResourceError, e:
             try:
                 e.path = self._decode(e.path)
-            except (AttributeError, ValueError):
+            except (AttributeError, ValueError, TypeError):
                 raise e
             raise
     return wrapper
