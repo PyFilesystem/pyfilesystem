@@ -404,8 +404,10 @@ class FSTestCases:
         f2.close()
         self.assert_(checkcontents("b.txt", test_strings[0]))
         f3 = self.fs.open("b.txt", "ab")
-        self.assertEquals(f3.tell(),len(test_strings[0]))
+        # On win32, tell() gives zero until you actually write to the file
+        #self.assertEquals(f3.tell(),len(test_strings[0]))
         f3.write(test_strings[1])
+        self.assertEquals(f3.tell(),len(test_strings[0])+len(test_strings[1]))
         f3.write(test_strings[2])
         self.assertEquals(f3.tell(),len(all_strings))
         f3.close()
