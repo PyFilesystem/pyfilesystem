@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 
 from fs.base import *
 from fs.path import *
@@ -35,6 +36,9 @@ class OSFS(FS):
     def getsyspath(self, path, allow_none=False):
         path = relpath(path).replace('/', os.sep)
         sys_path = os.path.join(self.root_path, path)
+        #  Enable long pathnames on win32
+        if sys.platform == "win32":
+            sys_path = u"\\\\?\\" + os.path.abspath(sys_path)
         return sys_path
 
     @convert_os_errors

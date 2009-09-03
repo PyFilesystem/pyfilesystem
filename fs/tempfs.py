@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import os
 from osfs import OSFS
 import tempfile
-from shutil import rmtree
 
 class TempFS(OSFS):
 
@@ -37,7 +37,15 @@ class TempFS(OSFS):
         if not self._cleaned and self.exists("/"):
             self._lock.acquire()
             try:
-                rmtree(self._temp_dir)
+                # shutil.rmtree doesn't handle long paths on win32,
+                # so we walk the tree by hand.
+                entries = os.walk(self.root_path,topdown=False)
+                for (dir,dirnames,filenames) in entries:
+                    for filename in filenames:
+                        os.remove(os.path.join(dir,filename))
+                    for dirname in dirnames:
+                        os.rmdir(os.path.join(dir,dirname))
+                os.rmdir(self.root_path)
                 self._cleaned = True
             finally:
                 self._lock.release()
