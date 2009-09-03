@@ -11,23 +11,28 @@ try:
 except ImportError:
     xattr = None
 
+
 class OSFS(FS):
     """Expose the underlying operating-system filesystem as an FS object.
 
     This is the most basic of filesystems, which simply shadows the underlaying
     filesytem of the OS.  Most of its methods simply defer to the corresponding
     methods in the os and os.path modules.
-
     """
 
     def __init__(self, root_path, dir_mode=0700, thread_synchronize=True):
         FS.__init__(self, thread_synchronize=thread_synchronize)
-        expanded_path = normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(root_path))))
-        if not os.path.exists(expanded_path):
-            raise ResourceNotFoundError(expanded_path,msg="Root directory does not exist: %(path)s")
-        if not os.path.isdir(expanded_path):
+        root_path = os.path.expanduser(os.path.expandvars(root_path))
+        root_path = os.path.normpath(os.path.abspath(root_path))
+        #  Enable long pathnames on win32
+        if sys.platform == "win32":
+            if not root_path.startswith("\\\\?\\"):
+                root_path = u"\\\\?\\" + root_path
+        if not os.path.exists(root_path):
+            raise ResourceNotFoundError(root_path,msg="Root directory does not exist: %(path)s")
+        if not os.path.isdir(root_path):
             raise ResourceInvalidError(expanded_path,msg="Root path is not a directory: %(path)s")
-        self.root_path = normpath(os.path.abspath(expanded_path))
+        self.root_path = root_path
         self.dir_mode = dir_mode
 
     def __str__(self):
@@ -35,11 +40,7 @@ class OSFS(FS):
 
     def getsyspath(self, path, allow_none=False):
         path = relpath(path).replace('/', os.sep)
-        sys_path = os.path.join(self.root_path, path)
-        #  Enable long pathnames on win32
-        if sys.platform == "win32":
-            sys_path = u"\\\\?\\" + os.path.abspath(sys_path)
-        return sys_path
+        return os.path.join(self.root_path, path)
 
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):
