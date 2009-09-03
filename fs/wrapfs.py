@@ -13,6 +13,7 @@ directory listings.
 
 """
 
+import sys
 from fnmatch import fnmatch
 
 from fs.base import FS, threading, synchronize
@@ -24,10 +25,11 @@ def rewrite_errors(func):
         try:
             return func(self,*args,**kwds)
         except ResourceError, e:
+            (exc_type,exc_inst,tb) = sys.exc_info()
             try:
                 e.path = self._decode(e.path)
             except (AttributeError, ValueError, TypeError):
-                raise e
+                raise e, None, tb
             raise
     return wrapper
 

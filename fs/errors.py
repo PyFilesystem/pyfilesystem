@@ -159,36 +159,37 @@ def convert_os_errors(func):
         try:
             return func(self,*args,**kwds)
         except (OSError,IOError), e:
+            (exc_type,exc_inst,tb) = sys.exc_info()
             path = getattr(e,"filename",None)
             if path and path[0] == "/" and hasattr(self,"root_path"):
                 path = normpath(path)
                 if isprefix(self.root_path,path):
                     path = path[len(self.root_path):]
             if not hasattr(e,"errno") or not e.errno:
-                raise OperationFailedError(opname,details=e)
+                raise OperationFailedError(opname,details=e),None,tb
             if e.errno == errno.ENOENT:
-                raise ResourceNotFoundError(path,opname=opname,details=e)
+                raise ResourceNotFoundError(path,opname=opname,details=e),None,tb
             if e.errno == errno.ENOTEMPTY:
-                raise DirectoryNotEmptyError(path,opname=opname,details=e)
+                raise DirectoryNotEmptyError(path,opname=opname,details=e),None,tb
             if e.errno == errno.EEXIST:
-                raise DestinationExistsError(path,opname=opname,details=e)
+                raise DestinationExistsError(path,opname=opname,details=e),None,tb
             if e.errno == 183: # some sort of win32 equivalent to EEXIST
-                raise DestinationExistsError(path,opname=opname,details=e)
+                raise DestinationExistsError(path,opname=opname,details=e),None,tb
             if e.errno == errno.ENOTDIR:
-                raise ResourceInvalidError(path,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e),None,tb
             if e.errno == errno.EISDIR:
-                raise ResourceInvalidError(path,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e),None,tb
             if e.errno == errno.EINVAL:
-                raise ResourceInvalidError(path,opname=opname,details=e)
+                raise ResourceInvalidError(path,opname=opname,details=e),None,tb
             if e.errno == errno.EOPNOTSUPP:
-                raise UnsupportedError(opname,details=e)
+                raise UnsupportedError(opname,details=e),None,tb
             if e.errno == errno.ENOSPC:
-                raise StorageSpaceError(opname,details=e)
+                raise StorageSpaceError(opname,details=e),None,tb
             # Sometimes windows gives some random errors...
             if sys.platform == "win32":
                 if e.errno in (13,):
-                    raise ResourceInvalidError(path,opname=opname,details=e)
-            raise OperationFailedError(opname,details=e)
+                    raise ResourceInvalidError(path,opname=opname,details=e),None,tb
+            raise OperationFailedError(opname,details=e),None,tb
     return wrapper
 
 
