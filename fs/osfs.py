@@ -89,7 +89,14 @@ class OSFS(FS):
     @convert_os_errors
     def remove(self, path):
         sys_path = self.getsyspath(path)
-        os.remove(sys_path)
+        try:
+            os.remove(sys_path)
+        except OSError, e:
+            if e.errno == 13 and sys.platform == "win32":
+                # sometimes windows says this for attempts to remove a dir
+                if os.path.isdir(sys_path):
+                    raise ResourceInvalidError(path)
+            raise
 
     @convert_os_errors
     def removedir(self, path, recursive=False,force=False):
