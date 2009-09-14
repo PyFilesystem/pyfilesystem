@@ -23,6 +23,7 @@ function 'ensure_xattrs'.  This will interrogate an FS object to determine
 if it has native xattr support, and return a wrapped version if it does not.
 """
 
+import sys
 try:
     import cPickle as pickle
 except ImportError:
@@ -64,9 +65,11 @@ class SimulateXAttr(WrapFS):
     directory itself.
     """
 
-    def _get_attr_path(self, path):
+    def _get_attr_path(self, path, isdir=None):
         """Get the path of the file containing xattrs for the given path."""
-        if self.wrapped_fs.isdir(path):
+        if isdir is None:
+            isdir = self.wrapped_fs.isdir(path)
+        if isdir:
             attr_path = pathjoin(path, '.xattrs')
         else:
             dir_path, file_name = pathsplit(path)
@@ -144,6 +147,33 @@ class SimulateXAttr(WrapFS):
         entries = self.wrapped_fs.listdir(path,**kwds)
         return [e for e in entries if not self._is_attr_path(e)]
 
+    def remove(self,path):
+        """Remove .xattr when removing a file."""
+        attr_file = self._get_attr_path(path,isdir=False)
+        self.wrapped_fs.remove(path)
+        try:
+            self.wrapped_fs.remove(attr_file)
+        except ResourceNotFoundError:
+            pass
+
+    def removedir(self,path,recursive=False,force=False):
+        """Remove .xattr when removing a directory."""
+        try:
+            self.wrapped_fs.removedir(path,recursive=recursive,force=force)
+        except DirectoryNotEmptyError:
+            #  The xattr file could block the underlying removedir().
+            #  Remove it, but be prepared to restore it on error.
+            if self.listdir(path) != []:
+                raise
+            attr_file = self._get_attr_path(path,isdir=True)
+            attr_file_contents = self.wrapped_fs.getcontents(attr_file)
+            self.wrapped_fs.remove(attr_file)
+            try:
+                self.wrapped_fs.removedir(path,recursive=recursive)
+            except FSError:
+                self.wrapped_fs.createfile(attr_file,attr_file_contents)
+                raise
+
     def copy(self,src,dst,**kwds):
         """Ensure xattrs are copied when copying a file."""
         self.wrapped_fs.copy(self._encode(src),self._encode(dst),**kwds)
@@ -163,4 +193,5 @@ class SimulateXAttr(WrapFS):
             self.wrapped_fs.move(s_attr_file,d_attr_file,overwrite=True)
         except ResourceNotFoundError:
             pass
+
  
