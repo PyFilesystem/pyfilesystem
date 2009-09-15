@@ -87,34 +87,38 @@ class XAttrTestCases:
         self.assertEquals(self.fs.getxattr("stuff2","dirattr"),"a directory")
 
     def test_remove_file(self):
+        def listxattrs(path):
+            return list(self.fs.listxattrs(path))
         #  Check that xattrs aren't preserved after a file is removed
         self.fs.createfile("myfile")
-        self.assertEquals(self.fs.listxattrs("myfile"),[])
+        self.assertEquals(listxattrs("myfile"),[])
         self.fs.setxattr("myfile","testattr","testvalue")
-        self.assertEquals(self.fs.listxattrs("myfile"),["testattr"])
+        self.assertEquals(listxattrs("myfile"),["testattr"])
         self.fs.remove("myfile")
-        self.assertRaises(ResourceNotFoundError,self.fs.listxattrs,"myfile")
+        self.assertRaises(ResourceNotFoundError,listxattrs,"myfile")
         self.fs.createfile("myfile")
-        self.assertEquals(self.fs.listxattrs("myfile"),[])
+        self.assertEquals(listxattrs("myfile"),[])
         self.fs.setxattr("myfile","testattr2","testvalue2")
-        self.assertEquals(self.fs.listxattrs("myfile"),["testattr2"])
+        self.assertEquals(listxattrs("myfile"),["testattr2"])
         self.assertEquals(self.fs.getxattr("myfile","testattr2"),"testvalue2")
         #  Check that removing a file without xattrs still works
         self.fs.createfile("myfile2")
         self.fs.remove("myfile2")
  
     def test_remove_dir(self):
+        def listxattrs(path):
+            return list(self.fs.listxattrs(path))
         #  Check that xattrs aren't preserved after a dir is removed
         self.fs.makedir("mydir")
-        self.assertEquals(self.fs.listxattrs("mydir"),[])
+        self.assertEquals(listxattrs("mydir"),[])
         self.fs.setxattr("mydir","testattr","testvalue")
-        self.assertEquals(self.fs.listxattrs("mydir"),["testattr"])
+        self.assertEquals(listxattrs("mydir"),["testattr"])
         self.fs.removedir("mydir")
-        self.assertRaises(ResourceNotFoundError,self.fs.listxattrs,"mydir")
+        self.assertRaises(ResourceNotFoundError,listxattrs,"mydir")
         self.fs.makedir("mydir")
-        self.assertEquals(self.fs.listxattrs("mydir"),[])
+        self.assertEquals(listxattrs("mydir"),[])
         self.fs.setxattr("mydir","testattr2","testvalue2")
-        self.assertEquals(self.fs.listxattrs("mydir"),["testattr2"])
+        self.assertEquals(listxattrs("mydir"),["testattr2"])
         self.assertEquals(self.fs.getxattr("mydir","testattr2"),"testvalue2")
         #  Check that removing a dir without xattrs still works
         self.fs.makedir("mydir2")

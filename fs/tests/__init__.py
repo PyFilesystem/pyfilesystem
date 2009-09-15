@@ -168,6 +168,7 @@ class FSTestCases:
         self.fs.makedir("a")
         self.assert_(check("a"))
         self.fs.removedir("a")
+        self.assertRaises(ResourceNotFoundError, self.fs.removedir, "a")
         self.assert_(not check("a"))
         self.fs.makedir("a/b/c/d", recursive=True)
         self.assertRaises(DirectoryNotEmptyError, self.fs.removedir, "a/b")
