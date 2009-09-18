@@ -236,7 +236,7 @@ class WrapFS(FS):
         if hasattr(self.wrapped_fs,"close"):
             self.wrapped_fs.close()
 
-def wrap_fs_methods(decorator,cls=None):
+def wrap_fs_methods(decorator,cls=None,exclude=[]):
     """Apply the given decorator to all FS methods on the given class.
 
     This function can be used in two ways.  When called with two arguments it
@@ -261,6 +261,8 @@ def wrap_fs_methods(decorator,cls=None):
                
     def apply_decorator(cls):
         for method_name in methods:
+            if method_name in exclude:
+                continue
             method = getattr(cls,method_name,None)
             if method is not None:
                 setattr(cls,method_name,decorator(method))
