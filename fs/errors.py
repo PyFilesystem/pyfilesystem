@@ -37,12 +37,15 @@ class FSError(Exception):
     def __unicode__(self):
         return unicode(str(self))
 
+    def __getstate__(self):
+       return self.__dict__.copy()
+
 
 class PathError(FSError):
     """Exception for errors to do with a path string."""
     default_message = "Path is invalid: %(path)s"
 
-    def __init__(self,path,**kwds):
+    def __init__(self,path="",**kwds):
         self.path = path
         super(PathError,self).__init__(**kwds)
  
@@ -51,7 +54,7 @@ class OperationFailedError(FSError):
     """Base exception class for errors associated with a specific operation."""
     default_message = "Unable to %(opname)s: unspecified error [%(errno)s - %(details)s]"
 
-    def __init__(self,opname,path=None,**kwds):
+    def __init__(self,opname="",path=None,**kwds):
         self.opname = opname
         self.path = path
         self.errno = getattr(kwds.get("details",None),"errno",None)
@@ -82,7 +85,7 @@ class ResourceError(FSError):
     """Base exception class for error associated with a specific resource."""
     default_message = "Unspecified resource error: %(path)s"
 
-    def __init__(self,path,**kwds):
+    def __init__(self,path="",**kwds):
         self.path = path
         self.opname = kwds.pop("opname",None)
         super(ResourceError,self).__init__(**kwds)
