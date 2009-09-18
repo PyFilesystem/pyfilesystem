@@ -43,8 +43,10 @@ class TestConnectionManagerFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 class DisconnectingFS(WrapFS):
     """FS subclass that raises lots of RemoteConnectionErrors."""
 
-    def __init__(self):
-        super(DisconnectingFS,self).__init__(TempFS())
+    def __init__(self,fs=None):
+        if fs is None:
+            fs = TempFS()
+        super(DisconnectingFS,self).__init__(fs)
         self._connected = random.choice([True,False])
         if not self._connected:
             raise RemoteConnectionError("")
