@@ -18,10 +18,28 @@ try:
     import threading
 except ImportError:
     import dummy_threading as threading
-import dummy_threading
 
 from fs.path import *
 from fs.errors import *
+
+
+class DummyLock:
+    """A dummy lock object that doesn't do anything.
+
+    This is used as a placeholder when locking is disabled.  We can't
+    directly use the Lock class from the dummy_threading module, since
+    it attempts to sanity-check the sequence of acquire/release calls
+    in a way that breaks when real threading is available.
+    """
+
+    def acquire(self,blocking=1):
+        """Acquiring a DummyLock always succeeds."""
+        return 1
+
+    def release(self):
+        """Releasing a DummyLock always succeeds."""
+        pass
+
 
 
 def silence_fserrors(f, *args, **kwargs):
@@ -139,7 +157,7 @@ class FS(object):
         if thread_synchronize:
             self._lock = threading.RLock()
         else:
-            self._lock = dummy_threading.RLock()
+            self._lock = DummyLock()
 
 
     def __getstate__(self):
@@ -163,7 +181,7 @@ class FS(object):
             if lock:
                 self._lock = threading.RLock()
             else:
-                self._lock = dummy_threading.RLock()
+                self._lock = DummyLock()
 
 
     def getsyspath(self, path, allow_none=False):
