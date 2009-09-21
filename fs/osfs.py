@@ -2,6 +2,7 @@
 
 import os
 import sys
+import errno
 
 from fs.base import *
 from fs.path import *
@@ -76,12 +77,12 @@ class OSFS(FS):
             else:
                 os.mkdir(sys_path, self.dir_mode)
         except OSError, e:
-            if e.errno == 17 or e.errno == 183:
+            if e.errno == errno.EEXIST or e.errno == 183:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
                 if not allow_recreate:
                     raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
-            elif e.errno == 2:
+            elif e.errno == errno.ENOENT:
                 raise ParentDirectoryMissingError(path)
             else:
                 raise
@@ -92,7 +93,7 @@ class OSFS(FS):
         try:
             os.remove(sys_path)
         except OSError, e:
-            if e.errno == 13 and sys.platform == "win32":
+            if e.errno == errno.EACCES and sys.platform == "win32":
                 # sometimes windows says this for attempts to remove a dir
                 if os.path.isdir(sys_path):
                     raise ResourceInvalidError(path)
