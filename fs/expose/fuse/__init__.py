@@ -488,10 +488,9 @@ class MountProcess(subprocess.Popen):
         """Perform the specified mount, return without waiting."""
         (fs,path,opts) = pickle.loads(data)
         opts["foreground"] = True
-        if hasattr(fs,"close"):
-            def unmount_callback():
-                fs.close()
-            opts["unmount_callback"] = unmount_callback
+        def unmount_callback():
+            fs.close()
+        opts["unmount_callback"] = unmount_callback
         mount(fs,path,*opts)
 
     @staticmethod
@@ -506,10 +505,9 @@ class MountProcess(subprocess.Popen):
             os.write(w,"S")
             os.close(w)
         opts["ready_callback"] = ready_callback
-        if hasattr(fs,"close"):
-            def unmount_callback():
-                fs.close()
-            opts["unmount_callback"] = unmount_callback
+        def unmount_callback():
+            fs.close()
+        opts["unmount_callback"] = unmount_callback
         try:
             mount(fs,path,**opts)
         except Exception:

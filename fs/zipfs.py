@@ -116,9 +116,6 @@ class ZipFS(FS):
             self.zf.close()
             self.zf = _ExceptionProxy()
 
-    def __del__(self):
-        self.close()
-
     @synchronize
     def open(self, path, mode="r", **kwargs):
         path = normpath(path)

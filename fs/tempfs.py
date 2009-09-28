@@ -49,8 +49,6 @@ class TempFS(OSFS):
                 self._cleaned = True
             finally:
                 self._lock.release()
-
-    def __del__(self):
-        self.close()
+        super(TempFS,self).close()
 
 
