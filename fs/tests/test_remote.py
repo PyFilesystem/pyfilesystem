@@ -46,13 +46,13 @@ class DisconnectingFS(WrapFS):
     def __init__(self,fs=None):
         if fs is None:
             fs = TempFS()
-        super(DisconnectingFS,self).__init__(fs)
-        self._connected = random.choice([True,False])
-        if not self._connected:
-            raise RemoteConnectionError("")
+        self._connected = True
         self._continue = True
         self._bounce_thread = threading.Thread(target=self._bounce)
         self._bounce_thread.start()
+        super(DisconnectingFS,self).__init__(fs)
+        if random.choice([True,False]):
+            raise RemoteConnectionError("")
 
     def __getstate__(self):
         state = super(DisconnectingFS,self).__getstate__()
@@ -70,13 +70,17 @@ class DisconnectingFS(WrapFS):
             self._connected = not self._connected
 
     def close(self):
-        self._continue = False
-        self._bounce_thread.join()
-        self._connected = True
-        self.wrapped_fs.close()
+        if not self.closed:
+            self._continue = False
+            self._bounce_thread.join()
+            self._connected = True
+            self.wrapped_fs.close()
+            super(DisconnectingFS,self).close()
 
 def disconnecting_wrapper(func):
     """Method wrapper to raise RemoteConnectionError if not connected."""
+    if func.__name__ == "close":
+        return func
     @wraps(func)
     def wrapper(self,*args,**kwds):
         if not self._connected:

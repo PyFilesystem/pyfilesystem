@@ -27,11 +27,11 @@ class TestS3FS(unittest.TestCase,FSTestCases,ThreadingTestCases):
             self.fs._s3bukt.delete_key(k)
 
     def test_concurrent_copydir(self):
-        #  makdir() on S3FS is currently not atomic
+        #  makedir() on S3FS is currently not atomic
         pass
 
     def test_makedir_winner(self):
-        #  makdir() on S3FS is currently not atomic
+        #  makedir() on S3FS is currently not atomic
         pass
 
     def test_multiple_overwrite(self):

@@ -701,6 +701,7 @@ class SubFS(FS):
     def __init__(self, parent, sub_dir):
         self.parent = parent
         self.sub_dir = abspath(normpath(sub_dir))
+        FS.__init__(self,thread_synchronize=False)
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
