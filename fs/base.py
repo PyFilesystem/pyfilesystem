@@ -154,11 +154,18 @@ class FS(object):
         thread_synconize -- If True, a lock object will be created for the
         object, otherwise a dummy lock will be used.
         """
+        self.closed = False
         if thread_synchronize:
             self._lock = threading.RLock()
         else:
             self._lock = DummyLock()
 
+    def __del__(self):
+        if not self.closed:
+            self.close()
+
+    def close(self):
+        self.closed = True
 
     def __getstate__(self):
         #  Locks can't be pickled, so instead we just indicate the
