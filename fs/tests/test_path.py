@@ -20,6 +20,7 @@ class TestPathFunctions(unittest.TestCase):
                     ("a/b/c", "a/b/c"),
                     ("a/b/../c/", "a/c"),
                     ("/","/"),
+                    (u"a/\N{GREEK SMALL LETTER BETA}\\c",u"a/\N{GREEK SMALL LETTER BETA}/c"),
                     ]
         for path, result in tests:
             self.assertEqual(normpath(path), result)
@@ -40,6 +41,7 @@ class TestPathFunctions(unittest.TestCase):
                     ("a/b", "./d", "e", "a/b/d/e"),
                     ("/", "/", "/"),
                     ("/", "", "/"),
+                    (u"a/\N{GREEK SMALL LETTER BETA}","c",u"a/\N{GREEK SMALL LETTER BETA}/c"),
         ]
         for testpaths in tests:
             paths = testpaths[:-1]
