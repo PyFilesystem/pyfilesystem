@@ -9,6 +9,7 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 
 import time
 import datetime
+import tempfile
 import stat as statinfo
 
 import boto.s3.connection
@@ -168,6 +169,16 @@ class S3FS(FS):
         if isinstance(contents,basestring):
             key.set_contents_from_string(contents)
         else:
+            try:
+                contents.seek(0)
+            except (AttributeError,EnvironmentError):
+                tf = tempfile.TemporaryFile()
+                data = contents.read(524288)
+                while data:
+                    tf.write(data)
+                    data = contents.read(524288)
+                tf.seek(0)
+                contents = tf
             key.set_contents_from_file(contents)
         return self._sync_key(key)
 
