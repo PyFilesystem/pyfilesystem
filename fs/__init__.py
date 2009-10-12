@@ -15,7 +15,7 @@ implementations of this interface such as:
 
 """
 
-__version__ = "0.2.0a6"
+__version__ = "0.2.0a8"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
 #  'base' imports * from 'path' and 'errors', so their

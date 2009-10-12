@@ -135,7 +135,6 @@ class RemoteFileBuffer(object):
                 if not self._flushed:
                     pos = self.file.tell()
                     self.file.seek(0)
-                    self.file.seek(0)
                     self.fs.setcontents(self.path,self.file)
                     self.file.seek(pos)
                     self._flushed = True
