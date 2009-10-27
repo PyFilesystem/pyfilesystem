@@ -188,6 +188,8 @@ def convert_os_errors(func):
                 raise UnsupportedError(opname,details=e),None,tb
             if e.errno == errno.ENOSPC:
                 raise StorageSpaceError(opname,details=e),None,tb
+            if e.errno == errno.EACCESS:
+                raise PermissionDeniedError(opname,details=e),None,tb
             # Sometimes windows gives some random errors...
             if sys.platform == "win32":
                 if e.errno in (13,):
