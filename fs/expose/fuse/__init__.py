@@ -395,10 +395,16 @@ def unmount(path):
     FUSE filesystem.  It works, but it would probably be better to use the
     'unmount' method on the MountProcess class if you have it.
     """
-    p = subprocess.Popen(["fusermount","-u",path],stderr=subprocess.PIPE)
-    (stdout,stderr) = p.communicate()
-    if p.returncode != 0 and "not mounted" not in stderr:
-        raise OSError("filesystem could not be unmounted: " + path)
+    for num_tries in xrange(3):
+        p = subprocess.Popen(["fusermount","-u",path],stderr=subprocess.PIPE)
+        (stdout,stderr) = p.communicate()
+        if p.returncode == 0:
+            return
+        if "not mounted" in stderr:
+            return
+        if "not found" in stderr:
+            return
+    raise OSError("filesystem could not be unmounted: %s (%s) " % (path,stderr,))
 
 
 class MountProcess(subprocess.Popen):
@@ -456,7 +462,7 @@ class MountProcess(subprocess.Popen):
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
             if os.read(r,1) != "S":
-                raise RuntimeError("A FUSE error occurred")
+                raise RuntimeError("FUSE error: " + os.read(r,20))
 
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""
@@ -510,10 +516,13 @@ class MountProcess(subprocess.Popen):
         opts["unmount_callback"] = unmount_callback
         try:
             mount(fs,path,**opts)
-        except Exception:
-            pass
-        if not successful:
-            os.write(w,"E")
+        except Exception, e:
+            os.write(w,"E"+str(e))
+            os.close(w)
+        else:
+            if not successful:
+                os.write(w,"E")
+                os.close(w)
 
 
 if __name__ == "__main__":
