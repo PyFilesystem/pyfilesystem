@@ -427,8 +427,8 @@ class CacheFS(WrapFS):
         return super(CacheFS,self).getsize(path)
 
     @_cached_method
-    def getxattr(self,path,name):
-        return super(CacheFS,self).getxattr(path,name)
+    def getxattr(self,path,name,default=None):
+        return super(CacheFS,self).getxattr(path,name,default)
 
     @_cached_method
     def listxattrs(self,path):
