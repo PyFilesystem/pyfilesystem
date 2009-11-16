@@ -143,6 +143,16 @@ class MountFS(FS):
 
         return fs.open(delegate_path, mode, **kwargs)
 
+    @synchronize
+    def setcontents(self, path, contents):
+        path = normpath(path)
+        object = self.mount_tree.get(path, None)
+        if type(object) is MountFS.FileMount:
+            return super(MountFS,self).setcontents(path,contents)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ParentDirectoryMissingError(path)
+        return fs.setcontents(delegate_path,contents)
 
     @synchronize
     def exists(self, path):
