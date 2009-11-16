@@ -231,6 +231,9 @@ class ConnectionManagerFS(WrapFS):
             finally:
                 self._connection_cond.release()
 
+    def setcontents(self,path,data):
+        self.wrapped_fs.setcontents(path,data)
+
     def __getstate__(self):
         state = super(ConnectionManagerFS,self).__getstate__()
         del state["_connection_cond"]

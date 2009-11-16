@@ -597,6 +597,7 @@ class ThreadingTestCases:
                     if self.fs.exists(subdir):
                         self.fs.removedir(subdir,force=True)
                     self.assertFalse(self.fs.isdir(subdir))
+                    self.assertTrue(self.fs.isdir("/"))
                     self.fs.makedir(subdir)
                     self._yield()
                     getattr(this,meth)()
@@ -637,7 +638,8 @@ class ThreadingTestCases:
         # One thread should succeed, two should error
         errors = []
         self._runThreads(makedir,makedir,makedir)
-        self.assertEquals(len(errors),2)
+        if len(errors) != 2:
+            raise AssertionError(errors)
         self.fs.removedir("testdir")
         # All threads should succeed
         errors = []
