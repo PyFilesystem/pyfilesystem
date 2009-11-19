@@ -46,10 +46,17 @@ class BrowseFrame(wx.Frame):
         self.SetTitle("FS Browser - "+str(fs))
 
         self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
-        self.tree.AddColumn("File System", 300)
-        self.tree.AddColumn("Description", 250)
-        self.tree.AddColumn("Size", 150)
-        self.tree.AddColumn("Created", 250)
+
+        self.tree.AddColumn("File System")
+        self.tree.AddColumn("Description")
+        self.tree.AddColumn("Size")
+        self.tree.AddColumn("Created")
+
+        self.tree.SetColumnWidth(0, 300)
+        self.tree.SetColumnWidth(1, 250)
+        self.tree.SetColumnWidth(2, 150)
+        self.tree.SetColumnWidth(3, 250)
+
         self.root_id = self.tree.AddRoot('root', data=wx.TreeItemData( {'path':"/", 'expanded':False} ))
 
         rid = self.tree.GetItemData(self.root_id)
@@ -92,8 +99,8 @@ class BrowseFrame(wx.Frame):
         paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
 
         if not paths:
-            self.tree.SetItemHasChildren(item_id, False)
-            self.tree.Collapse(item_id)
+            #self.tree.SetItemHasChildren(item_id, False)
+            #self.tree.Collapse(item_id)
             return
 
         paths.sort(key=lambda p:(not p[0], p[1].lower()))
@@ -153,6 +160,13 @@ class BrowseFrame(wx.Frame):
 
 
 def browse(fs):
+    """Displays a window containing a tree control that displays an FS
+    object. Double-click a file/folder to display extra info.
+
+    fs -- A filesystem object
+
+    """
+
     app = wx.PySimpleApp()
     frame = BrowseFrame(fs)
     frame.Show()
@@ -163,4 +177,3 @@ if __name__ == "__main__":
     from osfs import OSFS
     home_fs = OSFS("~/")
     browse(home_fs)
-
