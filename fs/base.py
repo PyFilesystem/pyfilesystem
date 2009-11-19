@@ -59,7 +59,7 @@ def silence_fserrors(f, *args, **kwargs):
 class NullFile(object):
     """A NullFile is a file object that has no functionality.
 
-    Null files are returned by the 'safeopen' method in FS objects when the 
+    Null files are returned by the 'safeopen' method in FS objects when the
     file doesn't exist. This can simplify code by negating the need to check
     if a file exists, or handling exceptions.
 
@@ -139,7 +139,7 @@ class FS(object):
     subclasses are welcome to override them if a more efficient implementation
     can be provided:
 
-        * getsyspath -- get a file's name in the local filesystem, if possible 
+        * getsyspath -- get a file's name in the local filesystem, if possible
         * exists -- check whether a path exists as file or directory
         * copy -- copy a file to a new location
         * move -- move a file to a new location
@@ -244,6 +244,12 @@ class FS(object):
     def isfile(self, path):
         """Returns True if a given path references a file."""
         raise UnsupportedError("check for file")
+
+
+    def __iter__(self):
+        """ Iterates over paths returned by listdir method with default params. """
+        for f in self.listdir():
+            yield f
 
 
     def listdir(self,   path="./",
@@ -434,7 +440,7 @@ class FS(object):
         dir_wildcard -- If given, only walk directories that match the wildcard
         search -- A string dentifying the method used to walk the directories.
                   Can be 'breadth' for a breadth first search, or 'depth' for a
-                  depth first search. Use 'depth' if you plan to create or 
+                  depth first search. Use 'depth' if you plan to create or
                   delete files as you go.
         """
         if search == "breadth":
@@ -482,7 +488,7 @@ class FS(object):
         dir_wildcard -- If given, only walk directories that match the wildcard
         search -- A string dentifying the method used to walk the directories.
                   Can be 'breadth' for a breadth first search, or 'depth' for a
-                  depth first search. Use 'depth' if you plan to create or 
+                  depth first search. Use 'depth' if you plan to create or
                   delete files as you go.
         """
         for path, files in self.walk(path, wildcard, dir_wildcard, search):
@@ -689,11 +695,26 @@ class FS(object):
         return False
 
 
+    def makeopendir(self, path, recursive=False):
+        """Makes a directory (if it doesn't exist) and returns an FS object for
+        the newly created directory.
+
+        path -- Path to the new directory
+        recursive -- If True any intermediate directories will be created
+
+        """
+
+        self.makedir(path, allow_recreate=True, recursive=recursive)
+        dir_fs = self.opendir(path)
+        return dir_fs
+
+
+
 
 class SubFS(FS):
     """A SubFS represents a sub directory of another filesystem object.
 
-    SubFS objects are returned by opendir, which effectively creates a 'sandbox'
+    SubFS objects are returned by opendir, which effectively creates a
     'sandbox' filesystem that can only access files/dirs under a root path
     within its 'parent' dir.
     """
@@ -825,4 +846,3 @@ def flags_to_mode(flags):
     else:
         mode = "r"
     return mode
-
