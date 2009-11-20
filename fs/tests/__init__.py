@@ -49,6 +49,17 @@ class FSTestCases:
         self.fs.getinfo("")
         self.fs.getinfo("/")
 
+    def test_getsyspath(self):
+        try:
+            syspath = self.fs.getsyspath("/")
+        except NoSysPathError:
+            pass
+        else:
+            self.assertTrue(isinstance(syspath,unicode))
+        syspath = self.fs.getsyspath("/",allow_none=True)
+        if syspath is not None:
+            self.assertTrue(isinstance(syspath,unicode))
+
     def test_debug(self):
         str(self.fs)
         repr(self.fs)
@@ -87,23 +98,30 @@ class FSTestCases:
         self.assertFalse(self.fs.exists("a.txt"))
 
     def test_listdir(self):
-        self.fs.createfile("a")
+        def check_unicode(items):
+            for item in items:
+                self.assertTrue(isinstance(item,unicode))
+        self.fs.createfile(u"a")
         self.fs.createfile("b")
         self.fs.createfile("foo")
         self.fs.createfile("bar")
         # Test listing of the root directory
         d1 = self.fs.listdir()
         self.assertEqual(len(d1), 4)
-        self.assertEqual(sorted(d1), ["a", "b", "bar", "foo"])
+        self.assertEqual(sorted(d1), [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d1)
         d1 = self.fs.listdir("")
         self.assertEqual(len(d1), 4)
-        self.assertEqual(sorted(d1), ["a", "b", "bar", "foo"])
+        self.assertEqual(sorted(d1), [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d1)
         d1 = self.fs.listdir("/")
         self.assertEqual(len(d1), 4)
+        check_unicode(d1)
         # Test listing absolute paths
         d2 = self.fs.listdir(absolute=True)
         self.assertEqual(len(d2), 4)
-        self.assertEqual(sorted(d2), ["/a", "/b", "/bar", "/foo"])
+        self.assertEqual(sorted(d2), [u"/a", u"/b", u"/bar", u"/foo"])
+        check_unicode(d2)
         # Create some deeper subdirectories, to make sure their
         # contents are not inadvertantly included
         self.fs.makedir("p/1/2/3",recursive=True)
@@ -116,23 +134,38 @@ class FSTestCases:
         dirs_only = self.fs.listdir(dirs_only=True)
         files_only = self.fs.listdir(files_only=True)
         contains_a = self.fs.listdir(wildcard="*a*")
-        self.assertEqual(sorted(dirs_only), ["p", "q"])
-        self.assertEqual(sorted(files_only), ["a", "b", "bar", "foo"])
-        self.assertEqual(sorted(contains_a), ["a", "bar"])
+        self.assertEqual(sorted(dirs_only), [u"p", u"q"])
+        self.assertEqual(sorted(files_only), [u"a", u"b", u"bar", u"foo"])
+        self.assertEqual(sorted(contains_a), [u"a",u"bar"])
+        check_unicode(dirs_only)
+        check_unicode(files_only)
+        check_unicode(contains_a)
         # Test listing a subdirectory
         d3 = self.fs.listdir("p/1/2/3")
         self.assertEqual(len(d3), 4)
-        self.assertEqual(sorted(d3), ["a", "b", "bar", "foo"])
+        self.assertEqual(sorted(d3), [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d3)
         # Test listing a subdirectory with absoliute and full paths
         d4 = self.fs.listdir("p/1/2/3", absolute=True)
         self.assertEqual(len(d4), 4)
-        self.assertEqual(sorted(d4), ["/p/1/2/3/a", "/p/1/2/3/b", "/p/1/2/3/bar", "/p/1/2/3/foo"])
+        self.assertEqual(sorted(d4), [u"/p/1/2/3/a", u"/p/1/2/3/b", u"/p/1/2/3/bar", u"/p/1/2/3/foo"])
+        check_unicode(d4)
         d4 = self.fs.listdir("p/1/2/3", full=True)
         self.assertEqual(len(d4), 4)
-        self.assertEqual(sorted(d4), ["p/1/2/3/a", "p/1/2/3/b", "p/1/2/3/bar", "p/1/2/3/foo"])
+        self.assertEqual(sorted(d4), [u"p/1/2/3/a", u"p/1/2/3/b", u"p/1/2/3/bar", u"p/1/2/3/foo"])
+        check_unicode(d4)
         # Test that appropriate errors are raised
         self.assertRaises(ResourceNotFoundError,self.fs.listdir,"zebra")
         self.assertRaises(ResourceInvalidError,self.fs.listdir,"foo")
+
+    def test_unicode(self):
+        alpha = u"\N{GREEK SMALL LETTER ALPHA}"
+        beta = u"\N{GREEK SMALL LETTER BETA}"
+        self.fs.makedir(alpha)
+        self.fs.createfile(alpha+"/a")
+        self.fs.createfile(alpha+"/"+beta)
+        self.check(alpha)
+        self.assertEquals(sorted(self.fs.listdir(alpha)),["a",beta])
         
     def test_makedir(self):
         check = self.check

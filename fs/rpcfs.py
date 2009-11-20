@@ -132,8 +132,22 @@ class RPCFS(FS):
             self.__dict__[k] = v
         self.proxy = self._make_proxy()
 
+    def encode_path(self,path):
+        """Encode a filesystem path for sending over the wire.
+
+        Unfortunately XMLRPC only supports ASCII strings, so this method
+        must return something that can be represented in ASCII.  The default
+        is base64-encoded UTF8.
+        """
+        return path.encode("utf8").encode("base64")
+
+    def decode_path(self,path):
+        """Decode paths arriving over the wire."""
+        return path.decode("base64").decode("utf8")
+
     def open(self,path,mode="r"):
         # TODO: chunked transport of large files
+        path = self.encode_path(path)
         if "w" in mode:
             self.proxy.set_contents(path,xmlrpclib.Binary(""))
         if "r" in mode or "a" in mode or "+" in mode:
@@ -165,51 +179,84 @@ class RPCFS(FS):
         return f
 
     def exists(self,path):
+        path = self.encode_path(path)
         return self.proxy.exists(path)
 
     def isdir(self,path):
+        path = self.encode_path(path)
         return self.proxy.isdir(path)
 
     def isfile(self,path):
+        path = self.encode_path(path)
         return self.proxy.isfile(path)
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
-        return self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
+        path = self.encode_path(path)
+        entries =  self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
+        return [self.decode_path(e) for e in entries]
 
     def makedir(self,path,recursive=False,allow_recreate=False):
+        path = self.encode_path(path)
         return self.proxy.makedir(path,recursive,allow_recreate)
 
     def remove(self,path):
+        path = self.encode_path(path)
         return self.proxy.remove(path)
 
     def removedir(self,path,recursive=False,force=False):
+        path = self.encode_path(path)
         return self.proxy.removedir(path,recursive,force)
         
     def rename(self,src,dst):
+        src = self.encode_path(src)
+        dst = self.encode_path(dst)
         return self.proxy.rename(src,dst)
 
     def getinfo(self,path):
+        path = self.encode_path(path)
         return self.proxy.getinfo(path)
 
     def desc(self,path):
+        path = self.encode_path(path)
         return self.proxy.desc(path)
 
-    def getattr(self,path,attr):
-        return self.proxy.getattr(path,attr)
+    def getxattr(self,path,attr,default=None):
+        path = self.encode_path(path)
+        attr = self.encode_path(attr)
+        return self.fs.getxattr(path,attr,default)
 
-    def setattr(self,path,attr,value):
-        return self.proxy.setattr(path,attr,value)
+    def setxattr(self,path,attr,value):
+        path = self.encode_path(path)
+        attr = self.encode_path(attr)
+        return self.fs.setxattr(path,attr,value)
+
+    def delxattr(self,path,attr):
+        path = self.encode_path(path)
+        attr = self.encode_path(attr)
+        return self.fs.delxattr(path,attr)
+
+    def listxattrs(self,path):
+        path = self.encode_path(path)
+        return [self.decode_path(a) for a in self.fs.listxattrs(path)]
 
     def copy(self,src,dst,overwrite=False,chunk_size=16384):
+        src = self.encode_path(src)
+        dst = self.encode_path(dst)
         return self.proxy.copy(src,dst,overwrite,chunk_size)
 
     def move(self,src,dst,overwrite=False,chunk_size=16384):
+        src = self.encode_path(src)
+        dst = self.encode_path(dst)
         return self.proxy.move(src,dst,overwrite,chunk_size)
 
     def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        src = self.encode_path(src)
+        dst = self.encode_path(dst)
         return self.proxy.movedir(src,dst,overwrite,ignore_errors,chunk_size)
 
     def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+        src = self.encode_path(src)
+        dst = self.encode_path(dst)
         return self.proxy.copydir(src,dst,overwrite,ignore_errors,chunk_size)
 
 

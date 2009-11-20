@@ -49,13 +49,14 @@ class ZipFS(FS):
 
     """A FileSystem that represents a zip file."""
 
-    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, thread_synchronize=True):
+    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, encoding="CP437", thread_synchronize=True):
         """Create a FS that maps on to a zip file.
 
         zip_file -- A (system) path, or a file-like object
         mode -- Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
         compression -- Can be 'deflated' (default) to compress data or 'stored' to just store date
         allowZip64 -- Set to True to use zip files greater than 2 MB, default is False
+        encoding --  The encoding to use for unicode filenames
         thread_synchronize -- Set to True (default) to enable thread-safety
 
         """
@@ -71,6 +72,7 @@ class ZipFS(FS):
             raise ValueError("mode must be 'r', 'w' or 'a'")
 
         self.zip_mode = mode
+        self.encoding = encoding
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
         except IOError:
@@ -93,7 +95,7 @@ class ZipFS(FS):
 
     def _parse_resource_list(self):
         for path in self.zf.namelist():
-            self._add_resource(path)
+            self._add_resource(path.decode(self.encoding))
 
     def _add_resource(self, path):
         if path.endswith('/'):
@@ -125,7 +127,7 @@ class ZipFS(FS):
             if self.zip_mode not in 'ra':
                 raise OperationFailedError("open file", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
             try:
-                contents = self.zf.read(path)
+                contents = self.zf.read(path.encode(self.encoding))
             except KeyError:
                 raise ResourceNotFoundError(path)
             return StringIO(contents)
@@ -148,7 +150,7 @@ class ZipFS(FS):
             raise ResourceNotFoundError(path)
         path = normpath(path)
         try:
-            contents = self.zf.read(path)
+            contents = self.zf.read(path.encode(self.encoding))
         except KeyError:
             raise ResourceNotFoundError(path)
         except RuntimeError:
@@ -158,7 +160,7 @@ class ZipFS(FS):
     @synchronize
     def _on_write_close(self, filename):
         sys_path = self.temp_fs.getsyspath(filename)
-        self.zf.write(sys_path, filename)
+        self.zf.write(sys_path, filename.encode(self.encoding))
 
     def desc(self, path):
         if self.isdir(path):
@@ -195,7 +197,7 @@ class ZipFS(FS):
             return ResourceNotFoundError(path)
         path = normpath(path).lstrip('/')
         try:
-            zi = self.zf.getinfo(path)
+            zi = self.zf.getinfo(path.encode(self.encoding))
             zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
         except KeyError:
             zinfo = {'file_size':0}

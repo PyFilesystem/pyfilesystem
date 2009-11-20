@@ -104,6 +104,7 @@ class SimulateXAttr(WrapFS):
         """Set an extended attribute on the given path."""
         if not self.exists(path):
             raise ResourceNotFoundError(path)
+        key = unicode(key)
         attrs = self._get_attr_dict(path)
         attrs[key] = str(value)
         self._set_attr_dict(path, attrs)

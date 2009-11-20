@@ -77,8 +77,11 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
     paramiko server infrastructure.
     """
 
-    def __init__(self,server,fs,*args,**kwds):
+    def __init__(self,server,fs,encoding=None,*args,**kwds):
         self.fs = fs
+        if encoding is None:
+            encoding = "utf8"
+        self.encoding = encoding
         super(SFTPServerInterface,self).__init__(server,*args,**kwds)
 
     @report_sftp_errors
@@ -87,6 +90,8 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def list_folder(self,path):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         stats = []
         for entry in self.fs.listdir(path,absolute=True):
             stats.append(self.stat(entry))
@@ -94,9 +99,11 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
  
     @report_sftp_errors
     def stat(self,path):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         info = self.fs.getinfo(path)
         stat = paramiko.SFTPAttributes()
-        stat.filename = basename(path)
+        stat.filename = basename(path).encode(self.encoding)
         stat.st_size = info.get("size")
         stat.st_atime = time.mktime(info.get("accessed_time").timetuple())
         stat.st_mtime = time.mktime(info.get("modified_time").timetuple())
@@ -111,11 +118,17 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def remove(self,path):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         self.fs.remove(path)
         return paramiko.SFTP_OK
 
     @report_sftp_errors
     def rename(self,oldpath,newpath):
+        if not isinstance(oldpath,unicode):
+            oldpath = oldpath.decode(self.encoding)
+        if not isinstance(newpath,unicode):
+            newpath = newpath.decode(self.encoding)
         if self.fs.isfile(oldpath):
             self.fs.move(oldpath,newpath)
         else:
@@ -124,11 +137,15 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def mkdir(self,path,attr):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         self.fs.makedir(path)
         return paramiko.SFTP_OK
 
     @report_sftp_errors
     def rmdir(self,path):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         self.fs.removedir(path)
         return paramiko.SFTP_OK
 
@@ -156,6 +173,8 @@ class SFTPHandle(paramiko.SFTPHandle):
         super(SFTPHandle,self).__init__(flags)
         mode = flags_to_mode(flags) + "b"
         self.owner = owner
+        if not isinstance(path,unicode):
+            path = path.decode(self.owner.encoding)
         self.path = path
         self._file = owner.fs.open(path,mode)
 
@@ -194,7 +213,7 @@ class SFTPRequestHandler(sockserv.StreamRequestHandler):
     def handle(self):
         t = paramiko.Transport(self.request)
         t.add_server_key(self.server.host_key)
-        t.set_subsystem_handler("sftp",paramiko.SFTPServer,SFTPServerInterface,self.server.fs)
+        t.set_subsystem_handler("sftp",paramiko.SFTPServer,SFTPServerInterface,self.server.fs,getattr(self.server,"encoding",None))
         # Note that this actually spawns a new thread to handle the requests.
         # (Actually, paramiko.Transport is a subclass of Thread)
         t.start_server(server=self.server)
@@ -228,8 +247,9 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
 
     """
 
-    def __init__(self,address,fs=None,host_key=None,RequestHandlerClass=None):
+    def __init__(self,address,fs=None,encoding=None,host_key=None,RequestHandlerClass=None):
         self.fs = fs
+        self.encoding = encoding
         if host_key is None:
             host_key = DEFAULT_HOST_KEY
         self.host_key = host_key

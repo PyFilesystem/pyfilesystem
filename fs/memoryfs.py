@@ -438,6 +438,9 @@ class MemoryFS(FS):
         if dir_entry.isfile():
             raise ResourceInvalidError(path,msg="that's a file, not a directory: %(path)s")
         paths = dir_entry.contents.keys()
+        for (i,p) in enumerate(paths):
+            if not isinstance(p,unicode):
+                paths[i] = unicode(p)
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @synchronize

@@ -195,7 +195,8 @@ class FS(object):
         """Returns the system path (a path recognised by the OS) if present.
 
         If the path does not map to a system path (and allow_none is False)
-        then a NoSysPathError exception is thrown.
+        then a NoSysPathError exception is thrown.  Otherwise, the system
+        path will be returned as a unicode string.
 
         path -- A path within the filesystem
         allow_none -- If True, this method should return None if there is no
@@ -267,8 +268,8 @@ class FS(object):
         dirs_only -- If True, only return directories
         files_only -- If True, only return files
 
-        The directory contents are returned as a list of paths.  If the
-        given path is not found then ResourceNotFoundError is raised;
+        The directory contents are returned as a list of unicode paths.  If
+        then given path is not found then ResourceNotFoundError is raised;
         if it exists but is not a directory, ResourceInvalidError is raised.
         """
         raise UnsupportedError("list directory")

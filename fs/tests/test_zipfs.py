@@ -79,6 +79,8 @@ class TestReadZipFS(unittest.TestCase):
         def check_listing(path, expected):
             dir_list = self.fs.listdir(path)
             self.assert_(sorted(dir_list) == sorted(expected))
+            for item in dir_list:
+                self.assert_(isinstance(item,unicode))
         check_listing('/', ['a.txt', '1.txt', 'foo', 'b.txt'])
         check_listing('foo', ['second.txt', 'bar'])
         check_listing('foo/bar', ['baz.txt'])
@@ -101,6 +103,7 @@ class TestWriteZipFS(unittest.TestCase):
 
         makefile("a.txt", "Hello, World!")
         makefile("b.txt", "b")
+        makefile(u"\N{GREEK SMALL LETTER ALPHA}/\N{GREEK CAPITAL LETTER OMEGA}.txt", "this is the alpha and the omega")
         makefile("foo/bar/baz.txt", "baz")
         makefile("foo/second.txt", "hai")
 
@@ -117,12 +120,13 @@ class TestWriteZipFS(unittest.TestCase):
     def test_creation(self):
         zf = zipfile.ZipFile(self.temp_filename, "r")
         def check_contents(filename, contents):
-            zcontents = zf.read(filename)
+            zcontents = zf.read(filename.encode("CP437"))
             self.assertEqual(contents, zcontents)
         check_contents("a.txt", "Hello, World!")
         check_contents("b.txt", "b")
         check_contents("foo/bar/baz.txt", "baz")
         check_contents("foo/second.txt", "hai")
+        check_contents(u"\N{GREEK SMALL LETTER ALPHA}/\N{GREEK CAPITAL LETTER OMEGA}.txt", "this is the alpha and the omega")
 
 
 class TestAppendZipFS(TestWriteZipFS):
@@ -147,6 +151,7 @@ class TestAppendZipFS(TestWriteZipFS):
         zip_fs = zipfs.ZipFS(self.temp_filename, 'a')
 
         makefile("foo/bar/baz.txt", "baz")
+        makefile(u"\N{GREEK SMALL LETTER ALPHA}/\N{GREEK CAPITAL LETTER OMEGA}.txt", "this is the alpha and the omega")
         makefile("foo/second.txt", "hai")
 
         zip_fs.close()

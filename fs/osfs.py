@@ -21,8 +21,9 @@ class OSFS(FS):
     methods in the os and os.path modules.
     """
 
-    def __init__(self, root_path, dir_mode=0700, thread_synchronize=True):
+    def __init__(self, root_path, dir_mode=0700, thread_synchronize=True, encoding=None):
         FS.__init__(self, thread_synchronize=thread_synchronize)
+        self.encoding = encoding
         root_path = os.path.expanduser(os.path.expandvars(root_path))
         root_path = os.path.normpath(os.path.abspath(root_path))
         #  Enable long pathnames on win32
@@ -41,7 +42,13 @@ class OSFS(FS):
 
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)
-        return os.path.join(self.root_path, path)
+        path = os.path.join(self.root_path, path)
+        if not isinstance(path,unicode):
+            if self.encoding is None:
+                path = path.decode(sys.getfilesystemencoding())
+            else:
+                path = path.decode(self.encoding)
+        return path
 
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):

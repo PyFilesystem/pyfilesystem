@@ -40,7 +40,7 @@ class SFTPFS(FS):
     class in the paramiko module.
     """
 
-    def __init__(self,connection,root_path="/",**credentials):
+    def __init__(self,connection,root_path="/",encoding=None,**credentials):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
@@ -57,6 +57,9 @@ class SFTPFS(FS):
         other keyword arguments are assumed to be credentials to be used when
         connecting the transport.
         """
+        if encoding is None:
+            encoding = "utf8"
+        self.encoding = encoding
         self.closed = False
         self._owns_transport = False
         self._credentials = credentials
@@ -111,6 +114,8 @@ class SFTPFS(FS):
                 self._transport.close()
 
     def _normpath(self,path):
+        if not isinstance(path,unicode):
+            path = path.decode(self.encoding)
         npath = pathjoin(self.root_path,relpath(normpath(path)))
         if not isprefix(self.root_path,npath):
             raise PathError(path,msg="Path is outside root: %(path)s")
@@ -173,6 +178,9 @@ class SFTPFS(FS):
             elif self.isfile(path):
                 raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
             raise
+        for (i,p) in enumerate(paths):
+            if not isinstance(p,unicode):
+                paths[i] = p.decode(self.encoding)
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @convert_os_errors
