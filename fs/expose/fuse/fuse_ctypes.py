@@ -1,8 +1,3 @@
-#
-#   [rfk,05/06/09]  I've patched this to add support for the init() and
-#                   destroy() callbacks and will submit the patch upstream
-#                   sometime soon...
-#
 # Copyright (c) 2008 Giorgos Verigakis <verigak@gmail.com>
 # 
 # Permission to use, copy, modify, and distribute this software for any
@@ -21,9 +16,10 @@ from __future__ import division
 
 from ctypes import *
 from ctypes.util import find_library
-from errno import EFAULT
+from errno import *
 from functools import partial
 from platform import machine, system
+from stat import S_IFDIR
 from traceback import print_exc
 
 
@@ -37,7 +33,7 @@ class c_stat(Structure):
     pass    # Platform dependent
 
 _system = system()
-if _system == 'Darwin':
+if _system in ('Darwin', 'FreeBSD'):
     _libiconv = CDLL(find_library("iconv"), RTLD_GLOBAL)     # libfuse dependency
     ENOTSUP = 45
     c_dev_t = c_int32
@@ -80,7 +76,40 @@ elif _system == 'Linux':
     getxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte), c_size_t)
     
     _machine = machine()
-    if _machine == 'i686':
+    if _machine == 'x86_64':
+        c_stat._fields_ = [
+            ('st_dev', c_dev_t),
+            ('st_ino', c_ulong),
+            ('st_nlink', c_ulong),
+            ('st_mode', c_mode_t),
+            ('st_uid', c_uid_t),
+            ('st_gid', c_gid_t),
+            ('__pad0', c_int),
+            ('st_rdev', c_dev_t),
+            ('st_size', c_off_t),
+            ('st_blksize', c_long),
+            ('st_blocks', c_long),
+            ('st_atimespec', c_timespec),
+            ('st_mtimespec', c_timespec),
+            ('st_ctimespec', c_timespec)]
+    elif _machine == 'ppc':
+        c_stat._fields_ = [
+            ('st_dev', c_dev_t),
+            ('st_ino', c_ulonglong),
+            ('st_mode', c_mode_t),
+            ('st_nlink', c_uint),
+            ('st_uid', c_uid_t),
+            ('st_gid', c_gid_t),
+            ('st_rdev', c_dev_t),
+            ('__pad2', c_ushort),
+            ('st_size', c_off_t),
+            ('st_blksize', c_long),
+            ('st_blocks', c_longlong),
+            ('st_atimespec', c_timespec),
+            ('st_mtimespec', c_timespec),
+            ('st_ctimespec', c_timespec)]
+    else:
+        # i686, use as fallback for everything else
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('__pad1', c_ushort),
@@ -98,24 +127,6 @@ elif _system == 'Linux':
             ('st_mtimespec', c_timespec),
             ('st_ctimespec', c_timespec),
             ('st_ino', c_ulonglong)]
-    elif machine() == 'x86_64':
-        c_stat._fields_ = [
-            ('st_dev', c_dev_t),
-            ('st_ino', c_ulong),
-            ('st_nlink', c_ulong),
-            ('st_mode', c_mode_t),
-            ('st_uid', c_uid_t),
-            ('st_gid', c_gid_t),
-            ('__pad0', c_int),
-            ('st_rdev', c_dev_t),
-            ('st_size', c_off_t),
-            ('st_blksize', c_long),
-            ('st_blocks', c_long),
-            ('st_atimespec', c_timespec),
-            ('st_mtimespec', c_timespec),
-            ('st_ctimespec', c_timespec)]
-    else:
-        raise NotImplementedError('Linux %s is not supported.' % _machine)
 else:
     raise NotImplementedError('%s is not supported.' % _system)
 
@@ -130,6 +141,23 @@ class c_statvfs(Structure):
         ('f_files', c_fsfilcnt_t),
         ('f_ffree', c_fsfilcnt_t),
         ('f_favail', c_fsfilcnt_t)]
+
+if _system == 'FreeBSD':
+    c_fsblkcnt_t = c_uint64
+    c_fsfilcnt_t = c_uint64
+    setxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte), c_size_t, c_int)
+    getxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte), c_size_t)
+    class c_statvfs(Structure):
+        _fields_ = [
+            ('f_bavail', c_fsblkcnt_t),
+            ('f_bfree', c_fsblkcnt_t),
+            ('f_blocks', c_fsblkcnt_t),
+            ('f_favail', c_fsfilcnt_t),
+            ('f_ffree', c_fsfilcnt_t),
+            ('f_files', c_fsfilcnt_t),
+            ('f_bsize', c_ulong),
+            ('f_flag', c_ulong),
+            ('f_frsize', c_ulong)]
 
 class fuse_file_info(Structure):
     _fields_ = [
@@ -151,16 +179,6 @@ class fuse_context(Structure):
         ('pid', c_pid_t),
         ('private_data', c_voidp)]
 
-class fuse_conn_info(Structure):
-    _fields_ = [
-        ('proto_major', c_uint),
-        ('proto_minor', c_uint),
-        ('async_read', c_uint),
-        ('max_write', c_uint),
-        ('max_readahead', c_uint),
-        ('capable', c_uint),
-        ('want', c_uint),
-        ('reserved', c_uint*25)]
 
 class fuse_operations(Structure):
     _fields_ = [
@@ -196,8 +214,8 @@ class fuse_operations(Structure):
             c_char_p, POINTER(c_stat), c_off_t), c_off_t, POINTER(fuse_file_info))),
         ('releasedir', CFUNCTYPE(c_int, c_char_p, POINTER(fuse_file_info))),
         ('fsyncdir', CFUNCTYPE(c_int, c_char_p, c_int, POINTER(fuse_file_info))),
-        ('init', CFUNCTYPE(c_voidp, POINTER(fuse_conn_info))),
-        ('destroy', CFUNCTYPE(None, c_voidp)),
+        ('init', CFUNCTYPE(c_voidp, c_voidp)),
+        ('destroy', CFUNCTYPE(c_voidp, c_voidp)),
         ('access', CFUNCTYPE(c_int, c_char_p, c_int)),
         ('create', CFUNCTYPE(c_int, c_char_p, c_mode_t, POINTER(fuse_file_info))),
         ('ftruncate', CFUNCTYPE(c_int, c_char_p, c_off_t, POINTER(fuse_file_info))),
@@ -209,7 +227,7 @@ class fuse_operations(Structure):
 
 
 def time_of_timespec(ts):
-    return ts.tv_sec + 1.0 * ts.tv_nsec / 10 ** 9
+    return ts.tv_sec + ts.tv_nsec / 10 ** 9
 
 def set_st_attrs(st, attrs):
     for key, val in attrs.items():
@@ -220,13 +238,18 @@ def set_st_attrs(st, attrs):
         elif hasattr(st, key):
             setattr(st, key, val)
 
-_libfuse = CDLL(find_library("fuse"))
+
+_libfuse_path = find_library('fuse')
+if not _libfuse_path:
+    raise EnvironmentError('Unable to find libfuse')
+_libfuse = CDLL(_libfuse_path)
+_libfuse.fuse_get_context.restype = POINTER(fuse_context)
 
 
 def fuse_get_context():
     """Returns a (uid, gid, pid) tuple"""
-    p = _libfuse.fuse_get_context()
-    ctx = cast(p, POINTER(fuse_context)).contents
+    ctxp = _libfuse.fuse_get_context()
+    ctx = ctxp.contents
     return ctx.uid, ctx.gid, ctx.pid
 
 
@@ -264,7 +287,7 @@ class FUSE(object):
         _libfuse.fuse_main_real(len(args), argv, pointer(fuse_ops),
             sizeof(fuse_ops), None)
         del self.operations     # Invoke the destructor
-
+    
     def _wrapper_(self, func, *args, **kwargs):
         """Decorator for the methods that follow"""
         try:
@@ -274,20 +297,14 @@ class FUSE(object):
         except:
             print_exc()
             return -EFAULT
-
-    def init(self,conn):
-        return self.operations("init",conn)
-
-    def destroy(self,data):
-        return self.operations("destroy",data)
-
+    
     def getattr(self, path, buf):
         return self.fgetattr(path, buf, None)
     
     def readlink(self, path, buf, bufsize):
         ret = self.operations('readlink', path)
-        strbuf = create_string_buffer(ret[:bufsize - 1])
-        memmove(buf, strbuf, len(strbuf))
+        data = create_string_buffer(ret[:bufsize - 1])
+        memmove(buf, data, len(data))
         return 0
     
     def mknod(self, path, mode, dev):
@@ -362,24 +379,31 @@ class FUSE(object):
         return self.operations('fsync', path, datasync, fh)
     
     def setxattr(self, path, name, value, size, options, *args):
-        s = string_at(value, size)
-        return self.operations('setxattr', path, name, s, options, *args)
+        data = string_at(value, size)
+        return self.operations('setxattr', path, name, data, options, *args)
     
     def getxattr(self, path, name, value, size, *args):
         ret = self.operations('getxattr', path, name, *args)
-        buf = create_string_buffer(ret)
+        retsize = len(ret)
+        buf = create_string_buffer(ret, retsize)    # Does not add trailing 0
         if bool(value):
-            memmove(value, buf, len(buf))
-        return len(ret)
+            if retsize > size:
+                return -ERANGE
+            memmove(value, buf, retsize)
+        return retsize
     
     def listxattr(self, path, namebuf, size):
         ret = self.operations('listxattr', path)
-        if not ret:
-            return 0
-        buf = create_string_buffer('\x00'.join(ret))
+        if ret:
+            buf = create_string_buffer('\x00'.join(ret))
+        else:
+            buf = ''
+        bufsize = len(buf)
         if bool(namebuf):
-            memmove(namebuf, buf, len(buf))
-        return len(buf)
+            if bufsize > size:
+                return -ERANGE
+            memmove(namebuf, buf, bufsize)
+        return bufsize
     
     def removexattr(self, path, name):
         return self.operations('removexattr', path, name)
@@ -412,7 +436,13 @@ class FUSE(object):
     def fsyncdir(self, path, datasync, fip):
         # Ignore raw_fi
         return self.operations('fsyncdir', path, datasync, fip.contents.fh)
-        
+    
+    def init(self, conn):
+        return self.operations('init', '/')
+    
+    def destroy(self, private_data):
+        return self.operations('destroy', '/')
+    
     def access(self, path, amode):
         return self.operations('access', path, amode)
     
@@ -453,10 +483,7 @@ class FUSE(object):
         return self.operations('bmap', path, blocksize, idx)
 
 
-from errno import EACCES, ENOENT
-from stat import S_IFDIR
-
-class Operations:
+class Operations(object):
     """This class should be subclassed and passed as an argument to FUSE on
        initialization. All operations should raise an OSError exception on
        error.
@@ -468,12 +495,6 @@ class Operations:
         if not hasattr(self, op):
             raise OSError(EFAULT, '')
         return getattr(self, op)(*args)
-
-    def on_init(self,conn):
-        pass
-
-    def on_destroy(self,data):
-        pass
         
     def access(self, path, amode):
         return 0
@@ -481,18 +502,22 @@ class Operations:
     bmap = None
     
     def chmod(self, path, mode):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def chown(self, path, uid, gid):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def create(self, path, mode, fi=None):
         """When raw_fi is False (default case), fi is None and create should
            return a numerical file handle.
            When raw_fi is True the file handle should be set directly by create
            and return 0."""
-        raise OSError(EACCES, '')
-        
+        raise OSError(EROFS, '')
+    
+    def destroy(self, path):
+        """Called on filesystem destruction. Path is always /"""
+        pass
+    
     def flush(self, path, fh):
         return 0
     
@@ -505,7 +530,11 @@ class Operations:
     def getattr(self, path, fh=None):
         """Returns a dictionary with keys identical to the stat C structure
            of stat(2).
-           st_atime, st_mtime and st_ctime should be floats."""
+           st_atime, st_mtime and st_ctime should be floats.
+           NOTE: There is an incombatibility between Linux and Mac OS X concerning
+           st_nlink of directories. Mac OS X counts all files inside the directory,
+           while Linux counts only the subdirectories."""
+        
         if path != '/':
             raise OSError(ENOENT, '')
         return dict(st_mode=(S_IFDIR | 0755), st_nlink=2)
@@ -513,8 +542,13 @@ class Operations:
     def getxattr(self, path, name, position=0):
         raise OSError(ENOTSUP, '')
     
+    def init(self, path):
+        """Called on filesystem initialization. Path is always /
+           Use it instead of __init__ if you start threads on initialization."""
+        pass
+    
     def link(self, target, source):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def listxattr(self, path):
         return []
@@ -522,10 +556,10 @@ class Operations:
     lock = None
     
     def mkdir(self, path, mode):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def mknod(self, path, mode, dev):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def open(self, path, flags):
         """When raw_fi is False (default case), open should return a numerical
@@ -541,7 +575,7 @@ class Operations:
     
     def read(self, path, size, offset, fh):
         """Returns a string containing the data requested."""
-        raise OSError(EACCES, '')
+        raise OSError(ENOENT, '')
     
     def readdir(self, path, fh):
         """Can return either a list of names, or a list of (name, attrs, offset)
@@ -549,7 +583,7 @@ class Operations:
         return ['.', '..']
     
     def readlink(self, path):
-        raise OSError(EACCES, '')
+        raise OSError(ENOENT, '')
     
     def release(self, path, fh):
         return 0
@@ -561,35 +595,35 @@ class Operations:
         raise OSError(ENOTSUP, '')
     
     def rename(self, old, new):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def rmdir(self, path):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def setxattr(self, path, name, value, options, position=0):
         raise OSError(ENOTSUP, '')
     
     def statfs(self, path):
         """Returns a dictionary with keys identical to the statvfs C structure
-           of statvfs(3). The f_frsize, f_favail, f_fsid and f_flag fields are
-           ignored by FUSE though."""
+           of statvfs(3).
+           On Mac OS X f_bsize and f_frsize must be a power of 2 (minimum 512)."""
         return {}
     
     def symlink(self, target, source):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def truncate(self, path, length, fh=None):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def unlink(self, path):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
     
     def utimens(self, path, times=None):
         """Times is a (atime, mtime) tuple. If None use current time."""
         return 0
     
     def write(self, path, data, offset, fh):
-        raise OSError(EACCES, '')
+        raise OSError(EROFS, '')
 
 
 class LoggingMixIn:
