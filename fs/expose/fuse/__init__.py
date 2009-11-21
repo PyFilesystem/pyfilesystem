@@ -156,6 +156,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def create(self,path,mode,fi):
+        path = path.decode(NATIVE_ENCODING)
         fh = self._reg_file(self.fs.open(path,"w"),path)
         fi.fh = fh
         fi.keep_cache = 0
@@ -171,10 +172,12 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def getattr(self,path,fh=None):
-        return self._get_stat_dict(path)
+        return self._get_stat_dict(path.decode(NATIVE_ENCODING))
 
     @handle_fs_errors
     def getxattr(self,path,name,position=0):
+        path = path.decode(NATIVE_ENCODING)
+        name = name.decode(NATIVE_ENCODING)
         try:
             value = self.fs.getxattr(path,name)
         except AttributeError:
@@ -190,6 +193,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def listxattr(self,path):
+        path = path.decode(NATIVE_ENCODING)
         try:
             return self.fs.listxattrs(path)
         except AttributeError:
@@ -197,6 +201,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def mkdir(self,path,mode):
+        path = path.decode(NATIVE_ENCODING)
         try:
             self.fs.makedir(path,mode)
         except TypeError:
@@ -208,6 +213,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def open(self,path,fi):
+        path = path.decode(NATIVE_ENCODING)
         mode = flags_to_mode(fi.flags)
         fi.fh = self._reg_file(self.fs.open(path,mode),path)
         fi.keep_cache = 0
@@ -226,6 +232,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def readdir(self,path,fh=None):
+        path = path.decode(NATIVE_ENCODING)
         #  If listdir() can return info dicts directly, it will save FUSE 
         #  having to call getinfo() on each entry individually.
         try:
@@ -238,7 +245,7 @@ class FSOperations(Operations):
         else:
             entries = [(e["name"].encode(NATIVE_ENCODING),e,0) for e in entries]
             for (name,attrs,offset) in entries:
-                self._fill_stat_dict(pathjoin(path,name),attrs)
+                self._fill_stat_dict(pathjoin(path,name.decode(NATIVE_ENCODING)),attrs)
         entries = [".",".."] + entries
         return entries
 
@@ -258,6 +265,8 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def removexattr(self,path,name):
+        path = path.decode(NATIVE_ENCODING)
+        name = name.decode(NATIVE_ENCODING)
         try:
             return self.fs.delxattr(path,name)
         except AttributeError:
@@ -265,6 +274,8 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def rename(self,old,new):
+        old = old.decode(NATIVE_ENCODING)
+        new = new.decode(NATIVE_ENCODING)
         if issamedir(old,new):
             try:
                 self.fs.rename(old,new)
@@ -279,10 +290,13 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def rmdir(self, path):
+        path = path.decode(NATIVE_ENCODING)
         self.fs.removedir(path)
 
     @handle_fs_errors
     def setxattr(self,path,name,value,options,position=0):
+        path = path.decode(NATIVE_ENCODING)
+        name = name.decode(NATIVE_ENCODING)
         try:
             return self.fs.setxattr(path,name,value)
         except AttributeError:
@@ -294,6 +308,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def truncate(self, path, length, fh=None):
+        path = path.decode(NATIVE_ENCODING)
         if fh is None and length == 0:
             self.fs.open(path,"w").close()
         else:
@@ -325,6 +340,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def unlink(self, path):
+        path = path.decode(NATIVE_ENCODING)
         self.fs.remove(path)
 
     @handle_fs_errors
@@ -501,6 +517,7 @@ class MountProcess(subprocess.Popen):
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
             if os.read(r,1) != "S":
+                self.terminate()
                 raise RuntimeError("FUSE error: " + os.read(r,20))
 
     def unmount(self):
