@@ -31,11 +31,11 @@ class FSError(Exception):
         self.details = details
 
     def __str__(self):
-        keys = dict((k,str(v)) for k,v in self.__dict__.iteritems())
-        return self.msg % keys
+        return unicode(self).encode(sys.getfilesystemencoding())
 
     def __unicode__(self):
-        return unicode(str(self))
+        keys = dict((k,v) for k,v in self.__dict__.iteritems())
+        return unicode(self.msg) % keys
 
     def __getstate__(self):
        return self.__dict__.copy()
