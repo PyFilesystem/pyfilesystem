@@ -91,44 +91,6 @@ def handle_fs_errors(func):
     return wrapper
  
 
-def get_stat_dict(fs,path):
-    """Build a 'stat' dictionary for the given file."""
-    info = fs.getinfo(path)
-    fill_stat_dict(fs,path,info)
-    return info
-
-def fill_stat_dict(fs,path,info):
-    """Fill default values in the stat dict."""
-    uid, gid, pid = fuse_get_context()
-    private_keys = [k for k in info if k.startswith("_")]
-    for k in private_keys:
-        del info[k]
-    #  Basic stuff that is constant for all paths
-    info.setdefault("st_ino",0)
-    info.setdefault("st_dev",0)
-    info.setdefault("st_uid",uid)
-    info.setdefault("st_gid",gid)
-    info.setdefault("st_rdev",0)
-    info.setdefault("st_blksize",1024)
-    info.setdefault("st_blocks",1)
-    #  The interesting stuff
-    info.setdefault("st_size",info.get("size",1024))
-    mode = info.get("st_mode",0700)
-    if not statinfo.S_ISDIR(mode) and not statinfo.S_ISREG(mode):
-        if fs.isdir(path):
-            info["st_mode"] = mode | statinfo.S_IFDIR
-            info.setdefault("st_nlink",2)
-        else:
-            info["st_mode"] = mode | statinfo.S_IFREG
-            info.setdefault("st_nlink",1)
-    for (key1,key2) in [("st_atime","accessed_time"),("st_mtime","modified_time"),("st_ctime","created_time")]:
-        if key1 not in info:
-            if key2 in info:
-                info[key1] = time.mktime(info[key2].timetuple())
-            else:
-                info[key1] = STARTUP_TIME
-    return info
-
 
 class FSOperations(Operations):
     """FUSE Operations interface delegating all activities to an FS object."""
@@ -137,28 +99,44 @@ class FSOperations(Operations):
         self.fs = fs
         self._on_init = on_init
         self._on_destroy = on_destroy
-        self._fhmap = {}
-        self._fhmap_lock = threading.Lock()
-        self._fhmap_next = 1
+        self._files_by_handle = {}
+        self._files_lock = threading.Lock()
+        self._next_handle = 1
+        #  FUSE expects a succesful write() to be reflected in the file's
+        #  reported size, but the FS might buffer writes and prevent this.
+        #  We explicitly keep track of the size FUSE expects a file to be.
+        #  This dict is indexed by path, then file handle.
+        self._files_size_written = {}
 
     def _get_file(self,fh):
         try:
-            return self._fhmap[fh.fh]
+            return self._files_by_handle[fh.fh]
         except KeyError:
             raise FSError("invalid file handle")
 
-    def _reg_file(self,f):
-        self._fhmap_lock.acquire()
+    def _reg_file(self,f,path):
+        self._files_lock.acquire()
         try:
-            fh = self._fhmap_next
-            self._fhmap_next += 1
-            self._fhmap[fh] = (f,threading.Lock())
+            fh = self._next_handle
+            self._next_handle += 1
+            lock = threading.Lock()
+            self._files_by_handle[fh] = (f,path,lock)
+            if path not in self._files_size_written:
+                self._files_size_written[path] = {}
+            self._files_size_written[path][fh] = 0
             return fh
         finally:
-            self._fhmap_lock.release()
+            self._files_lock.release()
 
     def _del_file(self,fh):
-        del self._fhmap[fh.fh]
+        self._files_lock.acquire()
+        try:
+            (f,path,lock) = self._files_by_handle.pop(fh.fh)
+            del self._files_size_written[path][fh.fh]
+            if not self._files_size_written[path]:
+                del self._files_size_written[path] 
+        finally:
+            self._files_lock.release()
 
     def init(self,conn):
         if self._on_init:
@@ -178,13 +156,13 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def create(self,path,mode,fi):
-        fh = self._reg_file(self.fs.open(path,"w"))
+        fh = self._reg_file(self.fs.open(path,"w"),path)
         fi.fh = fh
         fi.keep_cache = 0
 
     @handle_fs_errors
     def flush(self,path,fh):
-        (file,lock) = self._get_file(fh)
+        (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
             file.flush()
@@ -193,7 +171,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def getattr(self,path,fh=None):
-        return get_stat_dict(self.fs,path)
+        return self._get_stat_dict(path)
 
     @handle_fs_errors
     def getxattr(self,path,name,position=0):
@@ -231,13 +209,13 @@ class FSOperations(Operations):
     @handle_fs_errors
     def open(self,path,fi):
         mode = flags_to_mode(fi.flags)
-        fi.fh = self._reg_file(self.fs.open(path,mode))
+        fi.fh = self._reg_file(self.fs.open(path,mode),path)
         fi.keep_cache = 0
         return 0
 
     @handle_fs_errors
     def read(self,path,size,offset,fh):
-        (file,lock) = self._get_file(fh)
+        (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
             file.seek(offset)
@@ -253,12 +231,14 @@ class FSOperations(Operations):
         try:
             entries = self.fs.listdir(path,info=True)
         except TypeError:
-            entries = self.fs.listdir(path)
-            entries = [e.encode(NATIVE_ENCODING) for e in entries]
+            entries = []
+            for name in self.fs.listdir(path):
+                name = name.encode(NATIVE_ENCODING)
+                entries.append(name)
         else:
             entries = [(e["name"].encode(NATIVE_ENCODING),e,0) for e in entries]
             for (name,attrs,offset) in entries:
-                fill_stat_dict(self.fs,pathjoin(path,name),attrs)
+                self._fill_stat_dict(pathjoin(path,name),attrs)
         entries = [".",".."] + entries
         return entries
 
@@ -268,7 +248,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def release(self,path,fh):
-        (file,lock) = self._get_file(fh)
+        (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
             file.close()
@@ -323,7 +303,7 @@ class FSOperations(Operations):
                     raise UnsupportedError("truncate")
                 f.truncate(length)
             else:
-                (file,lock) = self._get_file(fh)
+                (file,_,lock) = self._get_file(fh)
                 lock.acquire()
                 try:
                     if not hasattr(file,"truncate"):
@@ -331,6 +311,17 @@ class FSOperations(Operations):
                     file.truncate(length)
                 finally:
                     lock.release()
+        self._files_lock.acquire()
+        try:
+            try:
+                size_written = self._files_size_written[path]
+            except KeyError:
+                pass
+            else:
+                for k in size_written:
+                    size_written[k] = length
+        finally:
+            self._files_lock.release()
 
     @handle_fs_errors
     def unlink(self, path):
@@ -342,14 +333,62 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def write(self, path, data, offset, fh):
-        (file,lock) = self._get_file(fh)
+        (file,path,lock) = self._get_file(fh)
         lock.acquire()
         try:
             file.seek(offset)
             file.write(data)
+            if self._files_size_written[path][fh.fh] < offset + len(data):
+                self._files_size_written[path][fh.fh] = offset + len(data)
             return len(data)
         finally:
             lock.release()
+
+    def _get_stat_dict(self,path):
+        """Build a 'stat' dictionary for the given file."""
+        info = self.fs.getinfo(path)
+        self._fill_stat_dict(path,info)
+        return info
+
+    def _fill_stat_dict(self,path,info):
+        """Fill default values in the stat dict."""
+        uid, gid, pid = fuse_get_context()
+        private_keys = [k for k in info if k.startswith("_")]
+        for k in private_keys:
+            del info[k]
+        #  Basic stuff that is constant for all paths
+        info.setdefault("st_ino",0)
+        info.setdefault("st_dev",0)
+        info.setdefault("st_uid",uid)
+        info.setdefault("st_gid",gid)
+        info.setdefault("st_rdev",0)
+        info.setdefault("st_blksize",1024)
+        info.setdefault("st_blocks",1)
+        #  The interesting stuff
+        mode = info.get("st_mode",0700)
+        if not statinfo.S_ISDIR(mode) and not statinfo.S_ISREG(mode):
+            if self.fs.isdir(path):
+                info["st_mode"] = mode | statinfo.S_IFDIR
+                info.setdefault("st_nlink",2)
+            else:
+                info["st_mode"] = mode | statinfo.S_IFREG
+                info.setdefault("st_nlink",1)
+        for (key1,key2) in [("st_atime","accessed_time"),("st_mtime","modified_time"),("st_ctime","created_time")]:
+            if key1 not in info:
+                if key2 in info:
+                    info[key1] = time.mktime(info[key2].timetuple())
+                else:
+                    info[key1] = STARTUP_TIME
+        #  Ensure the reported size reflects any writes performed, even if
+        #  they haven't been flushed to the filesystem yet.
+        info.setdefault("st_size",info.get("size",1024))
+        try:
+            written_sizes = self._files_size_written[path]
+        except KeyError:
+            pass
+        else:
+            info["st_size"] = max(written_sizes.values() + [info["st_size"]])
+        return info
 
 
 def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**kwds):
