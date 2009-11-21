@@ -31,7 +31,12 @@ class FSError(Exception):
         self.details = details
 
     def __str__(self):
-        return unicode(self).encode(sys.getfilesystemencoding())
+        keys = {}
+        for k,v in self.__dict__.iteritems():
+            if isinstance(v,unicode):
+                v = v.encode(sys.getfilesystemencoding())
+            keys[k] = v
+        return str(self.msg % keys)
 
     def __unicode__(self):
         keys = dict((k,v) for k,v in self.__dict__.iteritems())
