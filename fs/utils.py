@@ -140,3 +140,98 @@ def countbytes(fs):
     total = sum(fs.getsize(f) for f in fs.walkfiles())
     return total
 
+# Work in progress, not tested
+def find_duplicates(fs, paths=None, quick=False, signature_size=16384):
+    """A generator that yields the paths of duplicate files in an FS object.
+    Files are considered identical if the contents are the same (dates or
+    other attributes not take in to account).
+    
+    fs -- A filesystem object
+    paths -- An iterable of paths in the FS object, or all files if omited
+    quick -- If set to True, the quick method of finding duplicates will be used,
+    which can potentially miss some duplicates.
+    signature_size -- The chunk size in bytes used to generate file signatures,
+    lower values will decrease the likelyhood of missed duplicates when used with
+    quick=True
+    
+    """
+    
+    from collections import defaultdict
+    from zlib.crc32 import crc32
+    
+    if paths is None:
+        paths = fs.walkfiles()
+        
+    paths = list(paths)
+    
+    file_sizes = defaultdict(list)
+    for path in paths:
+        file_sizes[fs.getsize(path)].append(path)
+    
+    size_duplicates = [paths for paths in file_sizes if len(paths) > 1]
+    
+    signatures = defaultdict(list)
+    
+    for paths in size_duplicates:
+        for path in paths:
+            signature = []
+            fread = None
+            try:
+                fread = fs.open(path, 'rb')
+                while True:
+                    data = fread.read(signature_size)
+                    if not data:
+                        break
+                    signature.append(crc32(data))
+            finally:
+                if fread is not None:
+                    fread.close()
+            signatures[tuple(signature)].append(path)
+    
+    if quick:
+        for paths in signatures:
+            if len(paths) > 1:
+                yield paths
+        return
+
+    from itertools import izip
+    
+    def identical(p1, p2):
+        
+        f1, f2 = None, None
+        try:
+            f1 = fs.open(p1, 'rb')
+            f2 = fs.open(p2, 'rb')            
+            while True:
+                chunk1 = f1.read(16384)
+                if not chunk1:
+                    break
+                chunk2 = f2.read(16384)            
+                if chunk1 != chunk2:
+                    return False
+            return True
+        finally:
+            if f1 is not None:
+                f1.close()
+            if f2 is not None:
+                f2.close()
+        
+        
+    for paths in signatures:
+        
+        while len(paths) > 1:        
+            
+            test_p = paths.pop()
+            dups = [test_p]
+            
+            for path in paths:
+                if identical(test_p, path):
+                    dups.append(path)
+            
+            if len(dups) > 1:
+                yield dups
+                
+            paths = list(set(paths).difference(dups))
+        
+        
+    
