@@ -349,7 +349,7 @@ class MemoryFS(FS):
 
         if dir_entry.islocked():
             self._orphan_files(dir_entry)
-            #raise ResourceLockedError("FILE_LOCKED", path)
+            #raise ResourceLockedError(path)
 
         if dir_entry.isdir():
             raise ResourceInvalidError(path,msg="That's a directory, not a file: %(path)s")
@@ -397,7 +397,7 @@ class MemoryFS(FS):
         if dir_entry is None:
             raise ResourceNotFoundError(src)
         #if dir_entry.islocked():
-        #    raise ResourceLockedError("FILE_LOCKED", src)
+        #    raise ResourceLockedError(src)
 
         open_files = dir_entry.open_files[:]
         for f in open_files:

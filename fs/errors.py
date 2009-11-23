@@ -144,6 +144,11 @@ def convert_fs_errors(func):
             raise OSError(errno.EINVAL,str(e))
         except PermissionDeniedError, e:
             raise OSError(errno.EACCES,str(e))
+        except ResourceLockedError, e:
+            if sys.platform == "win32":
+                raise WindowsError(32,str(e))
+            else:
+                raise OSError(errno.EACCES,str(e))
         except DirectoryNotEmptyError, e:
             raise OSError(errno.ENOTEMPTY,str(e))
         except DestinationExistsError, e:
@@ -194,6 +199,9 @@ def convert_os_errors(func):
             if e.errno == errno.ENOSPC:
                 raise StorageSpaceError(opname,details=e),None,tb
             if e.errno == errno.EACCES:
+                if sys.platform == "win32":
+                    if e.args[0] and e.args[0] == 32:
+                        raise ResourceLockedError(path,opname=opname,details=e),None,tb
                 raise PermissionDeniedError(opname,details=e),None,tb
             # Sometimes windows gives some random errors...
             if sys.platform == "win32":

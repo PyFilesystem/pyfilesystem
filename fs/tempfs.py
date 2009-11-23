@@ -4,6 +4,8 @@ import os
 from osfs import OSFS
 import tempfile
 
+from fs.errors import *
+
 class TempFS(OSFS):
 
     """Create a Filesystem in a tempory directory (with tempfile.mkdtemp),
@@ -28,6 +30,7 @@ class TempFS(OSFS):
     def __unicode__(self):
         return unicode(self.__str__())
 
+    @convert_os_errors
     def close(self):
         """Removes the temporary directory.
         This will be called automatically when the object is cleaned up by
