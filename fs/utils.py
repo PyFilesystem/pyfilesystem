@@ -141,7 +141,7 @@ def countbytes(fs):
     return total
 
 
-def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
+def find_duplicates(fs, compare_paths=None, quick=False, signature_chunk_size=16*1024, signature_size=10*16*1024):
     """A generator that yields the paths of duplicate files in an FS object.
     Files are considered identical if the contents are the same (dates or
     other attributes not take in to account).
@@ -149,10 +149,13 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
     fs -- A filesystem object
     compare_paths -- An iterable of paths in the FS object, or all files if omited
     quick -- If set to True, the quick method of finding duplicates will be used,
-    which can potentially miss some duplicates.
-    signature_size -- The chunk size in bytes used to generate file signatures,
-    lower values will decrease the likelyhood of missed duplicates when used with
-    quick=True
+    which can potentially return false positives if the files have the same
+    size and start with the same data. Do not use when deleting files!
+
+    signature_chunk_size -- The number of bytes to read before generating a
+    signature checksum value
+    signature_size -- The total number of bytes read to generate a signature
+
 
     """
 
@@ -178,12 +181,14 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
         for path in paths:
             signature = []
             fread = None
+            bytes_read = 0
             try:
                 fread = fs.open(path, 'rb')
-                while len(signature) < 4:
-                    data = fread.read(signature_size)
+                while signature_size is None or bytes_read < signature_size:
+                    data = fread.read(signature_chunk_size)
                     if not data:
                         break
+                    bytes_read += len(data)
                     signature.append(crc32(data))
             finally:
                 if fread is not None:
@@ -244,4 +249,3 @@ if __name__ == "__main__":
     fs = OSFS('~/duptest')
     for files in find_duplicates(fs, quick=False):
         print files
-
