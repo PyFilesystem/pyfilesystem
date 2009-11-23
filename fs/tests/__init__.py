@@ -224,6 +224,17 @@ class FSTestCases:
         self.assertRaises(ResourceInvalidError,self.fs.removedir,"frollic/waddle.txt")
         self.fs.removedir("frollic",force=True)
         self.assert_(not check("frollic"))
+        #  Test removing unicode dirs
+        kappa = u"\N{GREEK CAPITAL LETTER KAPPA}"
+        self.fs.makedir(kappa)
+        self.assert_(self.fs.isdir(kappa))
+        self.fs.removedir(kappa)
+        self.assertRaises(ResourceNotFoundError, self.fs.removedir, kappa)
+        self.assert_(not self.fs.isdir(kappa))
+        self.fs.makedir(pathjoin("test",kappa),recursive=True)
+        self.assert_(check(pathjoin("test",kappa)))
+        self.fs.removedir("test",force=True)
+        self.assert_(not check("test"))
 
     def test_rename(self):
         check = self.check
