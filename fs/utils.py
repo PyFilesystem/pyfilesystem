@@ -5,7 +5,7 @@
 """
 
 import shutil
-from mountfs import MountFS
+from fs.mountfs import MountFS
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
@@ -140,38 +140,40 @@ def countbytes(fs):
     total = sum(fs.getsize(f) for f in fs.walkfiles())
     return total
 
-# Work in progress, not tested
-def find_duplicates(fs, paths=None, quick=False, signature_size=16384):
+
+def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
     """A generator that yields the paths of duplicate files in an FS object.
     Files are considered identical if the contents are the same (dates or
     other attributes not take in to account).
-    
+
     fs -- A filesystem object
-    paths -- An iterable of paths in the FS object, or all files if omited
+    compare_paths -- An iterable of paths in the FS object, or all files if omited
     quick -- If set to True, the quick method of finding duplicates will be used,
     which can potentially miss some duplicates.
     signature_size -- The chunk size in bytes used to generate file signatures,
     lower values will decrease the likelyhood of missed duplicates when used with
     quick=True
-    
+
     """
-    
+
     from collections import defaultdict
-    from zlib.crc32 import crc32
-    
-    if paths is None:
-        paths = fs.walkfiles()
-        
-    paths = list(paths)
-    
+    from zlib import crc32
+
+    if compare_paths is None:
+        compare_paths = fs.walkfiles()
+
+    # Create a dictionary that maps file sizes on to the paths of files with
+    # that filesize. So we can find files of the same size with a quick lookup
     file_sizes = defaultdict(list)
-    for path in paths:
+    for path in compare_paths:
         file_sizes[fs.getsize(path)].append(path)
-    
-    size_duplicates = [paths for paths in file_sizes if len(paths) > 1]
-    
+
+    size_duplicates = [paths for paths in file_sizes.itervalues() if len(paths) > 1]
+
     signatures = defaultdict(list)
-    
+
+    # A signature is a tuple of CRC32s for each 16K of the file
+    # This allows us to find potential duplicates with a dictionary lookup
     for paths in size_duplicates:
         for path in paths:
             signature = []
@@ -187,26 +189,26 @@ def find_duplicates(fs, paths=None, quick=False, signature_size=16384):
                 if fread is not None:
                     fread.close()
             signatures[tuple(signature)].append(path)
-    
+
+    # If 'quick' is True then the signature comparison is adequate (although
+    # it may result in false positives)
     if quick:
-        for paths in signatures:
+        for paths in signatures.itervalues():
             if len(paths) > 1:
                 yield paths
         return
 
-    from itertools import izip
-    
     def identical(p1, p2):
-        
+        """ Returns True if the contests of two files are identical. """
         f1, f2 = None, None
         try:
             f1 = fs.open(p1, 'rb')
-            f2 = fs.open(p2, 'rb')            
+            f2 = fs.open(p2, 'rb')
             while True:
                 chunk1 = f1.read(16384)
                 if not chunk1:
                     break
-                chunk2 = f2.read(16384)            
+                chunk2 = f2.read(16384)
                 if chunk1 != chunk2:
                     return False
             return True
@@ -215,23 +217,30 @@ def find_duplicates(fs, paths=None, quick=False, signature_size=16384):
                 f1.close()
             if f2 is not None:
                 f2.close()
-        
-        
-    for paths in signatures:
-        
-        while len(paths) > 1:        
-            
+
+    # If we want to be accurate then we need to compare suspected duplicates
+    # byte by byte.
+    # All path groups in this loop have the same size and same signature, so are
+    # highly likely to be identical.
+    for paths in signatures.itervalues():
+
+        while len(paths) > 1:
+
             test_p = paths.pop()
             dups = [test_p]
-            
+
             for path in paths:
                 if identical(test_p, path):
                     dups.append(path)
-            
+
             if len(dups) > 1:
                 yield dups
-                
+
             paths = list(set(paths).difference(dups))
-        
-        
-    
+
+
+if __name__ == "__main__":
+    from fs.osfs import *
+    fs = OSFS('~/duptest')
+    for files in find_duplicates(fs, quick=False):
+        print files
