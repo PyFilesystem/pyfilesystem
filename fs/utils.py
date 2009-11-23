@@ -172,7 +172,7 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
 
     signatures = defaultdict(list)
 
-    # A signature is a tuple of CRC32s for each 16K of the file
+    # A signature is a tuple of CRC32s for each 4x16K of the file
     # This allows us to find potential duplicates with a dictionary lookup
     for paths in size_duplicates:
         for path in paths:
@@ -180,7 +180,7 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_size=16384):
             fread = None
             try:
                 fread = fs.open(path, 'rb')
-                while True:
+                while len(signature) < 4:
                     data = fread.read(signature_size)
                     if not data:
                         break
