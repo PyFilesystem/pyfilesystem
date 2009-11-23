@@ -18,8 +18,8 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-    src_syspath = src_fs.getsyspath(src_path, default="")
-    dst_syspath = dst_fs.getsyspath(dst_path, default="")
+    src_syspath = src_fs.getsyspath(src_path) or ""
+    dst_syspath = dst_fs.getsyspath(dst_path) or ""
 
     # System copy if there are two sys paths
     if src_syspath and dst_syspath:
@@ -57,8 +57,8 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-    src_syspath = src_fs.getsyspath(src_path, default="")
-    dst_syspath = dst_fs.getsyspath(dst_path, default="")
+    src_syspath = src_fs.getsyspath(src_path) or ""
+    dst_syspath = dst_fs.getsyspath(dst_path) or ""
 
     # System copy if there are two sys paths
     if src_syspath and dst_syspath:
@@ -244,3 +244,4 @@ if __name__ == "__main__":
     fs = OSFS('~/duptest')
     for files in find_duplicates(fs, quick=False):
         print files
+
