@@ -668,7 +668,8 @@ class FS(object):
             copyfile = self.copy
 
         copyfile = self.copy
-        self.makedir(dst, allow_recreate=overwrite)
+        if dst:
+            self.makedir(dst, allow_recreate=overwrite)
         for dirname, filenames in self.walk(src):
 
             dst_dirname = relpath(dirname[len(src):])

@@ -126,6 +126,8 @@ class MountFS(FS):
         fs, mount_path, delegate_path = self._delegate(path)
         if fs is self:
             raise UnsupportedError("make directory", msg="Can only makedir for mounted paths" )
+        if not delegate_path:
+            return True
         return fs.makedir(delegate_path, recursive=recursive, allow_recreate=allow_recreate)
 
     @synchronize

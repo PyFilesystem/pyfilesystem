@@ -245,7 +245,15 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_chunk_size=16
 
 
 if __name__ == "__main__":
-    from fs.osfs import *
-    fs = OSFS('~/duptest')
-    for files in find_duplicates(fs, quick=False):
-        print files
+    from osfs import *
+    fs = OSFS('~/copytest')
+    
+    from memoryfs import *
+    m = MemoryFS()
+    m.makedir('maps')
+    
+    copydir((fs, 'maps'), (m, 'maps'))
+    
+    from browsewin import browse
+    browse(m)
+

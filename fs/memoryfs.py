@@ -226,8 +226,8 @@ class MemoryFS(FS):
 
     @synchronize
     def makedir(self, dirname, recursive=False, allow_recreate=False):
-        if not dirname:
-            raise PathError("", "Path is empty")
+        if not dirname:            
+            raise PathError(dirname)
         fullpath = dirname
         dirpath, dirname = pathsplit(dirname)
 

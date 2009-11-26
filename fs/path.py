@@ -202,3 +202,7 @@ def isprefix(path1,path2):
             return False
     return True
 
+def forcedir(path):
+    if not path.endswith('/'):
+        return path + '/'
+    return path
