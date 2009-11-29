@@ -52,6 +52,15 @@ class MountFS(FS):
 
         return self, head_path, tail_path
 
+    def getsyspath(self, path, allow_none=False):
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is self:
+            if allow_none:
+                return None
+            else:
+                raise NoSysPathError(path=path)
+        return fs.getsyspath(delegate_path, allow_none=allow_none)
+
     @synchronize
     def desc(self, path):
         fs, mount_path, delegate_path = self._delegate(path)
@@ -309,5 +318,3 @@ class MountFS(FS):
         if fs is self:
             return []
         return fs.listxattrs(delegate_path)
-
-

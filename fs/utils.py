@@ -6,6 +6,7 @@
 
 import shutil
 from fs.mountfs import MountFS
+from fs.path import pathjoin
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
@@ -18,11 +19,11 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-    src_syspath = src_fs.getsyspath(src_path) or ""
-    dst_syspath = dst_fs.getsyspath(dst_path) or ""
+    src_syspath = src_fs.getsyspath(src_path, allow_none=True)
+    dst_syspath = dst_fs.getsyspath(dst_path, allow_none=True)
 
     # System copy if there are two sys paths
-    if src_syspath and dst_syspath:
+    if src_syspath is not None and dst_syspath is not None:
         shutil.copyfile(src_syspath, dst_syspath)
         return
 
@@ -57,11 +58,11 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
     chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
 
     """
-    src_syspath = src_fs.getsyspath(src_path) or ""
-    dst_syspath = dst_fs.getsyspath(dst_path) or ""
+    src_syspath = src_fs.getsyspath(src_path, allow_none=True)
+    dst_syspath = dst_fs.getsyspath(dst_path, allow_none=True)
 
     # System copy if there are two sys paths
-    if src_syspath and dst_syspath:
+    if src_syspath is not None and dst_syspath is not None:
         shutil.movefile(src_syspath, dst_syspath)
         return
 
@@ -87,7 +88,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
             dst.close()
 
 
-def movedir(fs1, fs2, ignore_errors=False, chunk_size=16384):
+def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     """Moves contents of a directory from one filesystem to another.
 
     fs1 -- Source filesystem, or a tuple of (<filesystem>, <directory path>)
@@ -104,12 +105,16 @@ def movedir(fs1, fs2, ignore_errors=False, chunk_size=16384):
         fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
-    mount_fs.mount('dir1', fs1)
-    mount_fs.mount('dir2', fs2)
-    mount_fs.movedir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
+    mount_fs.mount('src', fs1)
+    mount_fs.mount('dst', fs2)
+
+    mount_fs.movedir('src', 'dst',
+                     overwrite=overwrite,
+                     ignore_errors=ignore_errors,
+                     chunk_size=chunk_size)
 
 
-def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
+def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     """Copies contents of a directory from one filesystem to another.
 
     fs1 -- Source filesystem, or a tuple of (<filesystem>, <directory path>)
@@ -126,9 +131,12 @@ def copydir(fs1, fs2, ignore_errors=False, chunk_size=16384):
         fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
-    mount_fs.mount('dir1', fs1)
-    mount_fs.mount('dir2', fs2)
-    mount_fs.copydir('dir1', 'dir2', ignore_errors=ignore_errors, chunk_size=chunk_size)
+    mount_fs.mount('src', fs1)
+    mount_fs.mount('dst', fs2)
+    mount_fs.copydir('src', 'dst',
+                     overwrite=overwrite,
+                     ignore_errors=ignore_errors,
+                     chunk_size=chunk_size)
 
 
 def countbytes(fs):
@@ -244,16 +252,49 @@ def find_duplicates(fs, compare_paths=None, quick=False, signature_chunk_size=16
             paths = list(set(paths).difference(dups))
 
 
+def print_fs(fs, path="/", max_levels=5, indent=' '*2):
+    """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
+    Be careful about printing a OSFS, or any other large filesystem.
+    Without max_levels set, this function will traverse the entire directory tree.
+
+    fs -- A filesystem object
+    path -- Path of root to list (default "/")
+    max_levels -- Maximum levels of dirs to list (default 5), set to None for no maximum
+    indent -- String to indent each directory level (default two spaces)
+
+    """
+    def print_dir(fs, path, level):
+        try:
+            dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
+        except Exception, e:
+            print indent*level + "... unabled to retrieve directory list (reason: %s) ..." % str(e)
+            return
+
+        dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
+
+        for is_dir, item in dir_listing:
+
+            if is_dir:
+                print indent*level + '[%s]' % item
+                if max_levels is None or level < max_levels:
+                    print_dir(fs, pathjoin(path, item), level+1)
+                if max_levels is not None:
+                    if level >= max_levels:
+                        print indent*(level+1) + "..."
+            else:
+                print indent*level + '%s' % item
+    print_dir(fs, path, 0)
+
+
 if __name__ == "__main__":
     from osfs import *
     fs = OSFS('~/copytest')
-    
+
     from memoryfs import *
     m = MemoryFS()
     m.makedir('maps')
-    
+
     copydir((fs, 'maps'), (m, 'maps'))
-    
+
     from browsewin import browse
     browse(m)
-

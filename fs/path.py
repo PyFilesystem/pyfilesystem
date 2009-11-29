@@ -178,7 +178,7 @@ def issamedir(path1, path2):
     return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
 
 
-def isprefix(path1,path2):
+def isprefix(path1, path2):
     """Return true is path1 is a prefix of path2.
 
     >>> isprefix("foo/bar", "foo/bar/spam.txt")
@@ -203,6 +203,20 @@ def isprefix(path1,path2):
     return True
 
 def forcedir(path):
+    """Ensure the path ends with a trailing /
+
+    >>> forcedir("foo/bar")
+    'foo/bar/'
+    >>> forcedir("foo/bar/")
+    'foo/bar/'
+
+    """
+
     if not path.endswith('/'):
         return path + '/'
     return path
+
+def frombase(path1, path2):
+    if not isprefix(path1, path2):
+        raise ValueError("path1 must be a prefix of path2")
+    return path2[len(path1):]

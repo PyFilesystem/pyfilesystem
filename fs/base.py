@@ -211,7 +211,7 @@ class FS(object):
 
         path -- Pach to check
         """
-        return self.getsyspath(path, None) is not None
+        return self.getsyspath(path, allow_none=True) is not None
 
 
     def open(self, path, mode="r", **kwargs):
@@ -492,9 +492,24 @@ class FS(object):
                   depth first search. Use 'depth' if you plan to create or
                   delete files as you go.
         """
-        for path, files in self.walk(path, wildcard, dir_wildcard, search):
+        for path, files in self.walk(path, wildcard=wildcard, dir_widlcard=dir_wildcard, search=search):
             for f in files:
                 yield pathjoin(path, f)
+
+
+    def walkdirs(self, path="/", wildcard=None, search="breadth"):
+        """ Like the 'walk' method but yields directories.
+
+        path -- Root path to start walking
+        wildcard -- If given, only return dictories that match this wildcard
+        search -- A string dentifying the method used to walk the directories.
+                  Can be 'breadth' for a breadth first search, or 'depth' for a
+                  depth first search. Use 'depth' if you plan to create or
+                  delete files as you go.
+        """
+        for p, files in self.walk(path, wildcard=wildcard, search=search):
+            yield p
+
 
 
     def getsize(self, path):
@@ -565,7 +580,7 @@ class FS(object):
         src -- Source path
         dst -- Destination path
         overwrite -- If True, then an existing file at the destination path
-                     will be silently overwritte; if False then an exception
+                     will be silently overwritten; if False then an exception
                      will be raised in this case.
         """
 
@@ -617,9 +632,9 @@ class FS(object):
             except OSError:
                 pass
 
-        def movefile_noerrors(src, dst, overwrite, chunk_size):
+        def movefile_noerrors(src, dst, **kwargs):
             try:
-                return self.move(src, dst, overwrite, chunk_size)
+                return self.move(src, dst, **kwargs)
             except FSError:
                 return
         if ignore_errors:
@@ -627,10 +642,15 @@ class FS(object):
         else:
             movefile = self.move
 
-        self.makedir(dst, allow_recreate=overwrite)
+        src = abspath(src)
+        dst = abspath(dst)
+
+        if dst:
+            self.makedir(dst, allow_recreate=overwrite)
+
         for dirname, filenames in self.walk(src, search="depth"):
 
-            dst_dirname = relpath(dirname[len(src):])
+            dst_dirname = relpath(frombase(src, abspath(dirname)))
             dst_dirpath = pathjoin(dst, dst_dirname)
             self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
 
@@ -657,9 +677,9 @@ class FS(object):
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
-        def copyfile_noerrors(src, dst, overwrite):
+        def copyfile_noerrors(src, dst, **kwargs):
             try:
-                return self.copy(src, dst, overwrite=overwrite)
+                return self.copy(src, dst, **kwargs)
             except FSError:
                 return
         if ignore_errors:
@@ -667,14 +687,17 @@ class FS(object):
         else:
             copyfile = self.copy
 
-        copyfile = self.copy
+        src = abspath(src)
+        dst = abspath(dst)
+
         if dst:
             self.makedir(dst, allow_recreate=overwrite)
+
         for dirname, filenames in self.walk(src):
 
-            dst_dirname = relpath(dirname[len(src):])
+            dst_dirname = relpath(frombase(src, abspath(dirname)))
             dst_dirpath = pathjoin(dst, dst_dirname)
-            self.makedir(dst_dirpath, allow_recreate=True)
+            self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
 
             for filename in filenames:
 
@@ -724,7 +747,7 @@ class SubFS(FS):
     def __init__(self, parent, sub_dir):
         self.parent = parent
         self.sub_dir = abspath(normpath(sub_dir))
-        FS.__init__(self,thread_synchronize=False)
+        FS.__init__(self, thread_synchronize=False)
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
