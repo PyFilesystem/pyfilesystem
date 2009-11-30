@@ -492,7 +492,7 @@ class FS(object):
                   depth first search. Use 'depth' if you plan to create or
                   delete files as you go.
         """
-        for path, files in self.walk(path, wildcard=wildcard, dir_widlcard=dir_wildcard, search=search):
+        for path, files in self.walk(path, wildcard=wildcard, dir_wildcard=dir_wildcard, search=search):
             for f in files:
                 yield pathjoin(path, f)
 
