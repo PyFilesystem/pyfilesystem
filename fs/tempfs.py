@@ -38,10 +38,12 @@ class TempFS(OSFS):
         Python. Note that once this method has been called, the FS object may
         no longer be used.
         """
+        #  Depending on how resources are freed by the OS, there could
+        #  be some transient errors when freeing a TempFS soon after it
+        #  was used.  If they occur, do a small sleep and try again.
         try:
             self._close()
-        except ResourceLockedError:
-            # Give win32 a chance to clean up after itself
+        except (ResourceLockedError,ResourceInvalidError):
             time.sleep(0.5)
             self._close()
 
