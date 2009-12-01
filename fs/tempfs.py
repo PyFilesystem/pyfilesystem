@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import os
-from osfs import OSFS
+import time
 import tempfile
 
+from fs.osfs import OSFS
 from fs.errors import *
 
 class TempFS(OSFS):
@@ -30,12 +31,26 @@ class TempFS(OSFS):
     def __unicode__(self):
         return unicode(self.__str__())
 
-    @convert_os_errors
     def close(self):
         """Removes the temporary directory.
+
         This will be called automatically when the object is cleaned up by
         Python. Note that once this method has been called, the FS object may
         no longer be used.
+        """
+        try:
+            self._close()
+        except ResourceLockedError:
+            # Give win32 a chance to clean up after itself
+            time.sleep(0.5)
+            self._close()
+
+    @convert_os_errors
+    def _close(self):
+        """Actual implementation of close().
+
+        This is a separate method so it can be re-tried in the face of
+        transient errors.
         """
         if not self._cleaned and self.exists("/"):
             self._lock.acquire()
