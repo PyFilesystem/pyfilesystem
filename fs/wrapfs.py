@@ -229,7 +229,9 @@ class WrapFS(FS):
 
     @rewrite_errors
     def close(self):
-        self.wrapped_fs.close()
+        if not self.closed:
+            self.wrapped_fs.close()
+        super(WrapFS,self).close()
 
 def wrap_fs_methods(decorator,cls=None,exclude=[]):
     """Apply the given decorator to all FS methods on the given class.

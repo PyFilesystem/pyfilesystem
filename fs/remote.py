@@ -191,9 +191,31 @@ class ConnectionManagerFS(WrapFS):
 
     poll_interval = 1
 
-    def __init__(self,fs,poll_interval=None,connected=True):
+    def __init__(self,wrapped_fs,poll_interval=None,connected=True):
+        super(ConnectionManagerFS,self).__init__(wrapped_fs)
         if poll_interval is not None:
             self.poll_interval = poll_interval
+        self._connection_cond = threading.Condition()
+        self._poll_thread = None
+        self._poll_sleeper = threading.Event()
+        self.connected = connected
+
+    def _get_wrapped_fs(self):
+        try:
+            return self.__dict__["wrapped_fs"]
+        except KeyError:
+            self._connection_cond.acquire()
+            try:
+                try:
+                    return self.__dict__["wrapped_fs"]
+                except KeyError:
+                    fs = self._fsclass(*self._fsargs,**self._fskwds)
+                    self.__dict__["wrapped_fs"] = fs
+                    return fs
+            finally:
+                self._connection_cond.release()
+
+    def _set_wrapped_fs(self,fs):
         if isinstance(fs,FS):
             self.__dict__["wrapped_fs"] = fs
         elif isinstance(fs,type):
@@ -210,26 +232,8 @@ class ConnectionManagerFS(WrapFS):
                 self._fskwds = fs[2]
             except IndexError:
                 self._fskwds = {}
-        self._connection_cond = threading.Condition()
-        self._poll_thread = None
-        self._poll_sleeper = threading.Event()
-        self.connected = connected
 
-    @property
-    def wrapped_fs(self):
-        try:
-            return self.__dict__["wrapped_fs"]
-        except KeyError:
-            self._connection_cond.acquire()
-            try:
-                try:
-                    return self.__dict__["wrapped_fs"]
-                except KeyError:
-                    fs = self._fsclass(*self._fsargs,**self._fskwds)
-                    self.__dict__["wrapped_fs"] = fs
-                    return fs
-            finally:
-                self._connection_cond.release()
+    wrapped_fs = property(_get_wrapped_fs,_set_wrapped_fs)
 
     def setcontents(self,path,data):
         self.wrapped_fs.setcontents(path,data)
@@ -278,15 +282,10 @@ class ConnectionManagerFS(WrapFS):
             self._connection_cond.release()
 
     def close(self):
-        # Don't close if we haven't created it
-        try:
-            fs = self.__dict__["wrapped_fs"]
-        except KeyError:
-            pass
-        else:
+        if not self.closed:
             try:
-                fs.close()
-            except (RemoteConnectionError,AttributeError):
+                super(ConnectionManagerFS,self).close()
+            except (RemoteConnectionError,):
                 pass
             if self._poll_thread:
                 self.connected = True
