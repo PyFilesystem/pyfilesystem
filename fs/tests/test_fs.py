@@ -21,7 +21,7 @@ class TestOSFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
         sys.setcheckinterval(1)
-        self.temp_dir = tempfile.mkdtemp("fstest")
+        self.temp_dir = tempfile.mkdtemp(u"fstest")
         self.fs = osfs.OSFS(self.temp_dir)
 
     def tearDown(self):
@@ -36,7 +36,7 @@ class TestSubFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     def setUp(self):
         sys.setcheckinterval(1)
-        self.temp_dir = tempfile.mkdtemp("fstest")
+        self.temp_dir = tempfile.mkdtemp(u"fstest")
         self.parent_fs = osfs.OSFS(self.temp_dir)
         self.parent_fs.makedir("foo/bar", recursive=True)
         self.fs = self.parent_fs.opendir("foo/bar")
