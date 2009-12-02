@@ -89,6 +89,10 @@ class FSClosedError(OperationFailedError):
     default_message = "Unable to %(opname)s: the FS has been closed"
 
 
+class OperationTimeoutError(OperationFailedError):
+    default_message = "Unable to %(opname)s: operation timed out"
+
+
 
 class ResourceError(FSError):
     """Base exception class for error associated with a specific resource."""
