@@ -673,7 +673,7 @@ class ThreadingTestCases:
         def removedir():
             try:
                 self.fs.removedir("testdir")
-            except ResourceNotFoundError, e:
+            except (ResourceNotFoundError,ResourceLockedError), e:
                 errors.append(e)
         # One thread should succeed, one should error
         self._runThreads(makedir,makedir)
@@ -696,7 +696,7 @@ class ThreadingTestCases:
         self._runThreads(makedir,removedir)
         if self.fs.isdir("testdir"):
             self.assertEquals(len(errors),1)
-            self.assertTrue(isinstance(errors[0],ResourceNotFoundError))
+	    self.assertFalse(isinstance(errors[0],DestinationExistsError))
             self.fs.removedir("testdir")
         else:
             self.assertEquals(len(errors),0)
