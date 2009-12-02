@@ -85,6 +85,10 @@ class PermissionDeniedError(OperationFailedError):
     default_message = "Unable to %(opname)s: permission denied"
 
 
+class FSClosedError(OperationFailedError):
+    default_message = "Unable to %(opname)s: the FS has been closed"
+
+
 
 class ResourceError(FSError):
     """Base exception class for error associated with a specific resource."""
