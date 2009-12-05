@@ -225,13 +225,17 @@ class WrapFS(FS):
             raise UnsupportedError("listxattrs")
 
     def __getattr__(self,attr):
+        if attr == "closed":
+            return False
+        if attr == "wrapped_fs":
+            return None
         return getattr(self.wrapped_fs,attr)
 
     @rewrite_errors
     def close(self):
         if not self.closed:
             self.wrapped_fs.close()
-        super(WrapFS,self).close()
+            super(WrapFS,self).close()
 
 
 def wrap_fs_methods(decorator,cls=None,exclude=[]):
