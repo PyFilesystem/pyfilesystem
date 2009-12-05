@@ -22,7 +22,7 @@ import time
 import copy
 
 from fs.base import FS, threading
-from fs.wrapfs import WrapFS, wrap_fs_methods
+from fs.wrapfs import WrapFS, LazyFS, wrap_fs_methods
 from fs.path import *
 from fs.errors import *
 
@@ -156,7 +156,7 @@ class RemoteFileBuffer(object):
             self._lock.release()
 
 
-class ConnectionManagerFS(WrapFS):
+class ConnectionManagerFS(LazyFS):
     """FS wrapper providing simple connection management of a remote FS.
 
     The ConnectionManagerFS class is designed to wrap a remote FS object
@@ -174,9 +174,9 @@ class ConnectionManagerFS(WrapFS):
     operating-system integration may be added.
 
     Since some remote FS classes can raise RemoteConnectionError during
-    initialisation, this class also provides a simple "lazy initialisation"
-    facility.  The remote FS can be specified as an FS instance, an FS
-    subclass, or a (class,args) or (class,args,kwds) tuple. For example:
+    initialisation, this class makes use of lazy initialization. The
+    remote FS can be specified as an FS instance, an FS subclass, or a
+    (class,args) or (class,args,kwds) tuple. For example:
 
         >>> fs = ConnectionManagerFS(MyRemoteFS("http://www.example.com/"))
         Traceback (most recent call last):
@@ -199,41 +199,6 @@ class ConnectionManagerFS(WrapFS):
         self._poll_thread = None
         self._poll_sleeper = threading.Event()
         self.connected = connected
-
-    def _get_wrapped_fs(self):
-        try:
-            return self.__dict__["wrapped_fs"]
-        except KeyError:
-            self._connection_cond.acquire()
-            try:
-                try:
-                    return self.__dict__["wrapped_fs"]
-                except KeyError:
-                    fs = self._fsclass(*self._fsargs,**self._fskwds)
-                    self.__dict__["wrapped_fs"] = fs
-                    return fs
-            finally:
-                self._connection_cond.release()
-
-    def _set_wrapped_fs(self,fs):
-        if isinstance(fs,FS):
-            self.__dict__["wrapped_fs"] = fs
-        elif isinstance(fs,type):
-            self._fsclass = fs
-            self._fsargs = []
-            self._fskwds = {}
-        else:
-            self._fsclass = fs[0]
-            try:
-                self._fsargs = fs[1]
-            except IndexError:
-                self._fsargs = []
-            try:
-                self._fskwds = fs[2]
-            except IndexError:
-                self._fskwds = {}
-
-    wrapped_fs = property(_get_wrapped_fs,_set_wrapped_fs)
 
     def setcontents(self,path,data):
         self.wrapped_fs.setcontents(path,data)
