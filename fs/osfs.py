@@ -33,7 +33,7 @@ class OSFS(FS):
         if not os.path.exists(root_path):
             raise ResourceNotFoundError(root_path,msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(root_path):
-            raise ResourceInvalidError(expanded_path,msg="Root path is not a directory: %(path)s")
+            raise ResourceInvalidError(root_path,msg="Root path is not a directory: %(path)s")
         self.root_path = root_path
         self.dir_mode = dir_mode
 
