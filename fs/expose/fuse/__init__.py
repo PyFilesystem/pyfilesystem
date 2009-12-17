@@ -276,17 +276,13 @@ class FSOperations(Operations):
     def rename(self,old,new):
         old = old.decode(NATIVE_ENCODING)
         new = new.decode(NATIVE_ENCODING)
-        if issamedir(old,new):
-            try:
-                self.fs.rename(old,new)
-            except ResourceInvalidError:
-                 pass
+        try:
+            self.fs.rename(old,new)
+        except FSError:
+            if self.fs.isdir(old):
+                self.fs.movedir(old,new)
             else:
-                return None
-        if self.fs.isdir(old):
-            self.fs.movedir(old,new)
-        else:
-            self.fs.move(old,new)
+                self.fs.move(old,new)
 
     @handle_fs_errors
     def rmdir(self, path):

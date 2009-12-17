@@ -140,8 +140,6 @@ class OSFS(FS):
 
     @convert_os_errors
     def rename(self, src, dst):
-        if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         path_src = self.getsyspath(src)
         path_dst = self.getsyspath(dst)
         os.rename(path_src, path_dst)

@@ -158,8 +158,6 @@ class MultiFS(FS):
 
     @synchronize
     def rename(self, src, dst):
-        if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         for fs in self:
             if fs.exists(src):
                 fs.rename(src, dst)

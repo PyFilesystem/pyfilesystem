@@ -200,8 +200,6 @@ class MountFS(FS):
 
     @synchronize
     def rename(self, src, dst):
-        if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
         fs1, mount_path1, delegate_path1 = self._delegate(src)
         fs2, mount_path2, delegate_path2 = self._delegate(dst)
 

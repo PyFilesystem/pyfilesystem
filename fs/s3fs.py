@@ -394,8 +394,6 @@ class S3FS(FS):
         
     def rename(self,src,dst):
         """Rename the file at 'src' to 'dst'."""
-        if not issamedir(src,dst):
-            raise ValueError("Destination path must be in the same directory (use the 'move' method for moving to a different directory)")
         # Actually, in S3 'rename' is exactly the same as 'move'
         self.move(src,dst)
 

@@ -388,9 +388,6 @@ class MemoryFS(FS):
 
     @synchronize
     def rename(self, src, dst):
-        if not issamedir(src, dst):
-            raise ValueError("Destination path must the same directory (use the move method for moving to a different directory)")
-
         dst = pathsplit(dst)[-1]
 
         dir_entry = self._get_dir_entry(src)
