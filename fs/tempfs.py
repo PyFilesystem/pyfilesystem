@@ -54,6 +54,8 @@ class TempFS(OSFS):
         This is a separate method so it can be re-tried in the face of
         transient errors.
         """
+        os_remove = convert_os_errors(os.remove)
+        os_rmdir = convert_os_errors(os.rmdir)
         if not self._cleaned and self.exists("/"):
             self._lock.acquire()
             try:
@@ -62,9 +64,15 @@ class TempFS(OSFS):
                 entries = os.walk(self.root_path,topdown=False)
                 for (dir,dirnames,filenames) in entries:
                     for filename in filenames:
-                        os.remove(os.path.join(dir,filename))
+                        try:
+                            os_remove(os.path.join(dir,filename))
+                        except ResourceNotFoundError:
+                            pass
                     for dirname in dirnames:
-                        os.rmdir(os.path.join(dir,dirname))
+                        try:
+                            os_rmdir(os.path.join(dir,dirname))
+                        except ResourceNotFoundError:
+                            pass
                 os.rmdir(self.root_path)
                 self._cleaned = True
             finally:
