@@ -151,8 +151,8 @@ class FS(object):
     def __init__(self, thread_synchronize=False):
         """The base class for Filesystem objects.
 
-        thread_synconize -- If True, a lock object will be created for the
-        object, otherwise a dummy lock will be used.
+        :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
+        :type thread_syncronize: bool        
         """
         self.closed = False
         if thread_synchronize:
@@ -164,7 +164,7 @@ class FS(object):
         if not self.closed:
             self.close()
 
-    def close(self):
+    def close(self):        
         self.closed = True
 
     def __getstate__(self):
@@ -198,18 +198,22 @@ class FS(object):
         then a NoSysPathError exception is thrown.  Otherwise, the system
         path will be returned as a unicode string.
 
-        path -- A path within the filesystem
-        allow_none -- If True, this method should return None if there is no
-                      system path, rather than raising NoSysPathError
+        :param path: A path within the filesystem        
+        :param allow_none: If True, this method will return None when there is no system path,
+            rather than raising NoSysPathError
+        :type allow_none: bool
+        :raises NoSysPathError: If the path does not map on to a system path, and allow_none is set to False (default)
+        :rtype: unicode 
         """
         if not allow_none:
             raise NoSysPathError(path=path)
         return None
 
     def hassyspath(self, path):
-        """Return True if the path maps to a system path.
-
-        path -- Pach to check
+        """Return True if the path maps to a system path (a path recognised by the OS).
+        
+        :param path: -- Path to check        
+        :rtype: bool
         """
         return self.getsyspath(path, allow_none=True) is not None
 
@@ -217,16 +221,24 @@ class FS(object):
     def open(self, path, mode="r", **kwargs):
         """Open a the given path as a file-like object.
 
-        path -- Path to file that should be opened
-        mode -- Mode of file to open, identical to the mode string used
-               in 'file' and 'open' builtins
-        kwargs -- Additional (optional) keyword parameters that may
-                  be required to open the file
+        :param path: A path to file that should be opened        
+        :param mode: Mode of file to open, identical to the mode string used
+            in 'file' and 'open' builtins
+        :param kwargs: Additional (optional) keyword parameters that may
+            be required to open the file
+        :rtype: a file-like object
         """
         raise UnsupportedError("open file")
 
     def safeopen(self, *args, **kwargs):
-        """Like 'open', but returns a NullFile if the file could't be opened."""
+        """Like 'open', but returns a NullFile if the file could not be opened.
+        
+        A NullFile is a dummy file which has all the methods of a file-like object,
+        but contains no data.
+        
+        :rtype: file-like object
+        
+        """
         try:
             f = self.open(*args, **kwargs)
         except ResourceNotFoundError:
@@ -235,15 +247,29 @@ class FS(object):
 
 
     def exists(self, path):
-        """Returns True if the path references a valid resource."""
+        """Returns True if the path references a valid resource.
+        
+        :param path: A path in the filessystem        
+        :rtype: bool
+        """
         return self.isfile(path) or self.isdir(path)
 
     def isdir(self, path):
-        """Returns True if a given path references a directory."""
+        """Returns True if a given path references a directory.
+        
+        :param path: A path in the filessystem        
+        :rtype: bool
+        
+        """
         raise UnsupportedError("check for directory")
 
     def isfile(self, path):
-        """Returns True if a given path references a file."""
+        """Returns True if a given path references a file.
+        
+        :param path: A path in the filessystem        
+        :rtype: bool
+        
+        """
         raise UnsupportedError("check for file")
 
 
@@ -259,18 +285,27 @@ class FS(object):
                         absolute=False,
                         dirs_only=False,
                         files_only=False):
-        """Lists all the files and directories in a path.
+        """Returns an iterable of the files and directories under a given path.
 
-        path -- Root of the path to list
-        wildcard -- Only returns paths that match this wildcard
-        full -- Returns a full path
-        absolute -- Returns an absolute path
-        dirs_only -- If True, only return directories
-        files_only -- If True, only return files
+        The directory contents are returned as a list of unicode paths.
 
-        The directory contents are returned as a list of unicode paths.  If
-        then given path is not found then ResourceNotFoundError is raised;
-        if it exists but is not a directory, ResourceInvalidError is raised.
+        :param path: Root of the path to list
+        :type path: str
+        :param wildcard: Only returns paths that match this wildcard
+        :type wildcard: str        
+        :param full: Returns full paths (relative to the root)
+        :type full: bool  
+        :param absolute: Returns absolute paths (paths begining with /)
+        :type absolute: bool
+        :param dirs_only: If True, only return directories
+        :type dirs_only: bool        
+        :param files_only: If True, only return files
+        :type files_only: bool
+        :rtype: iterable of paths
+        
+        :raises ResourceNotFoundError: If the path is not found
+        :raises ResourceInvalidError: If the path exists, but is not a directory
+
         """
         raise UnsupportedError("list directory")
 
@@ -310,57 +345,59 @@ class FS(object):
     def makedir(self, path, recursive=False, allow_recreate=False):
         """Make a directory on the filesystem.
 
-        path -- Path of directory
-        recursive -- If True, also create intermediate directories
-        allow_recreate -- If True, re-creating a directory wont be an error
+        :param path: Path of directory
+        :param recursive: If True, any intermediate directories will also be created
+        :type recursive: bool        
+        :param allow_recreate: If True, re-creating a directory wont be an error
+        :type allow_create: bool
 
-        The following errors can be raised by this method:
-          * DestinationExistsError, if path is already a directory and
-                                    allow_recreate is False
-          * ParentDirectoryMissingError, if a containing directory is missing
-                                         and recursive is False
-          * ResourceInvalidError, if path is an existing file
+        :raises DestinationExistsError: If the path is already a directory, and allow_recreate is False
+        :raises ParentDirectoryMissingError: If a containing directory is missing and recursive is False
+        :raises ResourceInvalidError: If a path is an existing file
+        
         """
         raise UnsupportedError("make directory")
 
     def remove(self, path):
         """Remove a file from the filesystem.
 
-        path -- Path of the resource to remove
+        :param path: Path of the resource to remove
 
-        This method can raise the following errors:
-          * ResourceNotFoundError, if the path does not exist
-          * ResourceInvalidError, if the path is a directory
+        :raises ResourceNotFoundError: If the path does not exist
+        :raises ResourceInvalidError: If the path is a directory
+        
         """
         raise UnsupportedError("remove resource")
 
     def removedir(self, path, recursive=False, force=False):
         """Remove a directory from the filesystem
 
-        path -- Path of the directory to remove
-        recursive -- If True, then empty parent directories will be removed
-        force -- If True, any directory contents will be removed
-
-        This method can raise the following errors:
-          * ResourceNotFoundError, if the path does not exist
-          * ResourceInvalidError, if the path is not a directory
-          * DirectoryNotEmptyError, if the directory is not empty and
-                                   force is False
+        :param path: Path of the directory to remove
+        :param recursive: If True, then empty parent directories will be removed
+        :type recursive: bool
+        :param force: If True, any directory contents will be removed
+        :type force: bool
+        
+        :raises ResourceNotFoundError: If the path does not exist
+        :raises ResourceInvalidError: If the path is not a directory
+        :raises DirectoryNotEmptyError: If the directory is not empty and force is False
+        
         """
         raise UnsupportedError("remove directory")
 
     def rename(self, src, dst):
         """Renames a file or directory
 
-        src -- Path to rename
-        dst -- New name (not a path)
+        :param src: Path to rename
+        :param dst: New name (not a path)
         """
         raise UnsupportedError("rename resource")
 
     def getinfo(self, path):
         """Returns information for a path as a dictionary.
 
-        path -- A path to retrieve information for
+        :param path: A path to retrieve information for
+        :rtype: dict
         """
         raise UnsupportedError("get resource info")
 
@@ -368,7 +405,8 @@ class FS(object):
     def desc(self, path):
         """Returns short descriptive text regarding a path.
 
-        path -- A path to describe
+        :param path: A path to describe
+        :rtype: str
 
         This is mainly for use as a debugging aid.
         """
@@ -387,7 +425,8 @@ class FS(object):
     def getcontents(self, path):
         """Returns the contents of a file as a string.
 
-        path -- path of file to read.
+        :param path: A path of file to read
+        :rtype: str
         """
         f = None
         try:
@@ -401,8 +440,8 @@ class FS(object):
     def createfile(self, path, data=""):
         """A convenience method to create a new file from a string.
 
-        path -- Path of the file to create
-        data -- A string containing the contents of the file
+        :param path: A path of the file to create
+        :param data: A string or a file-like object containing the contents for the new file
         """
         f = None
         try:
@@ -423,7 +462,8 @@ class FS(object):
     def opendir(self, path):
         """Opens a directory and returns a FS object representing its contents.
 
-        path -- Path to directory to open
+        :param path: Path to directory to open
+        :rtype: FS object
         """
         if not self.exists(path):
             raise ResourceNotFoundError(path)
@@ -436,13 +476,13 @@ class FS(object):
         Yields a tuple of the path of each directory and a list of its file
         contents.
 
-        path -- Root path to start walking
-        wildcard -- If given, only return files that match this wildcard
-        dir_wildcard -- If given, only walk directories that match the wildcard
-        search -- A string dentifying the method used to walk the directories.
-                  Can be 'breadth' for a breadth first search, or 'depth' for a
-                  depth first search. Use 'depth' if you plan to create or
-                  delete files as you go.
+        :param path: Root path to start walking
+        :param wildcard: If given, only return files that match this wildcard
+        :param dir_wildcard: If given, only walk directories that match the wildcard
+        :param search: -- A string dentifying the method used to walk the directories. There are two such methods:
+            * 'breadth' Yields paths in the top directories first
+            * 'depth' Yields the deepest paths first
+            
         """
         if search == "breadth":
             dirs = [path]
@@ -484,13 +524,10 @@ class FS(object):
     def walkfiles(self, path="/", wildcard=None, dir_wildcard=None, search="breadth" ):
         """Like the 'walk' method, but just yields files.
 
-        path -- Root path to start walking
-        wildcard -- If given, only return files that match this wildcard
-        dir_wildcard -- If given, only walk directories that match the wildcard
-        search -- A string dentifying the method used to walk the directories.
-                  Can be 'breadth' for a breadth first search, or 'depth' for a
-                  depth first search. Use 'depth' if you plan to create or
-                  delete files as you go.
+        :param path: Root path to start walking
+        :param wildcard: If given, only return files that match this wildcard
+        :param dir_wildcard: If given, only walk directories that match the wildcard
+        :param search: Same as walk method
         """
         for path, files in self.walk(path, wildcard=wildcard, dir_wildcard=dir_wildcard, search=search):
             for f in files:
@@ -500,12 +537,9 @@ class FS(object):
     def walkdirs(self, path="/", wildcard=None, search="breadth"):
         """ Like the 'walk' method but yields directories.
 
-        path -- Root path to start walking
-        wildcard -- If given, only return dictories that match this wildcard
-        search -- A string dentifying the method used to walk the directories.
-                  Can be 'breadth' for a breadth first search, or 'depth' for a
-                  depth first search. Use 'depth' if you plan to create or
-                  delete files as you go.
+        :param path: -- Root path to start walking
+        :param wildcard: -- If given, only return dictories that match this wildcard
+        :param search: -- Same as the walk method
         """
         for p, files in self.walk(path, wildcard=wildcard, search=search):
             yield p
@@ -515,7 +549,7 @@ class FS(object):
     def getsize(self, path):
         """Returns the size (in bytes) of a resource.
 
-        path -- A path to the resource
+        :param path: -- A path to the resource
         """
         info = self.getinfo(path)
         size = info.get('size', None)
@@ -526,12 +560,12 @@ class FS(object):
     def copy(self, src, dst, overwrite=False, chunk_size=16384):
         """Copies a file from src to dst.
 
-        src -- The source path
-        dst -- The destination path
-        overwrite -- If True, then an existing file at the destination may
-                     be overwritten; If False then DestinationExistsError
-                     will be raised.
-        chunk_size -- Size of chunks to use if a simple copy is required
+        :param src: The source path
+        :param dst: The destination path
+        :param overwrite: If True, then an existing file at the destination may
+            be overwritten; If False then DestinationExistsError
+            will be raised.
+        :param chunk_size: Size of chunks to use if a simple copy is required
         """
 
         if not self.isfile(src):
@@ -577,11 +611,11 @@ class FS(object):
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         """Moves a file from one location to another.
 
-        src -- Source path
-        dst -- Destination path
-        overwrite -- If True, then an existing file at the destination path
-                     will be silently overwritten; if False then an exception
-                     will be raised in this case.
+        :param src: Source path
+        :param dst: Destination path
+        :param overwrite: If True, then an existing file at the destination path
+            will be silently overwritten; if False then an exception
+            will be raised in this case.
         """
 
         src_syspath = self.getsyspath(src, allow_none=True)
@@ -608,14 +642,14 @@ class FS(object):
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Moves a directory from one location to another.
 
-        src -- Source directory path
-        dst -- Destination directory path
-        overwrite -- If True then any existing files in the destination
-                     directory will be overwritten
-        ignore_errors -- If True then this method will ignore FSError
-                         exceptions when moving files
-        chunk_size -- Size of chunks to use when copying, if a simple copy
-                      is required
+        :param src: Source directory path
+        :param dst: Destination directory path
+        :param overwrite: If True then any existing files in the destination
+            directory will be overwritten
+        :param ignore_errors: If True then this method will ignore FSError
+            exceptions when moving files
+        :param chunk_size: Size of chunks to use when copying, if a simple copy
+            is required
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
@@ -667,13 +701,13 @@ class FS(object):
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """Copies a directory from one location to another.
 
-        src -- Source directory path
-        dst -- Destination directory path
-        overwrite -- If True then any existing files in the destination
-                     directory will be overwritten
-        ignore_errors -- If True, exceptions when copying will be ignored
-        chunk_size -- Size of chunks to use when copying, if a simple copy
-                       is required
+        :param src: Source directory path
+        :param dst: Destination directory path
+        :param overwrite: If True then any existing files in the destination
+            directory will be overwritten
+        :param ignore_errors: If True, exceptions when copying will be ignored
+        :param chunk_size: Size of chunks to use when copying, if a simple copy
+            is required
         """
         if not self.isdir(src):
             raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
@@ -709,7 +743,8 @@ class FS(object):
     def isdirempty(self, path):
         """Return True if a path contains no files.
 
-        path -- Path of a directory
+        :param path: -- Path of a directory
+        :rtype: bool
         """
         path = normpath(path)
         iter_dir = iter(self.listdir(path))
@@ -724,8 +759,8 @@ class FS(object):
         """Makes a directory (if it doesn't exist) and returns an FS object for
         the newly created directory.
 
-        path -- Path to the new directory
-        recursive -- If True any intermediate directories will be created
+        :param path: Path to the new directory
+        :param recursive: If True any intermediate directories will be created
 
         """
 
