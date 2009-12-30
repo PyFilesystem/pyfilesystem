@@ -90,6 +90,7 @@ class FSTestCases:
         self.assertFalse(self.fs.isdir("dir1"))
         self.assertTrue(self.fs.exists("a.txt"))
         self.assertTrue(self.fs.isfile("a.txt"))
+        self.assertFalse(self.fs.exists("a.txt/thatsnotadir"))
         self.fs.makedir("dir1")
         self.assertTrue(self.fs.isdir("dir1"))
         self.assertTrue(self.fs.exists("dir1"))
@@ -250,6 +251,8 @@ class FSTestCases:
         info = self.fs.getinfo("info.txt")
         self.assertEqual(info['size'], len(test_str))
         self.fs.desc("info.txt")
+        self.assertRaises(ResourceNotFoundError,self.fs.getinfo,"notafile")
+        self.assertRaises(ResourceNotFoundError,self.fs.getinfo,"info.txt/inval")
 
     def test_getsize(self):
         test_str = "*"*23

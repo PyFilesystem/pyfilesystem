@@ -13,6 +13,12 @@ except ImportError:
     xattr = None
 
 
+@convert_os_errors
+def _os_stat(path):
+    """Replacement for os.stat that raises FSError subclasses."""
+    return os.stat(path)
+
+
 class OSFS(FS):
     """Expose the underlying operating-system filesystem as an FS object.
 
@@ -144,10 +150,17 @@ class OSFS(FS):
         path_dst = self.getsyspath(dst)
         os.rename(path_src, path_dst)
 
+    def _stat(self,path):
+        """Stat the given path, normalising error codes."""
+        sys_path = self.getsyspath(path)
+        try:
+            return _os_stat(sys_path)
+        except ResourceInvalidError:
+            raise ResourceNotFoundError(path)
+
     @convert_os_errors
     def getinfo(self, path):
-        sys_path = self.getsyspath(path)
-        stats = os.stat(sys_path)
+        stats = self._stat(path)
         info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
         info['size'] = info['st_size']
         #  TODO: this doesn't actually mean 'creation time' on unix
@@ -164,9 +177,7 @@ class OSFS(FS):
 
     @convert_os_errors
     def getsize(self, path):
-        sys_path = self.getsyspath(path)
-        stats = os.stat(sys_path)
-        return stats.st_size
+        return self._stat(path).st_size
 
 
     #  Provide native xattr support if available
