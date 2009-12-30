@@ -129,13 +129,7 @@ class OSFS(FS):
         #  Don't remove the root directory of this FS
         if path in ("","/"):
             return
-        try:
-            os.rmdir(sys_path)
-        except OSError, e:
-            if e.errno != errno.ENOTEMPTY or not force:
-                raise
-            #  Someone has created files in here in the meantime, try again.
-            self.removedir(path,recursive=False,force=True)
+        os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
         if recursive:
