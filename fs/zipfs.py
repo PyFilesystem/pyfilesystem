@@ -1,4 +1,10 @@
-#!/usr/bin/env python
+"""
+fs.zipfs
+========
+
+A FS object that represents the contents of a Zip file
+
+"""
 
 from fs.base import *
 
@@ -52,12 +58,12 @@ class ZipFS(FS):
     def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, encoding="CP437", thread_synchronize=True):
         """Create a FS that maps on to a zip file.
 
-        zip_file -- A (system) path, or a file-like object
-        mode -- Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
-        compression -- Can be 'deflated' (default) to compress data or 'stored' to just store date
-        allowZip64 -- Set to True to use zip files greater than 2 MB, default is False
-        encoding --  The encoding to use for unicode filenames
-        thread_synchronize -- Set to True (default) to enable thread-safety
+        :param zip_file: A (system) path, or a file-like object
+        :param mode: Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
+        :param compression: Can be 'deflated' (default) to compress data or 'stored' to just store date
+        :param allowZip64: -- Set to True to use zip files greater than 2 MB, default is False
+        :param encoding: --  The encoding to use for unicode filenames
+        :param thread_synchronize: -- Set to True (default) to enable thread-safety
 
         """
         FS.__init__(self, thread_synchronize=thread_synchronize)

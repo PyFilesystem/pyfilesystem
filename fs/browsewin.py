@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """
+fs.browsewin
+============
+
 Creates a window which can be used to browse the contents of a filesystem.
 To use, call the 'browse' method with a filesystem object. Double click a file
 or directory to display its properties.
@@ -32,7 +35,7 @@ class InfoFrame(wx.Frame):
         self.list_ctrl.SetColumnWidth(1, 300)
 
         for key in keys:
-            self.list_ctrl.Append((key, repr(info[key])))
+            self.list_ctrl.Append((key, repr(info.get(key))))
 
 
 
@@ -76,7 +79,6 @@ class BrowseFrame(wx.Frame):
         self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnItemExpanding)
         self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnItemActivated)
 
-
         wx.CallAfter(self.OnInit)
 
     def OnInit(self):
@@ -97,7 +99,7 @@ class BrowseFrame(wx.Frame):
             return
 
         paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
-
+        
         if not paths:
             #self.tree.SetItemHasChildren(item_id, False)
             #self.tree.Collapse(item_id)
@@ -163,7 +165,7 @@ def browse(fs):
     """Displays a window containing a tree control that displays an FS
     object. Double-click a file/folder to display extra info.
 
-    fs -- A filesystem object
+    :param fs: A filesystem object
 
     """
 

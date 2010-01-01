@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 """
+fs.memoryfs
+===========
 
-  fs.memoryfs:  A filesystem that exists only in memory
+A Filesystem that exists in memory only.
 
-Obviously that makes this particular filesystem very fast...
+File objects returned by MemoryFS.objects use StringIO objects for storage.
 
 """
 
 import datetime
 from fs.path import iteratepath
 from fs.base import *
+from fs import _thread_syncronize_default
 
 try:
     from cStringIO import StringIO
@@ -166,12 +169,18 @@ class DirEntry(object):
 
 
 class MemoryFS(FS):
+    
+    """ An in-memory filesystem.
+    
+    MemoryFS objects are very fast, but non-permantent. They are useful for creating a directory structure prior to writing it somewhere permanent.
+    
+    """
 
     def _make_dir_entry(self, *args, **kwargs):
         return self.dir_entry_factory(*args, **kwargs)
 
     def __init__(self, file_factory=None):
-        FS.__init__(self, thread_synchronize=True)
+        FS.__init__(self, thread_synchronize=_thread_syncronize_default)
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
 

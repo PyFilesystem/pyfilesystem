@@ -1,7 +1,11 @@
-#!/usr/in/env python
+"""
+fs.multifs
+==========
+"""
 
 from fs.base import FS, FSError
 from fs.path import *
+from fs import _thread_syncronize_default
 
 
 class MultiFS(FS):
@@ -14,7 +18,7 @@ class MultiFS(FS):
     """
 
     def __init__(self):
-        FS.__init__(self, thread_synchronize=True)
+        FS.__init__(self, thread_synchronize=_thread_syncronize_default)
 
         self.fs_sequence = []
         self.fs_lookup =  {}
@@ -26,15 +30,15 @@ class MultiFS(FS):
     __repr__ = __str__
 
     def __unicode__(self):
-        return unicode(self.__str__())
+        return u"<MultiFS: %s>" % ", ".join(unicode(fs) for fs in self.fs_sequence)
 
 
     @synchronize
     def addfs(self, name, fs):
         """Adds a filesystem to the MultiFS.
 
-        name -- A unique name to refer to the filesystem being added
-        fs -- The filesystem to add
+        :param name: A unique name to refer to the filesystem being added
+        :param fs: The filesystem to add
 
         """
         if name in self.fs_lookup:
@@ -47,7 +51,7 @@ class MultiFS(FS):
     def removefs(self, name):
         """Removes a filesystem from the sequence.
 
-        name -- The name of the filesystem, as used in addfs
+        :param name: The name of the filesystem, as used in addfs
 
         """
         if name not in self.fs_lookup:
@@ -75,7 +79,7 @@ class MultiFS(FS):
         """Retrieves the filesystem that a given path would delegate to.
         Returns a tuple of the filesystem's name and the filesystem object itself.
 
-        path -- A path in MultiFS
+        :param path: A path in MultiFS
 
         """
         for fs in self:

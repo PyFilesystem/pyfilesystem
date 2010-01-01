@@ -1,33 +1,44 @@
 """
 
-  fs.utils: high-level utility functions for working with FS objects.
+The `utils` module provides a number of utility functions that don't belong in the Filesystem interface. Generally the functions in this module work with multiple Filesystems, for instance moving and copying between non-similar Filesystems.
 
 """
 
 import shutil
 from fs.mountfs import MountFS
-from fs.path import pathjoin
+from fs.path import pathjoin, pathsplit
+from fs.errors import DestinationExistsError
 
-def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
+
+def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=16384):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
-    src_fs -- Source filesystem object
-    src_path -- Source path
-    dst_fs -- Destination filesystem object
-    dst_path -- Destination filesystem object
-    chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
+    :param src_fs: Source filesystem object
+    :param src_path: -- Source path
+    :param dst_fs: Destination filesystem object
+    :param dst_path: Destination filesystem object
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
 
     """
+    
+    # If the src and dst fs objects are the same, then use a direct copy
+    if src_fs is dst_fs:
+        src_fs.copy(src_path, dst_path, overwrite=overwrite)
+        return
+    
     src_syspath = src_fs.getsyspath(src_path, allow_none=True)
     dst_syspath = dst_fs.getsyspath(dst_path, allow_none=True)
+    
+    if not overwrite and dst_fs.exists(dst_path):
+        raise DestinationExistsError(dst_path)
 
     # System copy if there are two sys paths
     if src_syspath is not None and dst_syspath is not None:
         shutil.copyfile(src_syspath, dst_syspath)
         return
 
-    src, dst = None
+    src, dst = None, None        
 
     try:
         # Chunk copy
@@ -47,26 +58,33 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
             dst.close()
 
 
-def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
+def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=16384):
     """Move a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
-    src_fs -- Source filesystem object
-    src_path -- Source path
-    dst_fs -- Destination filesystem object
-    dst_path -- Destination filesystem object
-    chunk_size -- Size of chunks to move if system copyfile is not available (default 16K)
+    :param src_fs: Source filesystem object
+    :param src_path: Source path
+    :param dst_fs: Destination filesystem object
+    :param dst_path: Destination filesystem object
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
 
     """
     src_syspath = src_fs.getsyspath(src_path, allow_none=True)
     dst_syspath = dst_fs.getsyspath(dst_path, allow_none=True)
 
-    # System copy if there are two sys paths
-    if src_syspath is not None and dst_syspath is not None:
-        shutil.movefile(src_syspath, dst_syspath)
+    if not overwrite and dst_fs.exists(dst_path):
+        raise DestinationExistsError(dst_path)
+        
+    if src_fs is dst_fs:
+        src_fs.move(src_path, dst_path, overwrite=overwrite)
         return
 
-    src, dst = None
+    # System copy if there are two sys paths
+    if src_syspath is not None and dst_syspath is not None:
+        shutil.move(src_syspath, dst_syspath)
+        return
+
+    src, dst = None, None
 
     try:
         # Chunk copy
@@ -79,7 +97,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
                 break
             dst.write(chunk)
 
-        src_fs.remove(src)
+        src_fs.remove(src_path)
 
     finally:
         if src is not None:
@@ -91,10 +109,10 @@ def movefile(src_fs, src_path, dst_fs, dst_path, chunk_size=16384):
 def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     """Moves contents of a directory from one filesystem to another.
 
-    fs1 -- Source filesystem, or a tuple of (<filesystem>, <directory path>)
-    fs2 -- Destination filesystem, or a tuple of (<filesystem>, <directory path>)
-    ignore_errors -- If True, exceptions from file moves are ignored
-    chunk_size -- Size of chunks to move if a simple copy is used
+    :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param fs2: Destination filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param ignore_errors: If True, exceptions from file moves are ignored
+    :param chunk_size: Size of chunks to move if a simple copy is used
 
     """
     if isinstance(fs1, tuple):
@@ -102,6 +120,7 @@ def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
         fs1 = fs1.opendir(dir1)
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
+        fs2.makedir(dir2, allow_recreate=True)
         fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
@@ -109,7 +128,7 @@ def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     mount_fs.mount('dst', fs2)
 
     mount_fs.movedir('src', 'dst',
-                     overwrite=overwrite,
+                     overwrite=True,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
 
@@ -117,10 +136,10 @@ def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
 def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     """Copies contents of a directory from one filesystem to another.
 
-    fs1 -- Source filesystem, or a tuple of (<filesystem>, <directory path>)
-    fs2 -- Destination filesystem, or a tuple of (<filesystem>, <directory path>)
-    ignore_errors -- If True, exceptions from file moves are ignored
-    chunk_size -- Size of chunks to move if a simple copy is used
+    :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param fs2: Destination filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param ignore_errors: If True, exceptions from file moves are ignored
+    :param chunk_size: Size of chunks to move if a simple copy is used
 
     """
     if isinstance(fs1, tuple):
@@ -128,13 +147,14 @@ def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
         fs1 = fs1.opendir(dir1)
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
+        fs2.makedir(dir2, allow_recreate=True)
         fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS()
     mount_fs.mount('src', fs1)
     mount_fs.mount('dst', fs2)
     mount_fs.copydir('src', 'dst',
-                     overwrite=overwrite,
+                     overwrite=True,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
 
@@ -142,28 +162,35 @@ def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
 def countbytes(fs):
     """Returns the total number of bytes contained within files in a filesystem.
 
-    fs -- A filesystem object
+    :param fs: A filesystem object
 
     """
     total = sum(fs.getsize(f) for f in fs.walkfiles())
     return total
 
 
-def find_duplicates(fs, compare_paths=None, quick=False, signature_chunk_size=16*1024, signature_size=10*16*1024):
+def find_duplicates(fs,
+                    compare_paths=None,
+                    quick=False,
+                    signature_chunk_size=16*1024,
+                    signature_size=10*16*1024):
     """A generator that yields the paths of duplicate files in an FS object.
     Files are considered identical if the contents are the same (dates or
     other attributes not take in to account).
 
-    fs -- A filesystem object
-    compare_paths -- An iterable of paths in the FS object, or all files if omited
-    quick -- If set to True, the quick method of finding duplicates will be used,
-    which can potentially return false positives if the files have the same
-    size and start with the same data. Do not use when deleting files!
+    :param fs: A filesystem object
+    :param compare_paths: An iterable of paths within the FS object, or all files if omited
+    :param quick: If set to True, the quick method of finding duplicates will be used, which can potentially return false positives if the files have the same size and start with the same data. Do not use when deleting files!
+    :param signature_chunk_size: The number of bytes to read before generating a signature checksum value
+    :param signature_size: The total number of bytes read to generate a signature
 
-    signature_chunk_size -- The number of bytes to read before generating a
-    signature checksum value
-    signature_size -- The total number of bytes read to generate a signature
-
+    For example, the following will list all the duplicate .jpg files in "~/Pictures"::
+    
+        >>> from fs.utils import find_duplicates
+        >>> from fs.osfs import OSFS
+        >>> fs = OSFS('~/Pictures')
+        >>> for dups in find_duplicates(fs, fs.walkfiles('*.jpg')):
+        ...     print list(dups)
 
     """
 
@@ -256,11 +283,19 @@ def print_fs(fs, path="/", max_levels=5, indent=' '*2):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
+    
+    For example, the following will print a tree of the files under the current working directory::
+    
+        >>> from fs.osfs import *
+        >>> from fs.utils import *
+        >>> fs = OSFS('.')
+        >>> print_fs(fs)
 
-    fs -- A filesystem object
-    path -- Path of root to list (default "/")
-    max_levels -- Maximum levels of dirs to list (default 5), set to None for no maximum
-    indent -- String to indent each directory level (default two spaces)
+
+    :param fs: A filesystem object
+    :param path: Path of a directory to list (default "/")
+    :param max_levels: Maximum levels of dirs to list (default 5), set to None for no maximum
+    :param indent: String to indent each directory level (default two spaces)
 
     """
     def print_dir(fs, path, level):
@@ -284,6 +319,7 @@ def print_fs(fs, path="/", max_levels=5, indent=' '*2):
             else:
                 print indent*level + '%s' % item
     print_dir(fs, path, 0)
+
 
 
 if __name__ == "__main__":

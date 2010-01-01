@@ -23,4 +23,7 @@
                   with a remote filesystem
     * fs.errors:  updated exception hierarchy, with support for converting
                   to/from standard OSError instances
+    * New FS implementation:
+        * FTPFS:        access a plain old FTP server
+        * ReadOnlyFS:   a WrapFS that makes an fs read-only
 

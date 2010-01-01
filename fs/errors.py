@@ -1,6 +1,7 @@
 """
+Defines the Exception classes thrown by PyFilesystem objects. Exceptions relating to the underling filesystem are translated in to one of the following Exceptions. Exceptions that relate to a path store that path in `self.path`.
 
-  fs.errors:  error class definitions for FS
+All Exception classes are derived from `FSError` which can be used as a catch-all exception.
 
 """
 
@@ -39,15 +40,15 @@ class FSError(Exception):
         return str(self.msg % keys)
 
     def __unicode__(self):
-        keys = dict((k,v) for k,v in self.__dict__.iteritems())
-        return unicode(self.msg) % keys
+        return unicode(self.msg) % self.__dict__
 
     def __getstate__(self):
        return self.__dict__.copy()
 
 
 class PathError(FSError):
-    """Exception for errors to do with a path string."""
+    """Exception for errors to do with a path string.
+    """
     default_message = "Path is invalid: %(path)s"
 
     def __init__(self,path="",**kwds):
@@ -73,7 +74,7 @@ class UnsupportedError(OperationFailedError):
 
 class RemoteConnectionError(OperationFailedError):
     """Exception raised when operations encounter remote connection trouble."""
-    default_message = "Unable to %(opname)s: remote connection errror"
+    default_message = "%(opname)s: remote connection errror"
 
 
 class StorageSpaceError(OperationFailedError):
@@ -91,7 +92,6 @@ class FSClosedError(OperationFailedError):
 
 class OperationTimeoutError(OperationFailedError):
     default_message = "Unable to %(opname)s: operation timed out"
-
 
 
 class ResourceError(FSError):

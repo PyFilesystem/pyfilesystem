@@ -1,0 +1,2 @@
+.. automodule:: fs.browsewin
+    :members:

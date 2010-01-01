@@ -1,14 +1,16 @@
 """
+fs.expose.fuse
+==============
 
-  fs.expose.fuse:  expose an FS object to the native filesystem via FUSE
+Expose an FS object to the native filesystem via FUSE
 
 This module provides the necessary interfaces to mount an FS object into
-the local filesystem via FUSE:
+the local filesystem via FUSE::
 
     http://fuse.sourceforge.net/
 
 For simple usage, the function 'mount' takes an FS object and a local path,
-and exposes the given FS at that path:
+and exposes the given FS at that path::
 
     >>> from fs.memoryfs import MemoryFS
     >>> from fs.expose import fuse
@@ -20,7 +22,7 @@ and exposes the given FS at that path:
 
 The above spawns a new background process to manage the FUSE event loop, which
 can be controlled through the returned subprocess.Popen object.  To avoid
-spawning a new process, set the 'foreground' option:
+spawning a new process, set the 'foreground' option::
 
     >>> #  This will block until the filesystem is unmounted
     >>> fuse.mount(fs,"/mnt/my-memory-fs",foreground=True)
@@ -30,7 +32,7 @@ to the 'mount' function.
 
 If you require finer control over the creation of the FUSE process, you can
 instantiate the MountProcess class directly.  It accepts all options available
-to subprocess.Popen:
+to subprocess.Popen::
 
     >>> from subprocess import PIPE
     >>> mp = fuse.MountProcess(fs,"/mnt/my-memory-fs",stderr=PIPE)
@@ -419,8 +421,8 @@ def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**k
     keyword arguments will be passed through as options to the underlying
     FUSE class.  Some interesting options include:
 
-        * nothreads:  switch off threading in the FUSE event loop
-        * fsname:     name to display in the mount info table
+        * nothreads Switch off threading in the FUSE event loop
+        * fsname Name to display in the mount info table
 
     """
     if foreground:

@@ -45,9 +45,9 @@ class DummyLock:
 def silence_fserrors(f, *args, **kwargs):
     """Perform a function call and return None if FSError is thrown
 
-    f -- Function to call
-    args -- Parameters to f
-    kwargs -- Keyword parameters to f
+    :param f: Function to call
+    :param args: Parameters to f
+    :param kwargs: Keyword parameters to f
 
     """
     try:
@@ -103,16 +103,20 @@ class NullFile(object):
     def writelines(self, *args, **kwargs):
         pass
 
-
+try:
+    from functools import wraps
+except ImportError:
+    wraps = lambda f:f
+    
 def synchronize(func):
     """Decorator to synchronize a method on self._lock."""
+    @wraps(func)
     def acquire_lock(self, *args, **kwargs):
         self._lock.acquire()
         try:
             return func(self, *args, **kwargs)
         finally:
             self._lock.release()
-    acquire_lock.__doc__ = func.__doc__
     return acquire_lock
 
 
@@ -121,30 +125,6 @@ class FS(object):
 
     An instance of a class derived from FS is an abstraction on some kind
     of filesytem, such as the OS filesystem or a zip file.
-
-    The following is the minimal set of methods that must be provided by
-    a new FS subclass:
-
-        * open -- open a file for reading/writing (like python's open() func)
-        * isfile -- check whether a path exists and is a file
-        * isdir -- check whether a path exists and is a directory
-        * listdir -- list the contents of a directory
-        * makedir -- create a new directory
-        * remove -- remove an existing file
-        * removedir -- remove an existing directory
-        * rename -- atomically rename a file or directory
-        * getinfo -- return information about the path e.g. size, mtime
-
-    The following methods have a sensible default implementation, but FS
-    subclasses are welcome to override them if a more efficient implementation
-    can be provided:
-
-        * getsyspath -- get a file's name in the local filesystem, if possible
-        * exists -- check whether a path exists as file or directory
-        * copy -- copy a file to a new location
-        * move -- move a file to a new location
-        * copydir -- recursively copy a directory to a new location
-        * movedir -- recursively move a directory to a new location
 
     """
 
@@ -161,7 +141,7 @@ class FS(object):
             self._lock = DummyLock()
 
     def __del__(self):
-        if not self.closed:
+        if not getattr(self, 'closed', True):
             self.close()
 
     def close(self):        
@@ -308,6 +288,7 @@ class FS(object):
 
         """
         raise UnsupportedError("list directory")
+        
 
     def _listdir_helper(self, path, entries,
                               wildcard=None,
@@ -411,7 +392,7 @@ class FS(object):
         This is mainly for use as a debugging aid.
         """
         if not self.exists(path):
-            return "No description available"
+            return ''
         try:
             sys_path = self.getsyspath(path)
         except NoSysPathError:
@@ -616,6 +597,8 @@ class FS(object):
         :param overwrite: If True, then an existing file at the destination path
             will be silently overwritten; if False then an exception
             will be raised in this case.
+        :param chunk_size: Size of chunks to use when copying, if a simple copy
+            is required
         """
 
         src_syspath = self.getsyspath(src, allow_none=True)
@@ -724,6 +707,9 @@ class FS(object):
         src = abspath(src)
         dst = abspath(dst)
 
+        if not overwrite and self.exists(dst):
+            raise DestinationExistsError(dst)
+
         if dst:
             self.makedir(dst, allow_recreate=overwrite)
 
@@ -786,12 +772,12 @@ class SubFS(FS):
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
+        
+    def __unicode__(self):
+        return u"<SubFS: %s in %s>" % (self.sub_dir, self.parent)
 
     def __repr__(self):
         return str(self)
-
-    def __unicode__(self):
-        return unicode(self.__str__())
 
     def desc(self, path):
         if self.isdir(path):

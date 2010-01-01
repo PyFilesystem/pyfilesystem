@@ -1,6 +1,8 @@
 """
+fs.expose.django
+================
 
-  fs.expose.django:  use an FS object for Django File Storage
+Use an FS object for Django File Storage
 
 """
 

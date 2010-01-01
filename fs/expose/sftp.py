@@ -1,12 +1,14 @@
 """
+fs.expose.sftp
+==============
 
-  fs.expose.sftp:  expose an FS object over SFTP (via paramiko).
+Expose an FS object over SFTP (via paramiko).
 
 This module provides the necessary interfaces to expose an FS object over
 SFTP, plugging into the infratructure provided by the 'paramiko' module.
 
 For simple usage, the class 'BaseSFTPServer' provides an all-in-one server
-class based on the standard SocketServer module.  Use it like so:
+class based on the standard SocketServer module.  Use it like so::
 
     server = BaseSFTPServer((hostname,port),fs)
     server.serve_forever()
@@ -227,7 +229,7 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
     needed to expose an FS via SFTP.
 
     Operation is in the standard SocketServer style.  The target FS object
-    can be passed into the constructor, or set as an attribute on the server:
+    can be passed into the constructor, or set as an attribute on the server::
 
         server = BaseSFTPServer((hostname,port),fs)
         server.serve_forever()
@@ -240,10 +242,10 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
     FS.  This is intentional, since we can't guess what your authentication
     needs are.  To protect the exposed FS, override the following methods:
 
-        get_allowed_auths:      determine the allowed auth modes
-        check_auth_none:        check auth with no credentials
-        check_auth_password:    check auth with a password
-        check_auth_publickey:   check auth with a public key
+        * get_allowed_auths Determine the allowed auth modes
+        * check_auth_none Check auth with no credentials
+        * check_auth_password Check auth with a password
+        * check_auth_publickey Check auth with a public key
 
     """
 

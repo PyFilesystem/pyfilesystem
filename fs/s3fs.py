@@ -1,6 +1,8 @@
 """
+fs.s3fs
+=======
 
-  fs.s3fs:  FS subclass accessing files in Amazon S3
+FS subclass accessing files in Amazon S3
 
 This module provides the class 'S3FS', which implements the FS filesystem
 interface for objects stored in Amazon Simple Storage Service (S3).

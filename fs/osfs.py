@@ -1,4 +1,17 @@
-#!/usr/bin/env python
+"""
+fs.osfs
+=======
+
+Exposes the OS Filesystem as an FS object.
+
+For example, to print all the files and directories in the OS root::
+
+    >>> from fs.osfs import OSFS
+    >>> home_fs = OSFS('/')
+    >>> print home_fs.listdir()
+
+"""
+
 
 import os
 import sys
@@ -6,6 +19,7 @@ import errno
 
 from fs.base import *
 from fs.path import *
+from fs import _thread_syncronize_default
 
 try:
     import xattr
@@ -27,7 +41,18 @@ class OSFS(FS):
     methods in the os and os.path modules.
     """
 
-    def __init__(self, root_path, dir_mode=0700, thread_synchronize=True, encoding=None):
+    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_syncronize_default, encoding=None):
+        
+        """
+        Creates an FS object that represents the OS Filesystem under a given root path
+        
+        :param root_path: The root OS path
+        :param dir_mode: srt
+        :param thread_syncronize: If True, this object will be thread-safe by use of a threading.Lock object
+        :param encoding: The encoding method for path strings
+        
+        """
+        
         FS.__init__(self, thread_synchronize=thread_synchronize)
         self.encoding = encoding
         root_path = os.path.expanduser(os.path.expandvars(root_path))
@@ -45,6 +70,9 @@ class OSFS(FS):
 
     def __str__(self):
         return "<OSFS: %s>" % self.root_path
+    
+    def __unicode__(self):
+        return u"<OSFS: %s>" % self.root_path
 
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)
@@ -113,17 +141,17 @@ class OSFS(FS):
             raise
 
     @convert_os_errors
-    def removedir(self, path, recursive=False,force=False):
+    def removedir(self, path, recursive=False, force=False):
         sys_path = self.getsyspath(path)
         if force:
-            for path2 in self.listdir(path,absolute=True,files_only=True):
+            for path2 in self.listdir(path, absolute=True, files_only=True):
                 try:
                     self.remove(path2)
                 except ResourceNotFoundError:
                     pass
-            for path2 in self.listdir(path,absolute=True,dirs_only=True):
+            for path2 in self.listdir(path, absolute=True, dirs_only=True):
                 try:
-                    self.removedir(path2,force=True)
+                    self.removedir(path2, force=True)
                 except ResourceNotFoundError:
                     pass
         #  Don't remove the root directory of this FS

@@ -1,6 +1,8 @@
 """
+fs.expose.xmlrpc
+================
 
-  fs.expose.xmlrpc:  server to expose an FS via XML-RPC
+Server to expose an FS via XML-RPC
 
 This module provides the necessary infrastructure to expose an FS object
 over XML-RPC.  The main class is 'RPCFSServer', a SimpleXMLRPCServer subclass
@@ -136,7 +138,7 @@ class RPCFSServer(SimpleXMLRPCServer):
 
     This class takes as its first argument an FS instance, and as its second
     argument a (hostname,port) tuple on which to listen for XML-RPC requests.
-    Example:
+    Example::
 
         fs = OSFS('/var/srv/myfiles')
         s = RPCFSServer(fs,("",8080))

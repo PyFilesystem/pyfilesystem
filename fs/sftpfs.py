@@ -1,6 +1,8 @@
 """
+fs.sftpfs
+=========
 
-  fs.sftpfs:  Filesystem accesing an SFTP server (via paramiko)
+Filesystem accessing an SFTP server (via paramiko)
 
 """
 
@@ -64,6 +66,8 @@ class SFTPFS(FS):
         self._owns_transport = False
         self._credentials = credentials
         self._tlocal = thread_local()
+        self._transport = None
+        self._client = None
         if isinstance(connection,paramiko.Channel):
             self._transport = None
             self._client = paramiko.SFTPClient(connection)

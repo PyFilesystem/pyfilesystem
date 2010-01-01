@@ -1,7 +1,14 @@
-#!/usr/bin/env python
+"""
+fs.mountfs
+==========
+
+Contains MountFS class which is a virtual Filesystem which can have other Filesystems linked as branched directories, much like a symlink in Linux
+
+"""
 
 from fs.base import *
 from fs.objecttree import ObjectTree
+from fs import _thread_syncronize_default
 
 
 class DirMount(object):
@@ -27,7 +34,7 @@ class MountFS(FS):
     DirMount = DirMount
     FileMount = FileMount
 
-    def __init__(self, thread_synchronize=True):
+    def __init__(self, thread_synchronize=_thread_syncronize_default):
         FS.__init__(self, thread_synchronize=thread_synchronize)
         self.mount_tree = ObjectTree()
 
@@ -223,10 +230,10 @@ class MountFS(FS):
 
     @synchronize
     def mountdir(self, path, fs):
-        """Mounts a directory on a given path.
+        """Mounts a host FS object on a given path.
 
-        path -- A path within the MountFS
-        fs -- A filesystem object to mount
+        :param path: A path within the MountFS
+        :param fs: A filesystem object to mount
 
         """
         path = normpath(path)
@@ -235,11 +242,17 @@ class MountFS(FS):
 
     @synchronize
     def mountfile(self, path, open_callable=None, info_callable=None):
+        """Mounts a single file path. """
         path = normpath(path)
         self.mount_tree[path] = MountFS.FileMount(path, callable, info_callable)
 
     @synchronize
-    def unmount(self,path):
+    def unmount(self, path):
+        """Unmounds a path.
+        
+        :param path: Path to unmount
+        
+        """
         path = normpath(path)
         del self.mount_tree[path]
 

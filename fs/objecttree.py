@@ -94,7 +94,7 @@ class ObjectTree(object):
         return self.root.keys()
 
     def iterkeys(self):
-        return self.root.keys()
+        return self.root.iterkeys()
 
     def items(self):
         return self.root.items()

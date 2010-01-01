@@ -9,7 +9,7 @@
 #  be captured by nose and reported appropriately
 import sys
 import logging
-logging.basicConfig(level=logging.ERROR,stream=sys.stdout)
+logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
 from fs.base import *
 
@@ -297,7 +297,7 @@ class FSTestCases:
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
         def makefile(path):
-            self.fs.createfile(path,contents)
+            self.fs.createfile(path, contents)
 
         self.fs.makedir("a")
         self.fs.makedir("b")
@@ -700,7 +700,7 @@ class ThreadingTestCases:
         self._runThreads(makedir,removedir)
         if self.fs.isdir("testdir"):
             self.assertEquals(len(errors),1)
-	    self.assertFalse(isinstance(errors[0],DestinationExistsError))
+            self.assertFalse(isinstance(errors[0],DestinationExistsError))
             self.fs.removedir("testdir")
         else:
             self.assertEquals(len(errors),0)

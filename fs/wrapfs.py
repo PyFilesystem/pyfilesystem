@@ -1,6 +1,8 @@
 """
+fs.wrapfs
+=========
 
-  fs.wrapfs:  class for wrapping an existing FS object with added functionality
+A class for wrapping an existing FS object with additional functionality.
 
 This module provides the class WrapFS, a base class for objects that wrap
 another FS object and provide some transformation of its contents.  It could
@@ -121,10 +123,10 @@ class WrapFS(FS):
         return self.wrapped_fs.hassyspath(self._encode(path))
 
     @rewrite_errors
-    def open(self,path,mode="r"):
-        (mode,wmode) = self._adjust_mode(mode)
-        f = self.wrapped_fs.open(self._encode(path),wmode)
-        return self._file_wrap(f,mode)
+    def open(self, path, mode="r", **kwargs):
+        (mode, wmode) = self._adjust_mode(mode)
+        f = self.wrapped_fs.open(self._encode(path), wmode, **kwargs)
+        return self._file_wrap(f, mode)
 
     @rewrite_errors
     def exists(self,path):
@@ -509,3 +511,41 @@ class LimitSizeFile(object):
     def __iter__(self):
         return iter(self.file)
 
+
+class ReadOnlyFS(WrapFS):
+    """ Makes a FS object read only. Any operation that could potentially modify
+    the underlying file system will throw an UnsupportedError
+    
+    Note that this isn't a secure sandbox, untrusted code could work around the
+    read-only restrictions by getting the base class. Its main purpose is to
+    provide a degree of safety if you want to protect an FS object from
+    modification.
+    
+    """
+        
+    def getsyspath(self, path, allow_none=False):
+        """ Doesn't technically modify the filesystem but could be used to work
+        around read-only restrictions. """
+        if allow_none:
+            return None
+        raise NoSysPathError(path)
+    
+    def open(self, path, mode='r', **kwargs):
+        """ Only permit read access """
+        if 'w' in mode or 'a' in mode:
+            raise UnsupportedError('write')
+        return super(ReadOnlyFS, self).open(path, mode, **kwargs)
+        
+    def _no_can_do(self, *args, **kwargs):
+        """ Replacement method for methods that can modify the file system """
+        raise UnsupportedError('write')
+      
+    move = _no_can_do
+    movedir = _no_can_do
+    copy = _no_can_do
+    copydir = _no_can_do
+    makedir = _no_can_do
+    rename = _no_can_do
+    setxattr = _no_can_do
+    delattr = _no_can_do
+    

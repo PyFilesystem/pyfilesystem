@@ -1,25 +1,23 @@
 """
+fs.xattrs
+=========
 
-  fs.xattrs:  extended attribute support for FS
+Extended attribute support for FS
 
 This module defines a standard interface for FS subclasses that want to
 support extended file attributes, and a WrapFS subclass that can simulate
-extended attributes on top of an ordinery FS.
+extended attributes on top of an ordinary FS.
 
 FS instances offering extended attribute support must provide the following
 methods:
 
-  getxattr(path,name)        -  get the named attribute for the given path,
-                                or None if it does not exist
-  setxattr(path,name,value)  -  set the named attribute for the given path
-                                to the given value
-  delxattr(path,name)        -  delete the named attribute for the given path,
-                                raising KeyError if it does not exist
-  listxattrs(path)           -  iterator over all stored attribute names for
-                                the given path
+  * getxattr(path,name) Get the named attribute for the given path, or None if it does not exist
+  * setxattr(path,name,value) Set the named attribute for the given path to the given value
+  * delxattr(path,name) Delete the named attribute for the given path, raising KeyError if it does not exist
+  * listxattrs(path) Iterate over all stored attribute names for the given path
 
 If extended attributes are required by FS-consuming code, it should use the
-function 'ensure_xattrs'.  This will interrogate an FS object to determine
+function 'ensure_xattrs'. This will interrogate an FS object to determine
 if it has native xattr support, and return a wrapped version if it does not.
 """
 
@@ -41,6 +39,8 @@ def ensure_xattrs(fs):
     Given an FS object, this function returns an equivalent FS that has support
     for extended attributes.  This may be the original object if they are
     supported natively, or a wrapper class is they must be simulated.
+    
+    :param fs: An FS object that must have xattrs
     """
     try:
         #  This attr doesn't have to exist, None should be returned by default

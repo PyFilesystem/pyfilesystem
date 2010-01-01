@@ -1,19 +1,22 @@
 """
 
-  fs.remote:  utilities for interfacing with remote filesystems
+fs.remote
+=========
+
+Utilities for interfacing with remote filesystems
 
 
 This module provides reusable utility functions that can be used to construct
 FS subclasses interfacing with a remote filesystem.  These include:
 
-  RemoteFileBuffer:  a file-like object that locally buffers the contents
+  * RemoteFileBuffer:  a file-like object that locally buffers the contents
                      of a remote file, writing them back on flush() or close().
 
-  ConnectionManagerFS:  a WrapFS subclass that tracks the connection state
+  * ConnectionManagerFS:  a WrapFS subclass that tracks the connection state
                         of a remote FS, and allows client code to wait for
                         a connection to be re-established.
 
-  CacheFS:  a WrapFS subclass that caces file and directory meta-data in
+   * CacheFS:  a WrapFS subclass that caces file and directory meta-data in
             memory, to speed access to a remote FS.
 
 """
@@ -44,7 +47,7 @@ class RemoteFileBuffer(object):
     The intended use-case is for a remote filesystem (e.g. S3FS) to return
     instances of this class from its open() method, and to provide the
     file-uploading logic in its setcontents() method, as in the following
-    pseudo-code:
+    pseudo-code::
 
         def open(self,path,mode="r"):
             rf = self._get_remote_file(path)
@@ -176,7 +179,7 @@ class ConnectionManagerFS(LazyFS):
     Since some remote FS classes can raise RemoteConnectionError during
     initialisation, this class makes use of lazy initialization. The
     remote FS can be specified as an FS instance, an FS subclass, or a
-    (class,args) or (class,args,kwds) tuple. For example:
+    (class,args) or (class,args,kwds) tuple. For example::
 
         >>> fs = ConnectionManagerFS(MyRemoteFS("http://www.example.com/"))
         Traceback (most recent call last):

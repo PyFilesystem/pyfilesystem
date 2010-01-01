@@ -16,7 +16,7 @@ This will install the latest stable release. If you would prefer to install the 
     cd pyfilesystem-read-only
     python setup.py install
 
-You should now have the _fs_ module on your path:
+You should now have the `fs` module on your path:
 
     >>> import fs
     >>> fs.__version__
