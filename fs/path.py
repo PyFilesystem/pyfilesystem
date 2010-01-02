@@ -1,4 +1,7 @@
 """
+fs.path
+=======
+
 Useful functions for FS path manipulation.
 
 This is broadly similar to the standard 'os.path' module but works with

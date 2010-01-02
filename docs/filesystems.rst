@@ -4,36 +4,52 @@ Filesystems
 This page lists the builtin filesystems.
 
 
-fs.osfs.OSFS
-------------
-An interface to the OS Filesystem
+FTP (File Transfer Protocol)
+----------------------------
+An interface to FTP servers. See :mod:`fs.ftpfs`
 
-fs.memoryfs.MemoryFS
---------------------
-A filesystem that exists entirely in memory
 
-fs.mountfs.MountFS
-------------------
-A filesystem that can map directories in to other filesystems (like a symlink)
+Memory
+------
+A filesystem that exists entirely in memory. See :mod:`fs.memoryfs`
 
-fs.multifs.MultiFS
-------------------
-A filesystem that overlays other filesystems
 
-fs.sftpfs.SFTPFS
-----------------
-A secure FTP filesystem
+Mount
+-----
+A filesystem that can map directories in to other filesystems (like a symlink). See :mod:`fs.mountfs`
 
-fs.s3fs.S3FS
-------------
-A filesystem to access an Amazon S3 service
 
-fs.tempfs.TempFS
-----------------
-Creates a temporary filesystem in an OS provided location
+Multi
+-----
+A filesystem that overlays other filesystems. See :mod:`fs.multifs`
 
-fs.zipfs.ZipFS
---------------
-A filesystem for zip files
+
+OS
+--
+An interface to the OS Filesystem. See :mod:`fs.osfs`
+
+Secure FTP (Secure FTP)
+----------------------
+A secure FTP filesystem. See :mod:`fs.sftpfs`
+
+
+S3
+--
+A filesystem to access an Amazon S3 service. See :mod:`fs.s3fs`
+
+
+Temporary
+---------
+Creates a temporary filesystem in an OS provided location. See :mod:`fs.tempfs`
+
+
+Wrap
+----
+A collection of wrappers that add new behaviour / features to existing FS instances. See :mod:`fs.wrapfs`
+
+
+Zip
+---
+An interface to zip files. See :mod:`fs.zipfs`
 
 

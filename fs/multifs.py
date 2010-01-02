@@ -1,9 +1,30 @@
 """
 fs.multifs
 ==========
+
+A MultiFS is a filesytem composed of a sequence of other filesystems, where
+the directory structure of each filesystem is overlaid over the previous filesystem.
+When you attempt to access a file from the MultiFS it will try each 'child'
+FS in order, until it either finds a path that exists or raises a ResourceNotFoundError.
+
+One use for such a filesystem would be to selectively override a set of files,
+to customize behaviour. For example, to create a filesystem that could be used
+to *theme* a web application::
+
+    from fs.osfs import OSFS
+    from fs.multifs import MultiFS
+
+    themed_template_fs.addfs('templates', OSFS('templates'))
+    themed_template_fs.addfs('theme', OSFS('themes'))
+
+    index_template = themed_template_fs.getcontent('index.html')
+
+This will read the contents of *themes/index.html*, if it exists, otherwise
+it will look for it in *templates/index.html*.
+
 """
 
-from fs.base import FS, FSError
+from fs.base import FS, FSError, synchronize
 from fs.path import *
 from fs import _thread_syncronize_default
 
@@ -66,7 +87,7 @@ class MultiFS(FS):
 
     @synchronize
     def __iter__(self):
-        return iter(self.fs_sequence[:])
+        return reversed(self.fs_sequence[:])
 
     def _delegate_search(self, path):
         for fs in self:
@@ -107,7 +128,7 @@ class MultiFS(FS):
         return "%s, on %s (%s)" % (fs.desc(path), name, fs)
 
     @synchronize
-    def open(self, path, mode="r",**kwargs):
+    def open(self, path, mode="r", **kwargs):
         for fs in self:
             if fs.exists(path):
                 fs_file = fs.open(path, mode, **kwargs)

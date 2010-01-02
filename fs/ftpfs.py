@@ -2,7 +2,7 @@
 fs.ftpfs
 ========
 
-Filesystem for accessing an FTP server (uses ftplib in standard library)
+FTPS is a filesystem for accessing an FTP server (uses ftplib in standard library)
 
 """
 
@@ -25,6 +25,8 @@ except ImportError:
 
 import time
 import sys
+
+__all__ = ['FTPFS']
 
 # -----------------------------------------------
 # Taken from http://www.clapper.org/software/python/grizzled/

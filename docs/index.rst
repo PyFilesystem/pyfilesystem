@@ -14,6 +14,7 @@ Guide
 .. toctree::
    :maxdepth: 3
 
+   introduction.rst
    concepts.rst
    getting_started.rst
    interface.rst
@@ -28,8 +29,10 @@ Code Documentation
    base.rst
    browsewin.rst
    errors.rst
+   ftpfs.rst
    memoryfs.rst
    mountfs.rst
+   multifs.rst
    osfs.rst
    path.rst
    s3fs.rst
