@@ -35,7 +35,7 @@ class InfoFrame(wx.Frame):
         self.list_ctrl.SetColumnWidth(1, 300)
 
         for key in keys:
-            self.list_ctrl.Append((key, repr(info.get(key))))
+            self.list_ctrl.Append((key, str(info.get(key))))
 
 
 
@@ -99,7 +99,7 @@ class BrowseFrame(wx.Frame):
             return
 
         paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
-        
+
         if not paths:
             #self.tree.SetItemHasChildren(item_id, False)
             #self.tree.Collapse(item_id)

@@ -107,7 +107,7 @@ try:
     from functools import wraps
 except ImportError:
     wraps = lambda f:f
-    
+
 def synchronize(func):
     """Decorator to synchronize a method on self._lock."""
     @wraps(func)
@@ -132,7 +132,7 @@ class FS(object):
         """The base class for Filesystem objects.
 
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
-        :type thread_syncronize: bool        
+        :type thread_syncronize: bool
         """
         self.closed = False
         if thread_synchronize:
@@ -144,7 +144,17 @@ class FS(object):
         if not getattr(self, 'closed', True):
             self.close()
 
-    def close(self):        
+    def cache_hint(self, enabled):
+        """Recommends the use of caching. Implementations are free to use or
+        ignore this value.
+
+        :param enabled: If True the implementation is permitted to cache directory
+        structure / file info.
+
+        """
+        pass
+
+    def close(self):
         self.closed = True
 
     def __getstate__(self):
@@ -178,12 +188,12 @@ class FS(object):
         then a NoSysPathError exception is thrown.  Otherwise, the system
         path will be returned as a unicode string.
 
-        :param path: A path within the filesystem        
+        :param path: A path within the filesystem
         :param allow_none: If True, this method will return None when there is no system path,
             rather than raising NoSysPathError
         :type allow_none: bool
         :raises NoSysPathError: If the path does not map on to a system path, and allow_none is set to False (default)
-        :rtype: unicode 
+        :rtype: unicode
         """
         if not allow_none:
             raise NoSysPathError(path=path)
@@ -191,8 +201,8 @@ class FS(object):
 
     def hassyspath(self, path):
         """Return True if the path maps to a system path (a path recognised by the OS).
-        
-        :param path: -- Path to check        
+
+        :param path: -- Path to check
         :rtype: bool
         """
         return self.getsyspath(path, allow_none=True) is not None
@@ -201,7 +211,7 @@ class FS(object):
     def open(self, path, mode="r", **kwargs):
         """Open a the given path as a file-like object.
 
-        :param path: A path to file that should be opened        
+        :param path: A path to file that should be opened
         :param mode: Mode of file to open, identical to the mode string used
             in 'file' and 'open' builtins
         :param kwargs: Additional (optional) keyword parameters that may
@@ -212,12 +222,12 @@ class FS(object):
 
     def safeopen(self, *args, **kwargs):
         """Like 'open', but returns a NullFile if the file could not be opened.
-        
+
         A NullFile is a dummy file which has all the methods of a file-like object,
         but contains no data.
-        
+
         :rtype: file-like object
-        
+
         """
         try:
             f = self.open(*args, **kwargs)
@@ -228,27 +238,27 @@ class FS(object):
 
     def exists(self, path):
         """Returns True if the path references a valid resource.
-        
-        :param path: A path in the filessystem        
+
+        :param path: A path in the filessystem
         :rtype: bool
         """
         return self.isfile(path) or self.isdir(path)
 
     def isdir(self, path):
         """Returns True if a given path references a directory.
-        
-        :param path: A path in the filessystem        
+
+        :param path: A path in the filessystem
         :rtype: bool
-        
+
         """
         raise UnsupportedError("check for directory")
 
     def isfile(self, path):
         """Returns True if a given path references a file.
-        
-        :param path: A path in the filessystem        
+
+        :param path: A path in the filessystem
         :rtype: bool
-        
+
         """
         raise UnsupportedError("check for file")
 
@@ -272,23 +282,56 @@ class FS(object):
         :param path: Root of the path to list
         :type path: str
         :param wildcard: Only returns paths that match this wildcard
-        :type wildcard: str        
+        :type wildcard: str
         :param full: Returns full paths (relative to the root)
-        :type full: bool  
+        :type full: bool
         :param absolute: Returns absolute paths (paths begining with /)
         :type absolute: bool
         :param dirs_only: If True, only return directories
-        :type dirs_only: bool        
+        :type dirs_only: bool
         :param files_only: If True, only return files
         :type files_only: bool
         :rtype: iterable of paths
-        
+
         :raises ResourceNotFoundError: If the path is not found
         :raises ResourceInvalidError: If the path exists, but is not a directory
 
         """
         raise UnsupportedError("list directory")
-        
+
+    def listdirinfo(self, path="./",
+                          wildcard=None,
+                          full=False,
+                          absolute=False,
+                          dirs_only=False,
+                          files_only=False):
+
+        """Retrieves an iterable of paths and path info (as returned by getinfo) under
+        a given path.
+
+        :param path: Root of the path to list
+        :param wildcard: Filter paths that mach this wildcard
+        :dirs_only: Return only directory paths
+        :files_only: Return only files
+
+        :raises ResourceNotFoundError: If the path is not found
+        :raises ResourceInvalidError: If the path exists, but is not a directory
+
+        """
+
+        def get_path(p):
+            if not full:
+                return pathjoin(path, p)
+
+        return [(p, self.getinfo(get_path(p)))
+                    for p in self._listdir( path,
+                                            widcard=wildcard,
+                                            full=full,
+                                            absolute=absolute,
+                                            dirs_only=dirs_only,
+                                            files_only=files_only )]
+
+
 
     def _listdir_helper(self, path, entries,
                               wildcard=None,
@@ -328,14 +371,14 @@ class FS(object):
 
         :param path: Path of directory
         :param recursive: If True, any intermediate directories will also be created
-        :type recursive: bool        
+        :type recursive: bool
         :param allow_recreate: If True, re-creating a directory wont be an error
         :type allow_create: bool
 
         :raises DestinationExistsError: If the path is already a directory, and allow_recreate is False
         :raises ParentDirectoryMissingError: If a containing directory is missing and recursive is False
         :raises ResourceInvalidError: If a path is an existing file
-        
+
         """
         raise UnsupportedError("make directory")
 
@@ -346,7 +389,7 @@ class FS(object):
 
         :raises ResourceNotFoundError: If the path does not exist
         :raises ResourceInvalidError: If the path is a directory
-        
+
         """
         raise UnsupportedError("remove resource")
 
@@ -358,11 +401,11 @@ class FS(object):
         :type recursive: bool
         :param force: If True, any directory contents will be removed
         :type force: bool
-        
+
         :raises ResourceNotFoundError: If the path does not exist
         :raises ResourceInvalidError: If the path is not a directory
         :raises DirectoryNotEmptyError: If the directory is not empty and force is False
-        
+
         """
         raise UnsupportedError("remove directory")
 
@@ -463,7 +506,7 @@ class FS(object):
         :param search: -- A string dentifying the method used to walk the directories. There are two such methods:
             * 'breadth' Yields paths in the top directories first
             * 'depth' Yields the deepest paths first
-            
+
         """
         if search == "breadth":
             dirs = [path]
@@ -772,7 +815,7 @@ class SubFS(FS):
 
     def __str__(self):
         return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
-        
+
     def __unicode__(self):
         return u"<SubFS: %s in %s>" % (self.sub_dir, self.parent)
 

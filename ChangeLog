@@ -26,4 +26,4 @@
     * New FS implementation:
         * FTPFS:        access a plain old FTP server
         * ReadOnlyFS:   a WrapFS that makes an fs read-only
-
+    * Added cache_hint method to base.py
