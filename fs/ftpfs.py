@@ -2,9 +2,11 @@
 fs.ftpfs
 ========
 
-FTPS is a filesystem for accessing an FTP server (uses ftplib in standard library)
+FTPFS is a filesystem for accessing an FTP server (uses ftplib in standard library)
 
 """
+
+__all__ = ['FTPFS']
 
 import fs
 from fs.base import *
@@ -26,7 +28,6 @@ except ImportError:
 import time
 import sys
 
-__all__ = ['FTPFS']
 
 # -----------------------------------------------
 # Taken from http://www.clapper.org/software/python/grizzled/
@@ -745,16 +746,20 @@ class FTPFS(FS):
                  port=21,
                  dircache=True,
                  max_buffer_size=128*1024*1024):
-        """
-        :param host:
-        :param user:
-        :param passwd:
-        :param timeout:
+        """ Connect to a FTP server.
+        
+        :param host: Host to connect to
+        :param user: Username, or a blank string for anonymous
+        :param passwd: Password, if required
+        :param acct: Accounting information (few servers require this)
+        :param timeout: Timeout in seconds
+        :param port: Port to connection (default is 21)
         :param dircache: If True then directory information will be cached,
-        which will speed up operations such as getinfo, isdi, isfile, but changes
-        to the ftp file structure will not be visible untill clear_dircache is
-        called
-        :param max_buffer_size: Number of bytes to hold before blocking write operations.
+        which will speed up operations such as getinfo, isdi, isfile, but
+        changes to the ftp file structure will not be visible until
+        `~fs.ftpfs.FTPFS.clear_dircache` is called        
+        :param dircache: If True directory information will be cached for fast access
+        :param max_buffer_size: Number of bytes to hold before blocking write operations
 
         """
 
@@ -845,7 +850,7 @@ class FTPFS(FS):
         """
         Clear cached directory information.
 
-        :path: Path of directory to clear cache for, or all directories if
+        :param path: Path of directory to clear cache for, or all directories if
         None (the default)
 
         """

@@ -29,7 +29,7 @@ OS
 An interface to the OS Filesystem. See :mod:`fs.osfs`
 
 Secure FTP (Secure FTP)
-----------------------
+-----------------------
 A secure FTP filesystem. See :mod:`fs.sftpfs`
 
 
