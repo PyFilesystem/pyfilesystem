@@ -180,7 +180,7 @@ class MemoryFS(FS):
         return self.dir_entry_factory(*args, **kwargs)
 
     def __init__(self, file_factory=None):
-        super(FS, self).__init__(thread_synchronize=_thread_syncronize_default)
+        super(MemoryFS, self).__init__(thread_synchronize=_thread_syncronize_default)
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
 
