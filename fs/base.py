@@ -320,7 +320,7 @@ class FS(object):
         """
 
         def get_path(p):
-            if not full:
+            if not full or absolute:
                 return pathjoin(path, p)
 
         return [(p, self.getinfo(get_path(p)))

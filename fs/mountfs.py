@@ -35,7 +35,7 @@ class MountFS(FS):
     FileMount = FileMount
 
     def __init__(self, thread_synchronize=_thread_synchronize_default):
-        FS.__init__(self, thread_synchronize=thread_synchronize)
+        super(MountFS, self).__init__(thread_synchronize=thread_synchronize)
         self.mount_tree = ObjectTree()
 
     def __str__(self):
@@ -249,9 +249,9 @@ class MountFS(FS):
     @synchronize
     def unmount(self, path):
         """Unmounds a path.
-        
+
         :param path: Path to unmount
-        
+
         """
         path = normpath(path)
         del self.mount_tree[path]

@@ -55,18 +55,18 @@ class ZipFS(FS):
 
     """A FileSystem that represents a zip file."""
 
-    def __init__(self, zip_file, mode="r", compression="deflated", allowZip64=False, encoding="CP437", thread_synchronize=True):
+    def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
         """Create a FS that maps on to a zip file.
 
         :param zip_file: A (system) path, or a file-like object
         :param mode: Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
         :param compression: Can be 'deflated' (default) to compress data or 'stored' to just store date
-        :param allowZip64: -- Set to True to use zip files greater than 2 MB, default is False
+        :param allow_zip_64: -- Set to True to use zip files greater than 2 MB, default is False
         :param encoding: --  The encoding to use for unicode filenames
         :param thread_synchronize: -- Set to True (default) to enable thread-safety
 
         """
-        FS.__init__(self, thread_synchronize=thread_synchronize)
+        super(ZipFS, self).__init__(thread_synchronize=thread_synchronize)
         if compression == "deflated":
             compression_type = ZIP_DEFLATED
         elif compression == "stored":
@@ -80,7 +80,7 @@ class ZipFS(FS):
         self.zip_mode = mode
         self.encoding = encoding
         try:
-            self.zf = ZipFile(zip_file, mode, compression_type, allowZip64)
+            self.zf = ZipFile(zip_file, mode, compression_type, allow_zip_64)
         except IOError:
             raise ResourceNotFoundError(str(zip_file), msg="Zip file does not exist: %(path)s")
         self.zip_path = str(zip_file)
@@ -212,5 +212,3 @@ class ZipFS(FS):
             info['created_time'] = datetime.datetime(*zinfo['date_time'])
         info.update(zinfo)
         return info
-
-

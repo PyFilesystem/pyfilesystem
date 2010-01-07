@@ -169,11 +169,11 @@ class DirEntry(object):
 
 
 class MemoryFS(FS):
-    
+
     """ An in-memory filesystem.
-    
+
     MemoryFS objects are very fast, but non-permantent. They are useful for creating a directory structure prior to writing it somewhere permanent.
-    
+
     """
 
     def _make_dir_entry(self, *args, **kwargs):
@@ -181,6 +181,7 @@ class MemoryFS(FS):
 
     def __init__(self, file_factory=None):
         super(MemoryFS, self).__init__(thread_synchronize=_thread_synchronize_default)
+
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
 
@@ -235,7 +236,7 @@ class MemoryFS(FS):
 
     @synchronize
     def makedir(self, dirname, recursive=False, allow_recreate=False):
-        if not dirname:            
+        if not dirname:
             raise PathError(dirname)
         fullpath = dirname
         dirpath, dirname = pathsplit(dirname)
@@ -463,5 +464,3 @@ class MemoryFS(FS):
             info['size'] = len(dir_entry.data or '')
 
         return info
-
-

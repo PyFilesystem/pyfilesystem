@@ -41,19 +41,19 @@ class OSFS(FS):
     methods in the os and os.path modules.
     """
 
-    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_synchronize_default, encoding=None):
-        
+    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_synchronize_default, encoding=None, create=False):
         """
         Creates an FS object that represents the OS Filesystem under a given root path
-        
+
         :param root_path: The root OS path
         :param dir_mode: srt
         :param thread_synchronize: If True, this object will be thread-safe by use of a threading.Lock object
         :param encoding: The encoding method for path strings
-        
+        :param create: Of True, then root_path will be created (if neccesary)
+
         """
-        
-        FS.__init__(self, thread_synchronize=thread_synchronize)
+
+        super(OSFS, self).__init__(thread_synchronize=thread_synchronize)
         self.encoding = encoding
         root_path = os.path.expanduser(os.path.expandvars(root_path))
         root_path = os.path.normpath(os.path.abspath(root_path))
@@ -61,6 +61,13 @@ class OSFS(FS):
         if sys.platform == "win32":
             if not root_path.startswith("\\\\?\\"):
                 root_path = u"\\\\?\\" + root_path
+
+        if create:
+            try:
+                os.makedirs(root_path, mode=dir_mode)
+            except OSError:
+                pass
+
         if not os.path.exists(root_path):
             raise ResourceNotFoundError(root_path,msg="Root directory does not exist: %(path)s")
         if not os.path.isdir(root_path):
@@ -70,7 +77,7 @@ class OSFS(FS):
 
     def __str__(self):
         return "<OSFS: %s>" % self.root_path
-    
+
     def __unicode__(self):
         return u"<OSFS: %s>" % self.root_path
 
@@ -127,7 +134,7 @@ class OSFS(FS):
                 raise ParentDirectoryMissingError(path)
             else:
                 raise
-                
+
     @convert_os_errors
     def remove(self, path):
         sys_path = self.getsyspath(path)
@@ -225,5 +232,3 @@ class OSFS(FS):
         @convert_os_errors
         def listxattrs(self, path):
             return xattr.xattr(self.getsyspath(path)).keys()
-
-

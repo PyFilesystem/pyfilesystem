@@ -28,7 +28,7 @@ class TempFS(OSFS):
         """
         self._temp_dir = tempfile.mkdtemp(identifier or "TempFS",dir=temp_dir)
         self._cleaned = False
-        OSFS.__init__(self, self._temp_dir, dir_mode=dir_mode, thread_synchronize=thread_synchronize)
+        super(TempFS, self).__init__(self._temp_dir, dir_mode=dir_mode, thread_synchronize=thread_synchronize)
 
     def __str__(self):
         return '<TempFS: %s>' % self._temp_dir
@@ -86,5 +86,3 @@ class TempFS(OSFS):
             finally:
                 self._lock.release()
         super(TempFS,self).close()
-
-

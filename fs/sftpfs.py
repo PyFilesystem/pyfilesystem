@@ -6,7 +6,7 @@ Filesystem accessing an SFTP server (via paramiko)
 
 """
 
-import datetime 
+import datetime
 import stat as statinfo
 
 import paramiko
@@ -79,6 +79,7 @@ class SFTPFS(FS):
                 connection.connect(**credentials)
             self._transport = connection
         self.root_path = abspath(normpath(root_path))
+        super(SFTPFS, self).__init__()
 
     def __del__(self):
         self.close()
@@ -146,7 +147,7 @@ class SFTPFS(FS):
                 return False
             raise
         return True
-        
+
     @convert_os_errors
     def isdir(self,path):
         npath = self._normpath(path)
@@ -205,7 +206,7 @@ class SFTPFS(FS):
                     self.makedir(path,allow_recreate=allow_recreate)
                 else:
                     # Undetermined error, let the decorator handle it
-                    raise 
+                    raise
             else:
                 # Destination exists
                 if statinfo.S_ISDIR(stat.st_mode):
@@ -320,5 +321,3 @@ class SFTPFS(FS):
         npath = self._normpath(path)
         stats = self.client.stat(npath)
         return stats.st_size
- 
-

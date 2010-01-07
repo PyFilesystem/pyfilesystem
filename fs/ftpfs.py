@@ -543,8 +543,6 @@ class _FTPFile(object):
             self.ftp.voidcmd('TYPE I')
             self.conn = ftp.transfercmd('RETR '+path, None)
 
-            #self._ftp_thread = threading.Thread(target=do_read)
-            #self._ftp_thread.start()
         elif 'w' in mode or 'a' in mode:
             self.ftp.voidcmd('TYPE I')
             if 'a' in mode:
@@ -552,16 +550,6 @@ class _FTPFile(object):
                 self.conn = self.ftp.transfercmd('APPE '+path)
             else:
                 self.conn = self.ftp.transfercmd('STOR '+path)
-            #while 1:
-            #    buf = fp.read(blocksize)
-            #    if not buf: break
-            #    conn.sendall(buf)
-            #    if callback: callback(buf)
-            #conn.close()
-            #return self.voidresp()
-
-            #self._ftp_thread = threading.Thread(target=do_write)
-            #self._ftp_thread.start()
 
     @synchronize
     def read(self, size=None):
@@ -689,17 +677,20 @@ class _FTPFile(object):
         """
         endings = '\r\n'
         chars = []
+        append = chars.append
+        read = self.read
+        join = ''.join
         while True:
-            char = self.read(1)
+            char = read(1)
             if not char:
-                yield ''.join(chars)
-                del chars[:]
+                if chars:
+                    yield join(chars)
                 break
-            chars.append(char)
+            append(char)
             if char in endings:
-                line = ''.join(chars)
+                line = join(chars)
                 del chars[:]
-                c = self.read(1)
+                c = read(1)
                 if not char:
                     yield line
                     break
@@ -707,7 +698,7 @@ class _FTPFile(object):
                     yield line + c
                 else:
                     yield line
-                    chars.append(c)
+                    append(c)
 
 
 

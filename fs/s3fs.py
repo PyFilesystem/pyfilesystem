@@ -30,7 +30,7 @@ else:
         def __init__(self):
             self._map = {}
         def __getattr__(self,attr):
-            
+
             try:
                 return self._map[(threading.currentThread(),attr)]
             except KeyError:
@@ -88,7 +88,7 @@ class S3FS(FS):
             prefix = prefix + separator
         self._prefix = prefix
         self._tlocal = thread_local()
-        FS.__init__(self, thread_synchronize=thread_synchronize)
+        super(S3FS, self).__init__(thread_synchronize=thread_synchronize)
 
     #  Make _s3conn and _s3bukt properties that are created on demand,
     #  since they cannot be stored during pickling.
@@ -304,14 +304,14 @@ class S3FS(FS):
         else:
             entries = [k.name for k in keys]
         return entries
-        
+
     def makedir(self,path,recursive=False,allow_recreate=False):
         """Create a directory at the given path.
 
         The 'mode' argument is accepted for compatability with the standard
         FS interface, but is currently ignored.
         """
-        s3path = self._s3path(path) 
+        s3path = self._s3path(path)
         s3pathD = s3path + self._separator
         if s3pathD == self._prefix:
             if allow_recreate:
@@ -369,7 +369,7 @@ class S3FS(FS):
         if s3path != self._prefix:
             s3path = s3path + self._separator
         if force:
-            #  If we will be forcibly removing any directory contents, we 
+            #  If we will be forcibly removing any directory contents, we
             #  might as well get the un-delimited list straight away.
             ks = self._s3bukt.list(prefix=s3path)
         else:
@@ -393,7 +393,7 @@ class S3FS(FS):
                 self.removedir(pdir,recursive=True,force=False)
             except DirectoryNotEmptyError:
                 pass
-        
+
     def rename(self,src,dst):
         """Rename the file at 'src' to 'dst'."""
         # Actually, in S3 'rename' is exactly the same as 'move'
@@ -486,4 +486,3 @@ class S3FS(FS):
     def get_total_size(self):
         """Get total size of all files in this FS."""
         return sum(k.size for k in self._s3bukt.list(prefix=self._prefix))
-

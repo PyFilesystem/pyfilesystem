@@ -39,7 +39,7 @@ class MultiFS(FS):
     """
 
     def __init__(self):
-        FS.__init__(self, thread_synchronize=_thread_synchronize_default)
+        super(MultiFS, self).__init__(thread_synchronize=_thread_synchronize_default)
 
         self.fs_sequence = []
         self.fs_lookup =  {}
@@ -195,4 +195,3 @@ class MultiFS(FS):
             if fs.exists(path):
                 return fs.getinfo(path)
         raise ResourceNotFoundError(path)
-

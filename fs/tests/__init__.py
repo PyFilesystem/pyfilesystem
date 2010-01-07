@@ -26,7 +26,7 @@ except ImportError:
     import dummy_threading as threading
 
 
-class FSTestCases:
+class FSTestCases(object):
     """Base suite of testcases for filesystem implementations.
 
     Any FS subclass should be capable of passing all of these tests.
@@ -70,14 +70,14 @@ class FSTestCases:
         f = self.fs.open("test1.txt","w")
         f.write("testing")
         f.close()
-        self.check("test1.txt")
+        self.assertTrue(self.check("test1.txt"))
         f = self.fs.open("test1.txt","r")
         self.assertEquals(f.read(),"testing")
         f.close()
         f = self.fs.open("test1.txt","w")
         f.write("test file overwrite")
         f.close()
-        self.check("test1.txt")
+        self.assertTrue(self.check("test1.txt"))
         f = self.fs.open("test1.txt","r")
         self.assertEquals(f.read(),"test file overwrite")
         f.close()
@@ -165,9 +165,9 @@ class FSTestCases:
         self.fs.makedir(alpha)
         self.fs.createfile(alpha+"/a")
         self.fs.createfile(alpha+"/"+beta)
-        self.check(alpha)
+        self.assertTrue(self.check(alpha))
         self.assertEquals(sorted(self.fs.listdir(alpha)),["a",beta])
-        
+
     def test_makedir(self):
         check = self.check
         self.fs.makedir("a")
@@ -383,7 +383,7 @@ class FSTestCases:
         makefile("a/3.txt")
         self.fs.makedir("a/foo/bar", recursive=True)
         makefile("a/foo/bar/baz.txt")
- 
+
         self.fs.copydir("a", "copy of a")
         self.assert_(check("copy of a/1.txt"))
         self.assert_(check("copy of a/2.txt"))
@@ -575,9 +575,9 @@ class ThreadingTestCases:
         errors = []
         threads = [self._makeThread(f,errors) for f in funcs]
         for t in threads:
-            t.start() 
+            t.start()
         for t in threads:
-            t.join() 
+            t.join()
         for (c,e,t) in errors:
             raise c,e,t
 
@@ -746,5 +746,3 @@ class ThreadingTestCases:
                     self.assertEquals(self.fs.getsize("thread2.txt"),len(c))
                     self.assertEquals(self.fs.getcontents("thread2.txt"),c)
         self._runThreads(thread1,thread2)
-
-
