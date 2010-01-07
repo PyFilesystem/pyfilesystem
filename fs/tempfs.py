@@ -12,14 +12,14 @@ import tempfile
 
 from fs.osfs import OSFS
 from fs.errors import *
-from fs import _thread_syncronize_default
+from fs import _thread_synchronize_default
 
 class TempFS(OSFS):
 
     """Create a Filesystem in a tempory directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
 
-    def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_syncronize_default):
+    def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_synchronize_default):
         """Creates a temporary Filesystem
 
         identifier -- A string that is included in the name of the temporary directory,

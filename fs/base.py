@@ -132,7 +132,7 @@ class FS(object):
         """The base class for Filesystem objects.
 
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
-        :type thread_syncronize: bool
+        :type thread_synchronize: bool
         """
         self.closed = False
         if thread_synchronize:

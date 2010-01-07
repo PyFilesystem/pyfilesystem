@@ -12,7 +12,7 @@ File objects returned by MemoryFS.objects use StringIO objects for storage.
 import datetime
 from fs.path import iteratepath
 from fs.base import *
-from fs import _thread_syncronize_default
+from fs import _thread_synchronize_default
 
 try:
     from cStringIO import StringIO
@@ -180,7 +180,7 @@ class MemoryFS(FS):
         return self.dir_entry_factory(*args, **kwargs)
 
     def __init__(self, file_factory=None):
-        super(MemoryFS, self).__init__(thread_synchronize=_thread_syncronize_default)
+        super(MemoryFS, self).__init__(thread_synchronize=_thread_synchronize_default)
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
 

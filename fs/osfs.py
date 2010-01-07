@@ -19,7 +19,7 @@ import errno
 
 from fs.base import *
 from fs.path import *
-from fs import _thread_syncronize_default
+from fs import _thread_synchronize_default
 
 try:
     import xattr
@@ -41,14 +41,14 @@ class OSFS(FS):
     methods in the os and os.path modules.
     """
 
-    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_syncronize_default, encoding=None):
+    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_synchronize_default, encoding=None):
         
         """
         Creates an FS object that represents the OS Filesystem under a given root path
         
         :param root_path: The root OS path
         :param dir_mode: srt
-        :param thread_syncronize: If True, this object will be thread-safe by use of a threading.Lock object
+        :param thread_synchronize: If True, this object will be thread-safe by use of a threading.Lock object
         :param encoding: The encoding method for path strings
         
         """

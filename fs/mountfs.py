@@ -8,7 +8,7 @@ Contains MountFS class which is a virtual Filesystem which can have other Filesy
 
 from fs.base import *
 from fs.objecttree import ObjectTree
-from fs import _thread_syncronize_default
+from fs import _thread_synchronize_default
 
 
 class DirMount(object):
@@ -34,7 +34,7 @@ class MountFS(FS):
     DirMount = DirMount
     FileMount = FileMount
 
-    def __init__(self, thread_synchronize=_thread_syncronize_default):
+    def __init__(self, thread_synchronize=_thread_synchronize_default):
         FS.__init__(self, thread_synchronize=thread_synchronize)
         self.mount_tree = ObjectTree()
 

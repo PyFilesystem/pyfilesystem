@@ -26,7 +26,7 @@ it will look for it in *templates/index.html*.
 
 from fs.base import FS, FSError, synchronize
 from fs.path import *
-from fs import _thread_syncronize_default
+from fs import _thread_synchronize_default
 
 
 class MultiFS(FS):
@@ -39,7 +39,7 @@ class MultiFS(FS):
     """
 
     def __init__(self):
-        FS.__init__(self, thread_synchronize=_thread_syncronize_default)
+        FS.__init__(self, thread_synchronize=_thread_synchronize_default)
 
         self.fs_sequence = []
         self.fs_lookup =  {}
