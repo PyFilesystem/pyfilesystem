@@ -25,7 +25,8 @@ import time
 import copy
 
 from fs.base import FS, threading
-from fs.wrapfs import WrapFS, LazyFS, wrap_fs_methods
+from fs.wrapfs import WrapFS, wrap_fs_methods
+from fs.wrapfs.lazyfs import LazyFS
 from fs.path import *
 from fs.errors import *
 
