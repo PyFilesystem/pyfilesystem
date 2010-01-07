@@ -2,12 +2,14 @@
 0.2:
 
     * New FS implementations:
+        * FTPFS:        access a plain old FTP server
         * S3FS:    access remote files stored in Amazon S3
         * RPCFS:   access remote files using a simple XML-RPC protocol
         * SFTPFS:  access remote files on a SFTP server
         * WrapFS:  filesystem that wraps an FS object and transparently
                    modifies its contents (think encryption, compression, ...)
         * LazyFS:  lazily instaniate an FS object the first time it is used
+        * ReadOnlyFS:   a WrapFS that makes an fs read-only
     * Ability to expose FS objects to the outside world:
         * expose.fuse:    expose an FS object using FUSE
         * expose.xmlrpc:  expose an FS object a simple XML-RPC protocol
@@ -23,7 +25,5 @@
                   with a remote filesystem
     * fs.errors:  updated exception hierarchy, with support for converting
                   to/from standard OSError instances
-    * New FS implementation:
-        * FTPFS:        access a plain old FTP server
-        * ReadOnlyFS:   a WrapFS that makes an fs read-only
     * Added cache_hint method to base.py
+
