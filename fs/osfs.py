@@ -177,7 +177,16 @@ class OSFS(FS):
     def rename(self, src, dst):
         path_src = self.getsyspath(src)
         path_dst = self.getsyspath(dst)
-        os.rename(path_src, path_dst)
+        try:
+            os.rename(path_src, path_dst)
+        except OSError, e:
+            #  Linux (at least) can rename over an empty directory but gives
+            #  ENOTEMPTY if the dir has contents.  Raise UnsupportedError
+            #  instead of DirectoryEmptyError in this case.
+            if e.errno and e.errno == errno.ENOTEMPTY:
+                raise UnsupportedError("rename")
+            raise
+            
 
     def _stat(self,path):
         """Stat the given path, normalising error codes."""
