@@ -9,15 +9,15 @@ Utilities for interfacing with remote filesystems
 This module provides reusable utility functions that can be used to construct
 FS subclasses interfacing with a remote filesystem.  These include:
 
-  * RemoteFileBuffer:  a file-like object that locally buffers the contents
-                     of a remote file, writing them back on flush() or close().
+  * RemoteFileBuffer:  a file-like object that locally buffers the contents of
+                       a remote file, writing them back on flush() or close().
 
   * ConnectionManagerFS:  a WrapFS subclass that tracks the connection state
-                        of a remote FS, and allows client code to wait for
-                        a connection to be re-established.
+                          of a remote FS, and allows client code to wait for
+                          a connection to be re-established.
 
    * CacheFS:  a WrapFS subclass that caces file and directory meta-data in
-            memory, to speed access to a remote FS.
+               memory, to speed access to a remote FS.
 
 """
 

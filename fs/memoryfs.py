@@ -398,28 +398,25 @@ class MemoryFS(FS):
 
     @synchronize
     def rename(self, src, dst):
-        dst = pathsplit(dst)[-1]
-
-        dir_entry = self._get_dir_entry(src)
-        if dir_entry is None:
+        src_dir,src_name = pathsplit(src)
+        src_entry = self._get_dir_entry(src)
+        if src_entry is None:
             raise ResourceNotFoundError(src)
-        #if dir_entry.islocked():
-        #    raise ResourceLockedError(src)
-
-        open_files = dir_entry.open_files[:]
+        open_files = src_entry.open_files[:]
         for f in open_files:
             f.flush()
             f.path = dst
 
-        dst_dir_entry = self._get_dir_entry(dst)
-        if dst_dir_entry is not None:
+        dst_dir,dst_name = pathsplit(dst)
+        dst_entry = self._get_dir_entry(dst)
+        if dst_entry is not None:
             raise DestinationExistsError(path)
 
-        pathname, dirname = pathsplit(src)
-        parent_dir = self._get_dir_entry(pathname)
-        parent_dir.contents[dst] = parent_dir.contents[dirname]
-        parent_dir.name = dst
-        del parent_dir.contents[dirname]
+        src_dir_entry = self._get_dir_entry(src_dir)
+        dst_dir_entry = self._get_dir_entry(dst_dir)
+        dst_dir_entry.contents[dst_name] = src_dir_entry.contents[src_name]
+        dst_dir_entry.contents[dst_name].name = dst_name
+        del src_dir_entry.contents[src_name]
 
 
     @synchronize

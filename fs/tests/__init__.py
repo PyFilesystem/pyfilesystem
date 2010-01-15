@@ -239,11 +239,26 @@ class FSTestCases(object):
 
     def test_rename(self):
         check = self.check
+        # test renaming a file in the same directory
         self.fs.createfile("foo.txt","Hello, World!")
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
         self.assert_(not check("foo.txt"))
+        # test renaming a directory in the same directory
+        self.fs.makedir("dir_a")
+        self.fs.createfile("dir_a/test.txt","testerific")
+        self.assert_(check("dir_a"))
+        self.fs.rename("dir_a","dir_b")
+        self.assert_(check("dir_b"))
+        self.assert_(check("dir_b/test.txt"))
+        self.assert_(not check("dir_a/test.txt"))
+        self.assert_(not check("dir_a"))
+        # test renaming a file into a different directory
+        self.fs.makedir("dir_a")
+        self.fs.rename("dir_b/test.txt","dir_a/test.txt")
+        self.assert_(not check("dir_b/test.txt"))
+        self.assert_(check("dir_a/test.txt"))
 
     def test_info(self):
         test_str = "Hello, World!"
