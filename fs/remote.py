@@ -232,7 +232,7 @@ class ConnectionManagerFS(LazyFS):
             self._connection_cond.release()
 
     def _poll_connection(self):
-        while not self.connected:
+        while not self.connected and not self.closed:
             try:
                 self.wrapped_fs.isdir("")
             except RemoteConnectionError:
@@ -244,7 +244,8 @@ class ConnectionManagerFS(LazyFS):
                 break
         self._connection_cond.acquire()
         try:
-            self.connected = True
+            if not self.closed:
+                self.connected = True
             self._poll_thread = None
             self._connection_cond.notifyAll()
         finally:
