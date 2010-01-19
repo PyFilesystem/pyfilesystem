@@ -229,6 +229,42 @@ class MountFS(FS):
         raise UnsupportedError("rename resource", path=src)
 
     @synchronize
+    def move(self,src,dst,**kwds):
+        fs1, mount_path1, delegate_path1 = self._delegate(src)
+        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        if fs1 is fs2 and fs1 is not self:
+            fs1.move(delegate_path1,delegate_path2,**kwds)
+        else:
+            super(MountFS,self).move(src,dst,**kwds)
+
+    @synchronize
+    def movedir(self,src,dst,**kwds):
+        fs1, mount_path1, delegate_path1 = self._delegate(src)
+        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        if fs1 is fs2 and fs1 is not self:
+            fs1.movedir(delegate_path1,delegate_path2,**kwds)
+        else:
+            super(MountFS,self).movedir(src,dst,**kwds)
+
+    @synchronize
+    def copy(self,src,dst,**kwds):
+        fs1, mount_path1, delegate_path1 = self._delegate(src)
+        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        if fs1 is fs2 and fs1 is not self:
+            fs1.copy(delegate_path1,delegate_path2,**kwds)
+        else:
+            super(MountFS,self).copy(src,dst,**kwds)
+
+    @synchronize
+    def copydir(self,src,dst,**kwds):
+        fs1, mount_path1, delegate_path1 = self._delegate(src)
+        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        if fs1 is fs2 and fs1 is not self:
+            fs1.copydir(delegate_path1,delegate_path2,**kwds)
+        else:
+            super(MountFS,self).copydir(src,dst,**kwds)
+
+    @synchronize
     def mountdir(self, path, fs):
         """Mounts a host FS object on a given path.
 
