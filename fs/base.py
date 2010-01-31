@@ -881,9 +881,15 @@ class SubFS(FS):
         if path in ("","/"):
             if force:
                 for path2 in self.listdir(path,absolute=True,files_only=True):
-                    self.remove(path2)
+                    try:
+                        self.remove(path2)
+                    except ResourceNotFoundError:
+                        pass
                 for path2 in self.listdir(path,absolute=True,dirs_only=True):
-                    self.removedir(path2,force=True)
+                    try:
+                        self.removedir(path2,force=True)
+                    except ResourceNotFoundError:
+                        pass
         else:
             self.parent.removedir(self._delegate(path),force=force)
             if recursive:
