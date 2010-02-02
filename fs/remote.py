@@ -205,7 +205,7 @@ class ConnectionManagerFS(LazyFS):
         self.connected = connected
 
     def setcontents(self,path,data):
-        self.wrapped_fs.setcontents(path,data)
+        return self.wrapped_fs.setcontents(path,data)
 
     def __getstate__(self):
         state = super(ConnectionManagerFS,self).__getstate__()
