@@ -9,6 +9,8 @@ total size of files stored in the wrapped FS.
 
 """
 
+from fs.errors import *
+from fs.base import FS, threading, synchronize
 from fs.wrapfs import WrapFS
 
 
@@ -16,53 +18,107 @@ class LimitSizeFS(WrapFS):
     """FS wrapper class to limit total size of files stored."""
 
     def __init__(self,fs,max_size):
+        super(LimitSizeFS,self).__init__(fs)
         self.max_size = max_size
-        super(LimitSize,self).__init__(fs)
         self.cur_size = sum(self.getsize(f) for f in self.walkfiles())
+        self._size_lock = threading.Lock()
+        self._file_sizes = {}
 
-    @synchronize
+    def _decr_size(self,decr):
+        with self._size_lock:
+            self.cur_size -= decr
+
+    def __getstate__(self):
+        state = super(LimitSizeFS,self).__getstate__()
+        del state["_size_lock"]
+        del state["_file_sizes"]
+        return state
+
+    def __setstate__(self,state):
+        super(LimitSizeFS,self).__setstate__(state)
+        self._size_lock = threading.Lock()
+
+    def getsyspath(self,path,allow_none=False):
+        if not allow_none:
+            raise NoSysPathError(path)
+        return None
+
     def open(self,path,mode="r"):
-        try:
-            size = self.getsize(path)
-        except ResourceNotFoundError:
-            size = 0
-        f = super(LimitSize,self).open(path,mode)
-        if "w" in mode:
-            self.cur_size -= size
-            size = 0
-        return LimitSizeFile(self,f,mode,size)
+        path = relpath(normpath(path))
+        with self._size_lock:
+            try:
+                size = self.getsize(path)
+            except ResourceNotFoundError:
+                size = 0
+            f = super(LimitSizeFS,self).open(path,mode)
+            if path not in self._file_sizes:
+                self._file_sizes[path] = size
+            if "w" in mode:
+                self.cur_size -= size
+                size = 0
+                self._file_sizes[path] = 0
+            return LimitSizeFile(self,path,f,mode,size)
 
-    def _acquire_space(self,size):
-        new_size = self.cur_size + size
-        if new_size > self.max_size:
-            raise StorageSpaceError("write")
-        self.cur_size = new_size
+    def _ensure_file_size(self,path,size):
+        path = relpath(normpath(path))
+        with self._size_lock:
+            if path not in self._file_sizes:
+                self._file_sizes[path] = self.getsize(path)
+            cur_size = self._file_sizes[path]
+            diff = size - cur_size
+            if diff > 0:
+                if self.cur_size + diff > self.max_size:
+                    raise StorageSpaceError("write")
+                self.cur_size += diff
+                self._file_sizes[path] = size
 
-    #  Disable use of system-level paths, so that copy/copydir have to
-    #  fall back to manual writes and pass through _acquire_space.
-    getsyspath = FS.getsyspath
-    copy = FS.copy
-    copydir = FS.copydir
+    def copy(self,src,dst,**kwds):
+        FS.copy(self,src,dst,**kwds)
 
-    @synchronize
+    def copydir(self,src,dst,**kwds):
+        FS.copydir(self,src,dst,**kwds)
+
+    def move(self,src,dst,**kwds):
+        FS.move(self,src,dst,**kwds)
+        path = relpath(normpath(src))
+        with self._size_lock:
+            self._file_sizes.pop(path,None)
+
+    def movedir(self,src,dst,**kwds):
+        FS.movedir(self,src,dst,**kwds)
+
     def remove(self,path):
         size = self.getsize(path)
-        super(LimitSize,self).remove(path)
-        self.cur_size -= size
+        super(LimitSizeFS,self).remove(path)
+        self._decr_size(size)
+        path = relpath(normpath(path))
+        with self._size_lock:
+            self._file_sizes.pop(path,None)
 
-    @synchronize
     def removedir(self,path,recursive=False,force=False):
         size = sum(self.getsize(f) for f in self.walkfiles(path))
-        super(LimitSize,self).removedir(path,recursive=recursive,force=force)
-        self.cur_size -= size
+        super(LimitSizeFS,self).removedir(path,recursive=recursive,force=force)
+        self._decr_size(size)
+
+    def rename(self,src,dst):
+        try:
+            size = self.getsize(dst)
+        except ResourceNotFoundError:
+            size = 0
+        super(LimitSizeFS,self).rename(src,dst)
+        self._decr_size(size)
+        path = relpath(normpath(src))
+        with self._size_lock:
+            self._file_sizes.pop(path,None)
 
 
 class LimitSizeFile(object):
     """Filelike wrapper class for use by LimitSizeFS."""
 
-    def __init__(self,fs,file,mode,size):
+    def __init__(self,fs,path,file,mode,size):
         self._lock = fs._lock
         self.fs = fs
+        self.path = path
         self.file = file
         self.mode = mode
         self.size = size
@@ -71,15 +127,8 @@ class LimitSizeFile(object):
     @synchronize
     def write(self,data):
         pos = self.file.tell()
-        if pos > self.size:
-            self.size = pos
-        diff = pos + len(data) - self.size
-        if diff <= 0:
-            self.file.write(data)
-        else:
-            self.fs._acquire_space(diff)
-            self.file.write(data)
-            self.size += diff
+        self.size = self.fs._ensure_file_size(self.path,pos+len(data))
+        self.file.write(data)
 
     def writelines(self,lines):
         for line in lines:
@@ -90,7 +139,7 @@ class LimitSizeFile(object):
         pos = self.file.tell()
         if size is None:
             size = pos
-        self.fs._acquire_space(size - self.size)
+        self.fs._ensure_file_size(self.path,size)
         self.file.truncate(size)
         self.size = size
 

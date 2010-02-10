@@ -89,17 +89,3 @@ class TestTempFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         td = self.fs._temp_dir
         return os.path.exists(os.path.join(td, relpath(p)))
      
-        
-from fs import wrapfs
-class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
-    
-    def setUp(self):
-        sys.setcheckinterval(1)
-        self.temp_dir = tempfile.mkdtemp(u"fstest")
-        self.fs = wrapfs.WrapFS(osfs.OSFS(self.temp_dir))
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_dir)
-
-    def check(self, p):
-        return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
