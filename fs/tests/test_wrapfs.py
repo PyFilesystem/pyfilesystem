@@ -30,6 +30,21 @@ class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
 
+
+from fs.wrapfs.lazyfs import LazyFS
+class TestLazyFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
+    
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp(u"fstest")
+        self.fs = LazyFS((osfs.OSFS,(self.temp_dir,)))
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def check(self, p):
+        return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
+
+
 from fs.wrapfs.limitsizefs import LimitSizeFS
 class TestLimitSizeFS(TestWrapFS):
 
