@@ -263,6 +263,8 @@ class SFTPFS(FS):
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 raise ResourceNotFoundError(path)
+            if not self.isdir(dirname(dst)):
+                raise ParentDirectoryMissingError(dst)
             raise
 
     @convert_os_errors

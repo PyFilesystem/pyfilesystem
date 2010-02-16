@@ -927,6 +927,8 @@ class FTPFS(FS):
             code = int(code)
             if code == 550:
                 raise ResourceNotFoundError(path)
+            if code == 552:
+                raise StorageSpaceError
             raise PermissionDeniedError(str(exception), path=path, msg="FTP error: %s (see details)" % str(exception), details=exception)
 
         raise exception
@@ -1067,6 +1069,11 @@ class FTPFS(FS):
         self.clear_dircache(dirname(src), dirname(dst), src, dst)
         try:
             self.ftp.rename(_encode(src), _encode(dst))
+        except error_perm, exception:
+            code, message = str(exception).split(' ', 1)
+            if code == "550":
+                if not self.exists(dirname(dst)):
+                    raise ParentDirectoryMissingError(dst)
         except error_reply:
             pass
 

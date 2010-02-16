@@ -414,6 +414,8 @@ class MemoryFS(FS):
 
         src_dir_entry = self._get_dir_entry(src_dir)
         dst_dir_entry = self._get_dir_entry(dst_dir)
+        if dst_dir_entry is None:
+            raise ParentDirectoryMissingError(dst)
         dst_dir_entry.contents[dst_name] = src_dir_entry.contents[src_name]
         dst_dir_entry.contents[dst_name].name = dst_name
         del src_dir_entry.contents[src_name]

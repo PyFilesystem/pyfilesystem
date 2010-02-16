@@ -180,11 +180,18 @@ class OSFS(FS):
         try:
             os.rename(path_src, path_dst)
         except OSError, e:
-            #  Linux (at least) can rename over an empty directory but gives
-            #  ENOTEMPTY if the dir has contents.  Raise UnsupportedError
-            #  instead of DirectoryEmptyError in this case.
-            if e.errno and e.errno == errno.ENOTEMPTY:
-                raise UnsupportedError("rename")
+            if e.errno:
+                #  POSIX rename() can rename over an empty directory but gives
+                #  ENOTEMPTY if the dir has contents.  Raise UnsupportedError
+                #  instead of DirectoryEmptyError in this case.
+                if e.errno == errno.ENOTEMPTY:
+                    raise UnsupportedError("rename")
+                #  Linux (at least) gives ENOENT when trying to rename into
+                #  a directory that doesn't exist.  We want ParentMissingError
+                #  in this case.
+                if e.errno == errno.ENOENT:
+                    if not os.path.exists(dirname(path_dst)):
+                        raise ParentDirectoryMissingError(dst)
             raise
             
 

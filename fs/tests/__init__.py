@@ -259,6 +259,8 @@ class FSTestCases(object):
         self.fs.rename("dir_b/test.txt","dir_a/test.txt")
         self.assert_(not check("dir_b/test.txt"))
         self.assert_(check("dir_a/test.txt"))
+        # test renaming a file into a non-existent  directory
+        self.assertRaises(ParentDirectoryMissingError,self.fs.rename,"dir_a/test.txt","nonexistent/test.txt")
 
     def test_info(self):
         test_str = "Hello, World!"
