@@ -8,7 +8,8 @@ This module provides the class LimitSizeFS, an FS wrapper that can limit the
 total size of files stored in the wrapped FS.
 
 """
-
+# for Python2.5 compatibility
+from __future__ import with_statement
 from fs.errors import *
 from fs.base import FS, threading, synchronize
 from fs.wrapfs import WrapFS

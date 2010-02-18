@@ -572,7 +572,7 @@ class ThreadingTestCases:
     __lock = threading.RLock()
 
     def _yield(self):
-        time.sleep(0.01)
+        time.sleep(0.001)
 
     def _lock(self):
         self.__lock.acquire()
@@ -589,14 +589,19 @@ class ThreadingTestCases:
         return threading.Thread(target=runThread)
 
     def _runThreads(self,*funcs):
-        errors = []
-        threads = [self._makeThread(f,errors) for f in funcs]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        for (c,e,t) in errors:
-            raise c,e,t
+        check_interval = sys.getcheckinterval()
+        sys.setcheckinterval(1)
+        try:
+            errors = []
+            threads = [self._makeThread(f,errors) for f in funcs]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+            for (c,e,t) in errors:
+                raise c,e,t
+        finally:
+            sys.setcheckinterval(check_interval)
 
     def test_setcontents(self):
         def setcontents(name,contents):

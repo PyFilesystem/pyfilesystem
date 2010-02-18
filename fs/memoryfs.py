@@ -69,7 +69,7 @@ class MemoryFile(object):
     __repr__ = __str__
 
     def __unicode__(self):
-        return unicode(self.__str__())
+        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __del__(self):
         if not self.closed:

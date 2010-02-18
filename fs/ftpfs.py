@@ -12,7 +12,15 @@ import fs
 from fs.base import *
 from fs.path import pathsplit
 
-from ftplib import FTP, _GLOBAL_DEFAULT_TIMEOUT, error_perm, error_temp, error_proto, error_reply
+from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
+
+try:
+    from ftplib import _GLOBAL_DEFAULT_TIMEOUT
+    _FTPLIB_TIMEOUT = True
+except ImportError:
+    _GLOBAL_DEFAULT_TIMEOUT = None
+    _FTPLIB_TIMEOUT = False
+
 import threading
 from time import sleep
 import datetime
@@ -882,7 +890,10 @@ class FTPFS(FS):
     def _open_ftp(self):
         try:
             ftp = FTP()
-            ftp.connect(self.host, self.port, self.timeout)
+            if _FTPLIB_TIMEOUT:
+                ftp.connect(self.host, self.port, self.timeout)
+            else:
+                ftp.connect(self.host, self.port)
             ftp.login(self.user, self.passwd, self.acct)
         except socket_error, e:
             raise RemoteConnectionError(str(e), details=e)

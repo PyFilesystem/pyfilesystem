@@ -28,18 +28,15 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
         #ftp_port += 1
         use_port = str(ftp_port)
         #ftp_port = 10000
-
-        sys.setcheckinterval(1)
         self.temp_dir = tempfile.mkdtemp(u"ftpfstests")
 
-        self.ftp_server = subprocess.Popen(['python', abspath(__file__), self.temp_dir, str(use_port)])
+        self.ftp_server = subprocess.Popen([sys.executable, abspath(__file__), self.temp_dir, str(use_port)])
         # Need to sleep to allow ftp server to start
         time.sleep(.2)
         self.fs = ftpfs.FTPFS('127.0.0.1', 'user', '12345', port=use_port, timeout=5.0)
 
 
     def tearDown(self):
-
         if sys.platform == 'win32':
             import win32api
             win32api.TerminateProcess(int(process._handle), -1)

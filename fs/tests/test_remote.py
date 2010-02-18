@@ -22,22 +22,26 @@ class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
     """Test simple operation of CacheFS"""
 
     def setUp(self):
+        self._check_interval = sys.getcheckinterval()
         sys.setcheckinterval(10)
         self.fs = CacheFS(TempFS())
 
     def tearDown(self):
         self.fs.close()
+        sys.setcheckinterval(self._check_interval)
 
 
 class TestConnectionManagerFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
     """Test simple operation of ConnectionManagerFS"""
 
     def setUp(self):
+        self._check_interval = sys.getcheckinterval()
         sys.setcheckinterval(10)
         self.fs = ConnectionManagerFS(TempFS())
 
     def tearDown(self):
         self.fs.close()
+        sys.setcheckinterval(self._check_interval)
 
 
 class DisconnectingFS(WrapFS):
@@ -108,11 +112,13 @@ class TestConnectionManagerFS_disconnect(TestConnectionManagerFS):
     """Test ConnectionManagerFS's ability to wait for reconnection."""
 
     def setUp(self):
+        self._check_interval = sys.getcheckinterval()
         sys.setcheckinterval(10)
         c_fs = ConnectionManagerFS(DisconnectingFS,poll_interval=0.1)
         self.fs = DisconnectRecoveryFS(c_fs)
 
     def tearDown(self):
         self.fs.close()
+        sys.setcheckinterval(self._check_interval)
 
 
