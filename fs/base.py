@@ -919,6 +919,15 @@ class SubFS(FS):
     def copydir(self, src, dst, **kwds):
         self.parent.copydir(self._delegate(src),self._delegate(dst),**kwds)
 
+    def createfile(self, path, data=""):
+        return self.parent.createfile(self._delegate(path),data)
+
+    def setcontents(self, path, data=""):
+        return self.parent.setcontents(self._delegate(path),data)
+
+    def getcontents(self, path):
+        return self.parent.getcontents(self._delegate(path))
+
 
 def flags_to_mode(flags):
     """Convert an os.O_* flag bitmask into an FS mode string."""
