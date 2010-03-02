@@ -16,7 +16,7 @@ FS subclasses interfacing with a remote filesystem.  These include:
                           of a remote FS, and allows client code to wait for
                           a connection to be re-established.
 
-   * CacheFS:  a WrapFS subclass that caces file and directory meta-data in
+   * CacheFS:  a WrapFS subclass that caches file and directory meta-data in
                memory, to speed access to a remote FS.
 
 """
@@ -31,9 +31,13 @@ from fs.path import *
 from fs.errors import *
 
 try:
-   from tempfile import SpooledTemporaryFile as TempFile
+   from tempfile import SpooledTemporaryFile
 except ImportError:
-   from tempfile import NamedTemporaryFile as TempFile
+   from tempfile import NamedTemporaryFile
+   class SpooledTemporaryFile(NamedTemporaryFile):
+        def __init__(self,max_size=0,*args,**kwds):
+            NamedTemporaryFile.__init__(self,*args,**kwds)
+    
 
 
 class RemoteFileBuffer(object):
@@ -62,6 +66,8 @@ class RemoteFileBuffer(object):
     the buffer on demand.
     """
 
+    max_size_in_memory = 1024 * 8
+
     def __init__(self,fs,path,mode,rfile=None):
         """RemoteFileBuffer constructor.
 
@@ -69,7 +75,7 @@ class RemoteFileBuffer(object):
         optional argument 'rfile' is provided, it must be a read()-able
         object or a string containing the initial file contents.
         """
-        self.file = TempFile()
+        self.file = SpooledTemporyFile(max_size=self.max_size_in_memory)
         self.fs = fs
         self.path = path
         self.mode = mode
