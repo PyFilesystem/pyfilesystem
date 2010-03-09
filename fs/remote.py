@@ -75,7 +75,7 @@ class RemoteFileBuffer(object):
         optional argument 'rfile' is provided, it must be a read()-able
         object or a string containing the initial file contents.
         """
-        self.file = SpooledTemporyFile(max_size=self.max_size_in_memory)
+        self.file = SpooledTemporaryFile(max_size=self.max_size_in_memory)
         self.fs = fs
         self.path = path
         self.mode = mode
