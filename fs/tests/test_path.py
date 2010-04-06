@@ -95,4 +95,27 @@ class TestPathFunctions(unittest.TestCase):
             self.assertEqual(fs.pathsplit(path), result)
 
 
+class Test_PathMap(unittest.TestCase):
+
+    def test_basics(self):
+        map = PathMap()
+        map["hello"] = "world"
+        self.assertEquals(map["/hello"],"world")
+        self.assertEquals(map["/hello/"],"world")
+        self.assertEquals(map.get("hello"),"world")
+
+    def test_iteration(self):
+        map = PathMap()
+        map["hello/world"] = 1
+        map["hello/world/howareya"] = 2
+        map["hello/world/iamfine"] = 3
+        map["hello/kitty"] = 4
+        map["hello/kitty/islame"] = 5
+        map["batman/isawesome"] = 6
+        self.assertEquals(set(map.iterkeys()),set(("/hello/world","/hello/world/howareya","/hello/world/iamfine","/hello/kitty","/hello/kitty/islame","/batman/isawesome")))
+        self.assertEquals(sorted(map.values()),range(1,7))
+        self.assertEquals(sorted(map.items("/hello/world/")),[("/hello/world",1),("/hello/world/howareya",2),("/hello/world/iamfine",3)])
+        self.assertEquals(zip(map.keys(),map.values()),map.items())
+        self.assertEquals(zip(map.keys("batman"),map.values("batman")),map.items("batman"))
+
 

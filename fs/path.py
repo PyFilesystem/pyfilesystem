@@ -263,3 +263,175 @@ def frombase(path1, path2):
     if not isprefix(path1, path2):
         raise ValueError("path1 must be a prefix of path2")
     return path2[len(path1):]
+
+
+class PathMap(object):
+    """Dict-like object with paths for keys.
+
+    A PathMap is like a dictionary where the keys are all FS paths.  It allows
+    various dictionary operations (e.g. listing values, clearing values) to
+    be performed on a subset of the keys sharing some common prefix, e.g.:
+
+        # list all values in the map
+        pm.values()
+
+        # list all values for paths starting with "/foo/bar"
+        pm.values("/foo/bar")
+
+    Under the hood, a PathMap is a trie-like structure where each level is
+    indexed by path name component.  This allows lookups to be performed in
+    O(number of path components) while permitting efficient prefix-based
+    operations.
+    """
+
+    def __init__(self):
+        self._map = {}
+
+    def __getitem__(self,path):
+        m = self._map
+        for name in iteratepath(path):
+            try:
+                m = m[name]
+            except KeyError:
+                raise KeyError(path)
+        try:
+            return m[""]
+        except KeyError:
+            raise KeyError(path)
+
+    def __contains__(self,path):
+        try:
+            self[path]
+        except KeyError:
+            return False
+        else:
+            return True
+
+    def __setitem__(self,path,value):
+        m = self._map
+        for name in iteratepath(path):
+            try:
+                m = m[name]
+            except KeyError:
+                m = m.setdefault(name,{})
+        m[""] = value
+
+    def __delitem__(self,path):
+        ms = [[self._map,None]]
+        for name in iteratepath(path):
+            try:
+                ms.append([ms[-1][0][name],None])
+            except KeyError:
+                raise KeyError(path)
+            else:
+                ms[-2][1] = name
+        try:
+            del ms[-1][0][""]
+        except KeyError:
+            raise KeyError(path)
+        else:
+            while len(ms) > 1 and not ms[-1][0]:
+                del ms[-1]
+                del ms[-1][0][ms[-1][1]]
+
+    def get(self,path,default=None):
+        try:
+            return self[path]
+        except KeyError:
+            return default
+
+    def pop(self,path,default=None):
+        ms = [[self._map,None]]
+        for name in iteratepath(path):
+            try:
+                ms.append([ms[-1][0][name],None])
+            except KeyError:
+                return default
+            else:
+                ms[-2][1] = name
+        try:
+            val = ms[-1][0].pop("")
+        except KeyError:
+            val = default
+        else:
+            while len(ms) > 1 and not ms[-1][0]:
+                del ms[-1]
+                del ms[-1][0][ms[-1][1]]
+        return val
+
+    def setdefault(self,path,value):
+        m = self._map
+        for name in iteratepath(path):
+            try:
+                m = m[name]
+            except KeyError:
+                m = m.setdefault(name,{})
+        return m.setdefault("",value)
+
+    def clear(self,root=None):
+        m = self._map
+        for name in iteratepath(root):
+            try:
+                m = m[name]
+            except KeyError:
+                return
+        m.clear()
+
+    def iterkeys(self,root="/",m=None):
+        if m is None:
+            m = self._map
+            for name in iteratepath(root):
+                try:
+                    m = m[name]
+                except KeyError:
+                    return
+        for (nm,subm) in m.iteritems():
+            if not nm:
+                yield abspath(normpath(root))
+            else:
+                k = pathjoin(root,nm)
+                for subk in self.iterkeys(k,subm):
+                    yield subk
+
+    def keys(self,root="/"):
+        return list(self.iterkeys(root))
+
+    def itervalues(self,root="/",m=None):
+        if m is None:
+            m = self._map
+            for name in iteratepath(root):
+                try:
+                    m = m[name]
+                except KeyError:
+                    return
+        for (nm,subm) in m.iteritems():
+            if not nm:
+                yield subm
+            else:
+                k = pathjoin(root,nm)
+                for subv in self.itervalues(k,subm):
+                    yield subv
+
+    def values(self,root="/"):
+        return list(self.itervalues(root))
+
+    def iteritems(self,root="/",m=None):
+        if m is None:
+            m = self._map
+            for name in iteratepath(root):
+                try:
+                    m = m[name]
+                except KeyError:
+                    return
+        for (nm,subm) in m.iteritems():
+            if not nm:
+                yield (abspath(normpath(root)),subm)
+            else:
+                k = pathjoin(root,nm)
+                for (subk,subv) in self.iteritems(k,subm):
+                    yield (subk,subv)
+
+    def items(self,root="/"):
+        return list(self.iteritems(root))
+
+
