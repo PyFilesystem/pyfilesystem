@@ -94,6 +94,14 @@ class TestPathFunctions(unittest.TestCase):
         for path, result in tests:
             self.assertEqual(fs.pathsplit(path), result)
 
+    def test_recursepath(self):
+        self.assertEquals(recursepath("/"),["/"])
+        self.assertEquals(recursepath("hello"),["/","/hello"])
+        self.assertEquals(recursepath("/hello/world/"),["/","/hello","/hello/world"])
+        self.assertEquals(recursepath("/hello/world/",reverse=True),["/hello/world","/hello","/"])
+        self.assertEquals(recursepath("hello",reverse=True),["/hello","/"])
+        self.assertEquals(recursepath("",reverse=True),["/"])
+
 
 class Test_PathMap(unittest.TestCase):
 

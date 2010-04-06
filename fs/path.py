@@ -74,17 +74,16 @@ def iteratepath(path, numsplits=None):
         
 def recursepath(path, reverse=False):
     """Iterate from root to path, returning intermediate paths"""
-    
-    paths = list(iteratepath(path))
-    
     if reverse:
         paths = []
-        while path.lstrip('/'):
+        path = abspath(path).rstrip("/")
+        while path:
             paths.append(path)
-            path = dirname(path)
-        return paths
+            path = dirname(path).rstrip("/")
+        return paths + ["/"]
     else:   
-        return [u'/'.join(paths[:i+1]) for i in xrange(len(paths))]
+        paths = [""] + list(iteratepath(path))
+        return ["/"] + [u'/'.join(paths[:i+1]) for i in xrange(1,len(paths))]
     
 def abspath(path):
     """Convert the given path to an absolute path.
