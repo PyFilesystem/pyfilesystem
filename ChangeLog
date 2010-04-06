@@ -19,7 +19,7 @@
     * Insist on unicode paths throughout:
         * output paths are always unicode
         * bytestring input paths are decoded as early as possible
-    * Renamed "fs.helpers" to "fs.path", and renamed to contained functions
+    * Renamed "fs.helpers" to "fs.path", and renamed the contained functions
       to match those offered by os.path
     * fs.remote:  utilities for implementing FS classes that interface
                   with a remote filesystem
