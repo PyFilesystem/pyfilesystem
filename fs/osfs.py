@@ -248,3 +248,5 @@ class OSFS(FS):
         @convert_os_errors
         def listxattrs(self, path):
             return xattr.xattr(self.getsyspath(path)).keys()
+
+
