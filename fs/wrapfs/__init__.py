@@ -228,6 +228,8 @@ class WrapFS(FS):
             raise UnsupportedError("listxattrs")
 
     def __getattr__(self,attr):
+        #  These attributes can be used by the destructor, but may not be
+        #  defined if there are errors in the constructor.
         if attr == "closed":
             return False
         if attr == "wrapped_fs":
