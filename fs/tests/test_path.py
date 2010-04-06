@@ -117,5 +117,7 @@ class Test_PathMap(unittest.TestCase):
         self.assertEquals(sorted(map.items("/hello/world/")),[("/hello/world",1),("/hello/world/howareya",2),("/hello/world/iamfine",3)])
         self.assertEquals(zip(map.keys(),map.values()),map.items())
         self.assertEquals(zip(map.keys("batman"),map.values("batman")),map.items("batman"))
+        self.assertEquals(set(map.iternames("hello")),set(("world","kitty")))
+        self.assertEquals(set(map.iternames("/hello/kitty")),set(("islame",)))
 
 

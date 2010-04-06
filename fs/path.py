@@ -288,6 +288,7 @@ class PathMap(object):
         self._map = {}
 
     def __getitem__(self,path):
+        """Get the value stored under the given path."""
         m = self._map
         for name in iteratepath(path):
             try:
@@ -300,6 +301,7 @@ class PathMap(object):
             raise KeyError(path)
 
     def __contains__(self,path):
+        """Check whether the given path has a value stored in the map."""
         try:
             self[path]
         except KeyError:
@@ -308,6 +310,7 @@ class PathMap(object):
             return True
 
     def __setitem__(self,path,value):
+        """Set the value stored under the given path."""
         m = self._map
         for name in iteratepath(path):
             try:
@@ -317,6 +320,7 @@ class PathMap(object):
         m[""] = value
 
     def __delitem__(self,path):
+        """Delete the value stored under the given path."""
         ms = [[self._map,None]]
         for name in iteratepath(path):
             try:
@@ -335,12 +339,14 @@ class PathMap(object):
                 del ms[-1][0][ms[-1][1]]
 
     def get(self,path,default=None):
+        """Get the value stored under the given path, or the given default."""
         try:
             return self[path]
         except KeyError:
             return default
 
     def pop(self,path,default=None):
+        """Pop the value stored under the given path, or the given default."""
         ms = [[self._map,None]]
         for name in iteratepath(path):
             try:
@@ -368,7 +374,8 @@ class PathMap(object):
                 m = m.setdefault(name,{})
         return m.setdefault("",value)
 
-    def clear(self,root=None):
+    def clear(self,root="/"):
+        """Clear all entries beginning with the given root path."""
         m = self._map
         for name in iteratepath(root):
             try:
@@ -378,6 +385,7 @@ class PathMap(object):
         m.clear()
 
     def iterkeys(self,root="/",m=None):
+        """Iterate over all keys beginning with the given root path."""
         if m is None:
             m = self._map
             for name in iteratepath(root):
@@ -397,6 +405,7 @@ class PathMap(object):
         return list(self.iterkeys(root))
 
     def itervalues(self,root="/",m=None):
+        """Iterate over all values whose keys begin with the given root path."""
         if m is None:
             m = self._map
             for name in iteratepath(root):
@@ -416,6 +425,7 @@ class PathMap(object):
         return list(self.itervalues(root))
 
     def iteritems(self,root="/",m=None):
+        """Iterate over all (key,value) pairs beginning with the given root."""
         if m is None:
             m = self._map
             for name in iteratepath(root):
@@ -434,4 +444,22 @@ class PathMap(object):
     def items(self,root="/"):
         return list(self.iteritems(root))
 
+    def iternames(self,root="/"):
+        """Iterate over all names beneath the given root path.
+
+        This is basically the equivalent of listdir() for a PathMap - it yields
+        the next level of name components beneath the given path.
+        """
+        m = self._map
+        for name in iteratepath(root):
+            try:
+                m = m[name]
+            except KeyError:
+                return
+        for nm in m:
+            if nm:
+                yield nm
+
+    def names(self,root="/"):
+        return list(self.iternames(root))
 
