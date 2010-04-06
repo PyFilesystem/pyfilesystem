@@ -141,6 +141,8 @@ class DirEntry(object):
         self.data = None
         self.locks = 0
         self.created_time = datetime.datetime.now()
+        self.modified_time = self.created_time
+        self.accessed_time = self.created_time
 
     def lock(self):
         self.locks += 1
@@ -323,8 +325,11 @@ class MemoryFS(FS):
 
             file_dir_entry = parent_dir_entry.contents[filename]
 
-            if 'a' in mode and  file_dir_entry.islocked():
-                raise ResourceLockedError(path)
+            if 'a' in mode:
+                if file_dir_entry.islocked():
+                    raise ResourceLockedError(path)
+                file_dir_entry.modified_time = datetime.datetime.now()
+            file_dir_entry.accessed_time = datetime.datetime.now()
 
             self._lock_dir_entry(path)
             mem_file = self.file_factory(path, self, file_dir_entry.data, mode)
@@ -340,6 +345,8 @@ class MemoryFS(FS):
 
             if file_dir_entry.islocked():
                 raise ResourceLockedError(path)
+            file_dir_entry.accessed_time = datetime.datetime.now()
+            file_dir_entry.modified_time = datetime.datetime.now()
 
             self._lock_dir_entry(path)
 
@@ -458,6 +465,8 @@ class MemoryFS(FS):
 
         info = {}
         info['created_time'] = dir_entry.created_time
+        info['modified_time'] = dir_entry.modified_time
+        info['accessed_time'] = dir_entry.accessed_time
 
         if dir_entry.isfile():
             info['size'] = len(dir_entry.data or '')
