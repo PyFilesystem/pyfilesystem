@@ -134,6 +134,7 @@ class FS(object):
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
         :type thread_synchronize: bool
         """
+        super(FS,self).__init__()
         self.closed = False
         if thread_synchronize:
             self._lock = threading.RLock()
