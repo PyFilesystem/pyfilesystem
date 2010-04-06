@@ -47,7 +47,7 @@ class FSTestCases(object):
         self.assertTrue(self.fs.isdir("/"))
         # These may be false (e.g. empty dict) but mustn't raise errors
         self.fs.getinfo("")
-        self.fs.getinfo("/")
+        self.assertTrue(self.fs.getinfo("/") is not None)
 
     def test_getsyspath(self):
         try:
