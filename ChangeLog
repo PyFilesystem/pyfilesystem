@@ -16,6 +16,7 @@
         * expose.sftp:    expose an FS object SFTP
         * expose.django_storage:  convert FS object to Django Storage object
     * Extended attribute support (getxattr/setxattr/delxattr/listxattrs)
+    * Change watching support (add_watcher/del_watcher)
     * Insist on unicode paths throughout:
         * output paths are always unicode
         * bytestring input paths are decoded as early as possible

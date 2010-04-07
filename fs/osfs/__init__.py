@@ -21,10 +21,8 @@ from fs.base import *
 from fs.path import *
 from fs import _thread_synchronize_default
 
-try:
-    import xattr
-except ImportError:
-    xattr = None
+from fs.osfs.xattrs import OSFSXAttrMixin
+from fs.osfs.watch import OSFSWatchMixin
 
 
 @convert_os_errors
@@ -33,7 +31,7 @@ def _os_stat(path):
     return os.stat(path)
 
 
-class OSFS(FS):
+class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
     """Expose the underlying operating-system filesystem as an FS object.
 
     This is the most basic of filesystems, which simply shadows the underlaying
@@ -223,30 +221,5 @@ class OSFS(FS):
     @convert_os_errors
     def getsize(self, path):
         return self._stat(path).st_size
-
-
-    #  Provide native xattr support if available
-    if xattr:
-        @convert_os_errors
-        def setxattr(self, path, key, value):
-            xattr.xattr(self.getsyspath(path))[key]=value
-
-        @convert_os_errors
-        def getxattr(self, path, key, default=None):
-            try:
-                return xattr.xattr(self.getsyspath(path)).get(key)
-            except KeyError:
-                return default
-
-        @convert_os_errors
-        def delxattr(self, path, key):
-            try:
-                del xattr.xattr(self.getsyspath(path))[key]
-            except KeyError:
-                pass
-
-        @convert_os_errors
-        def listxattrs(self, path):
-            return xattr.xattr(self.getsyspath(path)).keys()
 
 

@@ -139,7 +139,8 @@ from fs import tempfs
 class TestXAttr_TempFS(unittest.TestCase,FSTestCases,XAttrTestCases):
 
     def setUp(self):
-        self.fs = ensure_xattrs(tempfs.TempFS())
+        fs = tempfs.TempFS()
+        self.fs = ensure_xattrs(fs)
 
     def tearDown(self):
         td = self.fs._temp_dir

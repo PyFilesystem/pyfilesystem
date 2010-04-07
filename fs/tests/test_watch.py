@@ -13,6 +13,11 @@ from fs.errors import *
 from fs.watch import *
 from fs.tests import FSTestCases
 
+try:
+  import pyinotify
+except ImportError:
+  pyinotify = None
+
 
 class WatcherTestCases:
     """Testcases for filesystems providing change watcher support.
@@ -34,6 +39,8 @@ class WatcherTestCases:
             self.watchfs._poll_cond.wait()
             self.watchfs._poll_cond.wait()
             self.watchfs._poll_cond.release()
+        else:
+            time.sleep(0.5)
 
     def assertEventOccurred(self,cls,path=None,**attrs):
         if not self.checkEventOccurred(cls,path,**attrs):
@@ -92,6 +99,30 @@ class WatcherTestCases:
         self.fs.setcontents("hello","hello again world")
         self.assertEventOccurred(MODIFIED,"/hello")
 
+    def test_watch_single_file(self):
+        self.fs.setcontents("hello","hello world")
+        events = []
+        self.watchfs.add_watcher(events.append,"/hello",(MODIFIED,))
+        self.fs.setcontents("hello","hello again world")
+        self.fs.remove("hello")
+        self.waitForEvents()
+        for evt in events:
+            assert isinstance(evt,MODIFIED)
+            self.assertEquals(evt.path,"/hello")
+
+    def test_watch_single_file_remove(self):
+        self.fs.makedir("testing")
+        self.fs.setcontents("testing/hello","hello world")
+        events = []
+        self.watchfs.add_watcher(events.append,"/testing/hello",(REMOVED,))
+        self.fs.setcontents("testing/hello","hello again world")
+        self.waitForEvents()
+        self.fs.remove("testing/hello")
+        self.waitForEvents()
+        self.assertEquals(len(events),1)
+        assert isinstance(events[0],REMOVED)
+        self.assertEquals(events[0].path,"/testing/hello")
+
     def test_watch_iter_changes(self):
         changes = iter_changes(self.watchfs)
         self.fs.makedir("test1")
@@ -101,23 +132,23 @@ class WatcherTestCases:
         self.waitForEvents()
         self.watchfs.close()
         #  Locate the CREATED(test1) event
-        event = changes.next()
+        event = changes.next(timeout=1)
         while not isinstance(event,CREATED) or event.path != "/test1":
-            event = changes.next()
+            event = changes.next(timeout=1)
         #  Locate the CREATED(test1/hello) event
-        event = changes.next()
+        event = changes.next(timeout=1)
         while not isinstance(event,CREATED) or event.path != "/test1/hello":
-            event = changes.next()
+            event = changes.next(timeout=1)
         #  Locate the REMOVED(test1) event
-        event = changes.next()
+        event = changes.next(timeout=1)
         while not isinstance(event,REMOVED) or event.path != "/test1":
-            event = changes.next()
+            event = changes.next(timeout=1)
         #  Locate the CLOSED event
-        event = changes.next()
+        event = changes.next(timeout=1)
         while not isinstance(event,CLOSED):
-            event = changes.next()
+            event = changes.next(timeout=1)
         #  That should be the last event in the list
-        self.assertRaises(StopIteration,changes.next)
+        self.assertRaises(StopIteration,changes.next,timeout=1)
         changes.close()
 
 
@@ -128,6 +159,8 @@ class TestWatchers_TempFS(unittest.TestCase,FSTestCases,WatcherTestCases):
         self.fs = tempfs.TempFS()
         watchfs = osfs.OSFS(self.fs.root_path)
         self.watchfs = ensure_watchable(watchfs,poll_interval=0.1)
+        if pyinotify is not None:
+            self.assertEquals(watchfs,self.watchfs)
 
     def tearDown(self):
         self.watchfs.close()

@@ -128,4 +128,9 @@ class Test_PathMap(unittest.TestCase):
         self.assertEquals(set(map.iternames("hello")),set(("world","kitty")))
         self.assertEquals(set(map.iternames("/hello/kitty")),set(("islame",)))
 
+        del map["hello/kitty/islame"]
+        self.assertEquals(set(map.iternames("/hello/kitty")),set())
+        self.assertEquals(set(map.iterkeys()),set(("/hello/world","/hello/world/howareya","/hello/world/iamfine","/hello/kitty","/batman/isawesome")))
+        self.assertEquals(set(map.values()),set(range(1,7)) - set((5,)))
+
 

@@ -455,8 +455,8 @@ class PathMap(object):
                 m = m[name]
             except KeyError:
                 return
-        for nm in m:
-            if nm:
+        for (nm,subm) in m.iteritems():
+            if nm and subm:
                 yield nm
 
     def names(self,root="/"):

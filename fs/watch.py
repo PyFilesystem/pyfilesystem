@@ -25,11 +25,12 @@ An FS object that wants to be "watchable" must provide the following methods:
 
 import weakref
 import threading 
-from Queue import Queue
+import Queue
 
 from fs.path import *
 from fs.errors import *
 from fs.wrapfs import WrapFS
+from fs.base import FS
 
 
 class EVENT(object):
@@ -65,17 +66,21 @@ class MODIFIED(EVENT):
         self.meta = meta
         self.data = data
 
-class MOVED_FROM(EVENT):
-    """Event fired when a file or directory is moved."""
+class MOVED_DST(EVENT):
+    """Event fired when a file or directory is the target of a move."""
     def __init__(self,fs,path,source):
-        super(MOVED_FROM,self).__init__(fs,path)
-        self.source = abspath(normpath(source))
+        super(MOVED_DST,self).__init__(fs,path)
+        if source is not None:
+            source = abspath(normpath(source))
+        self.source = source
 
-class MOVED_TO(EVENT):
-    """Event fired when a file or directory is moved."""
+class MOVED_SRC(EVENT):
+    """Event fired when a file or directory is the source of a move."""
     def __init__(self,fs,path,destination):
-        super(MOVED_TO,self).__init__(fs,path)
-        self.destination = abspath(normpath(destination))
+        super(MOVED_SRC,self).__init__(fs,path)
+        if destination is not None:
+            destination = abspath(normpath(destination))
+        self.destination = destination
 
 class CLOSED(EVENT):
     """Event fired when the filesystem is closed."""
@@ -130,7 +135,7 @@ class Watcher(object):
         self.callback(event)
 
 
-class WatchableFSMixin(object):
+class WatchableFSMixin(FS):
     """Mixin class providing watcher management functions."""
 
     def __init__(self,*args,**kwds):
@@ -154,7 +159,15 @@ class WatchableFSMixin(object):
                         del watchers[i]
                         break
 
+    def _find_watchers(self,callback):
+        """Find watchers registered with the given callback."""
+        for watchers in self._watchers.itervalues():
+            for watcher in watchers:
+                if watcher.callback is callback:
+                    yield watcher
+
     def notify_watchers(self,event_class,path=None,*args,**kwds):
+        """Notify watchers of the given event data."""
         event = event_class(self,path,*args,**kwds)
         if path is None:
             for watchers in self._watchers.itervalues():
@@ -254,8 +267,8 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         super(WatchableFS,self).rename(src,dst)
         if d_existed:
             self.notify_watchers(REMOVED,dst)
-        self.notify_watchers(MOVED_TO,src,dst)
-        self.notify_watchers(MOVED_FROM,dst,src)
+        self.notify_watchers(MOVED_SRC,src,dst)
+        self.notify_watchers(MOVED_DST,dst,src)
 
     def copy(self,src,dst,**kwds):
         d = self._pre_copy(src,dst)
@@ -339,9 +352,9 @@ class PollingWatchableFS(WatchableFS):
     def __init__(self,wrapped_fs,poll_interval=60*5):
         super(PollingWatchableFS,self).__init__(wrapped_fs)
         self.poll_interval = poll_interval
-        self.add_watcher(self._on_path_modify,"/",(CREATED,MOVED_TO,))
+        self.add_watcher(self._on_path_modify,"/",(CREATED,MOVED_DST,))
         self.add_watcher(self._on_path_modify,"/",(MODIFIED,ACCESSED,))
-        self.add_watcher(self._on_path_delete,"/",(REMOVED,MOVED_FROM,))
+        self.add_watcher(self._on_path_delete,"/",(REMOVED,MOVED_SRC,))
         self._path_info = PathMap()
         self._poll_thread = threading.Thread(target=self._poll_for_changes)
         self._poll_cond = threading.Condition()
@@ -364,35 +377,40 @@ class PollingWatchableFS(WatchableFS):
             pass
 
     def _on_path_delete(self,event):
+        print "DELETE", event.path
         self._path_info.clear(event.path)
 
     def _poll_for_changes(self):
-        while not self._poll_close_event.isSet():
-            #  Walk all directories looking for changes.
-            #  Come back to any that give us an error.
-            error_paths = set()
-            for dirnm in self.wrapped_fs.walkdirs():
-                if self._poll_close_event.isSet():
-                    break
-                try:
-                    self._check_for_changes(dirnm)
-                except FSError:
-                    error_paths.add(dirnm)
-            #  Retry the directories that gave us an error, until
-            #  we have successfully updated them all
-            while error_paths and not self._poll_close_event.isSet():
-                dirnm = error_paths.pop()
-                if self.wrapped_fs.isdir(dirnm):
+        try:
+            while not self._poll_close_event.isSet():
+                #  Walk all directories looking for changes.
+                #  Come back to any that give us an error.
+                error_paths = set()
+                for dirnm in self.wrapped_fs.walkdirs():
+                    if self._poll_close_event.isSet():
+                        break
                     try:
                         self._check_for_changes(dirnm)
                     except FSError:
                         error_paths.add(dirnm)
-            #  Notify that we have completed a polling run
-            self._poll_cond.acquire()
-            self._poll_cond.notifyAll()
-            self._poll_cond.release()
-            #  Sleep for the specified interval, or until closed.
-            self._poll_close_event.wait(timeout=self.poll_interval)
+                #  Retry the directories that gave us an error, until
+                #  we have successfully updated them all
+                while error_paths and not self._poll_close_event.isSet():
+                    dirnm = error_paths.pop()
+                    if self.wrapped_fs.isdir(dirnm):
+                        try:
+                            self._check_for_changes(dirnm)
+                        except FSError:
+                            error_paths.add(dirnm)
+                #  Notify that we have completed a polling run
+                self._poll_cond.acquire()
+                self._poll_cond.notifyAll()
+                self._poll_cond.release()
+                #  Sleep for the specified interval, or until closed.
+                self._poll_close_event.wait(timeout=self.poll_interval)
+        except FSError:
+            if not self.closed:
+                raise
 
     def _check_for_changes(self,dirnm):
         #  Check the metadata for the directory itself.
@@ -445,6 +463,7 @@ class PollingWatchableFS(WatchableFS):
                 return
             cpath = pathjoin(dirnm,childnm)
             if not self.wrapped_fs.exists(cpath):
+                print "REMOVED", cpath
                 self.notify_watchers(REMOVED,cpath)
 
 
@@ -456,14 +475,15 @@ def ensure_watchable(fs,wrapper_class=PollingWatchableFS,*args,**kwds):
     for watcher callbacks.  This may be the original object if it supports them
     natively, or a wrapper class if they must be simulated.
     """
-    w = lambda e: None
     try:
-        fs.add_watcher("/",w)
+        w = fs.add_watcher(lambda e: None,"/somepaththatsnotlikelytoexist")
     except (AttributeError,UnsupportedError):
         return wrapper_class(fs,*args,**kwds)
+    except FSError:
+        pass
     else:
         fs.del_watcher(w)
-        return fs
+    return fs
 
 
 class iter_changes(object):
@@ -477,7 +497,7 @@ class iter_changes(object):
 
     def __init__(self,fs=None,path="/",events=None,**kwds):
         self.closed = False
-        self._queue = Queue()
+        self._queue = Queue.Queue()
         self._watching = set()
         if fs is not None:
             self.add_watcher(fs,path,events,**kwds)
@@ -488,10 +508,13 @@ class iter_changes(object):
     def __del__(self):
         self.close()
 
-    def next(self):
+    def next(self,timeout=None):
         if not self._watching:
             raise StopIteration
-        event = self._queue.get()
+        try:
+            event = self._queue.get(timeout=timeout)
+        except Queue.Empty:
+            raise StopIteration
         if event is None:
             raise StopIteration
         if isinstance(event,CLOSED):
