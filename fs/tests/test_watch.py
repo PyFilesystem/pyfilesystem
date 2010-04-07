@@ -5,6 +5,7 @@
 """
 
 import os
+import sys
 import time
 import unittest
 
@@ -14,9 +15,17 @@ from fs.watch import *
 from fs.tests import FSTestCases
 
 try:
-  import pyinotify
+  from fs.osfs import watch_inotify
 except ImportError:
-  pyinotify = None
+  watch_inotify = None
+
+if sys.platform == "win32":
+    try:
+      from fs.osfs import watch_win32
+    except ImportError:
+      watch_win32 = None
+else:
+  watch_win32 = None
 
 
 class WatcherTestCases:
@@ -40,7 +49,7 @@ class WatcherTestCases:
             self.watchfs._poll_cond.wait()
             self.watchfs._poll_cond.release()
         else:
-            time.sleep(0.5)
+            time.sleep(2)#0.5)
 
     def assertEventOccurred(self,cls,path=None,**attrs):
         if not self.checkEventOccurred(cls,path,**attrs):
@@ -73,6 +82,13 @@ class WatcherTestCases:
         old_atime = self.fs.getinfo("hello").get("accessed_time")
         self.assertEquals(self.fs.getcontents("hello"),"hello world")
         if not isinstance(self.watchfs,PollingWatchableFS):
+            #  Help it along by updting the atime.
+            #  TODO: why is this necessary?
+            if self.fs.hassyspath("hello"):
+                syspath = self.fs.getsyspath("hello")
+                mtime = os.stat(syspath).st_mtime
+                atime = int(time.time())
+                os.utime(self.fs.getsyspath("hello"),(atime,mtime))
             self.assertEventOccurred(ACCESSED,"/hello")
         elif old_atime is not None:
             #  Some filesystems don't update atime synchronously, or only
@@ -159,7 +175,9 @@ class TestWatchers_TempFS(unittest.TestCase,FSTestCases,WatcherTestCases):
         self.fs = tempfs.TempFS()
         watchfs = osfs.OSFS(self.fs.root_path)
         self.watchfs = ensure_watchable(watchfs,poll_interval=0.1)
-        if pyinotify is not None:
+        if watch_inotify is not None:
+            self.assertEquals(watchfs,self.watchfs)
+        if watch_win32 is not None:
             self.assertEquals(watchfs,self.watchfs)
 
     def tearDown(self):

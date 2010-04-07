@@ -89,6 +89,17 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
                 path = path.decode(self.encoding)
         return path
 
+    def unsyspath(self,path):
+        """Convert a system-level path into an FS-level path.
+
+        This basically the reverse of getsyspath().  If the path does not
+        refer to a location within this filesystem, ValueError is raised.
+        """
+        path = os.path.normpath(os.path.abspath(path))
+        if not path.startswith(self.root_path + os.path.sep):
+            raise ValueError("path not within this FS: %s" % (path,))
+        return path[len(self.root_path):]
+
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):
         mode = filter(lambda c: c in "rwabt+",mode)

@@ -61,10 +61,9 @@ class REMOVED(EVENT):
 
 class MODIFIED(EVENT):
     """Event fired when a file or directory is modified."""
-    def __init__(self,fs,path,meta=False,data=False):
+    def __init__(self,fs,path,data_changed=False):
         super(MODIFIED,self).__init__(fs,path)
-        self.meta = meta
-        self.data = data
+        self.data_changed = data_changed
 
 class MOVED_DST(EVENT):
     """Event fired when a file or directory is the target of a move."""
@@ -217,11 +216,11 @@ class WatchedFile(object):
 
     def flush(self):
         self.file.flush()
-        self.fs.notify_watchers(MODIFIED,self.path,True,True)
+        self.fs.notify_watchers(MODIFIED,self.path,True)
 
     def close(self):
         self.file.close()
-        self.fs.notify_watchers(MODIFIED,self.path,True,True)
+        self.fs.notify_watchers(MODIFIED,self.path,True)
 
 
 class WatchableFS(WrapFS,WatchableFSMixin):
@@ -322,7 +321,7 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         for src_path,isdir in src_paths.iteritems():
             path = pathjoin(dst,src_path)
             if src_path in dst_paths:
-                self.notify_watchers(MODIFIED,path,True,not isdir)
+                self.notify_watchers(MODIFIED,path,not isdir)
             else:
                 self.notify_watchers(CREATED,path)
         for dst_path,isdir in dst_paths.iteritems():
@@ -332,11 +331,11 @@ class WatchableFS(WrapFS,WatchableFSMixin):
 
     def setxattr(self,path,name,value):
         super(WatchableFS,self).setxattr(path,name,value)
-        self.notify_watchers(MODIFIED,path,True,False)
+        self.notify_watchers(MODIFIED,path,False)
 
     def delxattr(self,path,name):
         super(WatchableFS,self).delxattr(path,name,value)
-        self.notify_watchers(MODIFIED,path,True,False)
+        self.notify_watchers(MODIFIED,path,False)
 
 
 
@@ -377,7 +376,6 @@ class PollingWatchableFS(WatchableFS):
             pass
 
     def _on_path_delete(self,event):
-        print "DELETE", event.path
         self._path_info.clear(event.path)
 
     def _poll_for_changes(self):
@@ -421,7 +419,7 @@ class PollingWatchableFS(WatchableFS):
             self.notify_watchers(CREATED,dirnm)
         else:
             if new_info != old_info:
-                self.notify_watchers(MODIFIED,dirnm,True,False)
+                self.notify_watchers(MODIFIED,dirnm,False)
         #  Check the metadata for each file in the directory.
         #  We assume that if the file's data changes, something in its
         #  metadata will also change; don't want to read through each file!
@@ -454,7 +452,7 @@ class PollingWatchableFS(WatchableFS):
                             was_modified = True
                             break 
                 if was_modified:
-                    self.notify_watchers(MODIFIED,fpath,True,True)
+                    self.notify_watchers(MODIFIED,fpath,True)
                 elif was_accessed:
                     self.notify_watchers(ACCESSED,fpath)
         #  Check for deletion of cached child entries.
@@ -463,7 +461,6 @@ class PollingWatchableFS(WatchableFS):
                 return
             cpath = pathjoin(dirnm,childnm)
             if not self.wrapped_fs.exists(cpath):
-                print "REMOVED", cpath
                 self.notify_watchers(REMOVED,cpath)
 
 
