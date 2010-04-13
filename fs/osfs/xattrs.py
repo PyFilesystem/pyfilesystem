@@ -53,7 +53,7 @@ else:
     class OSFSXAttrMixin(object):
         """Mixin disable extended-attribute support."""
 
-        def getxattr(self,path,key):
+        def getxattr(self,path,key,default=None):
             raise UnsupportedError
 
         def setxattr(self,path,key,value):
