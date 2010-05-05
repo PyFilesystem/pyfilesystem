@@ -9,8 +9,8 @@ Use an FS object for Django File Storage
 from django.conf import settings
 from django.core.files.storage import Storage
 
-from fs.path import abspath
-
+from fs.path import abspath, dirname
+from fs.errors import convert_fs_errors
 
 class FSStorage(Storage):
     """Expose an FS object as a Django File Storage object."""
@@ -34,19 +34,25 @@ class FSStorage(Storage):
             raise NotImplementedError
         return path
 
+    @convert_fs_errors
     def size(self,name):
         return self.fs.getsize(name)
 
+    @convert_fs_errors
     def url(self,name):
         return self.base_url + abspath(name)
 
+    @convert_fs_errors
     def _open(self,name,mode):
-        return selfs.fs.open(name,mode)
+        return self.fs.open(name,mode)
 
+    @convert_fs_errors
     def _save(self,name,content):
+        self.fs.makedir(dirname(name),allow_recreate=True,recursive=True)
         self.fs.setcontents(name,content)
         return name
 
+    @convert_fs_errors
     def delete(self,name):
         try:
             self.fs.remove(name)

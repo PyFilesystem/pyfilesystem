@@ -40,7 +40,7 @@ class LazyFS(WrapFS):
         self._lazy_creation_lock = Lock()
 
     def _get_wrapped_fs(self):
-        """Obtain the wrapped FS instance, created it if necessary."""
+        """Obtain the wrapped FS instance, creating it if necessary."""
         try:
             return self.__dict__["wrapped_fs"]
         except KeyError:
