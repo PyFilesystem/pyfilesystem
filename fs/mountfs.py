@@ -61,7 +61,7 @@ class MountFS(FS):
 
     def getsyspath(self, path, allow_none=False):
         fs, mount_path, delegate_path = self._delegate(path)
-        if fs is self:
+        if fs is self or fs is None:
             if allow_none:
                 return None
             else:
