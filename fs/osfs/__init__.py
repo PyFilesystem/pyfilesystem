@@ -47,12 +47,12 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
         :param dir_mode: srt
         :param thread_synchronize: If True, this object will be thread-safe by use of a threading.Lock object
         :param encoding: The encoding method for path strings
-        :param create: Of True, then root_path will be created (if neccesary)
+        :param create: Of True, then root_path will be created (if necessary)
 
         """
 
         super(OSFS, self).__init__(thread_synchronize=thread_synchronize)
-        self.encoding = encoding
+        self.encoding = encoding or sys.getfilesystemencoding()
         root_path = os.path.expanduser(os.path.expandvars(root_path))
         root_path = os.path.normpath(os.path.abspath(root_path))
         #  Enable long pathnames on win32
@@ -79,14 +79,15 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
     def __unicode__(self):
         return u"<OSFS: %s>" % self.root_path
 
+    def _decode_path(self, p):
+        if isinstance(p, unicode):
+            return p        
+        return p.decode(self.encoding, 'replace')            
+
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)
-        path = os.path.join(self.root_path, path)
-        if not isinstance(path,unicode):
-            if self.encoding is None:
-                path = path.decode(sys.getfilesystemencoding())
-            else:
-                path = path.decode(self.encoding)
+        path = os.path.join(self.root_path, path)        
+        path = self._decode_path(path)        
         return path
 
     def unsyspath(self,path):
@@ -122,7 +123,7 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
 
     @convert_os_errors
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        paths = os.listdir(self.getsyspath(path))
+        paths = [self._decode_path(p) for p in os.listdir(self.getsyspath(path))]
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @convert_os_errors
