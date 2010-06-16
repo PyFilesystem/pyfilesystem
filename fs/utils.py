@@ -5,6 +5,8 @@ The `utils` module provides a number of utility functions that don't belong in t
 """
 
 import shutil
+import os
+import sys
 from fs.mountfs import MountFS
 from fs.path import pathjoin, pathsplit
 from fs.errors import DestinationExistsError
@@ -279,7 +281,7 @@ def find_duplicates(fs,
             paths = list(set(paths).difference(dups))
 
 
-def print_fs(fs, path="/", max_levels=5, indent=' '*2):
+def print_fs(fs, path='/', max_levels=5, file_out=sys.stdout, terminal_colors=None):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
@@ -295,42 +297,96 @@ def print_fs(fs, path="/", max_levels=5, indent=' '*2):
     :param fs: A filesystem object
     :param path: Path of a directory to list (default "/")
     :param max_levels: Maximum levels of dirs to list (default 5), set to None for no maximum
-    :param indent: String to indent each directory level (default two spaces)
+    :param file_out: File object to write output to (defaults to sys.stdout)
+    :param terminal_colors: If True, terminal color codes will be written, set to False for non-console output.
+        The default (None) will select an appropriate setting for the platform.
 
     """
-    def print_dir(fs, path, level):
+
+    if terminal_colors is None:
+        if sys.platform == 'win32':
+            terminal_colors = False
+        else:
+            terminal_colors = True
+
+    def write(line):
+        file_out.write(line.encode(file_out.encoding)+'\n')
+        
+    def wrap_prefix(prefix):
+       if not terminal_colors:
+           return prefix           
+       return '\x1b[34m%s\x1b[0m' % prefix           
+   
+    def wrap_dirname(dirname):
+        if not terminal_colors:
+            return dirname
+        return '\x1b[1;32m%s\x1b[0m' % dirname
+    
+    def wrap_error(msg):
+        if not terminal_colors:
+            return msg
+        return '\x1b[31m%s\x1b[0m' % msg
+    
+    def wrap_filename(fname):
+        if not terminal_colors:
+            return fname        
+        if '.' in fname:
+            name, ext = os.path.splitext(fname)
+            fname = '%s\x1b[36m%s\x1b[0m' % (name, ext)
+        if fname.startswith('.'):
+            fname = '\x1b[2m%s\x1b[0m' % fname
+        return fname
+    
+    def print_dir(fs, path, levels=[]):
+        
         try:
             dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
         except Exception, e:
-            print indent*level + "... unabled to retrieve directory list (reason: %s) ..." % str(e)
-            return
-
+            prefix = ''.join([('|   ', '    ')[last] for last in levels]) + '   '
+            write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unabled to retrieve directory list (%s) ..." % str(e)))
+            return 0        
+        
         dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
-
-        for is_dir, item in dir_listing:
-
-            if is_dir:
-                print indent*level + '[%s]' % item
-                if max_levels is None or level < max_levels:
-                    print_dir(fs, pathjoin(path, item), level+1)
-                if max_levels is not None:
-                    if level >= max_levels:
-                        print indent*(level+1) + "..."
+                            
+        for i, (is_dir, item) in enumerate(dir_listing):
+            
+            is_last_item = (i == len(dir_listing) - 1)            
+            prefix = ''.join([('|   ', '    ')[last] for last in levels])
+            if is_last_item:
+                prefix += '`'
             else:
-                print indent*level + '%s' % item
-    print_dir(fs, path, 0)
-
+                prefix += '|'
+                                            
+            if is_dir:                
+                write('%s %s' % (wrap_prefix(prefix + '--'), wrap_dirname(item)))
+                if max_levels is not None and len(levels) >= max_levels:
+                    write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
+                else:
+                    print_dir(fs, pathjoin(path, item), levels[:] + [is_last_item])                                            
+            else:
+                write('%s %s' % (wrap_prefix(prefix + '--'), wrap_filename(item)))
+                
+        return len(dir_listing)
+                
+    print_dir(fs, path)
+            
+            
 
 
 if __name__ == "__main__":
+    #from osfs import *
+    #fs = OSFS('~/copytest')
+
+    #from memoryfs import *
+    #m = MemoryFS()
+    #m.makedir('maps')
+
+    #copydir((fs, 'maps'), (m, 'maps'))
+
+    #from browsewin import browse
+    #browse(m)
+
     from osfs import *
-    fs = OSFS('~/copytest')
-
-    from memoryfs import *
-    m = MemoryFS()
-    m.makedir('maps')
-
-    copydir((fs, 'maps'), (m, 'maps'))
-
-    from browsewin import browse
-    browse(m)
+    f = OSFS('/home/will/projects')
+    print_fs(f)
+    
