@@ -496,7 +496,12 @@ class FS(object):
         return sub_fs
 
 
-    def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth"):
+    def walk(self,
+             path="/",
+             wildcard=None,
+             dir_wildcard=None,
+             search="breadth",
+             ignore_errors=False):
         """Walks a directory tree and yields the root path and contents.
         Yields a tuple of the path of each directory and a list of its file
         contents.
@@ -507,15 +512,26 @@ class FS(object):
         :param search: -- A string dentifying the method used to walk the directories. There are two such methods:
             * 'breadth' Yields paths in the top directories first
             * 'depth' Yields the deepest paths first
+        :param ignore_errors: Ignore any errors reading the directory
 
         """
+        
+        def listdir(path, *args, **kwargs):
+            if ignore_errors:
+                try:
+                    return self.listdir(path, *args, **kwargs)
+                except:
+                    return []
+            else:
+                return self.listdir(path, *args, **kwargs)
+        
         if search == "breadth":
             dirs = [path]
             while dirs:
                 current_path = dirs.pop()
 
                 paths = []
-                for filename in self.listdir(current_path):
+                for filename in listdir(current_path):
 
                     path = pathjoin(current_path, filename)
                     if self.isdir(path):
@@ -535,7 +551,7 @@ class FS(object):
         elif search == "depth":
 
             def recurse(recurse_path):
-                for path in self.listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
+                for path in listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
                     for p in recurse(path):
                         yield p
                 yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, files_only=True))
@@ -546,27 +562,38 @@ class FS(object):
             raise ValueError("Search should be 'breadth' or 'depth'")
 
 
-    def walkfiles(self, path="/", wildcard=None, dir_wildcard=None, search="breadth" ):
+    def walkfiles(self,
+                  path="/",
+                  wildcard=None,
+                  dir_wildcard=None,
+                  search="breadth",
+                  ignore_errors=False ):
         """Like the 'walk' method, but just yields files.
 
         :param path: Root path to start walking
         :param wildcard: If given, only return files that match this wildcard
         :param dir_wildcard: If given, only walk directories that match the wildcard
         :param search: Same as walk method
+        :param ignore_errors: Ignore any errors reading the directory
         """
-        for path, files in self.walk(path, wildcard=wildcard, dir_wildcard=dir_wildcard, search=search):
+        for path, files in self.walk(path, wildcard=wildcard, dir_wildcard=dir_wildcard, search=search, ignore_errors=ignore_errors):
             for f in files:
                 yield pathjoin(path, f)
 
 
-    def walkdirs(self, path="/", wildcard=None, search="breadth"):
+    def walkdirs(self,
+                 path="/",
+                 wildcard=None,
+                 search="breadth",
+                 ignore_errors=False):
         """ Like the 'walk' method but yields directories.
 
         :param path: -- Root path to start walking
         :param wildcard: -- If given, only return dictories that match this wildcard
         :param search: -- Same as the walk method
+        :param ignore_errors: Ignore any errors reading the directory
         """
-        for p, files in self.walk(path, wildcard=wildcard, search=search):
+        for p, files in self.walk(path, wildcard=wildcard, search=search, ignore_errors=ignore_errors):
             yield p
 
 
@@ -825,9 +852,9 @@ class SubFS(FS):
 
     def desc(self, path):
         if self.isdir(path):
-            return "Sub dir of %s"%str(self.parent)
+            return "Sub dir of %s" % str(self.parent)
         else:
-            return "File in sub dir of %s"%str(self.parent)
+            return "File in sub dir of %s" % str(self.parent)
 
     def _delegate(self, path):
         return pathjoin(self.sub_dir, relpath(normpath(path)))
