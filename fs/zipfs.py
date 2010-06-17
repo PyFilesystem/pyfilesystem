@@ -193,14 +193,12 @@ class ZipFS(FS):
         self._add_resource(dirname)
 
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-
         return self._path_fs.listdir(path, wildcard, full, absolute, dirs_only, files_only)
-
 
     @synchronize
     def getinfo(self, path):
         if not self.exists(path):
-            return ResourceNotFoundError(path)
+            raise ResourceNotFoundError(path)
         path = normpath(path).lstrip('/')
         try:
             zi = self.zf.getinfo(path.encode(self.encoding))
