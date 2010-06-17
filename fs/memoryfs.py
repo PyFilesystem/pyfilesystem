@@ -3,9 +3,10 @@
 fs.memoryfs
 ===========
 
-A Filesystem that exists in memory only.
+A Filesystem that exists in memory only. Which makes them extremely fast, but non-permanent.
 
-File objects returned by MemoryFS.objects use StringIO objects for storage.
+If you open a file from a `memoryfs` you will get back a StringIO object from the standard library.
+
 
 """
 
@@ -37,7 +38,12 @@ class MemoryFile(object):
 
         self.mem_file = None
 
-        if _check_mode(mode, 'wa'):
+        if '+' in mode:
+            self.mem_file = StringIO()
+            self.mem_file.write(value)
+            self.mem_file.seek(0)
+            
+        elif _check_mode(mode, 'wa'):
             self.mem_file = StringIO()
             self.mem_file.write(value)
 
@@ -50,6 +56,7 @@ class MemoryFile(object):
 
         elif _check_mode(mode, 'r'):
             self.mem_file = StringIO(value)
+            self.mem_file.seek(0)
 
         elif _check_mode(mode, "a"):
             self.mem_file = StringIO()
@@ -153,9 +160,9 @@ class DirEntry(object):
 
     def desc_contents(self):
         if self.isfile():
-            return "<file %s>"%self.name
+            return "<file %s>" % self.name
         elif self.isdir():
-            return "<dir %s>"%"".join( "%s: %s"% (k, v.desc_contents()) for k, v in self.contents.iteritems())
+            return "<dir %s>" % "".join( "%s: %s"% (k, v.desc_contents()) for k, v in self.contents.iteritems())
 
     def isdir(self):
         return self.type == "dir"
@@ -172,9 +179,7 @@ class DirEntry(object):
 
 class MemoryFS(FS):
 
-    """ An in-memory filesystem.
-
-    MemoryFS objects are very fast, but non-permantent. They are useful for creating a directory structure prior to writing it somewhere permanent.
+    """An in-memory filesystem.
 
     """
 
@@ -427,6 +432,21 @@ class MemoryFS(FS):
         dst_dir_entry.contents[dst_name].name = dst_name
         del src_dir_entry.contents[src_name]
 
+
+    def settimes(self, path, accessed_time=None, modified_time=None):
+        now = datetime.datetime.now()
+        if accessed_time is None:
+            accessed_time = now
+        if modified_time is None:
+            modified_time = now                    
+        
+        dir_entry = self._get_dir_entry(path)
+        if dir_entry is not None:
+            dir_entry.accessed_time = accessed_time
+            dir_entry.modified_time = modified_time
+            return True
+        return False
+        
 
     @synchronize
     def _on_close_memory_file(self, open_file, path, value):
