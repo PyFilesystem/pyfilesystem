@@ -117,6 +117,7 @@ class MemoryFile(object):
         return self.mem_file.truncate(*args, **kwargs)
 
     def write(self, data):
+        self.memory_fs._on_modify_memory_file(self.path)
         return self.mem_file.write(data)
 
     def writelines(self, *args, **kwargs):
@@ -150,6 +151,9 @@ class DirEntry(object):
         self.created_time = datetime.datetime.now()
         self.modified_time = self.created_time
         self.accessed_time = self.created_time
+        self.st_mode = 0700
+        
+        self.xattrs = {}
 
     def lock(self):
         self.locks += 1
@@ -213,6 +217,13 @@ class MemoryFS(FS):
                 return None
             current_dir = dir_entry
         return current_dir
+    
+    @synchronize
+    def _dir_entry(self, path):
+        dir_entry = self._get_dir_entry(path)
+        if dir_entry is None:
+            raise ResourceNotFoundError(path)
+        return dir_entry
 
     @synchronize
     def desc(self, path):
@@ -323,7 +334,7 @@ class MemoryFS(FS):
 
         if parent_dir_entry is None or not parent_dir_entry.isdir():
             raise ResourceNotFoundError(path)
-
+        
         if 'r' in mode or 'a' in mode:
             if filename not in parent_dir_entry.contents:
                 raise ResourceNotFoundError(path)
@@ -332,8 +343,7 @@ class MemoryFS(FS):
 
             if 'a' in mode:
                 if file_dir_entry.islocked():
-                    raise ResourceLockedError(path)
-                file_dir_entry.modified_time = datetime.datetime.now()
+                    raise ResourceLockedError(path)                
             file_dir_entry.accessed_time = datetime.datetime.now()
 
             self._lock_dir_entry(path)
@@ -350,8 +360,7 @@ class MemoryFS(FS):
 
             if file_dir_entry.islocked():
                 raise ResourceLockedError(path)
-            file_dir_entry.accessed_time = datetime.datetime.now()
-            file_dir_entry.modified_time = datetime.datetime.now()
+            file_dir_entry.accessed_time = datetime.datetime.now()            
 
             self._lock_dir_entry(path)
 
@@ -425,11 +434,13 @@ class MemoryFS(FS):
             raise DestinationExistsError(path)
 
         src_dir_entry = self._get_dir_entry(src_dir)
+        src_xattrs = src_dir_entry.xattrs.copy()
         dst_dir_entry = self._get_dir_entry(dst_dir)
         if dst_dir_entry is None:
             raise ParentDirectoryMissingError(dst)
         dst_dir_entry.contents[dst_name] = src_dir_entry.contents[src_name]
         dst_dir_entry.contents[dst_name].name = dst_name
+        dst_dir_entry.xattrs.update(src_xattrs)
         del src_dir_entry.contents[src_name]
 
 
@@ -453,7 +464,7 @@ class MemoryFS(FS):
         filepath, filename = pathsplit(path)
         dir_entry = self._get_dir_entry(path)
         if dir_entry is not None and value is not None:
-            dir_entry.data = value
+            dir_entry.data = value            
             dir_entry.open_files.remove(open_file)
             self._unlock_dir_entry(path)
 
@@ -462,6 +473,12 @@ class MemoryFS(FS):
         filepath, filename = pathsplit(path)
         dir_entry = self._get_dir_entry(path)
         dir_entry.data = value
+        
+    @synchronize
+    def _on_modify_memory_file(self, path):
+        dir_entry = self._get_dir_entry(path)
+        dir_entry.modified_time = datetime.datetime.now()
+        
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
@@ -486,9 +503,74 @@ class MemoryFS(FS):
         info = {}
         info['created_time'] = dir_entry.created_time
         info['modified_time'] = dir_entry.modified_time
-        info['accessed_time'] = dir_entry.accessed_time
+        info['accessed_time'] = dir_entry.accessed_time                
 
         if dir_entry.isfile():
             info['size'] = len(dir_entry.data or '')
-
+            info['st_mode'] = 0666
+        else:
+            info['st_mode'] = 0700
+            
         return info
+    
+    
+    @synchronize
+    def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
+        src_dir_entry = self._get_dir_entry(src)
+        src_xattrs = src_dir_entry.xattrs.copy()
+        super(MemoryFS, self).copydir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
+        dst_dir_entry = self._get_dir_entry(dst)
+        if dst_dir_entry is not None:
+            dst_dir_entry.xattrs.update(src_xattrs)
+    
+    @synchronize
+    def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
+        src_dir_entry = self._get_dir_entry(src)
+        src_xattrs = src_dir_entry.xattrs.copy()
+        super(MemoryFS, self).movedir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
+        dst_dir_entry = self._get_dir_entry(dst)
+        if dst_dir_entry is not None:
+            dst_dir_entry.xattrs.update(src_xattrs)
+    
+    @synchronize
+    def copy(self, src, dst, overwrite=False, chunk_size=16384):
+        src_dir_entry = self._get_dir_entry(src)
+        src_xattrs = src_dir_entry.xattrs.copy()
+        super(MemoryFS, self).copy(src, dst, overwrite, chunk_size)        
+        dst_dir_entry = self._get_dir_entry(dst)
+        if dst_dir_entry is not None:
+            dst_dir_entry.xattrs.update(src_xattrs)
+    
+    @synchronize
+    def move(self, src, dst, overwrite=False, chunk_size=16384):
+        src_dir_entry = self._get_dir_entry(src)
+        src_xattrs = src_dir_entry.xattrs.copy()
+        super(MemoryFS, self).move(src, dst, overwrite, chunk_size)        
+        dst_dir_entry = self._get_dir_entry(dst)
+        if dst_dir_entry is not None:
+            dst_dir_entry.xattrs.update(src_xattrs)        
+    
+    @synchronize
+    def setxattr(self, path, key, value):                
+        dir_entry = self._dir_entry(path)
+        key = unicode(key)        
+        dir_entry.xattrs[key] = value
+    
+    @synchronize    
+    def getxattr(self, path, key, default=None):
+        key = unicode(key)
+        dir_entry = self._dir_entry(path)        
+        return dir_entry.xattrs.get(key, default)
+    
+    @synchronize
+    def delxattr(self, path, key):
+        dir_entry = self._dir_entry(path)
+        try:
+            del dir_entry.xattrs[key]
+        except KeyError:
+            pass
+        
+    @synchronize
+    def listxattrs(self, path):
+        dir_entry = self._dir_entry(path)
+        return dir_entry.xattrs.keys()
