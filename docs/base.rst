@@ -6,7 +6,7 @@ This module contains the basic FS interface and a number of other essential inte
 fs.base.FS
 ----------
 
-All Filesystem objects inherit from this class
+All Filesystem objects inherit from this class,
 
 .. autoclass:: fs.base.FS
     :members:
@@ -20,7 +20,7 @@ For example::
 
     from fs.osfs import OSFS
     home_fs = OSFS('foo')
-    bar_gs = home_fs.opendir('bar')
+    bar_fs = home_fs.opendir('bar')
 
 
 fs.base.NullFile

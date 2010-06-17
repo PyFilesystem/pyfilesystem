@@ -43,6 +43,6 @@ The following will list all the files in your home directory::
     >>> home_fs = OSFS('~/') # 'c:\Users\<login name>' on Windows
     >>> home_fs.listdir()
     
-This will display the total number of bytes store in your home directory::
+This will display the total number of bytes store in '.py' files your home directory::
 
-    >>> sum(home_fs.getsize(f) for f in home_fs.listdir())
+    >>> sum(home_fs.getsize(f) for f in home_fs.walkfiles(wildcard='*.py'))

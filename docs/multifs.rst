@@ -1,0 +1,2 @@
+.. automodule:: fs.multifs
+    :members:

@@ -15,10 +15,11 @@ Guide
    :maxdepth: 3
 
    introduction.rst
-   concepts.rst
    getting_started.rst
+   concepts.rst
    interface.rst
    filesystems.rst
+   expose.rst
    
 Code Documentation
 ------------------
@@ -29,17 +30,19 @@ Code Documentation
    base.rst
    browsewin.rst
    errors.rst
+   expose/index.rst
    ftpfs.rst
    memoryfs.rst
    mountfs.rst
    multifs.rst
    osfs.rst
    path.rst
+   rpcfsfs.rst
    s3fs.rst
    sftpfs.rst
    tempfs.rst
    utils.rst
-   wrapfs.rst
+   wrapfs/index.rst
    zipfs.rst
    
 
