@@ -15,7 +15,14 @@ from fs.errors import *
 from fs.path import *
 from fs.watch import *
 
-import pyinotify
+try:
+    import pyinotify
+except Exception, e:
+    #  pyinotify sometimes raises its own custom errors on import.
+    #  How on earth are we supposed to catch them when we can't import them?
+    if isinstance(e,ImportError):
+        raise
+    raise ImportError("could not import pyinotify")
 
 
 class OSFSWatchMixin(WatchableFSMixin):
