@@ -15,7 +15,7 @@ class ReadOnlyFS(WrapFS):
     Note that this isn't a secure sandbox, untrusted code could work around the
     read-only restrictions by getting the base class. Its main purpose is to
     provide a degree of safety if you want to protect an FS object from
-    modification.
+    accidental modification.
     
     """
         

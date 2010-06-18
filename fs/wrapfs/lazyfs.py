@@ -26,7 +26,7 @@ class LazyFS(WrapFS):
     the first time it is accessed.
     """
 
-    def __init__(self,fs):
+    def __init__(self, fs):
         super(LazyFS,self).__init__(fs)
         self._lazy_creation_lock = Lock()
 
@@ -35,7 +35,7 @@ class LazyFS(WrapFS):
         del state["_lazy_creation_lock"]
         return state
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         self.__dict__.update(state)
         self._lazy_creation_lock = Lock()
 
@@ -55,7 +55,7 @@ class LazyFS(WrapFS):
             finally:
                 self._lazy_creation_lock.release()
 
-    def _set_wrapped_fs(self,fs):
+    def _set_wrapped_fs(self, fs):
         if isinstance(fs,FS):
             self.__dict__["wrapped_fs"] = fs
         elif isinstance(fs,type):
@@ -75,7 +75,7 @@ class LazyFS(WrapFS):
 
     wrapped_fs = property(_get_wrapped_fs,_set_wrapped_fs)
 
-    def setcontents(self,path,data):
+    def setcontents(self, path, data):
         return self.wrapped_fs.setcontents(path,data)
 
     def close(self):

@@ -128,6 +128,7 @@ class SimulateXAttr(WrapFS):
             pass
         self._set_attr_dict(path, attrs)
 
+    @synchronize
     def listxattrs(self,path):
         """List all the extended attribute keys set on the given path."""
         if not self.exists(path):

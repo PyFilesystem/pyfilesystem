@@ -305,8 +305,7 @@ class MemoryFS(FS):
 
         if dir_item is None:
             parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
-
-        return self
+        
 
     def _orphan_files(self, file_dir_entry):
         for f in file_dir_entry.open_files:
@@ -505,11 +504,11 @@ class MemoryFS(FS):
         info['modified_time'] = dir_entry.modified_time
         info['accessed_time'] = dir_entry.accessed_time                
 
-        if dir_entry.isfile():
+        if dir_entry.isdir():
+            info['st_mode'] = 0755
+        else:
             info['size'] = len(dir_entry.data or '')
             info['st_mode'] = 0666
-        else:
-            info['st_mode'] = 0700
             
         return info
     

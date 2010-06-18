@@ -4,8 +4,8 @@ fs.path
 
 Useful functions for FS path manipulation.
 
-This is broadly similar to the standard 'os.path' module but works with
-paths in the canonical format expected by all FS objects (backslash-separated,
+This is broadly similar to the standard ``os.path`` module but works with
+paths in the canonical format expected by all FS objects (forwardslash-separated,
 optional leading slash).
 
 """
@@ -19,7 +19,8 @@ def normpath(path):
     tries very hard to return a new path string the canonical FS format.
     If the path is invalid, ValueError will be raised.
     
-    :param path: Path to normalize
+    :param path: path to normalize
+    :returns: a valid FS path
 
     >>> normpath(r"foo\\bar\\baz")
     'foo/bar/baz'
@@ -50,7 +51,7 @@ def normpath(path):
     if path[0] in "\\/":
         if not components:
             components = [""]
-        components.insert(0,"")
+        components.insert(0, "")
     if isinstance(path, unicode):
         return u"/".join(components)
     else:
@@ -73,7 +74,14 @@ def iteratepath(path, numsplits=None):
         return map(None, path.split('/', numsplits))
         
 def recursepath(path, reverse=False):
-    """Iterate from root to path, returning intermediate paths"""
+    """Returns intermediate paths from the root to the given path
+    
+    :param reverse: reverses the order of the paths
+    
+    >>> recursepath('a/b/c')
+    ['/', u'/a', u'/a/b', u'/a/b/c']
+    
+    """
     if reverse:
         paths = []
         path = abspath(path).rstrip("/")
@@ -106,6 +114,9 @@ def relpath(path):
     path if it is present.
     
     :param path: Path to adjust
+    
+    >>> relpath('/a/b')
+    'a/b'
 
     """
     while path and path[0] == "/":
@@ -147,9 +158,9 @@ join = pathjoin
 
 
 def pathsplit(path):
-    """Splits a path into (head,tail) pair.
+    """Splits a path into (head, tail) pair.
 
-    This function splits a path into a pair (head,tail) where 'tail' is the
+    This function splits a path into a pair (head, tail) where 'tail' is the
     last pathname component and 'head' is all preceeding components.
     
     :param path: Path to split
@@ -269,7 +280,7 @@ class PathMap(object):
 
     A PathMap is like a dictionary where the keys are all FS paths.  It allows
     various dictionary operations (e.g. listing values, clearing values) to
-    be performed on a subset of the keys sharing some common prefix, e.g.:
+    be performed on a subset of the keys sharing some common prefix, e.g.::
 
         # list all values in the map
         pm.values()

@@ -181,7 +181,7 @@ def find_duplicates(fs,
     other attributes not take in to account).
 
     :param fs: A filesystem object
-    :param compare_paths: An iterable of paths within the FS object, or all files if omited
+    :param compare_paths: An iterable of paths within the FS object, or all files if omitted
     :param quick: If set to True, the quick method of finding duplicates will be used, which can potentially return false positives if the files have the same size and start with the same data. Do not use when deleting files!
     :param signature_chunk_size: The number of bytes to read before generating a signature checksum value
     :param signature_size: The total number of bytes read to generate a signature
@@ -281,7 +281,7 @@ def find_duplicates(fs,
             paths = list(set(paths).difference(dups))
 
 
-def print_fs(fs, path='/', max_levels=5, file_out=sys.stdout, terminal_colors=None):
+def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
@@ -302,6 +302,9 @@ def print_fs(fs, path='/', max_levels=5, file_out=sys.stdout, terminal_colors=No
         The default (None) will select an appropriate setting for the platform.
 
     """
+
+    if file_out is None:
+        file_out = sys.stdout
 
     if terminal_colors is None:
         if sys.platform == 'win32':

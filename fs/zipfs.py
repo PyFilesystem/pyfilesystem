@@ -61,7 +61,7 @@ class ZipFS(FS):
         :param zip_file: A (system) path, or a file-like object
         :param mode: Mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
         :param compression: Can be 'deflated' (default) to compress data or 'stored' to just store date
-        :param allow_zip_64: -- Set to True to use zip files greater than 2 MB, default is False
+        :param allow_zip_64: -- Set to True to use zip files greater than 2 GB, default is False
         :param encoding: --  The encoding to use for unicode filenames
         :param thread_synchronize: -- Set to True (default) to enable thread-safety
 
@@ -203,6 +203,9 @@ class ZipFS(FS):
         try:
             zi = self.zf.getinfo(path.encode(self.encoding))
             zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
+            for k, v in zinfo.iteritems():
+                if callable(v):
+                    zinfo[k] = v()
         except KeyError:
             zinfo = {'file_size':0}
         info = {'size' : zinfo['file_size'] }

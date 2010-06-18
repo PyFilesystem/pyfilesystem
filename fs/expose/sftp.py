@@ -70,7 +70,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     This SFTPServerInterface subclass expects a single additional argument,
     the fs object to be exposed.  Use it to set up a transport subsystem
-    handler like so:
+    handler like so::
 
       t.set_subsystem_handler("sftp",SFTPServer,SFTPServerInterface,fs)
 
@@ -79,7 +79,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
     paramiko server infrastructure.
     """
 
-    def __init__(self,server,fs,encoding=None,*args,**kwds):
+    def __init__(self, server, fs, encoding=None, *args, **kwds):
         self.fs = fs
         if encoding is None:
             encoding = "utf8"
@@ -87,12 +87,12 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         super(SFTPServerInterface,self).__init__(server,*args,**kwds)
 
     @report_sftp_errors
-    def open(self,path,flags,attr):
-        return SFTPHandle(self,path,flags)
+    def open(self, path, flags, attr):
+        return SFTPHandle(self, path, flags)
 
     @report_sftp_errors
-    def list_folder(self,path):
-        if not isinstance(path,unicode):
+    def list_folder(self, path):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         stats = []
         for entry in self.fs.listdir(path,absolute=True):
@@ -100,8 +100,8 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         return stats
  
     @report_sftp_errors
-    def stat(self,path):
-        if not isinstance(path,unicode):
+    def stat(self, path):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         info = self.fs.getinfo(path)
         stat = paramiko.SFTPAttributes()
@@ -115,52 +115,52 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
             stat.st_mode = 0777 | statinfo.S_IFREG
         return stat
 
-    def lstat(self,path):
+    def lstat(self, path):
         return self.stat(path)
 
     @report_sftp_errors
-    def remove(self,path):
+    def remove(self, path):
         if not isinstance(path,unicode):
             path = path.decode(self.encoding)
         self.fs.remove(path)
         return paramiko.SFTP_OK
 
     @report_sftp_errors
-    def rename(self,oldpath,newpath):
-        if not isinstance(oldpath,unicode):
+    def rename(self, oldpath, newpath):
+        if not isinstance(oldpath, unicode):
             oldpath = oldpath.decode(self.encoding)
-        if not isinstance(newpath,unicode):
+        if not isinstance(newpath, unicode):
             newpath = newpath.decode(self.encoding)
         if self.fs.isfile(oldpath):
-            self.fs.move(oldpath,newpath)
+            self.fs.move(oldpath, newpath)
         else:
-            self.fs.movedir(oldpath,newpath)
+            self.fs.movedir(oldpath, newpath)
         return paramiko.SFTP_OK
 
     @report_sftp_errors
-    def mkdir(self,path,attr):
+    def mkdir(self, path, attr):
         if not isinstance(path,unicode):
             path = path.decode(self.encoding)
         self.fs.makedir(path)
         return paramiko.SFTP_OK
 
     @report_sftp_errors
-    def rmdir(self,path):
+    def rmdir(self, path):
         if not isinstance(path,unicode):
             path = path.decode(self.encoding)
         self.fs.removedir(path)
         return paramiko.SFTP_OK
 
-    def canonicalize(self,path):
+    def canonicalize(self, path):
         return abspath(normpath(path))
 
-    def chattr(self,path,attr):
+    def chattr(self, path, attr):
         return paramiko.SFTP_OP_UNSUPPORTED
 
-    def readlink(self,path):
+    def readlink(self, path):
         return paramiko.SFTP_OP_UNSUPPORTED
 
-    def symlink(self,path):
+    def symlink(self, path):
         return paramiko.SFTP_OP_UNSUPPORTED
 
 
@@ -171,7 +171,7 @@ class SFTPHandle(paramiko.SFTPHandle):
     and write requests directly through the to underlying file from the FS.
     """
 
-    def __init__(self,owner,path,flags):
+    def __init__(self, owner, path, flags):
         super(SFTPHandle,self).__init__(flags)
         mode = flags_to_mode(flags) + "b"
         self.owner = owner
@@ -186,12 +186,12 @@ class SFTPHandle(paramiko.SFTPHandle):
         return paramiko.SFTP_OK
 
     @report_sftp_errors
-    def read(self,offset,length):
+    def read(self, offset, length):
         self._file.seek(offset)
         return self._file.read(length)
 
     @report_sftp_errors
-    def write(self,offset,data):
+    def write(self, offset, data):
         self._file.seek(offset)
         self._file.write(data)
         return paramiko.SFTP_OK
@@ -215,7 +215,7 @@ class SFTPRequestHandler(sockserv.StreamRequestHandler):
     def handle(self):
         t = paramiko.Transport(self.request)
         t.add_server_key(self.server.host_key)
-        t.set_subsystem_handler("sftp",paramiko.SFTPServer,SFTPServerInterface,self.server.fs,getattr(self.server,"encoding",None))
+        t.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, getattr(self.server,"encoding",None))
         # Note that this actually spawns a new thread to handle the requests.
         # (Actually, paramiko.Transport is a subclass of Thread)
         t.start_server(server=self.server)
@@ -249,7 +249,7 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
 
     """
 
-    def __init__(self,address,fs=None,encoding=None,host_key=None,RequestHandlerClass=None):
+    def __init__(self, address, fs=None, encoding=None, host_key=None, RequestHandlerClass=None):
         self.fs = fs
         self.encoding = encoding
         if host_key is None:
@@ -259,25 +259,25 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
             RequestHandlerClass = SFTPRequestHandler
         sockserv.TCPServer.__init__(self,address,RequestHandlerClass)
 
-    def close_request(self,request):
+    def close_request(self, request):
         #  paramiko.Transport closes itself when finished.
         #  If we close it here, we'll break the Transport thread.
         pass
 
-    def check_channel_request(self,kind,chanid):
+    def check_channel_request(self, kind, chanid):
         if kind == 'session':
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
-    def check_auth_none(self,username):
+    def check_auth_none(self, username):
         """Check whether the user can proceed without authentication."""
         return paramiko.AUTH_SUCCESSFUL
 
-    def check_auth_publickey(self,username,key):
+    def check_auth_publickey(self, username,key):
         """Check whether the given public key is valid for authentication."""
         return paramiko.AUTH_FAILED
 
-    def check_auth_password(self,username,password):
+    def check_auth_password(self, username, password):
         """Check whether the given password is valid for authentication."""
         return paramiko.AUTH_FAILED
 

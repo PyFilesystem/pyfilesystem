@@ -1,10 +1,10 @@
 """
-
-  fs.rpcfs:  client to access an FS via XML-RPC
+fs.rpcfs
+========
 
 This module provides the class 'RPCFS' to access a remote FS object over
 XML-RPC.  You probably want to use this in conjunction with the 'RPCFSServer'
-class from the fs.expose.xmlrpc module.
+class from the :mod:`fs.expose.xmlrpc` module.
 
 """
 
@@ -90,7 +90,7 @@ class RPCFS(FS):
     This class provides the client-side logic for accessing a remote FS
     object, and is dual to the RPCFSServer class defined in fs.expose.xmlrpc.
 
-    Example:
+    Example::
 
         fs = RPCFS("http://my.server.com/filesystem/location/")
 
@@ -102,6 +102,9 @@ class RPCFS(FS):
         The only required argument is the uri of the server to connect
         to.  This will be passed to the underlying XML-RPC server proxy
         object, along with the 'transport' argument if it is provided.
+        
+        :param uri: address of the server        
+        
         """
         self.uri = uri
         self._transport = transport
@@ -127,12 +130,12 @@ class RPCFS(FS):
             pass
         return state
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         for (k,v) in state.iteritems():
             self.__dict__[k] = v
         self.proxy = self._make_proxy()
 
-    def encode_path(self,path):
+    def encode_path(self, path):
         """Encode a filesystem path for sending over the wire.
 
         Unfortunately XMLRPC only supports ASCII strings, so this method
@@ -141,11 +144,11 @@ class RPCFS(FS):
         """
         return path.encode("utf8").encode("base64")
 
-    def decode_path(self,path):
+    def decode_path(self, path):
         """Decode paths arriving over the wire."""
         return path.decode("base64").decode("utf8")
 
-    def open(self,path,mode="r"):
+    def open(self, path, mode="r"):
         # TODO: chunked transport of large files
         path = self.encode_path(path)
         if "w" in mode:
@@ -178,83 +181,83 @@ class RPCFS(FS):
         f.close = newclose
         return f
 
-    def exists(self,path):
+    def exists(self, path):
         path = self.encode_path(path)
         return self.proxy.exists(path)
 
-    def isdir(self,path):
+    def isdir(self, path):
         path = self.encode_path(path)
         return self.proxy.isdir(path)
 
-    def isfile(self,path):
+    def isfile(self, path):
         path = self.encode_path(path)
         return self.proxy.isfile(path)
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         path = self.encode_path(path)
         entries =  self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
         return [self.decode_path(e) for e in entries]
 
-    def makedir(self,path,recursive=False,allow_recreate=False):
+    def makedir(self, path, recursive=False, allow_recreate=False):
         path = self.encode_path(path)
         return self.proxy.makedir(path,recursive,allow_recreate)
 
-    def remove(self,path):
+    def remove(self, path):
         path = self.encode_path(path)
         return self.proxy.remove(path)
 
-    def removedir(self,path,recursive=False,force=False):
+    def removedir(self, path, recursive=False, force=False):
         path = self.encode_path(path)
         return self.proxy.removedir(path,recursive,force)
         
-    def rename(self,src,dst):
+    def rename(self, src, dst):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.rename(src,dst)
 
-    def getinfo(self,path):
+    def getinfo(self, path):
         path = self.encode_path(path)
         return self.proxy.getinfo(path)
 
-    def desc(self,path):
+    def desc(self, path):
         path = self.encode_path(path)
         return self.proxy.desc(path)
 
-    def getxattr(self,path,attr,default=None):
+    def getxattr(self, path, attr, default=None):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.getxattr(path,attr,default)
 
-    def setxattr(self,path,attr,value):
+    def setxattr(self, path, attr, value):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.setxattr(path,attr,value)
 
-    def delxattr(self,path,attr):
+    def delxattr(self, path, attr):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.delxattr(path,attr)
 
-    def listxattrs(self,path):
+    def listxattrs(self, path):
         path = self.encode_path(path)
         return [self.decode_path(a) for a in self.fs.listxattrs(path)]
 
-    def copy(self,src,dst,overwrite=False,chunk_size=16384):
+    def copy(self, src, dst, overwrite=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.copy(src,dst,overwrite,chunk_size)
 
-    def move(self,src,dst,overwrite=False,chunk_size=16384):
+    def move(self, src, dst, overwrite=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.move(src,dst,overwrite,chunk_size)
 
-    def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+    def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
-        return self.proxy.movedir(src,dst,overwrite,ignore_errors,chunk_size)
+        return self.proxy.movedir(src, dst, overwrite, ignore_errors, chunk_size)
 
-    def copydir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
+    def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.copydir(src,dst,overwrite,ignore_errors,chunk_size)

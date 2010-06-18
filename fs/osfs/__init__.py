@@ -31,7 +31,7 @@ def _os_stat(path):
     return os.stat(path)
 
 
-class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
+class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     """Expose the underlying operating-system filesystem as an FS object.
 
     This is the most basic of filesystems, which simply shadows the underlaying
@@ -39,15 +39,15 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
     methods in the os and os.path modules.
     """
 
-    def __init__(self, root_path, dir_mode=0700, thread_synchronize=_thread_synchronize_default, encoding=None, create=False):
+    def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700):
         """
         Creates an FS object that represents the OS Filesystem under a given root path
 
-        :param root_path: The root OS path
-        :param dir_mode: srt
+        :param root_path: The root OS path        
         :param thread_synchronize: If True, this object will be thread-safe by use of a threading.Lock object
         :param encoding: The encoding method for path strings
-        :param create: Of True, then root_path will be created (if necessary)
+        :param create: If True, then root_path will be created if it doesn't already exist
+        :param dir_mode: The mode to use when creating the directory
 
         """
 
@@ -90,11 +90,16 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
         path = self._decode_path(path)        
         return path
 
-    def unsyspath(self,path):
+    def unsyspath(self, path):
         """Convert a system-level path into an FS-level path.
 
         This basically the reverse of getsyspath().  If the path does not
         refer to a location within this filesystem, ValueError is raised.
+        
+        :param path: a system path
+        :returns: a path within this FS object
+        :rtype: string
+        
         """
         path = os.path.normpath(os.path.abspath(path))
         if not path.startswith(self.root_path + os.path.sep):
@@ -206,9 +211,8 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
                 if e.errno == errno.ENOENT:
                     if not os.path.exists(dirname(path_dst)):
                         raise ParentDirectoryMissingError(dst)
-            raise
-            
-
+            raise            
+        
     def _stat(self,path):
         """Stat the given path, normalising error codes."""
         sys_path = self.getsyspath(path)

@@ -9,18 +9,46 @@ FS in order, until it either finds a path that exists or raises a ResourceNotFou
 
 One use for such a filesystem would be to selectively override a set of files,
 to customize behaviour. For example, to create a filesystem that could be used
-to *theme* a web application::
+to *theme* a web application. We start with the following directories::
+
+
+    `-- templates
+        |-- snippets
+        |   `-- panel.html 
+        |-- index.html
+        |-- profile.html
+        `-- base.html
+       
+    `-- theme
+        |-- snippets
+        |   |-- widget.html
+        |   `-- extra.html
+        |-- index.html
+        `-- theme.html 
+
+And we want to create a single filesystem that looks for files in `templates` if
+they don't exist in `theme`. We can do this with the following code::
+
 
     from fs.osfs import OSFS
     from fs.multifs import MultiFS
 
     themed_template_fs.addfs('templates', OSFS('templates'))
     themed_template_fs.addfs('theme', OSFS('themes'))
+    
 
-    index_template = themed_template_fs.getcontent('index.html')
+Now we have a `themed_template_fs` FS object presents a single view of both 
+directories:: 
+            
+        |-- snippets
+        |   |-- panel.html
+        |   |-- widget.html
+        |   `-- extra.html
+        |-- index.html        
+        |-- profile.html
+        |-- base.html
+        `-- theme.html
 
-This will read the contents of *themes/index.html*, if it exists, otherwise
-it will look for it in *templates/index.html*.
 
 """
 

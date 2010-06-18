@@ -1,6 +1,6 @@
 """
-fs.wrapfs.hidedotfiles
-======================
+fs.wrapfs.hidedotfilesfs
+========================
 
 An FS wrapper class for hiding dot-files in directory listings.
 
@@ -17,17 +17,17 @@ class HideDotFilesFS(WrapFS):
     It is False by default.
     """
 
-    def is_hidden(self,path):
+    def is_hidden(self, path):
         """Check whether the given path should be hidden."""
         return path and basename(path)[0] == "."
 
-    def _encode(self,path):
+    def _encode(self, path):
         return path
 
-    def _decode(self,path):
+    def _decode(self, path):
         return path
 
-    def listdir(self,path="",**kwds):
+    def listdir(self, path="", **kwds):
         hidden = kwds.pop("hidden",True)
         entries = self.wrapped_fs.listdir(path,**kwds)
         if not hidden:

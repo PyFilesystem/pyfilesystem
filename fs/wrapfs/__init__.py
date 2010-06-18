@@ -47,20 +47,20 @@ class WrapFS(FS):
     The following methods can be overridden to control how files are 
     accessed in the underlying FS object:
 
-        _file_wrap(file,mode):  called for each file that is opened from
+     * _file_wrap(file, mode):  called for each file that is opened from
                                 the underlying FS; may return a modified
                                 file-like object.
 
-        _encode(path):  encode a path for access in the underlying FS
+     *  _encode(path):  encode a path for access in the underlying FS
 
-        _decode(path):  decode a path from the underlying FS
+     *  _decode(path):  decode a path from the underlying FS
 
     If the required path translation proceeds one component at a time,
     it may be simpler to override the _encode_name() and _decode_name()
     methods.
     """
 
-    def __init__(self,fs):
+    def __init__(self, fs):
         super(WrapFS,self).__init__()
         try:
             self._lock = fs._lock
@@ -68,19 +68,19 @@ class WrapFS(FS):
             self._lock = None
         self.wrapped_fs = fs
 
-    def _file_wrap(self,f,mode):
+    def _file_wrap(self, f, mode):
         """Apply wrapping to an opened file."""
         return f
 
-    def _encode_name(self,name):
+    def _encode_name(self, name):
         """Encode path component for the underlying FS."""
         return name
 
-    def _decode_name(self,name):
+    def _decode_name(self, name):
         """Decode path component from the underlying FS."""
         return name
 
-    def _encode(self,path):
+    def _encode(self, path):
         """Encode path for the underlying FS."""
         names = path.split("/")
         e_names = []
@@ -91,7 +91,7 @@ class WrapFS(FS):
                 e_names.append(self._encode_name(name))
         return "/".join(e_names)
 
-    def _decode(self,path):
+    def _decode(self, path):
         """Decode path from the underlying FS."""
         names = path.split("/")
         d_names = []
@@ -102,7 +102,7 @@ class WrapFS(FS):
                 d_names.append(self._decode_name(name))
         return "/".join(d_names)
 
-    def _adjust_mode(self,mode):
+    def _adjust_mode(self, mode):
         """Adjust the mode used to open a file in the underlying FS.
 
         This method takes the mode given when opening a file, and should
@@ -116,11 +116,11 @@ class WrapFS(FS):
         return (mode,mode)
 
     @rewrite_errors
-    def getsyspath(self,path,allow_none=False):
+    def getsyspath(self, path, allow_none=False):
         return self.wrapped_fs.getsyspath(self._encode(path),allow_none)
 
     @rewrite_errors
-    def hassyspath(self,path):
+    def hassyspath(self, path):
         return self.wrapped_fs.hassyspath(self._encode(path))
 
     @rewrite_errors
@@ -130,19 +130,19 @@ class WrapFS(FS):
         return self._file_wrap(f, mode)
 
     @rewrite_errors
-    def exists(self,path):
+    def exists(self, path):
         return self.wrapped_fs.exists(self._encode(path))
 
     @rewrite_errors
-    def isdir(self,path):
+    def isdir(self, path):
         return self.wrapped_fs.isdir(self._encode(path))
 
     @rewrite_errors
-    def isfile(self,path):
+    def isfile(self, path):
         return self.wrapped_fs.isfile(self._encode(path))
 
     @rewrite_errors
-    def listdir(self,path="",**kwds):
+    def listdir(self, path="", **kwds):
         wildcard = kwds.pop("wildcard","*")
         info = kwds.get("info",False)
         entries = []
@@ -160,74 +160,74 @@ class WrapFS(FS):
         return entries
 
     @rewrite_errors
-    def makedir(self,path,*args,**kwds):
+    def makedir(self, path, *args, **kwds):
         return self.wrapped_fs.makedir(self._encode(path),*args,**kwds)
 
     @rewrite_errors
-    def remove(self,path):
+    def remove(self, path):
         return self.wrapped_fs.remove(self._encode(path))
 
     @rewrite_errors
-    def removedir(self,path,*args,**kwds):
+    def removedir(self, path, *args, **kwds):
         return self.wrapped_fs.removedir(self._encode(path),*args,**kwds)
 
     @rewrite_errors
-    def rename(self,src,dst):
+    def rename(self, src, dst):
         return self.wrapped_fs.rename(self._encode(src),self._encode(dst))
 
     @rewrite_errors
-    def getinfo(self,path):
+    def getinfo(self, path):
         return self.wrapped_fs.getinfo(self._encode(path))
 
     @rewrite_errors
-    def desc(self,path):
+    def desc(self, path):
         return self.wrapped_fs.desc(self._encode(path))
 
     @rewrite_errors
-    def copy(self,src,dst,**kwds):
+    def copy(self, src, dst, **kwds):
         return self.wrapped_fs.copy(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def move(self,src,dst,**kwds):
+    def move(self, src, dst, **kwds):
         return self.wrapped_fs.move(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def movedir(self,src,dst,**kwds):
+    def movedir(self, src, dst, **kwds):
         return self.wrapped_fs.movedir(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def copydir(self,src,dst,**kwds):
+    def copydir(self, src, dst, **kwds):
         return self.wrapped_fs.copydir(self._encode(src),self._encode(dst),**kwds)
 
     @rewrite_errors
-    def getxattr(self,path,name,default=None):
+    def getxattr(self, path, name, default=None):
         try:
             return self.wrapped_fs.getxattr(self._encode(path),name,default)
         except AttributeError:
             raise UnsupportedError("getxattr")
 
     @rewrite_errors
-    def setxattr(self,path,name,value):
+    def setxattr(self, path, name, value):
         try:
             return self.wrapped_fs.setxattr(self._encode(path),name,value)
         except AttributeError:
             raise UnsupportedError("setxattr")
 
     @rewrite_errors
-    def delxattr(self,path,name):
+    def delxattr(self, path, name):
         try:
             return self.wrapped_fs.delxattr(self._encode(path),name)
         except AttributeError:
             raise UnsupportedError("delxattr")
 
     @rewrite_errors
-    def listxattrs(self,path):
+    def listxattrs(self, path):
         try:
             return self.wrapped_fs.listxattrs(self._encode(path))
         except AttributeError:
             raise UnsupportedError("listxattrs")
 
-    def __getattr__(self,attr):
+    def __getattr__(self, attr):
         #  These attributes can be used by the destructor, but may not be
         #  defined if there are errors in the constructor.
         if attr == "closed":
@@ -243,18 +243,18 @@ class WrapFS(FS):
             super(WrapFS,self).close()
 
 
-def wrap_fs_methods(decorator,cls=None,exclude=[]):
+def wrap_fs_methods(decorator, cls=None, exclude=[]):
     """Apply the given decorator to all FS methods on the given class.
 
     This function can be used in two ways.  When called with two arguments it
     applies the given function 'decorator' to each FS method of the given
     class.  When called with just a single argument, it creates and returns
     a class decorator which will do the same thing when applied.  So you can
-    use it like this:
+    use it like this::
 
         wrap_fs_methods(mydecorator,MyFSClass)
 
-    Or on more recent Python versions, like this:
+    Or on more recent Python versions, like this::
 
         @wrap_fs_methods(mydecorator)
         class MyFSClass(FS):

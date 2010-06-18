@@ -2,8 +2,44 @@
 fs.mountfs
 ==========
 
-Contains MountFS class which is a virtual Filesystem which can have other Filesystems linked as branched directories, much like a symlink in Linux
+Contains MountFS class which is a virtual filesystem which can have other filesystems linked as branched directories.
 
+For example, lets say we have two filesystems containing config files and resource respectively::
+
+   [config_fs]
+   |-- config.cfg
+   `-- defaults.cfg 
+
+   [resources_fs]
+   |-- images
+   |   |-- logo.jpg
+   |   `-- photo.jpg 
+   `-- data.dat
+
+We can combine these filesystems in to a single filesystem with the following code::
+
+    from fs.mountfs import MountFS
+    combined_fs = MountFS
+    combined_fs.mountdir('config', config_fs)
+    combined_fs.mountdir('resources', resources_fs)
+
+This will create a single filesystem where paths under `config` map to `config_fs`, and paths under `resources` map to `resources_fs`::
+
+    [combined_fs]
+    |-- config
+    |   |-- config.cfg
+    |   `-- defaults.cfg
+    `-- resources
+        |-- images
+        |   |-- logo.jpg    
+        |   `-- photo.jpg
+        `-- data.dat
+
+Now both filesystems can be accessed with the same path structure::
+
+    print combined_fs.getcontents('/config/defaults.cfg')
+    read_jpg(combined_fs.open('/resources/images/logo.jpg')
+    
 """
 
 from fs.base import *
@@ -267,7 +303,7 @@ class MountFS(FS):
     @synchronize
     def mountdir(self, path, fs):
         """Mounts a host FS object on a given path.
-
+        
         :param path: A path within the MountFS
         :param fs: A filesystem object to mount
 
@@ -278,7 +314,13 @@ class MountFS(FS):
 
     @synchronize
     def mountfile(self, path, open_callable=None, info_callable=None):
-        """Mounts a single file path. """
+        """Mounts a single file path.
+        
+        :param path: A path within the MountFS
+        :param open_Callable: A callable that returns a file-like object
+        :param info_callable: A callable that returns a dictionary with information regarding the file-like object
+        
+        """
         path = normpath(path)
         self.mount_tree[path] = MountFS.FileMount(path, callable, info_callable)
 

@@ -18,14 +18,14 @@ from fs.wrapfs import WrapFS
 class LimitSizeFS(WrapFS):
     """FS wrapper class to limit total size of files stored."""
 
-    def __init__(self,fs,max_size):
+    def __init__(self, fs, max_size):
         super(LimitSizeFS,self).__init__(fs)
         self.max_size = max_size
         self.cur_size = sum(self.getsize(f) for f in self.walkfiles())
         self._size_lock = threading.Lock()
         self._file_sizes = {}
 
-    def _decr_size(self,decr):
+    def _decr_size(self, decr):
         with self._size_lock:
             self.cur_size -= decr
 
@@ -35,16 +35,16 @@ class LimitSizeFS(WrapFS):
         del state["_file_sizes"]
         return state
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         super(LimitSizeFS,self).__setstate__(state)
         self._size_lock = threading.Lock()
 
-    def getsyspath(self,path,allow_none=False):
+    def getsyspath(self, path, allow_none=False):
         if not allow_none:
             raise NoSysPathError(path)
         return None
 
-    def open(self,path,mode="r"):
+    def open(self, path, mode="r"):
         path = relpath(normpath(path))
         with self._size_lock:
             try:
@@ -60,7 +60,7 @@ class LimitSizeFS(WrapFS):
                 self._file_sizes[path] = 0
             return LimitSizeFile(self,path,f,mode,size)
 
-    def _ensure_file_size(self,path,size):
+    def _ensure_file_size(self, path, size):
         path = relpath(normpath(path))
         with self._size_lock:
             if path not in self._file_sizes:
@@ -73,22 +73,22 @@ class LimitSizeFS(WrapFS):
                 self.cur_size += diff
                 self._file_sizes[path] = size
 
-    def copy(self,src,dst,**kwds):
+    def copy(self, src, dst, **kwds):
         FS.copy(self,src,dst,**kwds)
 
-    def copydir(self,src,dst,**kwds):
+    def copydir(self, src, dst, **kwds):
         FS.copydir(self,src,dst,**kwds)
 
-    def move(self,src,dst,**kwds):
+    def move(self, src, dst, **kwds):
         FS.move(self,src,dst,**kwds)
         path = relpath(normpath(src))
         with self._size_lock:
             self._file_sizes.pop(path,None)
 
-    def movedir(self,src,dst,**kwds):
+    def movedir(self, src, dst, **kwds):
         FS.movedir(self,src,dst,**kwds)
 
-    def remove(self,path):
+    def remove(self, path):
         size = self.getsize(path)
         super(LimitSizeFS,self).remove(path)
         self._decr_size(size)
@@ -96,12 +96,12 @@ class LimitSizeFS(WrapFS):
         with self._size_lock:
             self._file_sizes.pop(path,None)
 
-    def removedir(self,path,recursive=False,force=False):
+    def removedir(self, path, recursive=False, force=False):
         size = sum(self.getsize(f) for f in self.walkfiles(path))
         super(LimitSizeFS,self).removedir(path,recursive=recursive,force=force)
         self._decr_size(size)
 
-    def rename(self,src,dst):
+    def rename(self, src, dst):
         try:
             size = self.getsize(dst)
         except ResourceNotFoundError:
@@ -116,7 +116,7 @@ class LimitSizeFS(WrapFS):
 class LimitSizeFile(object):
     """Filelike wrapper class for use by LimitSizeFS."""
 
-    def __init__(self,fs,path,file,mode,size):
+    def __init__(self, fs, path, file, mode, size):
         self._lock = fs._lock
         self.fs = fs
         self.path = path
@@ -126,17 +126,17 @@ class LimitSizeFile(object):
         self.closed = False
 
     @synchronize
-    def write(self,data):
+    def write(self, data):
         pos = self.file.tell()
         self.size = self.fs._ensure_file_size(self.path,pos+len(data))
         self.file.write(data)
 
-    def writelines(self,lines):
+    def writelines(self, lines):
         for line in lines:
             self.write(line)
 
     @synchronize
-    def truncate(self,size=None):
+    def truncate(self, size=None):
         pos = self.file.tell()
         if size is None:
             size = pos
@@ -145,7 +145,7 @@ class LimitSizeFile(object):
         self.size = size
 
     #  This is lifted straight from the stdlib's tempfile.py
-    def __getattr__(self,name):
+    def __getattr__(self, name):
         file = self.__dict__['file']
         a = getattr(file, name)
         if not issubclass(type(a), type(0)):
@@ -156,7 +156,7 @@ class LimitSizeFile(object):
         self.file.__enter__()
         return self
 
-    def __exit__(self,exc,value,tb):
+    def __exit__(self, exc, value, tb):
         self.close()
         return False
 

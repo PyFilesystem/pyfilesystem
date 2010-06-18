@@ -42,7 +42,7 @@ class SFTPFS(FS):
     class in the paramiko module.
     """
 
-    def __init__(self,connection,root_path="/",encoding=None,**credentials):
+    def __init__(self, connection, root_path="/", encoding=None, **credentials):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
@@ -58,6 +58,10 @@ class SFTPFS(FS):
         machine - access to files outsite this root wil be prevented. Any
         other keyword arguments are assumed to be credentials to be used when
         connecting the transport.
+        
+        :param connection: a connection string
+        :param root_path: The root path to open        
+        
         """
         if encoding is None:
             encoding = "utf8"

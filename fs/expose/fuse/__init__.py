@@ -45,6 +45,7 @@ fuse.py code from Giorgos Verigakis:
 
 """
 
+import datetime
 import os
 import sys
 import signal
@@ -83,9 +84,10 @@ def handle_fs_errors(func):
     equivalent OSError.  It also makes the function return zero instead
     of None as an indication of successful execution.
     """
+    name = func.__name__
     func = convert_fs_errors(func)
     @wraps(func)
-    def wrapper(*args,**kwds):
+    def wrapper(*args,**kwds):        
         res = func(*args,**kwds)
         if res is None:
             return 0
@@ -97,7 +99,7 @@ def handle_fs_errors(func):
 class FSOperations(Operations):
     """FUSE Operations interface delegating all activities to an FS object."""
 
-    def __init__(self,fs,on_init=None,on_destroy=None):
+    def __init__(self, fs, on_init=None, on_destroy=None):
         self.fs = fs
         self._on_init = on_init
         self._on_destroy = on_destroy
@@ -110,13 +112,13 @@ class FSOperations(Operations):
         #  This dict is indexed by path, then file handle.
         self._files_size_written = {}
 
-    def _get_file(self,fh):
+    def _get_file(self, fh):
         try:
             return self._files_by_handle[fh.fh]
         except KeyError:
             raise FSError("invalid file handle")
 
-    def _reg_file(self,f,path):
+    def _reg_file(self, f, path):
         self._files_lock.acquire()
         try:
             fh = self._next_handle
@@ -130,7 +132,7 @@ class FSOperations(Operations):
         finally:
             self._files_lock.release()
 
-    def _del_file(self,fh):
+    def _del_file(self, fh):
         self._files_lock.acquire()
         try:
             (f,path,lock) = self._files_by_handle.pop(fh.fh)
@@ -140,31 +142,31 @@ class FSOperations(Operations):
         finally:
             self._files_lock.release()
 
-    def init(self,conn):
+    def init(self, conn):
         if self._on_init:
             self._on_init()
 
-    def destroy(self,data):
+    def destroy(self, data):
         if self._on_destroy:
             self._on_destroy()
     
     @handle_fs_errors
-    def chmod(self,path,mode):
+    def chmod(self, path, mode):
         raise UnsupportedError("chmod")
     
     @handle_fs_errors
-    def chown(self,path,uid,gid):
+    def chown(self, path, uid, gid):
         raise UnsupportedError("chown")
 
     @handle_fs_errors
-    def create(self,path,mode,fi):
+    def create(self, path, mode, fi):
         path = path.decode(NATIVE_ENCODING)
         fh = self._reg_file(self.fs.open(path,"w"),path)
         fi.fh = fh
         fi.keep_cache = 0
 
     @handle_fs_errors
-    def flush(self,path,fh):
+    def flush(self, path, fh):
         (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
@@ -173,11 +175,12 @@ class FSOperations(Operations):
             lock.release()
 
     @handle_fs_errors
-    def getattr(self,path,fh=None):
-        return self._get_stat_dict(path.decode(NATIVE_ENCODING))
+    def getattr(self, path, fh=None):
+        attrs = self._get_stat_dict(path.decode(NATIVE_ENCODING))            
+        return attrs
 
     @handle_fs_errors
-    def getxattr(self,path,name,position=0):
+    def getxattr(self, path, name, position=0):
         path = path.decode(NATIVE_ENCODING)
         name = name.decode(NATIVE_ENCODING)
         try:
@@ -190,11 +193,11 @@ class FSOperations(Operations):
             return value
 
     @handle_fs_errors
-    def link(self,target,souce):
+    def link(self, target, souce):
         raise UnsupportedError("link")
 
     @handle_fs_errors
-    def listxattr(self,path):
+    def listxattr(self, path):
         path = path.decode(NATIVE_ENCODING)
         try:
             return self.fs.listxattrs(path)
@@ -202,7 +205,7 @@ class FSOperations(Operations):
             return []
 
     @handle_fs_errors
-    def mkdir(self,path,mode):
+    def mkdir(self, path, mode):
         path = path.decode(NATIVE_ENCODING)
         try:
             self.fs.makedir(path,mode)
@@ -210,11 +213,11 @@ class FSOperations(Operations):
             self.fs.makedir(path)
 
     @handle_fs_errors
-    def mknod(self,path,mode,dev):
+    def mknod(self, path, mode, dev):
         raise UnsupportedError("mknod")
 
     @handle_fs_errors
-    def open(self,path,fi):
+    def open(self, path, fi):
         path = path.decode(NATIVE_ENCODING)
         mode = flags_to_mode(fi.flags)
         fi.fh = self._reg_file(self.fs.open(path,mode),path)
@@ -222,7 +225,7 @@ class FSOperations(Operations):
         return 0
 
     @handle_fs_errors
-    def read(self,path,size,offset,fh):
+    def read(self, path, size, offset, fh):
         (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
@@ -233,7 +236,7 @@ class FSOperations(Operations):
             lock.release()
 
     @handle_fs_errors
-    def readdir(self,path,fh=None):
+    def readdir(self, path, fh=None):
         path = path.decode(NATIVE_ENCODING)
         #  If listdir() can return info dicts directly, it will save FUSE 
         #  having to call getinfo() on each entry individually.
@@ -252,11 +255,11 @@ class FSOperations(Operations):
         return entries
 
     @handle_fs_errors
-    def readlink(self,path):
+    def readlink(self, path):
         raise UnsupportedError("readlink")
 
     @handle_fs_errors
-    def release(self,path,fh):
+    def release(self, path, fh):
         (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
@@ -266,7 +269,7 @@ class FSOperations(Operations):
             lock.release()
 
     @handle_fs_errors
-    def removexattr(self,path,name):
+    def removexattr(self, path, name):
         path = path.decode(NATIVE_ENCODING)
         name = name.decode(NATIVE_ENCODING)
         try:
@@ -275,7 +278,7 @@ class FSOperations(Operations):
             raise UnsupportedError("removexattr")
 
     @handle_fs_errors
-    def rename(self,old,new):
+    def rename(self, old, new):
         old = old.decode(NATIVE_ENCODING)
         new = new.decode(NATIVE_ENCODING)
         try:
@@ -292,7 +295,7 @@ class FSOperations(Operations):
         self.fs.removedir(path)
 
     @handle_fs_errors
-    def setxattr(self,path,name,value,options,position=0):
+    def setxattr(self, path, name, value, options, position=0):
         path = path.decode(NATIVE_ENCODING)
         name = name.decode(NATIVE_ENCODING)
         try:
@@ -342,8 +345,13 @@ class FSOperations(Operations):
         self.fs.remove(path)
 
     @handle_fs_errors
-    def utimens(self, path, times=None):
-        raise UnsupportedError("utimens")
+    def utimens(self, path, times=None):        
+        accessed_time, modified_time = times
+        if accessed_time is not None:
+            accessed_time = datetime.datetime.fromtimestamp(accessed_time)
+        if modified_time is not None:
+            modified_time = datetime.datetime.fromtimestamp(modified_time)
+        self.fs.settimes(path, accessed_time, modified_time)         
 
     @handle_fs_errors
     def write(self, path, data, offset, fh):
@@ -358,13 +366,13 @@ class FSOperations(Operations):
         finally:
             lock.release()
 
-    def _get_stat_dict(self,path):
+    def _get_stat_dict(self, path):
         """Build a 'stat' dictionary for the given file."""
         info = self.fs.getinfo(path)
         self._fill_stat_dict(path,info)
         return info
 
-    def _fill_stat_dict(self,path,info):
+    def _fill_stat_dict(self, path, info):
         """Fill default values in the stat dict."""
         uid, gid, pid = fuse_get_context()
         private_keys = [k for k in info if k.startswith("_")]
@@ -379,7 +387,12 @@ class FSOperations(Operations):
         info.setdefault("st_blksize",1024)
         info.setdefault("st_blocks",1)
         #  The interesting stuff
-        mode = info.get("st_mode",0700)
+        if 'st_mode' not in info:
+            if self.fs.isdir(path):
+                info['st_mode'] = 0755
+            else:
+                info['st_mode'] = 0666 
+        mode = info['st_mode']       
         if not statinfo.S_ISDIR(mode) and not statinfo.S_ISREG(mode):
             if self.fs.isdir(path):
                 info["st_mode"] = mode | statinfo.S_IFDIR
@@ -405,7 +418,7 @@ class FSOperations(Operations):
         return info
 
 
-def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**kwds):
+def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
     """Mount the given FS at the given path, using FUSE.
 
     By default, this function spawns a new background process to manage the
@@ -425,11 +438,12 @@ def mount(fs,path,foreground=False,ready_callback=None,unmount_callback=None,**k
         * fsname Name to display in the mount info table
 
     """
+    path = os.path.expanduser(path)
     if foreground:
-        op = FSOperations(fs,on_init=ready_callback,on_destroy=unmount_callback)
-        return FUSE(op,path,raw_fi=True,foreground=foreground,**kwds)
+        op = FSOperations(fs, on_init=ready_callback, on_destroy=unmount_callback)
+        return FUSE(op, path, raw_fi=True, foreground=foreground, **kwds)
     else:
-        mp = MountProcess(fs,path,kwds)
+        mp = MountProcess(fs, path, kwds)
         if ready_callback:
             ready_callback()
         if unmount_callback:
@@ -469,7 +483,7 @@ class MountProcess(subprocess.Popen):
     and a dictionary of options for the underlying FUSE class.
 
     In order to be passed successfully to the new process, the FS object
-    must be pickleable.  This restriction may be lifted in the future.
+    must be pickleable. This restriction may be lifted in the future.
 
     This class has an extra attribute 'path' giving the path to the mounted
     filesystem, and an extra method 'unmount' that will cleanly unmount it
@@ -498,7 +512,7 @@ class MountProcess(subprocess.Popen):
 
     unmount_timeout = 5
 
-    def __init__(self,fs,path,fuse_opts={},nowait=False,**kwds):
+    def __init__(self, fs, path, fuse_opts={}, nowait=False, **kwds):
         self.path = path
         if nowait or kwds.get("close_fds",False):
             cmd = 'from fs.expose.fuse import MountProcess; '
@@ -533,12 +547,12 @@ class MountProcess(subprocess.Popen):
         self.wait()
         tmr.cancel()
 
-    if not hasattr(subprocess.Popen,"terminate"):
+    if not hasattr(subprocess.Popen, "terminate"):
         def terminate(self):
             """Gracefully terminate the subprocess."""
             os.kill(self.pid,signal.SIGTERM)
 
-    if not hasattr(subprocess.Popen,"kill"):
+    if not hasattr(subprocess.Popen, "kill"):
         def kill(self):
             """Forcibly terminate the subprocess."""
             os.kill(self.pid,signal.SIGKILL)
@@ -582,10 +596,10 @@ class MountProcess(subprocess.Popen):
 if __name__ == "__main__":
     import os, os.path
     from fs.tempfs import TempFS
-    mount_point = os.path.join(os.environ["HOME"],"fs.expose.fuse")
+    mount_point = os.path.join(os.environ["HOME"], "fs.expose.fuse")
     if not os.path.exists(mount_point):
         os.makedirs(mount_point)
     def ready_callback():
         print "READY"
-    mount(TempFS(),mount_point,foreground=True,ready_callback=ready_callback)
+    mount(TempFS(), mount_point, foreground=True, ready_callback=ready_callback)
 

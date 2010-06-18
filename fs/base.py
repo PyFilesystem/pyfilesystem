@@ -997,8 +997,7 @@ class SubFS(FS):
 
 
 def flags_to_mode(flags):
-    """Convert an os.O_* flag bitmask into an FS mode string."""
-    print flags
+    """Convert an os.O_* flag bitmask into an FS mode string."""    
     if flags & os.O_EXCL:
          raise UnsupportedError("open",msg="O_EXCL is not supported")
     if flags & os.O_WRONLY:
@@ -1016,6 +1015,5 @@ def flags_to_mode(flags):
         else:
             mode = "r+"
     else:
-        mode = "r"
-    print mode
+        mode = "r"    
     return mode
