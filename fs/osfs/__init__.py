@@ -155,6 +155,10 @@ class OSFS(OSFSXAttrMixin,OSFSWatchMixin,FS):
                 # sometimes windows says this for attempts to remove a dir
                 if os.path.isdir(sys_path):
                     raise ResourceInvalidError(path)
+            if e.errno == errno.EPERM and sys.platform == "darwin":
+                # sometimes OSX says this for attempts to remove a dir
+                if os.path.isdir(sys_path):
+                    raise ResourceInvalidError(path)
             raise
 
     @convert_os_errors
