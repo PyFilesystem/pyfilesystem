@@ -2,7 +2,7 @@
 0.2:
 
     * New FS implementations:
-        * FTPFS:        access a plain old FTP server
+        * FTPFS:   access a plain old FTP server
         * S3FS:    access remote files stored in Amazon S3
         * RPCFS:   access remote files using a simple XML-RPC protocol
         * SFTPFS:  access remote files on a SFTP server
