@@ -85,4 +85,4 @@ PyFilesystem converts all exceptions to a common type, so that you need only wri
 	    return open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
 	fs.errors.ResourceNotFoundError: Resource not found: doesnotexist.txt
 
-All PyFilesystem exceptions are derived from ``fs.errors.FSError``, so you may use that if you want to catch all possible exceptions.
+All PyFilesystem exceptions are derived from :class:`fs.errors.FSError`, so you may use that if you want to catch all possible exceptions.

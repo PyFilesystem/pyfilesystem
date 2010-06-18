@@ -37,7 +37,8 @@ Code Documentation
    multifs.rst
    osfs.rst
    path.rst
-   rpcfsfs.rst
+   remote.rst
+   rpcfs.rst
    s3fs.rst
    sftpfs.rst
    tempfs.rst

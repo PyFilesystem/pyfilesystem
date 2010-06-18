@@ -28,6 +28,12 @@ OS
 --
 An interface to the OS Filesystem. See :mod:`fs.osfs`
 
+
+RPCFS (Remote Procedure Call)
+-----------------------------
+An interface to a file-system serverd over XML RPC, See :mod:`fs.rpcfs` and :mod:`fs.expose.xmlrpc` 
+
+
 Secure FTP (Secure FTP)
 -----------------------
 A secure FTP filesystem. See :mod:`fs.sftpfs`

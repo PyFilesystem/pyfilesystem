@@ -1,2 +1,0 @@
-.. automodule:: fs.wrapfs
-    :members:
