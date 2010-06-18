@@ -27,4 +27,5 @@
     * fs.errors:  updated exception hierarchy, with support for converting
                   to/from standard OSError instances
     * Added cache_hint method to base.py
-
+    * Added settimes method to base implementation
+    * New implementation of print_fs, accesible through tree method on base class
