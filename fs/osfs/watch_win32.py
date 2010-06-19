@@ -17,6 +17,12 @@ import ctypes
 import ctypes.wintypes
 import traceback
 
+try:
+    LPVOID = ctypes.wintypes.LPVOID
+except AttributeError:
+    # LPVOID wasn't defined in Py2.5, guess it was introduced in Py2.6
+    LPVOID = ctypes.c_void_p
+
 from fs.errors import *
 from fs.path import *
 from fs.watch import *
@@ -74,11 +80,11 @@ def _errcheck_dword(value,func,args):
 
 
 class OVERLAPPED(ctypes.Structure):
-    _fields_ = [('Internal', ctypes.wintypes.LPVOID),
-                ('InternalHigh', ctypes.wintypes.LPVOID),
+    _fields_ = [('Internal', LPVOID),
+                ('InternalHigh', LPVOID),
                 ('Offset', ctypes.wintypes.DWORD),
                 ('OffsetHigh', ctypes.wintypes.DWORD),
-                ('Pointer', ctypes.wintypes.LPVOID),
+                ('Pointer', LPVOID),
                 ('hEvent', ctypes.wintypes.HANDLE),
                ]
 
@@ -91,13 +97,13 @@ ReadDirectoryChangesW.restype = ctypes.wintypes.BOOL
 ReadDirectoryChangesW.errcheck = _errcheck_bool
 ReadDirectoryChangesW.argtypes = (
     ctypes.wintypes.HANDLE, # hDirectory
-    ctypes.wintypes.LPVOID, # lpBuffer
+    LPVOID, # lpBuffer
     ctypes.wintypes.DWORD, # nBufferLength
     ctypes.wintypes.BOOL, # bWatchSubtree
     ctypes.wintypes.DWORD, # dwNotifyFilter
     ctypes.POINTER(ctypes.wintypes.DWORD), # lpBytesReturned
     ctypes.POINTER(OVERLAPPED), # lpOverlapped
-    ctypes.wintypes.LPVOID #FileIOCompletionRoutine # lpCompletionRoutine
+    LPVOID #FileIOCompletionRoutine # lpCompletionRoutine
 )
 
 CreateFileW = ctypes.windll.kernel32.CreateFileW
@@ -107,7 +113,7 @@ CreateFileW.argtypes = (
     ctypes.wintypes.LPCWSTR, # lpFileName
     ctypes.wintypes.DWORD, # dwDesiredAccess
     ctypes.wintypes.DWORD, # dwShareMode
-    ctypes.wintypes.LPVOID, # lpSecurityAttributes
+    LPVOID, # lpSecurityAttributes
     ctypes.wintypes.DWORD, # dwCreationDisposition
     ctypes.wintypes.DWORD, # dwFlagsAndAttributes
     ctypes.wintypes.HANDLE # hTemplateFile
@@ -123,7 +129,7 @@ CreateEvent = ctypes.windll.kernel32.CreateEventW
 CreateEvent.restype = ctypes.wintypes.HANDLE
 CreateEvent.errcheck = _errcheck_handle
 CreateEvent.argtypes = (
-    ctypes.wintypes.LPVOID, # lpEventAttributes
+    LPVOID, # lpEventAttributes
     ctypes.wintypes.BOOL, # bManualReset
     ctypes.wintypes.BOOL, # bInitialState
     ctypes.wintypes.LPCWSTR, #lpName
@@ -151,7 +157,7 @@ CreateIoCompletionPort.errcheck = _errcheck_handle
 CreateIoCompletionPort.argtypes = (
     ctypes.wintypes.HANDLE, # FileHandle
     ctypes.wintypes.HANDLE, # ExistingCompletionPort
-    ctypes.wintypes.LPVOID, # CompletionKey
+    LPVOID, # CompletionKey
     ctypes.wintypes.DWORD, # NumberOfConcurrentThreads
 )
 
@@ -160,8 +166,8 @@ GetQueuedCompletionStatus.restype = ctypes.wintypes.BOOL
 GetQueuedCompletionStatus.errcheck = _errcheck_bool
 GetQueuedCompletionStatus.argtypes = (
     ctypes.wintypes.HANDLE, # CompletionPort
-    ctypes.wintypes.LPVOID, # lpNumberOfBytesTransferred
-    ctypes.wintypes.LPVOID, # lpCompletionKey
+    LPVOID, # lpNumberOfBytesTransferred
+    LPVOID, # lpCompletionKey
     ctypes.POINTER(OVERLAPPED), # lpOverlapped
     ctypes.wintypes.DWORD, # dwMilliseconds
 )
