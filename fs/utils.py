@@ -313,7 +313,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
             terminal_colors = True
 
     def write(line):
-        file_out.write(line.encode(file_out.encoding)+'\n')
+        file_out.write(line.encode(file_out.encoding or 'utf-8')+'\n')
         
     def wrap_prefix(prefix):
        if not terminal_colors:
