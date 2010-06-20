@@ -16,6 +16,6 @@ XMLRPC
 ------
 Makes an FS object available over XMLRPC. See :mod:`fs.expose.xmlrpc`
 
-Django Storate
+Django Storage
 --------------
 Connects FS objects to Django. See :mod:`fs.expose.django_storage`
