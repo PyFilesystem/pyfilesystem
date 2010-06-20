@@ -40,6 +40,7 @@ The following methods have default implementations in fs.base.FS and aren't requ
     * :meth:`~fs.base.FS.movedir` Recursively move a directory to a new location
     * :meth:`~fs.base.FS.opendir` Opens a directory and returns an FS object that represents it
     * :meth:`~fs.base.FS.safeopen` Like :meth:`~fs.base.open` but returns a NullFile if the file could not be opened
+    * :meth:`~fs.base.FS.settimes` Sets the accessed and modified times of a path
 
 
 Utility Methods
