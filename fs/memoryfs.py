@@ -429,7 +429,7 @@ class MemoryFS(FS):
         dst_dir,dst_name = pathsplit(dst)
         dst_entry = self._get_dir_entry(dst)
         if dst_entry is not None:
-            raise DestinationExistsError(path)
+            raise DestinationExistsError(dst)
 
         src_dir_entry = self._get_dir_entry(src_dir)
         src_xattrs = src_dir_entry.xattrs.copy()
