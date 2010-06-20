@@ -533,7 +533,6 @@ class FSTestCases(object):
         fs3 = pickle.loads(pickle.dumps(self.fs,-1))
         self.assert_(fs3.isfile("test1"))
 
-
     def test_big_file(self):
         chunk_size = 1024 * 256
         num_chunks = 4
@@ -567,7 +566,7 @@ class FSTestCases(object):
             """Test datetime objects are the same to within the timestamp accuracy"""
             dts1 = time.mktime(d1.timetuple())
             dts2 = time.mktime(d2.timetuple())
-            return dts1 == dts2       
+            return int(dts1) == int(dts2)       
         d1 = datetime.datetime(2010, 6, 20, 11, 0, 9, 987699)
         d2 = datetime.datetime(2010, 7, 5, 11, 0, 9, 500000)                        
         self.fs.createfile('/dates.txt', 'check dates')        

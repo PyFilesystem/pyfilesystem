@@ -126,8 +126,7 @@ class ZipFS(FS):
 
     @synchronize
     def open(self, path, mode="r", **kwargs):
-        path = normpath(relpath(path))
-        self.zip_path = path
+        path = normpath(relpath(path))        
 
         if 'r' in mode:
             if self.zip_mode not in 'ra':

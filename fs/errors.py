@@ -13,12 +13,7 @@ from fs.path import *
 try:
     from functools import wraps
 except ImportError:
-    def wraps(func):
-        def decorator(wfunc):
-            wfunc.__name__ == func.__name__
-            wfunc.__doc__ == func.__doc__
-            wfunc.__module__ == func.__module__
-        return decorator
+    wraps = lambda f: lambda f: f
 
 
 class FSError(Exception):

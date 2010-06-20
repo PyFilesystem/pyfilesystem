@@ -108,7 +108,7 @@ class NullFile(object):
 try:
     from functools import wraps
 except ImportError:
-    wraps = lambda f:f
+    wraps = lambda f: lambda f: f
 
 
 def synchronize(func):
@@ -618,12 +618,12 @@ class FS(object):
         """Returns the size (in bytes) of a resource.
 
         :param path: a path to the resource
-        :rtype:integer
+        :rtype: integer
         :returns: the size of the file
         """
         info = self.getinfo(path)
         size = info.get('size', None)
-        if 'size' is None:
+        if size is None:
             raise OperationFailedError("get size of resource", path)
         return size
 
@@ -843,7 +843,7 @@ class FS(object):
         dir_fs = self.opendir(path)
         return dir_fs
 
-    def tree(self, max_levels=5):
+    def printtree(self, max_levels=5):
         """Prints a tree structure of the FS object to the console
         
         :param max_levels: The maximum sub-directories to display, defaults to
@@ -852,6 +852,7 @@ class FS(object):
         """
         from fs.utils import print_fs                
         print_fs(self, max_levels=max_levels)
+    tree = printtree
     
     def browse(self):
         """Displays the FS tree in a graphical window (requires wxWidgets)"""

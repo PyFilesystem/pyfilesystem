@@ -151,7 +151,6 @@ class DirEntry(object):
         self.created_time = datetime.datetime.now()
         self.modified_time = self.created_time
         self.accessed_time = self.created_time
-        self.st_mode = 0700
         
         self.xattrs = {}
 
@@ -459,8 +458,7 @@ class MemoryFS(FS):
         
 
     @synchronize
-    def _on_close_memory_file(self, open_file, path, value):
-        filepath, filename = pathsplit(path)
+    def _on_close_memory_file(self, open_file, path, value):        
         dir_entry = self._get_dir_entry(path)
         if dir_entry is not None and value is not None:
             dir_entry.data = value            
@@ -468,8 +466,7 @@ class MemoryFS(FS):
             self._unlock_dir_entry(path)
 
     @synchronize
-    def _on_flush_memory_file(self, path, value):
-        filepath, filename = pathsplit(path)
+    def _on_flush_memory_file(self, path, value):        
         dir_entry = self._get_dir_entry(path)
         dir_entry.data = value
         

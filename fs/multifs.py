@@ -55,6 +55,7 @@ directories::
 from fs.base import FS, FSError, synchronize
 from fs.path import *
 from fs import _thread_synchronize_default
+from fs.errors import ResourceNotFoundError
 
 
 class MultiFS(FS):

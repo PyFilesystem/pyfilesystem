@@ -26,7 +26,10 @@ from time import sleep
 import datetime
 import re
 from socket import error as socket_error
-from functools import wraps
+try:
+    from functools import wraps
+except ImportError:
+    wraps = lambda f: lambda f: f
 
 try:
     from cStringIO import StringIO

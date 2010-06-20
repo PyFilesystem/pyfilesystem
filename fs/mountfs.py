@@ -334,6 +334,7 @@ class MountFS(FS):
         path = normpath(path)
         del self.mount_tree[path]
 
+    @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
         path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
