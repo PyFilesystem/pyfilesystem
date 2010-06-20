@@ -180,6 +180,10 @@ class WrapFS(FS):
         return self.wrapped_fs.getinfo(self._encode(path))
 
     @rewrite_errors
+    def settimes(self, path, *args, **kwds):
+        return self.wrapped_fs.settimes(*args,**kwds)
+
+    @rewrite_errors
     def desc(self, path):
         return self.wrapped_fs.desc(self._encode(path))
 
