@@ -78,6 +78,7 @@ class MultiFS(FS):
 
     __repr__ = __str__
 
+    @synchronize
     def __unicode__(self):
         return u"<MultiFS: %s>" % ", ".join(unicode(fs) for fs in self.fs_sequence)
 
@@ -215,6 +216,13 @@ class MultiFS(FS):
             if fs.exists(src):
                 fs.rename(src, dst)
                 return
+        raise ResourceNotFoundError(path)
+
+    @synchronize
+    def settimes(self, path, accessed_time=None, modified_time=None):
+        for fs in self:
+            if fs.exists(path):
+                return fs.settimes(path, accessed_time, modified_time)
         raise ResourceNotFoundError(path)
 
     @synchronize

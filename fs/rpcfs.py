@@ -215,6 +215,10 @@ class RPCFS(FS):
         dst = self.encode_path(dst)
         return self.proxy.rename(src,dst)
 
+    def settimes(self, path, accessed_time, modified_time):
+        path = self.encode_path(path)
+        return self.proxy.settimes(path, accessed_time, modified_time)
+
     def getinfo(self, path):
         path = self.encode_path(path)
         return self.proxy.getinfo(path)

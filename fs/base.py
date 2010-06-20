@@ -110,6 +110,7 @@ try:
 except ImportError:
     wraps = lambda f:f
 
+
 def synchronize(func):
     """Decorator to synchronize a method on self._lock."""
     @wraps(func)
@@ -120,7 +121,6 @@ def synchronize(func):
         finally:
             self._lock.release()
     return acquire_lock
-
 
 class FS(object):
     """The base class for Filesystem abstraction objects.
@@ -182,7 +182,6 @@ class FS(object):
                 self._lock = threading.RLock()
             else:
                 self._lock = DummyLock()
-
 
     def getsyspath(self, path, allow_none=False):
         """Returns the system path (a path recognised by the OS) if present.
@@ -417,21 +416,28 @@ class FS(object):
         raise UnsupportedError("rename resource")
 
     def settimes(self, path, accessed_time=None, modified_time=None):
-        """Set the access time and modifie time of a file
+        """Set the accessed time and modified time of a file
         
         :param path: path to a file
-        :param access_time: epoch time of file access
-        :param modified_time: epock time of file modification
-        """
+        :param accessed_time: a datetime object the file was accessed (defaults to current time) 
+        :param modified_time: a datetime object the file was modified (defaults to current time)
         
-        if self.hassyspath(path):
-            sys_path = self.getsyspath(path)
-            os.utime(sys_path, accessed_time, modified_time)
+        """
+                
+        sys_path = self.getsyspath(path, allow_none=True)
+        if sys_path is not None:            
+            now = datetime.datetime.now()
+            if accessed_time is None:
+                accessed_time = now
+            if modified_time is None:
+                modified_time = now                         
+            accessed_time = int(time.mktime(accessed_time.timetuple()))
+            modified_time = int(time.mktime(modified_time.timetuple()))
+            os.utime(sys_path, (accessed_time, modified_time))
             return True
         else:
             raise UnsupportedError("settimes")
-                
-            
+                   
     def getinfo(self, path):
         """Returns information for a path as a dictionary. The exact content of
         this dictionary will vary depending on the implementation, but will
@@ -441,7 +447,6 @@ class FS(object):
         :rtype: dict
         """
         raise UnsupportedError("get resource info")
-
 
     def desc(self, path):
         """Returns short descriptive text regarding a path. Intended mainly as
@@ -461,7 +466,6 @@ class FS(object):
             return "OS dir, maps to %s" % sys_path
         else:
             return "OS file, maps to %s" % sys_path
-
 
     def getcontents(self, path):
         """Returns the contents of a file as a string.
@@ -511,7 +515,6 @@ class FS(object):
             raise ResourceNotFoundError(path)
         sub_fs = SubFS(self, path)
         return sub_fs
-
 
     def walk(self,
              path="/",
@@ -578,7 +581,6 @@ class FS(object):
         else:
             raise ValueError("Search should be 'breadth' or 'depth'")
 
-
     def walkfiles(self,
                   path="/",
                   wildcard=None,
@@ -597,7 +599,6 @@ class FS(object):
             for f in files:
                 yield pathjoin(path, f)
 
-
     def walkdirs(self,
                  path="/",
                  wildcard=None,
@@ -612,8 +613,6 @@ class FS(object):
         """
         for p, files in self.walk(path, wildcard=wildcard, search=search, ignore_errors=ignore_errors):
             yield p
-
-
 
     def getsize(self, path):
         """Returns the size (in bytes) of a resource.
@@ -714,7 +713,6 @@ class FS(object):
         self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
         self.remove(src)
 
-
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """moves a directory from one location to another.
 
@@ -772,8 +770,6 @@ class FS(object):
 
             self.removedir(dirname)
 
-
-
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """copies a directory from one location to another.
 
@@ -820,7 +816,6 @@ class FS(object):
                 dst_filename = pathjoin(dst_dirpath, filename)
                 copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
-
     def isdirempty(self, path):
         """Check if a directory is empty (contains no files or sub-directories)
 
@@ -834,7 +829,6 @@ class FS(object):
         except StopIteration:
             return True
         return False
-
 
     def makeopendir(self, path, recursive=False):
         """makes a directory (if it doesn't exist) and returns an FS object for
@@ -858,8 +852,6 @@ class FS(object):
         """
         from fs.utils import print_fs                
         print_fs(self, max_levels=max_levels)
-        
-    
     
     def browse(self):
         """Displays the FS tree in a graphical window (requires wxWidgets)"""
@@ -964,6 +956,9 @@ class SubFS(FS):
                     self.removedir(dirname(path),recursive=True)
                 except DirectoryNotEmptyError:
                     pass
+
+    def settimes(self, path, accessed_time=None, modified_time=None):
+        return self.parent.settimes(self._delegate(path), accessed_time, modified_time)
 
     def getinfo(self, path):
         return self.parent.getinfo(self._delegate(path))

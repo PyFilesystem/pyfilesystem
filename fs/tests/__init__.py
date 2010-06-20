@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
 from fs.base import *
 
+import datetime
 import unittest
 import os, os.path
 import pickle
@@ -560,6 +561,26 @@ class FSTestCases(object):
                     assert False, "bigfile was corrupted"
         finally:
             f.close()
+
+    def test_settimes(self):        
+        def cmp_datetimes(d1, d2):
+            """Test datetime objects are the same to within the timestamp accuracy"""
+            dts1 = time.mktime(d1.timetuple())
+            dts2 = time.mktime(d2.timetuple())
+            return dts1 == dts2       
+        d1 = datetime.datetime(2010, 6, 20, 11, 0, 9, 987699)
+        d2 = datetime.datetime(2010, 7, 5, 11, 0, 9, 500000)                        
+        self.fs.createfile('/dates.txt', 'check dates')        
+        # If the implementation supports settimes, check that the times
+        # can be set and then retrieved
+        try:
+            self.fs.settimes('/dates.txt', d1, d2)                
+        except UnsupportedError:
+            pass
+        else:
+            info = self.fs.getinfo('/dates.txt')
+            self.assertTrue(cmp_datetimes(d1, info['accessed_time']))
+            self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
 
 class ThreadingTestCases:

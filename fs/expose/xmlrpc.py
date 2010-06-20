@@ -85,6 +85,10 @@ class RPCFSInterface(object):
         dst = self.decode_path(dst)
         return self.fs.rename(src, dst)
 
+    def settimes(self, path, accessed_time, modified_time):
+        path = self.decode_path(path)
+        return self.fs.settimes(path, accessed_time, modified_time)
+
     def getinfo(self, path):
         path = self.decode_path(path)
         return self.fs.getinfo(path)

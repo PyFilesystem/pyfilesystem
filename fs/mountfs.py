@@ -326,13 +326,22 @@ class MountFS(FS):
 
     @synchronize
     def unmount(self, path):
-        """Unmounds a path.
+        """Unmounts a path.
 
         :param path: Path to unmount
 
         """
         path = normpath(path)
         del self.mount_tree[path]
+
+    def settimes(self, path, accessed_time=None, modified_time=None):
+        path = normpath(path)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            raise ResourceNotFoundError(path)
+        if fs is self:
+            raise UnsupportedError("settimes")
+        fs.settimes(delegate_path, accessed_time, modified_time)
 
     @synchronize
     def getinfo(self, path):
