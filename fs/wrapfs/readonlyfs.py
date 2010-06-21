@@ -7,6 +7,7 @@ An FS wrapper class for blocking operations that would modify the FS.
 """
 
 from fs.wrapfs import WrapFS
+from fs.errors import UnsupportedError, NoSysPathError
 
 class ReadOnlyFS(WrapFS):
     """ Makes a FS object read only. Any operation that could potentially modify
