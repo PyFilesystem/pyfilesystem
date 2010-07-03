@@ -69,9 +69,6 @@ class NullFile(object):
     def __init__(self):
         self.closed = False
 
-    def close(self):
-        self.closed = True
-
     def flush(self):
         pass
 
@@ -325,12 +322,12 @@ class FS(object):
                 return pathjoin(path, p)
 
         return [(p, self.getinfo(get_path(p)))
-                    for p in self._listdir( path,
-                                            widcard=wildcard,
-                                            full=full,
-                                            absolute=absolute,
-                                            dirs_only=dirs_only,
-                                            files_only=files_only )]
+                    for p in self._listdir_helper(path,
+                                                  widcard=wildcard,
+                                                  full=full,
+                                                  absolute=absolute,
+                                                  dirs_only=dirs_only,
+                                                  files_only=files_only)]
 
     def _listdir_helper(self, path, entries,
                               wildcard=None,
