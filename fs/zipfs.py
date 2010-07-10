@@ -153,7 +153,7 @@ class ZipFS(FS):
     def getcontents(self, path):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
-        path = normpath(path)
+        path = normpath(relpath(path))
         try:
             contents = self.zf.read(path.encode(self.encoding))
         except KeyError:
