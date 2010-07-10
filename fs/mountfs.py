@@ -43,6 +43,8 @@ Now both filesystems can be accessed with the same path structure::
 """
 
 from fs.base import *
+from fs.errors import *
+from fs.path import *
 from fs.objecttree import ObjectTree
 from fs import _thread_synchronize_default
 

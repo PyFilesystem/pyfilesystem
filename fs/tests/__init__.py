@@ -12,6 +12,8 @@ import logging
 logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
 from fs.base import *
+from fs.path import *
+from fs.errors import *
 
 import datetime
 import unittest

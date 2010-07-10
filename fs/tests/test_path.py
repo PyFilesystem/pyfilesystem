@@ -46,12 +46,12 @@ class TestPathFunctions(unittest.TestCase):
         for testpaths in tests:
             paths = testpaths[:-1]
             result = testpaths[-1]
-            self.assertEqual(fs.pathjoin(*paths), result)
+            self.assertEqual(pathjoin(*paths), result)
 
-        self.assertRaises(ValueError, fs.pathjoin, "../")
-        self.assertRaises(ValueError, fs.pathjoin, "./../")
-        self.assertRaises(ValueError, fs.pathjoin, "a/b", "../../..")
-        self.assertRaises(ValueError, fs.pathjoin, "a/b/../../../d")
+        self.assertRaises(ValueError, pathjoin, "../")
+        self.assertRaises(ValueError, pathjoin, "./../")
+        self.assertRaises(ValueError, pathjoin, "a/b", "../../..")
+        self.assertRaises(ValueError, pathjoin, "a/b/../../../d")
 
     def test_relpath(self):
         tests = [   ("/a/b", "a/b"),
@@ -59,7 +59,7 @@ class TestPathFunctions(unittest.TestCase):
                     ("/", "") ]
 
         for path, result in tests:
-            self.assertEqual(fs.relpath(path), result)
+            self.assertEqual(relpath(path), result)
 
     def test_abspath(self):
         tests = [   ("/a/b", "/a/b"),
@@ -67,7 +67,7 @@ class TestPathFunctions(unittest.TestCase):
                     ("/", "/") ]
 
         for path, result in tests:
-            self.assertEqual(fs.abspath(path), result)
+            self.assertEqual(abspath(path), result)
 
     def test_iteratepath(self):
         tests = [   ("a/b", ["a", "b"]),
@@ -92,7 +92,7 @@ class TestPathFunctions(unittest.TestCase):
                     ("foo/bar/baz", ("foo/bar", "baz")),
                 ]
         for path, result in tests:
-            self.assertEqual(fs.pathsplit(path), result)
+            self.assertEqual(pathsplit(path), result)
 
     def test_recursepath(self):
         self.assertEquals(recursepath("/"),["/"])

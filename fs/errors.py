@@ -5,15 +5,33 @@ All Exception classes are derived from `FSError` which can be used as a catch-al
 
 """
 
+__all__ = ['FSError',
+           'CreateFailedError',
+           'PathError',
+           'OperationFailedError',
+           'UnsupportedError',
+           'RemoteConnectionError',
+           'StorageSpaceError',
+           'PermissionDeniedError',
+           'FSClosedError',
+           'OperationTimeoutError',
+           'ResourceError',
+           'NoSysPathError',
+           'ResourceNotFoundError',
+           'ResourceInvalidError',           
+           'DestinationExistsError',
+           'DirectoryNotEmptyError',
+           'ParentDirectoryMissingError',
+           'ResourceLockedError',
+           'convert_fs_errors',
+           'convert_os_errors'
+           ]
+
 import sys
 import errno
 
 from fs.path import *
-
-try:
-    from functools import wraps
-except ImportError:
-    wraps = lambda f: lambda f: f
+from fs.functools import wraps
 
 
 class FSError(Exception):
@@ -39,6 +57,11 @@ class FSError(Exception):
 
     def __getstate__(self):
        return self.__dict__.copy()
+
+
+class CreateFailedError(FSError):
+    """An exception thrown when a FS could not be created"""
+    default_message = "Unable to create filesystem"
 
 
 class PathError(FSError):

@@ -19,6 +19,8 @@ from boto.s3.prefix import Prefix
 from boto.exception import S3ResponseError
 
 from fs.base import *
+from fs.path import *
+from fs.errors import *
 from fs.remote import *
 
 

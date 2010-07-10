@@ -11,6 +11,8 @@ class from the :mod:`fs.expose.xmlrpc` module.
 import xmlrpclib
 
 from fs.base import *
+from fs.errors import *
+from fs.path import *
 
 from StringIO import StringIO
 if hasattr(StringIO,"__exit__"):

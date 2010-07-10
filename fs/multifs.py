@@ -54,6 +54,7 @@ directories::
 
 from fs.base import FS, FSError, synchronize
 from fs.path import *
+from fs.errors import *
 from fs import _thread_synchronize_default
 from fs.errors import ResourceNotFoundError
 

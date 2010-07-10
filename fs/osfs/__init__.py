@@ -16,8 +16,10 @@ For example, to print all the files and directories in the OS root::
 import os
 import sys
 import errno
+import datetime
 
 from fs.base import *
+from fs.errors import *
 from fs.path import *
 from fs import _thread_synchronize_default
 

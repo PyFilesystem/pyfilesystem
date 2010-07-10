@@ -12,6 +12,7 @@ import tempfile
 
 from fs.osfs import OSFS
 from fs.errors import *
+
 from fs import _thread_synchronize_default
 
 class TempFS(OSFS):

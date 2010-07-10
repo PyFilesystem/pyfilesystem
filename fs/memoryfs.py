@@ -11,8 +11,9 @@ If you open a file from a `memoryfs` you will get back a StringIO object from th
 """
 
 import datetime
-from fs.path import iteratepath
+from fs.path import iteratepath, pathsplit, normpath
 from fs.base import *
+from fs.errors import *
 from fs import _thread_synchronize_default
 
 try:
@@ -129,7 +130,6 @@ class MemoryFile(object):
     def __exit__(self,exc_type,exc_value,traceback):
         self.close()
         return False
-
 
 
 class DirEntry(object):
@@ -507,8 +507,7 @@ class MemoryFS(FS):
             info['size'] = len(dir_entry.data or '')
             info['st_mode'] = 0666
             
-        return info
-    
+        return info    
     
     @synchronize
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):

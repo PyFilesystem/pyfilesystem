@@ -7,6 +7,7 @@ An FS wrapper class for hiding dot-files in directory listings.
 """
 
 from fs.wrapfs import WrapFS
+from fs.path import *
 
 
 class HideDotFilesFS(WrapFS):

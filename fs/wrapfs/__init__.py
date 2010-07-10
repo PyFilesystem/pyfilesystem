@@ -20,6 +20,8 @@ from fnmatch import fnmatch
 
 from fs.base import FS, threading, synchronize
 from fs.errors import *
+from fs.functools import wraps
+
 
 def rewrite_errors(func):
     """Re-write paths in errors raised by wrapped FS objects."""

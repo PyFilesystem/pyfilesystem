@@ -10,7 +10,8 @@ __all__ = ['FTPFS']
 
 import fs
 from fs.base import *
-from fs.path import pathsplit
+from fs.errors import *
+from fs.path import pathsplit, abspath, dirname, recursepath, normpath
 
 from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
 
@@ -26,10 +27,7 @@ from time import sleep
 import datetime
 import re
 from socket import error as socket_error
-try:
-    from functools import wraps
-except ImportError:
-    wraps = lambda f: lambda f: f
+from fs.functools import wraps
 
 try:
     from cStringIO import StringIO

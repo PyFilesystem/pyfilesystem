@@ -16,6 +16,7 @@ except ImportError:
 
 from fs.base import FS
 from fs.wrapfs import WrapFS
+from fs.path import *
 
 
 class LazyFS(WrapFS):

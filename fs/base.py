@@ -10,6 +10,13 @@ start by sublcassing the base FS class.
 
 """
 
+__all__ = ['DummyLock',
+           'silence_fserrors',
+           'NullFile',
+           'synchronize',
+           'FS',
+           'flags_to_mode']
+
 import os, os.path
 import sys
 import shutil
@@ -23,9 +30,10 @@ except ImportError:
 
 from fs.path import *
 from fs.errors import *
+from fs.functools import wraps
 
 
-class DummyLock:
+class DummyLock(object):
     """A dummy lock object that doesn't do anything.
 
     This is used as a placeholder when locking is disabled.  We can't
@@ -102,11 +110,6 @@ class NullFile(object):
     def writelines(self, *args, **kwargs):
         pass
 
-try:
-    from functools import wraps
-except ImportError:
-    wraps = lambda f: lambda f: f
-
 
 def synchronize(func):
     """Decorator to synchronize a method on self._lock."""
@@ -118,6 +121,7 @@ def synchronize(func):
         finally:
             self._lock.release()
     return acquire_lock
+
 
 class FS(object):
     """The base class for Filesystem abstraction objects.
@@ -489,7 +493,7 @@ class FS(object):
         f = None
         try:
             f = self.open(path, 'wb')
-            if hasattr(data,"read"):
+            if hasattr(data, "read"):
                 chunk = data.read(1024*512)
                 while chunk:
                     f.write(chunk)

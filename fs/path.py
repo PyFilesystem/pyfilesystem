@@ -269,6 +269,7 @@ def forcedir(path):
         return path + '/'
     return path
 
+
 def frombase(path1, path2):
     if not isprefix(path1, path2):
         raise ValueError("path1 must be a prefix of path2")

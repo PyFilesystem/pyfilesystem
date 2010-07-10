@@ -4,12 +4,21 @@ The `utils` module provides a number of utility functions that don't belong in t
 
 """
 
+__all__ = ['copyfile',
+           'movefile',
+           'movedir',
+           'copydir',
+           'countbytes',
+           'find_duplicates',
+           'print_fs']
+
 import shutil
 import os
 import sys
 from fs.mountfs import MountFS
 from fs.path import pathjoin, pathsplit
 from fs.errors import DestinationExistsError
+
 
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=16384):

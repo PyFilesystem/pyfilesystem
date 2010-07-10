@@ -7,8 +7,10 @@ A FS object that represents the contents of a Zip file
 """
 
 from fs.base import *
+from fs.path import *
+from fs.errors import *
 
-from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
+from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED, BadZipfile, LargeZipFile
 from memoryfs import MemoryFS
 
 try:
@@ -17,6 +19,17 @@ except ImportError:
     from StringIO import StringIO
 
 import tempfs
+
+
+class ZipOpenError(CreateFailedError):
+    """Thrown when the zip file could not be opened"""
+    pass
+
+
+class ZipMissingError(CreateFailedError):
+    """Thrown when the requested zip file does not exist"""
+    pass
+
 
 class _TempWriteFile(object):
 
@@ -38,6 +51,7 @@ class _TempWriteFile(object):
         self._file.close()
         self.close_callback(self.filename)
 
+
 class _ExceptionProxy(object):
 
     """A placeholder for an object that may no longer be used."""
@@ -50,6 +64,7 @@ class _ExceptionProxy(object):
 
     def __nonzero__(self):
         return False
+
 
 class ZipFS(FS):
 
@@ -64,6 +79,8 @@ class ZipFS(FS):
         :param allow_zip_64: -- Set to True to use zip files greater than 2 GB, default is False
         :param encoding: --  The encoding to use for unicode filenames
         :param thread_synchronize: -- Set to True (default) to enable thread-safety
+        :raises ZipOpenError: Thrown when the zip file could not be opened
+        :raises ZipMissingError: Thrown when the zip file does not exist (derived from ZipOpenError)
 
         """
         super(ZipFS, self).__init__(thread_synchronize=thread_synchronize)
@@ -81,8 +98,16 @@ class ZipFS(FS):
         self.encoding = encoding
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allow_zip_64)
-        except IOError:
-            raise ResourceNotFoundError(str(zip_file), msg="Zip file does not exist: %(path)s")
+        except BadZipfile, bzf:            
+            raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
+                               details=bzf)
+        except IOError, ioe:
+            if str(ioe).startswith('[Errno 22] Invalid argument'):
+                raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
+                                   details=bzf)
+            raise ZipMissingError("Zip file not found (%s)" % str(zip_file),
+                                  details=ioe)
+                
         self.zip_path = str(zip_file)
 
         self.temp_fs = None

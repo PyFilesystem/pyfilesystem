@@ -8,13 +8,16 @@ Filesystem accessing an SFTP server (via paramiko)
 
 import datetime
 import stat as statinfo
+import threading
 
 import paramiko
 
 from fs.base import *
+from fs.path import *
+from fs.errors import *
 
 # SFTPClient appears to not be thread-safe, so we use an instance per thread
-if hasattr(threading,"local"):
+if hasattr(threading, "local"):
     thread_local = threading.local
 else:
     class thread_local(object):
