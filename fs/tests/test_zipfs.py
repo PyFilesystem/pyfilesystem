@@ -9,6 +9,7 @@ import os
 import random
 import zipfile
 import tempfile
+import shutil
 
 import fs.tests
 from fs.path import *
@@ -155,4 +156,23 @@ class TestAppendZipFS(TestWriteZipFS):
         makefile("foo/second.txt", "hai")
 
         zip_fs.close()
+
+class TestZipFSErrors(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir)
+
+    def test_bogus_zipfile(self):
+        badzip = os.path.join(self.workdir,"bad.zip")
+        f = open(badzip,"wb")
+        f.write("I'm not really a zipfile")
+        f.close()
+        self.assertRaises(zipfs.ZipOpenError,zipfs.ZipFS,badzip)
+
+    def test_missing_zipfile(self):
+        missingzip = os.path.join(self.workdir,"missing.zip")
+        self.assertRaises(zipfs.ZipMissingError,zipfs.ZipFS,missingzip)
 
