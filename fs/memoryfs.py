@@ -306,8 +306,9 @@ class MemoryFS(FS):
             parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
         
 
+    @synchronize
     def _orphan_files(self, file_dir_entry):
-        for f in file_dir_entry.open_files:
+        for f in file_dir_entry.open_files[:]:
             f.close()
 
     @synchronize
@@ -414,7 +415,6 @@ class MemoryFS(FS):
             parent_dir = self._get_dir_entry(pathname)
             del parent_dir.contents[dirname]
 
-
     @synchronize
     def rename(self, src, dst):
         src_dir,src_name = pathsplit(src)
@@ -441,7 +441,7 @@ class MemoryFS(FS):
         dst_dir_entry.xattrs.update(src_xattrs)
         del src_dir_entry.contents[src_name]
 
-
+    @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
         now = datetime.datetime.now()
         if accessed_time is None:
@@ -456,7 +456,6 @@ class MemoryFS(FS):
             return True
         return False
         
-
     @synchronize
     def _on_close_memory_file(self, open_file, path, value):        
         dir_entry = self._get_dir_entry(path)
@@ -473,8 +472,7 @@ class MemoryFS(FS):
     @synchronize
     def _on_modify_memory_file(self, path):
         dir_entry = self._get_dir_entry(path)
-        dir_entry.modified_time = datetime.datetime.now()
-        
+        dir_entry.modified_time = datetime.datetime.now()        
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):

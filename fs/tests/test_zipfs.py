@@ -174,5 +174,5 @@ class TestZipFSErrors(unittest.TestCase):
 
     def test_missing_zipfile(self):
         missingzip = os.path.join(self.workdir,"missing.zip")
-        self.assertRaises(zipfs.ZipMissingError,zipfs.ZipFS,missingzip)
+        self.assertRaises(zipfs.ZipNotFoundError,zipfs.ZipFS,missingzip)
 

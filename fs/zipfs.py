@@ -26,7 +26,7 @@ class ZipOpenError(CreateFailedError):
     pass
 
 
-class ZipMissingError(CreateFailedError):
+class ZipNotFoundError(CreateFailedError):
     """Thrown when the requested zip file does not exist"""
     pass
 
@@ -80,7 +80,7 @@ class ZipFS(FS):
         :param encoding: --  The encoding to use for unicode filenames
         :param thread_synchronize: -- Set to True (default) to enable thread-safety
         :raises ZipOpenError: Thrown when the zip file could not be opened
-        :raises ZipMissingError: Thrown when the zip file does not exist (derived from ZipOpenError)
+        :raises ZipNotFoundError: Thrown when the zip file does not exist (derived from ZipOpenError)
 
         """
         super(ZipFS, self).__init__(thread_synchronize=thread_synchronize)
@@ -105,7 +105,7 @@ class ZipFS(FS):
             if str(ioe).startswith('[Errno 22] Invalid argument'):
                 raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                    details=bzf)
-            raise ZipMissingError("Zip file not found (%s)" % str(zip_file),
+            raise ZipNotFoundError("Zip file not found (%s)" % str(zip_file),
                                   details=ioe)
                 
         self.zip_path = str(zip_file)

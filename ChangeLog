@@ -31,3 +31,6 @@
     * New implementation of print_fs, accessible through tree method on base class
 
 0.4:
+
+	* Modified listdir and walk methods to accept callables as well as strings
+		for wildcards

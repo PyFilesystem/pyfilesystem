@@ -15,8 +15,9 @@ standard unix shell functionality of hiding dot-files in directory listings.
 
 """
 
+import re
 import sys
-from fnmatch import fnmatch
+import fnmatch
 
 from fs.base import FS, threading, synchronize
 from fs.errors import *
@@ -146,17 +147,22 @@ class WrapFS(FS):
     @rewrite_errors
     def listdir(self, path="", **kwds):
         wildcard = kwds.pop("wildcard","*")
+        if wildcard is None:
+            wildcard = lambda fn:True
+        elif not callable(wildcard):
+            wildcard_re = re.compile(fnmatch.translate(wildcard))
+            wildcard = lambda fn:bool (wildcard_re.match(fn))         
         info = kwds.get("info",False)
         entries = []
         for e in self.wrapped_fs.listdir(self._encode(path),**kwds):
             if info:
                 e = e.copy()
                 e["name"] = self._decode(e["name"])
-                if wildcard is not None and not fnmatch(e["name"],wildcard):
+                if not wildcard(e["name"]):
                     continue
             else:
                 e = self._decode(e)
-                if wildcard is not None and not fnmatch(e,wildcard):
+                if not wildcard(e):
                     continue
             entries.append(e) 
         return entries

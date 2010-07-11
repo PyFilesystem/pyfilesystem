@@ -23,6 +23,7 @@ import shutil
 import fnmatch
 import datetime
 import time
+import re
 try:
     import threading
 except ImportError:
@@ -49,7 +50,6 @@ class DummyLock(object):
     def release(self):
         """Releasing a DummyLock always succeeds."""
         pass
-
 
 
 def silence_fserrors(f, *args, **kwargs):
@@ -282,7 +282,7 @@ class FS(object):
         :param path: root of the path to list
         :type path: string
         :param wildcard: Only returns paths that match this wildcard
-        :type wildcard: string
+        :type wildcard: string containing a wildcard, or a callable that accepts a path and returns a boolean
         :param full: returns full paths (relative to the root)
         :type full: bool
         :param absolute: returns absolute paths (paths begining with /)
@@ -350,8 +350,10 @@ class FS(object):
             raise ValueError("dirs_only and files_only can not both be True")
 
         if wildcard is not None:
-            match = fnmatch.fnmatch
-            entries = [p for p in entries if match(p, wildcard)]
+            if not callable(wildcard):
+                wildcard_re = re.compile(fnmatch.translate(wildcard))
+                wildcard = lambda fn:bool (wildcard_re.match(fn))          
+            entries = [p for p in entries if wildcard(p)]
 
         if dirs_only:
             entries = [p for p in entries if self.isdir(pathjoin(path, p))]
@@ -529,13 +531,28 @@ class FS(object):
 
         :param path: root path to start walking
         :param wildcard: if given, only return files that match this wildcard
+        :type wildcard: A string containing a wildcard (e.g. *.txt) or a callable that takes the file path and returns a boolean
         :param dir_wildcard: if given, only walk directories that match the wildcard
+        :type dir_wildcard: A string containing a wildcard (e.g. *.txt) or a callable that takes the directory name and returns a boolean
         :param search: -- a string dentifying the method used to walk the directories. There are two such methods:
             * 'breadth' Yields paths in the top directories first
             * 'depth' Yields the deepest paths first
         :param ignore_errors: ignore any errors reading the directory
 
         """
+        
+        
+        if wildcard is None:
+            wildcard = lambda f:True
+        elif not callable(wildcard):
+            wildcard_re = re.compile(fnmatch.translate(wildcard))
+            wildcard = lambda fn:bool (wildcard_re.match(fn))
+            
+        if dir_wildcard is None:
+            dir_wildcard = lambda f:True
+        elif not callable(dir_wildcard):
+            dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
+            dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))                    
         
         def listdir(path, *args, **kwargs):
             if ignore_errors:
@@ -547,26 +564,20 @@ class FS(object):
                 return self.listdir(path, *args, **kwargs)
         
         if search == "breadth":
+            
             dirs = [path]
             while dirs:
                 current_path = dirs.pop()
-
                 paths = []
                 for filename in listdir(current_path):
-
                     path = pathjoin(current_path, filename)
-                    if self.isdir(path):
-                        if dir_wildcard is not None:
-                            if fnmatch.fnmatch(path, dir_wilcard):
-                                dirs.append(path)
-                        else:
-                            dirs.append(path)
-                    else:
-                        if wildcard is not None:
-                            if fnmatch.fnmatch(path, wildcard):
-                                paths.append(filename)
-                        else:
+                    if self.isdir(path):                        
+                        if dir_wildcard(path):
+                            dirs.append(path)                        
+                    else:                        
+                        if wildcard(filename):
                             paths.append(filename)
+                        
                 yield (current_path, paths)
 
         elif search == "depth":
@@ -579,6 +590,7 @@ class FS(object):
 
             for p in recurse(path):
                 yield p
+                
         else:
             raise ValueError("Search should be 'breadth' or 'depth'")
 
@@ -588,11 +600,13 @@ class FS(object):
                   dir_wildcard=None,
                   search="breadth",
                   ignore_errors=False ):
-        """Like the 'walk' method, but just yields files.
+        """Like the 'walk' method, but just yields file paths.
 
         :param path: root path to start walking
         :param wildcard: if given, only return files that match this wildcard
+        :type wildcard: A string containing a wildcard (e.g. *.txt) or a callable that takes the file path and returns a boolean
         :param dir_wildcard: if given, only walk directories that match the wildcard
+        :type dir_wildcard: A string containing a wildcard (e.g. *.txt) or a callable that takes the directory name and returns a boolean
         :param search: same as walk method
         :param ignore_errors: ignore any errors reading the directory
         """
@@ -609,6 +623,7 @@ class FS(object):
 
         :param path: root path to start walking
         :param wildcard: if given, only return dictories that match this wildcard
+        :type wildcard: A string containing a wildcard (e.g. *.txt) or a callable that takes the directory name and returns a boolean
         :param search: same as the walk method
         :param ignore_errors: ignore any errors reading the directory
         """
