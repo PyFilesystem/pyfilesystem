@@ -104,7 +104,7 @@ class ZipFS(FS):
         except IOError, ioe:
             if str(ioe).startswith('[Errno 22] Invalid argument'):
                 raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
-                                   details=bzf)
+                                   details=ioe)
             raise ZipNotFoundError("Zip file not found (%s)" % str(zip_file),
                                   details=ioe)
                 
