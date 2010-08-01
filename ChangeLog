@@ -1,5 +1,5 @@
 
-0.2:
+0.3:
 
     * New FS implementations:
         * FTPFS:   access a plain old FTP server
