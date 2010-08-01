@@ -1,4 +1,11 @@
 
+0.4:
+
+    * New FS implementations (under fs.contrib):
+        * BigFS:   read contents of a BIG file (C&C game file format)
+        * DAVFS:   access a remote files stored on a WebDAV server 
+
+
 0.3:
 
     * New FS implementations:
