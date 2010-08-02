@@ -7,6 +7,10 @@
 This module provides a relatively-complete WebDAV Level 1 client that exposes
 a WebDAV server as an FS object.  Locks are not currently supported.
 
+Requires the dexml module:
+
+    http://pypi.python.org/pypi/dexml/
+
 """
 
 import os
