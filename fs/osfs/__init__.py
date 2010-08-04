@@ -92,7 +92,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         if sys.platform == "win32":
             if not root_path.startswith("\\\\?\\"):
                 root_path = u"\\\\?\\" + root_path
-            if not root_path.endswith("\\"):
+            #  If it points at the root of a drive, it needs a trailing slash.
+            if len(root_path) == 6:
                 root_path = root_path + "\\"
 
         if create:
@@ -137,9 +138,11 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         
         """
         path = os.path.normpath(os.path.abspath(path))
-        prefix = os.path.normcase(self.root_path) + os.path.sep
+        prefix = os.path.normcase(self.root_path)
+        if not prefix.endswith(os.path.sep):
+            prefix += os.path.sep
         if not os.path.normcase(path).startswith(prefix):
-            raise ValueError("path not within this FS: %s" % (path,))
+            raise ValueError("path not within this FS: %s (%s)" % (os.path.normcase(path),prefix))
         return path[len(self.root_path):]
 
     @convert_os_errors
