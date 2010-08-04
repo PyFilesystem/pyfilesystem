@@ -64,13 +64,13 @@ from fs.path import *
 from fs.functools import wraps
 
 try:
-    import dokan_ctypes as dokan
+    import dokan_ctypes as libdokan
 except NotImplementedError:
     raise ImportError("Dokan found but not usable")
 
 
-DokanMain = dokan.DokanMain
-DokanOperations = dokan.DokanOperations
+DokanMain = libdokan.DokanMain
+DokanOperations = libdokan.DokanOperations
 
 #  Options controlling the behaiour of the Dokan filesystem
 DOKAN_OPTION_DEBUG = 1
@@ -95,6 +95,16 @@ FILE_SHARE_WRITE = 0x02
 FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
 FILE_FLAG_OVERLAPPED = 0x40000000
 
+FILE_ATTRIBUTE_ARCHIVE = 32
+FILE_ATTRIBUTE_COMPRESSED = 2048
+FILE_ATTRIBUTE_DIRECTORY = 16
+FILE_ATTRIBUTE_HIDDEN = 2
+FILE_ATTRIBUTE_NORMAL = 128
+FILE_ATTRIBUTE_OFFLINE = 4096
+FILE_ATTRIBUTE_READONLY = 1
+FILE_ATTRIBUTE_SYSTEM = 4
+FILE_ATTRIBUTE_TEMPORARY = 4
+
 CREATE_NEW = 1
 CREATE_ALWAYS = 2
 OPEN_EXISTING = 3
@@ -104,8 +114,11 @@ TRUNCATE_EXISTING = 5
 GENERIC_READ = 128
 GENERIC_WRITE = 1180054
 
-STARTUP_TIME = time.time()
+#  Some useful per-process global information
 NATIVE_ENCODING = sys.getfilesystemencoding()
+
+DATETIME_ZERO = datetime.datetime(1,1,1,0,0,0)
+DATETIME_STARTUP = datetime.datetime.now()
 
 
 def handle_fs_errors(func):
@@ -148,6 +161,7 @@ class FSOperations(DokanOperations):
         self._files_by_handle = {}
         self._files_lock = threading.Lock()
         self._next_handle = 100
+        #  TODO: do we need this for dokan?  It's a hangover from FUSE.
         #  Dokan expects a succesful write() to be reflected in the file's
         #  reported size, but the FS might buffer writes and prevent this.
         #  We explicitly keep track of the size FUSE expects a file to be.
@@ -184,7 +198,8 @@ class FSOperations(DokanOperations):
         finally:
             self._files_lock.release()
 
-    def unmount(self, info):
+    def Unmount(self, info):
+        raise ValueError("HERE")
         if self._on_unmount:
             self._on_unmount()
 
@@ -199,6 +214,7 @@ class FSOperations(DokanOperations):
                 raise ResourceNotFoundError(path)
             return
         # Convert the various access rights into an appropriate mode string.
+        # TODO: I'm sure this misses some important semantics.
         retcode = 0
         if access & GENERIC_READ:
             if access & GENERIC_WRITE:
@@ -239,7 +255,7 @@ class FSOperations(DokanOperations):
             info.contents.IsDirectory = True
         except FSError:
             #  Sadly, win32 OSFS will raise all kinds of strange errors
-            #  if you try to open() a directory.
+            #  if you try to open() a directory.  Need to check by hand.
             if self.fs.isdir(path):
                 info.contents.IsDirectory = True
             else:
@@ -325,34 +341,146 @@ class FSOperations(DokanOperations):
     def GetFileInformation(self, path, buffer, info):
         path = normpath(path)
         info = self.fs.getinfo(path)
+        if "name" not in info:
+            info["name"] = basename(path)
         data = buffer.contents
-        data.dwFileAttributes = 0
-        data.ftCreationTime = dokan.FILETIME(0,0)
-        data.ftCreationTime = dokan.FILETIME(0,0)
-        data.ftAccessTime = dokan.FILETIME(0,0)
-        data.ftWriteTime = dokan.FILETIME(0,0)
-        data.nFileSizeHigh = 0
-        data.nFileSizeLow = 7
-        data.cFileName = basename(path)
-        data.cAlternateFileName = None
+        _info2finddataw(info,data)
+
+    @handle_fs_errors
+    def FindFiles(self, path, fillFindData, info):
+        path = normpath(path)
+        for nm in self.fs.listdir(path):
+            fpath = pathjoin(path,nm)
+            data = _info2finddataw(self.fs.getinfo(fpath))
+            fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
         path = normpath(path)
-        datas = []
-        for nm in self.fs.listdir(path,wildcard=pattern):
-            data = dokan.WIN32_FIND_DATAW()
-            data.dwFileAttributes = 0
-            data.ftCreateTime = dokan.FILETIME(0,0)
-            data.ftAccessTime = dokan.FILETIME(0,0)
-            data.ftWriteTime = dokan.FILETIME(0,0)
-            data.nFileSizeHigh = 0
-            data.nFileSizeLow = 0
-            data.cFileName = nm
-            data.cAlternateFileName = ""
+        infolist = []
+        try:
+            for finfo in self.fs.listdir(path,info=True):
+                nm = finfo["name"]
+                if not libdokan.DokanIsNameInExpression(pattern,nm,True):
+                    continue
+                infolist.append(finfo)
+        except (TypeError,KeyError,UnsupportedError):
+            filtered = True
+            for nm in self.fs.listdir(path):
+                if not libdokan.DokanIsNameInExpression(pattern,nm,True):
+                    continue
+                finfo = self.fs.getinfo(pathjoin(path,nm))
+                finfo["name"] = nm
+                infolist.append(finfo)
+        for finfo in infolist:
+            data = _info2finddataw(finfo)
             fillFindData(ctypes.byref(data),info)
-            datas.append(data)
-        
+
+    @handle_fs_errors
+    def SetFileAttributes(self, path, attrs, info):
+        path = normpath(path)
+        # TODO: decode various file attributes
+
+    @handle_fs_errors
+    def SetFileTime(self, path, ctime, atime, mtime, info):
+        path = normpath(path)
+        if ctime is not None:
+            raise UnsupportedError("cannot set creation time")
+        if atime is not None:
+            atime = _filetime_to_datetime(atime)
+        if mtime is  not None:
+            mtime = _filetime_to_datetime(mtime)
+        self.fs.settimes(path, atime, mtime, ctime)
+
+    @handle_fs_errors
+    def DeleteFile(self, path, info):
+        path = normpath(path)
+        self.fs.remove(path)
+
+    @handle_fs_errors
+    def DeleteDirectory(self, path, info):
+        path = normpath(path)
+        self.fs.removedir(path)
+
+    @handle_fs_errors
+    def MoveFile(self, src, dst, overwrite, info):
+        src = normpath(src)
+        dst = normpath(dst)
+        try:
+            self.fs.move(src,dst,overwrite=overwrite)
+        except ResourceInvalidError:
+            self.fs.movedir(src,dst,overwrite=overwrite)
+
+    @handle_fs_errors
+    def SetEndOfFile(self, path, dst, overwrite, info):
+        path = normpath(path)
+        (file,_,lock) = self._get_file(info.contents.Context)
+        lock.acquire()
+        try:
+            f.truncate()
+        finally:
+            lock.release()
+
+    @handle_fs_errors
+    def GetDiskFreeSpaceEx(self, nBytesAvail, nBytesTotal, nBytesFree, info):
+        nBytesAvail[0] = 8 * 1024 * 1024
+        nBytesTotal[0] = 20 * 1024 * 1024
+        nBytesFree[0] = 12 * 1024 * 1024
+
+    @handle_fs_errors
+    def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
+        vnmBuf
+        vnm = ctypes.create_unicode_buffer("fs.expose.dokan"[:vnmSz-1])
+        ctypes.memmove(vnmBuf,vnm,len(vnm.value))
+        fnm = ctypes.create_unicode_buffer("fs.expose.dokan"[:fnmSz-1])
+        ctypes.memmove(fnmBuf,fnm,len(fnm.value))
+        sNum[0] = 0
+        maxLen[0] = libdokan.MAX_PATH
+        flags = 0
+
+def _info2attrmask(info):
+    """Convert a file/directory info dict to a win32 file attributes mask."""
+    attrs = 0
+    st_mode = info.get("st_mode",None)
+    if st_mode:
+        if statinfo.S_ISDIR(st_mode):
+            attrs |= FILE_ATTRIBUTE_DIRECTORY
+        elif statinfo.S_ISREG(st_mode):
+            attrs |= FILE_ATTRIBUTE_NORMAL
+    return attrs
+
+def _info2finddataw(info,data=None):
+    """Convert a file/directory info dict into a WIN32_FIND_DATAW struct."""
+    if data is None:
+        data = libdokan.WIN32_FIND_DATAW()
+    data.dwFileAttributes = _info2attrmask(info)
+    data.ftCreateTime = _datetime2filetime(info.get("created_time",None))
+    data.ftAccessTime = _datetime2filetime(info.get("accessed_time",None))
+    data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
+    data.nFileSizeHigh = info.get("size",0) >> 32
+    data.nFileSizeLow = info.get("size",0) & 0xffffff
+    data.cFileName = info.get("name","")
+    data.cAlternateFileName = ""
+    return data
+
+def _filetime2datetime(ftime):
+    """Convert a FILETIME struct info datetime.datetime object."""
+    if ftime is None:
+        return DATETIME_ZERO
+    if ftime.dwLowDateTime == 0 and ftime.dwHighDateTime == 0:
+        return DATETIME_ZERO
+    t = ftime.dwLowDateTime & (ftime.dwHighDateTime << 32)
+    return datetime.datetime.fromtimestamp(t)
+
+def _datetime2filetime(dtime):
+    """Convert a FILETIME struct info datetime.datetime object."""
+    if dtime is None:
+        return libdokan.FILETIME(0,0)
+    if dtime == DATETIME_ZERO:
+        return libdokan.FILETIME(0,0)
+    # TODO: this doesn't work on win32
+    t = int(dtime.strftime("%s"))
+    return libdokan.FILETIME(t >> 32,t & 0xffffff)
     
 
 def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
@@ -371,22 +499,34 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
     keyword arguments will be passed through as options to the underlying
     Dokan library.  Some interesting options include:
 
-        * TODO: what options?
+        * numthreads:  number of threads to use for handling Dokan requests
+        * fsname:  name to display in explorer etc
+        * flags:   DOKAN_OPTIONS bitmask
 
     """
+    def check_ready(mp=None):
+        if ready_callback:
+            for _ in xrange(100):
+                try:
+                    os.stat(mp.path)
+                except EnvironmentError:
+                    time.sleep(0.01)
+                else:
+                    if mp and mp.poll() != None:
+                        raise OSError("dokan mount process exited prematurely")
+                    return ready_callback()
     if foreground:
-        #  We use OPTION_REMOVABLE for now as it gives an "eject" option
-        #  in the context menu.  Will remove this later.
-        #  We use a single thread, also for debugging.
-        opts = dokan.DOKAN_OPTIONS(drive, 1, DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE)
-        ops = FSOperations(fs, on_init=ready_callback, on_unmount=unmount_callback)
+        numthreads = kwds.pop("numthreads",0)
+        flags = kwds.pop("flags",0)
+        opts = libdokan.DOKAN_OPTIONS(drive, numthreads, flags)
+        ops = FSOperations(fs, on_unmount=unmount_callback)
+        threading.Thread(target=check_ready).start()
         res = DokanMain(ctypes.byref(opts),ctypes.byref(ops.buffer))
         if res != DOKAN_SUCCESS:
-            raise RuntimeError("Dokan failed with error: %d" % (res,))
+            raise OSError("Dokan failed with error: %d" % (res,))
     else:
         mp = MountProcess(fs, drive, kwds)
-        if ready_callback:
-            ready_callback()
+        check_ready(mp)
         if unmount_callback:
             orig_unmount = mp.unmount
             def new_unmount():
@@ -403,7 +543,7 @@ def unmount(drive):
     It works but may leave dangling processes; its better to use the "unmount"
     method on the MountProcess class if you have one.
     """
-    if not dokan.DokanUnmount(drive):
+    if not libdokan.DokanUnmount(drive):
         raise OSError("filesystem could not be unmounted: %s" % (drive,))
 
 
@@ -442,7 +582,7 @@ class MountProcess(subprocess.Popen):
 
     def unmount(self):
         """Cleanly unmount the Dokan filesystem, terminating this subprocess."""
-        if not dokan.DokanUnmount(self.drive):
+        if not libdokan.DokanUnmount(self.drive):
             raise OSError("the filesystem could not be unmounted: %s" %(self.drive,))
         self.terminate()
 
@@ -470,9 +610,9 @@ class MountProcess(subprocess.Popen):
 if __name__ == "__main__":
     import os, os.path
     from fs.tempfs import TempFS
-    def ready_callback():
-        print "READY"
     fs = TempFS()
     fs.setcontents("test1.txt","test one")
-    mount(fs, "Q", foreground=True, ready_callback=ready_callback)
+    flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
+    mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
+
 

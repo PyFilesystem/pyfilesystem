@@ -1,8 +1,14 @@
+"""
+
+  fs.expose.dokan.dokan_ctypes:  low-level ctypes interface to Dokan
+
+"""
 
 from ctypes import *
 
 try:
     DokanMain = windll.Dokan.DokanMain
+    DokanVersion = windll.Dokan.DokanVersion
 except AttributeError:
     raise ImportError("Dokan DLL not found")
 
@@ -14,6 +20,13 @@ PULONGLONG = POINTER(ULONGLONG)
 UCHAR = c_ubyte
 LPDWORD = POINTER(DWORD)
 LONGLONG = c_longlong
+
+
+DokanVersion.restype = ULONG
+DokanVersion.argtypes = ()
+if DokanVersion() < 0:  # TODO: find min supported version
+    raise ImportError("Dokan DLL is too old")
+
 
 MAX_PATH = 260
 
@@ -197,7 +210,9 @@ class DokanOperations(object):
             try:
                 setattr(self.buffer,nm,typ(getattr(self,nm)))
             except AttributeError:
-                setattr(self.buffer,nm,typ(self._noop))
+                #setattr(self.buffer,nm,typ(self._noop))
+                #  This bizarre syntax creates a NULL function pointer.
+                setattr(self.buffer,nm,typ())
 
     def _noop(self,*args):
         return -1
@@ -224,12 +239,6 @@ DokanUnmount.argtypes = (
     LPCWSTR,  # pattern
     LPCWSTR,  # name
     BOOL,     # ignore case
-)
-
-
-DokanVersion = windll.Dokan.DokanVersion
-DokanVersion.restype = ULONG
-DokanVersion.argtypes = (
 )
 
 DokanDriverVersion = windll.Dokan.DokanDriverVersion
