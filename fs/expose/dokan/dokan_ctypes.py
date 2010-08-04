@@ -187,12 +187,12 @@ class DOKAN_OPERATIONS(Structure):
 		PULONGLONG, # TotalNumberOfFreeBytes
 		PDOKAN_FILE_INFO)),
         ("GetVolumeInformation", CFUNCTYPE(c_int,
-		LPWSTR,  # VolumeNameBuffer
+		POINTER(c_wchar),  # VolumeNameBuffer
 		DWORD,	 # VolumeNameSize in num of chars
 		LPDWORD, # VolumeSerialNumber
 		LPDWORD, # MaximumComponentLength in num of chars
 		LPDWORD, # FileSystemFlags
-		LPWSTR,	 # FileSystemNameBuffer
+		POINTER(c_wchar),  # FileSystemNameBuffer
 		DWORD,	 # FileSystemNameSize in num of chars
 		PDOKAN_FILE_INFO)),
         ("Unmount", CFUNCTYPE(c_int,
@@ -210,7 +210,6 @@ class DokanOperations(object):
             try:
                 setattr(self.buffer,nm,typ(getattr(self,nm)))
             except AttributeError:
-                #setattr(self.buffer,nm,typ(self._noop))
                 #  This bizarre syntax creates a NULL function pointer.
                 setattr(self.buffer,nm,typ())
 

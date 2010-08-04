@@ -118,7 +118,10 @@ GENERIC_WRITE = 1180054
 NATIVE_ENCODING = sys.getfilesystemencoding()
 
 DATETIME_ZERO = datetime.datetime(1,1,1,0,0,0)
-DATETIME_STARTUP = datetime.datetime.now()
+DATETIME_STARTUP = datetime.datetime.utcnow()
+
+FILETIME_UNIX_EPOCH = 116444736000000000
+
 
 
 def handle_fs_errors(func):
@@ -229,7 +232,7 @@ class FSOperations(DokanOperations):
                         raise ResourceNotFoundError(path)
                     mode = "w+b"
                 else:
-                    mode = "ab"
+                    mode = "r+b"
             else:
                 mode = "rb"
         else:
@@ -240,13 +243,13 @@ class FSOperations(DokanOperations):
             elif disposition == OPEN_EXISTING:
                 if self.fs.exists(path):
                     retcode = 183
-                mode = "ab"
+                mode = "r+b"
             elif disposition == TRUNCATE_EXISTING:
                 if not self.fs.exists(path):
                     raise ResourceNotFoundError(path)
                 mode = "w+b"
             else:
-                mode = "ab"
+                mode = "r+b"
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
         try:
@@ -412,12 +415,12 @@ class FSOperations(DokanOperations):
             self.fs.movedir(src,dst,overwrite=overwrite)
 
     @handle_fs_errors
-    def SetEndOfFile(self, path, dst, overwrite, info):
+    def SetEndOfFile(self, path, length, info):
         path = normpath(path)
         (file,_,lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
-            f.truncate()
+            file.truncate(length)
         finally:
             lock.release()
 
@@ -429,14 +432,18 @@ class FSOperations(DokanOperations):
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
-        vnmBuf
-        vnm = ctypes.create_unicode_buffer("fs.expose.dokan"[:vnmSz-1])
-        ctypes.memmove(vnmBuf,vnm,len(vnm.value))
-        fnm = ctypes.create_unicode_buffer("fs.expose.dokan"[:fnmSz-1])
-        ctypes.memmove(fnmBuf,fnm,len(fnm.value))
-        sNum[0] = 0
-        maxLen[0] = libdokan.MAX_PATH
-        flags = 0
+        nm = ctypes.create_unicode_buffer("Dokan Volume"[:vnmSz-1])
+        sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
+        ctypes.memmove(vnmBuf,nm,sz)
+        if sNum:
+            sNum[0] = 0
+        if maxLen:
+            maxLen[0] = 255
+        if flags:
+            flags[0] = 0
+        nm = ctypes.create_unicode_buffer("Dokan FS"[:fnmSz-1])
+        sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
+        ctypes.memmove(fnmBuf,nm,sz)
 
 def _info2attrmask(info):
     """Convert a file/directory info dict to a win32 file attributes mask."""
@@ -463,14 +470,26 @@ def _info2finddataw(info,data=None):
     data.cAlternateFileName = ""
     return data
 
+
+def _datetime2timestamp(dtime):
+    """Convert a datetime object to a unix timestamp."""
+    t = time.mktime(dtime.timetuple())
+    t += dtime.microsecond / 100000
+    return t
+
+def _timestamp2datetime(tstamp):
+    """Convert a unix timestamp to a datetime object."""
+    return datetime.datetime.fromtimestamp(tstamp)
+
 def _filetime2datetime(ftime):
     """Convert a FILETIME struct info datetime.datetime object."""
     if ftime is None:
         return DATETIME_ZERO
     if ftime.dwLowDateTime == 0 and ftime.dwHighDateTime == 0:
         return DATETIME_ZERO
-    t = ftime.dwLowDateTime & (ftime.dwHighDateTime << 32)
-    return datetime.datetime.fromtimestamp(t)
+    f = ftime.dwLowDateTime | (ftime.dwHighDateTime << 32)
+    t = (f - FILETIME_UNIX_EPOCH) / 10000000
+    return _timestamp2datetime(t)
 
 def _datetime2filetime(dtime):
     """Convert a FILETIME struct info datetime.datetime object."""
@@ -478,9 +497,9 @@ def _datetime2filetime(dtime):
         return libdokan.FILETIME(0,0)
     if dtime == DATETIME_ZERO:
         return libdokan.FILETIME(0,0)
-    # TODO: this doesn't work on win32
-    t = int(dtime.strftime("%s"))
-    return libdokan.FILETIME(t >> 32,t & 0xffffff)
+    t = _datetime2timestamp(dtime)
+    f = FILETIME_UNIX_EPOCH + int(t * 100000000)
+    return libdokan.FILETIME(f >> 32,f & 0xffffff)
     
 
 def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
