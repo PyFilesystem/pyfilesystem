@@ -19,6 +19,7 @@ Guide
    concepts.rst
    interface.rst
    filesystems.rst
+   contrib.rst
    expose.rst
    
 Code Documentation
@@ -45,6 +46,7 @@ Code Documentation
    utils.rst
    wrapfs/index.rst
    zipfs.rst
+   contrib/index.rst
    
 
 Indices and tables

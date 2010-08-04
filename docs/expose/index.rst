@@ -7,6 +7,7 @@ The ``fs.expose`` module contains a number of options for making an FS implement
    :maxdepth: 3
    
    fuse.rst
+   dokan.rst
    sftp.rst
    xmlrpc.rst
    django_storage.rst

@@ -137,7 +137,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         
         """
         path = os.path.normpath(os.path.abspath(path))
-        if not path.startswith(self.root_path + os.path.sep):
+        prefix = os.path.normcase(self.root_path) + os.path.sep
+        if not os.path.normcase(path).startswith(prefix):
             raise ValueError("path not within this FS: %s" % (path,))
         return path[len(self.root_path):]
 

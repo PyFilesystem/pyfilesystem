@@ -8,6 +8,10 @@ FUSE
 ----
 Makes an FS object available to other applications on the system. See :mod:`fs.expose.fuse`.
 
+Dokan
+-----
+Makes an FS object available to other applications on the system. See :mod:`fs.expose.dokan`.
+
 Secure FTP
 ----------
 Makes an FS object available via Secure FTP. See :mod:`fs.expose.sftp`.

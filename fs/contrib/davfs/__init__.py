@@ -1,8 +1,9 @@
-#  Copyright (c) 2009-2010, Cloud Matrix Pty. Ltd.
-#  All rights reserved; available under the terms of the MIT License.
 """
+fs.contrib.davfs
+================
 
-    fs.contrib.davfs:  FS implementation accessing a WebDAV server.
+
+FS implementation accessing a WebDAV server.
 
 This module provides a relatively-complete WebDAV Level 1 client that exposes
 a WebDAV server as an FS object.  Locks are not currently supported.
@@ -12,6 +13,8 @@ Requires the dexml module:
     http://pypi.python.org/pypi/dexml/
 
 """
+#  Copyright (c) 2009-2010, Cloud Matrix Pty. Ltd.
+#  All rights reserved; available under the terms of the MIT License.
 
 import os
 import httplib

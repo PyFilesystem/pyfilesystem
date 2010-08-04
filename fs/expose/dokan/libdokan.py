@@ -1,3 +1,5 @@
+#  Copyright (c) 2009-2010, Cloud Matrix Pty. Ltd.
+#  All rights reserved; available under the terms of the MIT License.
 """
 
   fs.expose.dokan.libdokan:  low-level ctypes interface to Dokan

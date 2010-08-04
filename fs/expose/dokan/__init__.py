@@ -1,6 +1,6 @@
 """
 fs.expose.dokan
-==============
+===============
 
 Expose an FS object to the native filesystem via Dokan.
 
@@ -45,6 +45,8 @@ win32, this should work without further configuration on just about all
 systems with Dokan installed.
 
 """
+#  Copyright (c) 2009-2010, Cloud Matrix Pty. Ltd.
+#  All rights reserved; available under the terms of the MIT License.
 
 import sys
 if sys.platform != "win32":
