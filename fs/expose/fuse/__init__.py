@@ -45,9 +45,12 @@ fuse.py code from Giorgos Verigakis:
 
 """
 
+import sys
+if sys.platform == "win32":
+    raise ImportError("FUSE is not available on win32")
+
 import datetime
 import os
-import sys
 import signal
 import errno
 import time

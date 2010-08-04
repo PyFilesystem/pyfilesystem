@@ -5,7 +5,7 @@ fs.expose.dokan
 Expose an FS object to the native filesystem via Dokan.
 
 This module provides the necessary interfaces to mount an FS object into
-the local filesystem via Dokan::
+the local filesystem using Dokan on win32::
 
     http://dokan-dev.net/en/
 
@@ -18,6 +18,8 @@ and exposes the given FS as that drive::
     >>> mp = dokan.mount(fs,"Q")
     >>> mp.drive
     'Q'
+    >>> mp.path
+    'Q:\\'
     >>> mp.unmount()
 
 The above spawns a new background process to manage the Dokan event loop, which
@@ -44,8 +46,11 @@ systems with Dokan installed.
 
 """
 
-import os
 import sys
+if sys.platform != "win32":
+    raise ImportError("Dokan is only available on win32")
+
+import os
 import signal
 import errno
 import time
@@ -58,13 +63,13 @@ from ctypes.wintypes import LPCWSTR, WCHAR
 
 kernel32 = ctypes.windll.kernel32
 
-from fs.base import flags_to_mode, threading
+from fs.base import threading
 from fs.errors import *
 from fs.path import *
 from fs.functools import wraps
 
 try:
-    import dokan_ctypes as libdokan
+    import libdokan
 except NotImplementedError:
     raise ImportError("Dokan found but not usable")
 
@@ -136,22 +141,22 @@ def handle_fs_errors(func):
     func = convert_fs_errors(func)
     @wraps(func)
     def wrapper(*args,**kwds):        
-        print "CALL", name, args[1:-1]
         try:
             res = func(*args,**kwds)
         except OSError, e:
             if e.errno:
-                res = -1 * e.errno
+                res = -1 * _errno2syserrcode(e.errno)
             else:
                 res = -1
         else:
             if res is None:
                 res = 0
-        print "RES:", res
         return res
     return wrapper
  
 
+
+MIN_FH = 100
 
 class FSOperations(DokanOperations):
     """DokanOperations interface delegating all activities to an FS object."""
@@ -163,7 +168,7 @@ class FSOperations(DokanOperations):
         self._on_unmount = on_unmount
         self._files_by_handle = {}
         self._files_lock = threading.Lock()
-        self._next_handle = 100
+        self._next_handle = MIN_FH
         #  TODO: do we need this for dokan?  It's a hangover from FUSE.
         #  Dokan expects a succesful write() to be reflected in the file's
         #  reported size, but the FS might buffer writes and prevent this.
@@ -286,16 +291,29 @@ class FSOperations(DokanOperations):
     @handle_fs_errors
     def Cleanup(self, path, info):
         path = normpath(path)
+        #  We can't handle this in CloseFile because that's called async
+        #  to the delete operation.  This would let the file stick around
+        #  for a brief period after removal, which is badness.
+        #  Better option: keep a dict of deleted files, and refuse requests
+        #  to CreateFile on them with ERROR_ACCESS_DENIED (this is apparently
+        #  what windows does natively)
         if info.contents.DeleteOnClose:
             if info.contents.IsDirectory:
                 self.fs.removedir(path)
             else:
-                self.fs.remove(path)
+                (file,_,lock) = self._get_file(info.contents.Context)
+                lock.acquire()
+                try:
+                    file.close()
+                    self.fs.remove(path)
+                    self._del_file(info.contents.Context)
+                finally:
+                    lock.release()
 
     @handle_fs_errors
     def CloseFile(self, path, info):
         path = normpath(path)
-        if info.contents.Context >= 100:
+        if info.contents.Context >= MIN_FH and not info.contents.DeleteOnClose:
             (file,_,lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
@@ -324,9 +342,10 @@ class FSOperations(DokanOperations):
         lock.acquire()
         try:
             file.seek(offset)
-            data = buffer[:nBytesToWrite]
-            file.write(data)
-            nBytesWritten[0] = len(data)
+            data = ctypes.create_string_buffer(nBytesToWrite)
+            ctypes.memmove(data,buffer,nBytesToWrite)
+            file.write(data.raw)
+            nBytesWritten[0] = len(data.raw)
         finally:
             lock.release()
 
@@ -382,37 +401,53 @@ class FSOperations(DokanOperations):
     @handle_fs_errors
     def SetFileAttributes(self, path, attrs, info):
         path = normpath(path)
+        raise UnsupportedError
         # TODO: decode various file attributes
 
     @handle_fs_errors
     def SetFileTime(self, path, ctime, atime, mtime, info):
         path = normpath(path)
-        if ctime is not None:
-            raise UnsupportedError("cannot set creation time")
+        # setting ctime is not supported
         if atime is not None:
-            atime = _filetime_to_datetime(atime)
+            atime = _filetime2datetime(atime.contents)
         if mtime is  not None:
-            mtime = _filetime_to_datetime(mtime)
-        self.fs.settimes(path, atime, mtime, ctime)
+            mtime = _filetime2datetime(mtime.contents)
+        self.fs.settimes(path, atime, mtime)
 
     @handle_fs_errors
     def DeleteFile(self, path, info):
         path = normpath(path)
-        self.fs.remove(path)
+        if not self.fs.isfile(path):
+            if not self.fs.exists(path):
+                raise ResourceNotFoundError(path)
+            else:
+                raise ResourceInvalidError(path)
+        # the actual delete takes place in self.Cleanup()
 
     @handle_fs_errors
     def DeleteDirectory(self, path, info):
         path = normpath(path)
-        self.fs.removedir(path)
+        if self.fs.listdir(path):
+            raise DirectoryNotEmptyError(path)
+        # the actual delete takes place in self.Cleanup()
 
     @handle_fs_errors
     def MoveFile(self, src, dst, overwrite, info):
+        #  Close the file if we have an open handle to it.
+        if info.contents.Context >= MIN_FH:
+            (file,_,lock) = self._get_file(info.contents.Context)
+            lock.acquire()
+            try:
+                file.close()
+                self._del_file(info.contents.Context)
+            finally:
+                lock.release()
         src = normpath(src)
         dst = normpath(dst)
-        try:
-            self.fs.move(src,dst,overwrite=overwrite)
-        except ResourceInvalidError:
+        if info.contents.IsDirectory:
             self.fs.movedir(src,dst,overwrite=overwrite)
+        else:
+            self.fs.move(src,dst,overwrite=overwrite)
 
     @handle_fs_errors
     def SetEndOfFile(self, path, length, info):
@@ -474,12 +509,22 @@ def _info2finddataw(info,data=None):
 def _datetime2timestamp(dtime):
     """Convert a datetime object to a unix timestamp."""
     t = time.mktime(dtime.timetuple())
-    t += dtime.microsecond / 100000
+    t += dtime.microsecond / 1000000.0
     return t
+
+DATETIME_LOCAL_TO_UTC = _datetime2timestamp(datetime.datetime.utcnow()) - _datetime2timestamp(datetime.datetime.now())
 
 def _timestamp2datetime(tstamp):
     """Convert a unix timestamp to a datetime object."""
     return datetime.datetime.fromtimestamp(tstamp)
+
+def _timestamp2filetime(tstamp):
+    f = FILETIME_UNIX_EPOCH + int(t * 10000000)
+    return libdokan.FILETIME(f & 0xffffffff,f >> 32)
+
+def _filetime2timestamp(ftime):
+    f = ftime.dwLowDateTime | (ftime.dwHighDateTime << 32)
+    return (f - FILETIME_UNIX_EPOCH) / 10000000.0
 
 def _filetime2datetime(ftime):
     """Convert a FILETIME struct info datetime.datetime object."""
@@ -487,9 +532,7 @@ def _filetime2datetime(ftime):
         return DATETIME_ZERO
     if ftime.dwLowDateTime == 0 and ftime.dwHighDateTime == 0:
         return DATETIME_ZERO
-    f = ftime.dwLowDateTime | (ftime.dwHighDateTime << 32)
-    t = (f - FILETIME_UNIX_EPOCH) / 10000000
-    return _timestamp2datetime(t)
+    return _timestamp2datetime(_filetime2timestamp(ftime))
 
 def _datetime2filetime(dtime):
     """Convert a FILETIME struct info datetime.datetime object."""
@@ -497,9 +540,29 @@ def _datetime2filetime(dtime):
         return libdokan.FILETIME(0,0)
     if dtime == DATETIME_ZERO:
         return libdokan.FILETIME(0,0)
-    t = _datetime2timestamp(dtime)
-    f = FILETIME_UNIX_EPOCH + int(t * 100000000)
-    return libdokan.FILETIME(f >> 32,f & 0xffffff)
+    return _timestamp2filetime(_datetime2timestamp(dtime))
+
+
+d = datetime.datetime.now()
+t = _datetime2timestamp(d)
+f = _datetime2filetime(d)
+assert d == _timestamp2datetime(t)
+assert t == _filetime2timestamp(_timestamp2filetime(t))
+assert d == _filetime2datetime(f)
+
+ERROR_FILE_EXISTS = 80
+ERROR_DIR_NOT_EMPTY = 145
+ERROR_DIR_NOT_SUPPORTED = 50
+
+def _errno2syserrcode(eno):
+    """Convert an errno into a win32 system error code."""
+    if eno == errno.EEXIST:
+        return ERROR_FILE_EXISTS
+    if eno == errno.ENOTEMPTY:
+        return ERROR_DIR_NOT_EMPTY
+    if eno == errno.ENOSYS:
+        return ERROR_NOT_SUPPORTED
+    return eno
     
 
 def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
@@ -515,34 +578,45 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
 
     If the keyword argument 'ready_callback' is provided, it will be called
     when the filesystem has been mounted and is ready for use.  Any additional
-    keyword arguments will be passed through as options to the underlying
-    Dokan library.  Some interesting options include:
+    keyword arguments control the behaviour of the final dokan mount point.
+    Some interesting options include:
 
         * numthreads:  number of threads to use for handling Dokan requests
         * fsname:  name to display in explorer etc
         * flags:   DOKAN_OPTIONS bitmask
+        * FSOperationsClass:  custom FSOperations subclass to use
 
     """
+    #  This function captures the logic of checking whether the Dokan mount
+    #  is up and running.  Unfortunately I can't find a way to get this
+    #  via a callback in the Dokan API.
     def check_ready(mp=None):
-        if ready_callback:
+        if ready_callback is not False:
             for _ in xrange(100):
                 try:
-                    os.stat(mp.path)
+                    os.stat(drive+":\\")
                 except EnvironmentError:
                     time.sleep(0.01)
                 else:
                     if mp and mp.poll() != None:
                         raise OSError("dokan mount process exited prematurely")
-                    return ready_callback()
+                    if ready_callback:
+                        return ready_callback()
+    #  Running the the foreground is the final endpoint for the mount
+    #  operation, it's where we call DokanMain().
     if foreground:
         numthreads = kwds.pop("numthreads",0)
         flags = kwds.pop("flags",0)
-        opts = libdokan.DOKAN_OPTIONS(drive, numthreads, flags)
-        ops = FSOperations(fs, on_unmount=unmount_callback)
-        threading.Thread(target=check_ready).start()
+        FSOperationsClass = kwds.pop("FSOperationsClass",FSOperations)
+        opts = libdokan.DOKAN_OPTIONS(drive[:1], numthreads, flags)
+        ops = FSOperationsClass(fs, on_unmount=unmount_callback)
+        if ready_callback is not False:
+            threading.Thread(target=check_ready).start()
         res = DokanMain(ctypes.byref(opts),ctypes.byref(ops.buffer))
         if res != DOKAN_SUCCESS:
             raise OSError("Dokan failed with error: %d" % (res,))
+    #  Running the background, spawn a subprocess and wait for it
+    #  to be ready before returning.
     else:
         mp = MountProcess(fs, drive, kwds)
         check_ready(mp)
@@ -591,11 +665,12 @@ class MountProcess(subprocess.Popen):
 
     unmount_timeout = 5
 
-    def __init__(self, fs, drive, dokan_opts={}, **kwds):
-        self.drive = drive
+    def __init__(self, fs, drive, dokan_opts={}, nowait=False, **kwds):
+        self.drive = drive[:1]
+        self.path = self.drive + ":\\"
         cmd = 'from fs.expose.dokan import MountProcess; '
         cmd = cmd + 'MountProcess._do_mount(%s)'
-        cmd = cmd % (repr(pickle.dumps((fs,drive,dokan_opts),-1)),)
+        cmd = cmd % (repr(pickle.dumps((fs,drive,dokan_opts,nowait),-1)),)
         cmd = [sys.executable,"-c",cmd]
         super(MountProcess,self).__init__(cmd,**kwds)
 
@@ -618,12 +693,14 @@ class MountProcess(subprocess.Popen):
     @staticmethod
     def _do_mount(data):
         """Perform the specified mount."""
-        (fs,drive,opts) = pickle.loads(data)
+        (fs,drive,opts,nowait) = pickle.loads(data)
         opts["foreground"] = True
         def unmount_callback():
             fs.close()
         opts["unmount_callback"] = unmount_callback
-        mount(fs,drive,*opts)
+        if nowait:
+            opts["ready_callback"] = False
+        mount(fs,drive,**opts)
 
 
 if __name__ == "__main__":

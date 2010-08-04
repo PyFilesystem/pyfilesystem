@@ -15,6 +15,7 @@ from fs.tests import FSTestCases, ThreadingTestCases
 from fs.tempfs import TempFS
 from fs.osfs import OSFS
 from fs.path import *
+from fs.errors import *
 
 from fs import rpcfs
 from fs.expose.xmlrpc import RPCFSServer
@@ -130,4 +131,54 @@ else:
 
         def check(self,p):
             return self.mounted_fs.exists(p)
+
+
+try:
+    from fs.expose import dokan
+except ImportError:
+    pass
+else:
+    from fs.osfs import OSFS
+    class TestDokan(unittest.TestCase,FSTestCases,ThreadingTestCases):
+
+        def setUp(self):
+            self.temp_fs = TempFS()
+            self.drive = "K"
+            while os.path.exists(self.drive+":\\") and self.drive <= "Z":
+                self.drive = chr(ord(self.drive) + 1)
+            if self.drive > "Z":
+                raise RuntimeError("no free drive letters")
+            fs_to_mount = OSFS(self.temp_fs.getsyspath("/"))
+            self.mount_proc = dokan.mount(fs_to_mount,self.drive)
+            self.fs = OSFS(self.mount_proc.path)
+
+        def tearDown(self):
+            self.mount_proc.unmount()
+            if self.mount_proc.poll() is None:
+                self.mount_proc.terminate()
+            self.temp_fs.close()
+
+        def check(self,p):
+            return self.temp_fs.exists(p)
+
+        def test_remove(self):
+            self.fs.createfile("a.txt")
+            self.assertTrue(self.check("a.txt"))
+            self.fs.remove("a.txt")
+            self.assertFalse(self.check("a.txt"))
+            self.assertRaises(ResourceNotFoundError,self.fs.remove,"a.txt")
+            self.fs.makedir("dir1")
+            #  This appears to be a bug in Dokan - DeleteFile will happily
+            #  delete an empty directory.
+            #self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
+            self.fs.createfile("/dir1/a.txt")
+            self.assertTrue(self.check("dir1/a.txt"))
+            self.fs.remove("dir1/a.txt")
+            self.assertFalse(self.check("/dir1/a.txt"))
+
+        def test_settimes(self):
+            #  Setting the times does actually work, but there's some sort
+            #  of cachine effect which prevents them from being read back
+            #  out.  Disabling the test for now.
+            pass
 

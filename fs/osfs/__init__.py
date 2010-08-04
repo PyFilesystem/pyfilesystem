@@ -60,11 +60,7 @@ def _os_makedirs(name, mode=0777):
                 raise
         if tail == os.curdir:
             return
-    try:
-        os.mkdir(name, mode)
-    except Exception, e:
-        print e; sys.stdout.flush()
-        raise
+    os.mkdir(name, mode)
  
 
 

@@ -1,11 +1,4 @@
 
-0.4:
-
-    * New FS implementations (under fs.contrib):
-        * BigFS:   read contents of a BIG file (C&C game file format)
-        * DAVFS:   access a remote files stored on a WebDAV server 
-
-
 0.3:
 
     * New FS implementations:
@@ -39,5 +32,13 @@
 
 0.4:
 
-	* Modified listdir and walk methods to accept callables as well as strings
-		for wildcards
+
+    * New FS implementations (under fs.contrib):
+        * BigFS:   read contents of a BIG file (C&C game file format)
+        * DAVFS:   access a remote files stored on a WebDAV server
+    * New fs.expose implementations:
+        * dokan:   mount an FS object as a drive using Dokan (win32-only)
+    * Modified listdir and walk methods to accept callables as well as strings
+      for wildcards
+    * Fix operation of OSFS on win32 when it points to the root of a drive.
+

@@ -1,6 +1,6 @@
 """
 
-  fs.expose.dokan.dokan_ctypes:  low-level ctypes interface to Dokan
+  fs.expose.dokan.libdokan:  low-level ctypes interface to Dokan
 
 """
 
@@ -24,7 +24,7 @@ LONGLONG = c_longlong
 
 DokanVersion.restype = ULONG
 DokanVersion.argtypes = ()
-if DokanVersion() < 0:  # TODO: find min supported version
+if DokanVersion() < 392:  # ths is release 0.5.3
     raise ImportError("Dokan DLL is too old")
 
 
@@ -121,7 +121,7 @@ class DOKAN_OPERATIONS(Structure):
 		PDOKAN_FILE_INFO)),
         ("WriteFile", CFUNCTYPE(c_int,
 		LPCWSTR,  # FileName
-		c_char_p,  # Buffer
+		POINTER(c_char), # Buffer
 		DWORD,    # NumberOfBytesToWrite
 		LPDWORD,  # NumberOfBytesWritten
 		LONGLONG, # Offset
@@ -234,7 +234,7 @@ DokanUnmount.argtypes = (
 
 DokanIsNameInExpression = windll.Dokan.DokanIsNameInExpression
 DokanIsNameInExpression.restype = BOOL
-DokanUnmount.argtypes = (
+DokanIsNameInExpression.argtypes = (
     LPCWSTR,  # pattern
     LPCWSTR,  # name
     BOOL,     # ignore case
