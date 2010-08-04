@@ -32,6 +32,41 @@ def _os_stat(path):
     """Replacement for os.stat that raises FSError subclasses."""
     return os.stat(path)
 
+@convert_os_errors
+def _os_mkdir(name, mode=0777):
+    """Replacement for os.mkdir that raises FSError subclasses."""
+    return os.mkdir(name,mode)
+
+@convert_os_errors
+def _os_makedirs(name, mode=0777):
+    """Replacement for os.makdirs that raises FSError subclasses.
+
+    This implementation also correctly handles win32 long filenames (those
+    starting with "\\\\?\\") which can confuse os.makedirs().  The difficulty
+    is that a long-name drive reference like "\\\\?\\C:\\" must end with a
+    backslash to be considered a valid path, but os.makedirs() strips them.
+    """
+    head, tail = os.path.split(name)
+    while not tail:
+        head, tail = os.path.split(head)
+    if sys.platform == "win32" and len(head) == 6:
+        if head.startswith("\\\\?\\"):
+            head = head + "\\"
+    if head and tail and not os.path.exists(head):
+        try:
+            _os_makedirs(head, mode)
+        except OSError, e:
+            if e.errno != errno.EEXIST:
+                raise
+        if tail == os.curdir:
+            return
+    try:
+        os.mkdir(name, mode)
+    except Exception, e:
+        print e; sys.stdout.flush()
+        raise
+ 
+
 
 class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     """Expose the underlying operating-system filesystem as an FS object.
@@ -61,10 +96,12 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         if sys.platform == "win32":
             if not root_path.startswith("\\\\?\\"):
                 root_path = u"\\\\?\\" + root_path
+            if not root_path.endswith("\\"):
+                root_path = root_path + "\\"
 
         if create:
             try:
-                os.makedirs(root_path, mode=dir_mode)
+                _os_makedirs(root_path, mode=dir_mode)
             except OSError:
                 pass
 
@@ -138,19 +175,16 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         sys_path = self.getsyspath(path)
         try:
             if recursive:
-                os.makedirs(sys_path, self.dir_mode)
+                _os_makedirs(sys_path, self.dir_mode)
             else:
-                os.mkdir(sys_path, self.dir_mode)
-        except OSError, e:
-            if e.errno == errno.EEXIST or e.errno == 183:
-                if self.isfile(path):
-                    raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
-                if not allow_recreate:
-                    raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
-            elif e.errno == errno.ENOENT:
-                raise ParentDirectoryMissingError(path)
-            else:
-                raise
+                _os_mkdir(sys_path, self.dir_mode)
+        except DestinationExistsError:
+            if self.isfile(path):
+                raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
+            if not allow_recreate:
+                raise DestinationExistsError(path,msg="Can not create a directory that already exists (try allow_recreate=True): %(path)s")
+        except ResourceNotFoundError:
+            raise ParentDirectoryMissingError(path)
 
     @convert_os_errors
     def remove(self, path):
