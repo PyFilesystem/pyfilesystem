@@ -166,6 +166,11 @@ def convert_fs_errors(func):
             return func(*args,**kwds)
         except ResourceNotFoundError, e:
             raise OSError(errno.ENOENT,str(e))
+        except ParentDirectoryMissingError, e:
+            if sys.platform == "win32":
+                raise OSError(errno.ESRCH,str(e))
+            else:
+                raise OSError(errno.ENOENT,str(e))
         except ResourceInvalidError, e:
             raise OSError(errno.EINVAL,str(e))
         except PermissionDeniedError, e:
