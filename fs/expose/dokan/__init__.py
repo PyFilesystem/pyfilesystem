@@ -685,12 +685,12 @@ class MountProcess(subprocess.Popen):
     if not hasattr(subprocess.Popen, "terminate"):
         def terminate(self):
             """Gracefully terminate the subprocess."""
-            kernel32.TerminateProcess(self._handle,-1)
+            kernel32.TerminateProcess(int(self._handle),-1)
 
     if not hasattr(subprocess.Popen, "kill"):
         def kill(self):
             """Forcibly terminate the subprocess."""
-            kernel32.TerminateProcess(self._handle,-1)
+            kernel32.TerminateProcess(int(self._handle),-1)
 
     @staticmethod
     def _do_mount(data):

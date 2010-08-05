@@ -23,6 +23,12 @@ UCHAR = c_ubyte
 LPDWORD = POINTER(DWORD)
 LONGLONG = c_longlong
 
+try:
+    USHORT = USHORT
+except NameError:
+    #  Not available in older python versions
+    USHORT = c_ushort
+
 
 DokanVersion.restype = ULONG
 DokanVersion.argtypes = ()
