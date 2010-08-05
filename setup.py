@@ -24,7 +24,8 @@ setup(name='fs',
       download_url="http://code.google.com/p/pyfilesystem/downloads/list",
       platforms = ['any'],
       packages=['fs','fs.expose','fs.expose.fuse','fs.tests','fs.wrapfs',
-                'fs.osfs','fs.contrib','fs.contrib.bigfs','fs.contrib.davfs'],
+                'fs.osfs','fs.contrib','fs.contrib.bigfs','fs.contrib.davfs',
+                'fs.expose.dokan',],
       classifiers=classifiers,
       )
 
