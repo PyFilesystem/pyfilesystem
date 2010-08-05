@@ -154,8 +154,17 @@ else:
 
         def tearDown(self):
             self.mount_proc.unmount()
-            if self.mount_proc.poll() is None:
-                self.mount_proc.terminate()
+            for _ in xrange(10):
+                try:
+                    if self.mount_proc.poll() is None:
+                        self.mount_proc.terminate()
+                except EnvironmentError:
+                    time.sleep(0.1)
+                else:
+                    break
+            else:
+                if self.mount_proc.poll() is None:
+                    self.mount_proc.terminate()
             self.temp_fs.close()
 
         def check(self,p):

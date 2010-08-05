@@ -723,9 +723,11 @@ if __name__ == "__main__":
     import os, os.path
     import tempfile
     from fs.osfs import OSFS
+    from fs.memoryfs import MemoryFS
     path = tempfile.mkdtemp()
     try:
         fs = OSFS(path)
+        #fs = MemoryFS()
         fs.setcontents("test1.txt","test one")
         flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
         mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
