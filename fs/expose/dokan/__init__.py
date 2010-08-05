@@ -143,16 +143,22 @@ def handle_fs_errors(func):
     func = convert_fs_errors(func)
     @wraps(func)
     def wrapper(*args,**kwds):        
+        #print "CALL", name, args[1:-1]; sys.stdout.flush()
         try:
             res = func(*args,**kwds)
         except OSError, e:
+            #print "ERR", name, e
             if e.errno:
                 res = -1 * _errno2syserrcode(e.errno)
             else:
                 res = -1
+        except Exception, e:
+            #print "ERR", name, e
+            raise
         else:
             if res is None:
                 res = 0
+        #print "RES", name, res; sys.stdout.flush()
         return res
     return wrapper
  
@@ -238,6 +244,10 @@ class FSOperations(DokanOperations):
                     if not self.fs.exists(path):
                         raise ResourceNotFoundError(path)
                     mode = "w+b"
+                elif disposition == CREATE_NEW:
+                    if self.fs.exists(path):
+                        return -183
+                    mode = "w+b"
                 else:
                     mode = "r+b"
             else:
@@ -254,6 +264,10 @@ class FSOperations(DokanOperations):
             elif disposition == TRUNCATE_EXISTING:
                 if not self.fs.exists(path):
                     raise ResourceNotFoundError(path)
+                mode = "w+b"
+            elif disposition == CREATE_NEW:
+                if self.fs.exists(path):
+                    return -183
                 mode = "w+b"
             else:
                 mode = "r+b"
@@ -707,10 +721,16 @@ class MountProcess(subprocess.Popen):
 
 if __name__ == "__main__":
     import os, os.path
-    from fs.tempfs import TempFS
-    fs = TempFS()
-    fs.setcontents("test1.txt","test one")
-    flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
-    mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
+    import tempfile
+    from fs.osfs import OSFS
+    path = tempfile.mkdtemp()
+    try:
+        fs = OSFS(path)
+        fs.setcontents("test1.txt","test one")
+        flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
+        mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
+        fs.close()
+    finally:
+        OSFS(path).removedir("/",force=True)
 
 
