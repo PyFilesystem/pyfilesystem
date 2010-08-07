@@ -149,7 +149,7 @@ else:
             if self.drive > "Z":
                 raise RuntimeError("no free drive letters")
             fs_to_mount = OSFS(self.temp_fs.getsyspath("/"))
-            self.mount_proc = dokan.mount(fs_to_mount,self.drive)
+            self.mount_proc = dokan.mount(fs_to_mount,self.drive)#,flags=dokan.DOKAN_OPTION_DEBUG|dokan.DOKAN_OPTION_STDERR,numthreads=1)
             self.fs = OSFS(self.mount_proc.path)
 
         def tearDown(self):
@@ -166,9 +166,6 @@ else:
                 if self.mount_proc.poll() is None:
                     self.mount_proc.terminate()
             self.temp_fs.close()
-
-        def check(self,p):
-            return self.temp_fs.exists(p)
 
         def test_remove(self):
             self.fs.createfile("a.txt")
