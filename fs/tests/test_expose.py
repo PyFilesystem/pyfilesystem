@@ -139,7 +139,34 @@ except ImportError:
     pass
 else:
     from fs.osfs import OSFS
-    class TestDokan(unittest.TestCase,FSTestCases,ThreadingTestCases):
+    class DokanTestCases(FSTestCases):
+        """Specialised testcases for filesystems exposed via Dokan.
+
+        This modifies some of the standard tests to work around apparent
+        bugs in the current Dokan implementation.
+        """
+
+        def test_remove(self):
+            self.fs.createfile("a.txt")
+            self.assertTrue(self.check("a.txt"))
+            self.fs.remove("a.txt")
+            self.assertFalse(self.check("a.txt"))
+            self.assertRaises(ResourceNotFoundError,self.fs.remove,"a.txt")
+            self.fs.makedir("dir1")
+            #  This appears to be a bug in Dokan - DeleteFile will happily
+            #  delete an empty directory.
+            #self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
+            self.fs.createfile("/dir1/a.txt")
+            self.assertTrue(self.check("dir1/a.txt"))
+            self.fs.remove("dir1/a.txt")
+            self.assertFalse(self.check("/dir1/a.txt"))
+
+        def test_settimes(self):
+            #  Setting the times does actually work, but there's some sort
+            #  of caching effect which prevents them from being read back
+            #  out.  Disabling the test for now.
+            pass
+    class TestDokan(unittest.TestCase,DokanTestCases,ThreadingTestCases):
 
         def setUp(self):
             self.temp_fs = TempFS()
@@ -166,25 +193,4 @@ else:
                 if self.mount_proc.poll() is None:
                     self.mount_proc.terminate()
             self.temp_fs.close()
-
-        def test_remove(self):
-            self.fs.createfile("a.txt")
-            self.assertTrue(self.check("a.txt"))
-            self.fs.remove("a.txt")
-            self.assertFalse(self.check("a.txt"))
-            self.assertRaises(ResourceNotFoundError,self.fs.remove,"a.txt")
-            self.fs.makedir("dir1")
-            #  This appears to be a bug in Dokan - DeleteFile will happily
-            #  delete an empty directory.
-            #self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
-            self.fs.createfile("/dir1/a.txt")
-            self.assertTrue(self.check("dir1/a.txt"))
-            self.fs.remove("dir1/a.txt")
-            self.assertFalse(self.check("/dir1/a.txt"))
-
-        def test_settimes(self):
-            #  Setting the times does actually work, but there's some sort
-            #  of cachine effect which prevents them from being read back
-            #  out.  Disabling the test for now.
-            pass
 
