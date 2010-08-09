@@ -237,6 +237,8 @@ class WatchedDirectory(object):
        pos = 0
        while pos < len(buffer):
            jump, action, namelen = struct.unpack("iii",buffer[pos:pos+12])
+           # TODO: this may return a shortname or a longname, with no way
+           # to tell which.  Normalise them somehow?
            name = buffer[pos+12:pos+12+namelen].decode("utf16")
            yield (name,action)
            if not jump:

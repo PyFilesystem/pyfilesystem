@@ -72,7 +72,7 @@ from fs.functools import wraps
 
 try:
     import libdokan
-except NotImplementedError:
+except (NotImplementedError,EnvironmentError):
     raise ImportError("Dokan found but not usable")
 
 
