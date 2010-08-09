@@ -398,11 +398,11 @@ class FSOperations(DokanOperations):
     @handle_fs_errors
     def GetFileInformation(self, path, buffer, info):
         path = normpath(path)
-        info = self.fs.getinfo(path)
-        if "name" not in info:
-            info["name"] = basename(path)
+        finfo = self.fs.getinfo(path)
+        if "name" not in finfo:
+            finfo["name"] = basename(path)
         data = buffer.contents
-        _info2finddataw(info,data)
+        self._info2finddataw(path,finfo,data,info)
 
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
@@ -411,7 +411,7 @@ class FSOperations(DokanOperations):
             fpath = pathjoin(path,nm)
             if self._is_pending_delete(fpath):
                 continue
-            data = _info2finddataw(self.fs.getinfo(fpath))
+            data = self._info2finddataw(path,self.fs.getinfo(fpath),None,info)
             fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
@@ -437,7 +437,7 @@ class FSOperations(DokanOperations):
                 finfo["name"] = nm
                 infolist.append(finfo)
         for finfo in infolist:
-            data = _info2finddataw(finfo)
+            data = self._info2finddataw(path,finfo,None,info)
             fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
@@ -525,30 +525,40 @@ class FSOperations(DokanOperations):
         sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(fnmBuf,nm,sz)
 
-def _info2attrmask(info):
-    """Convert a file/directory info dict to a win32 file attributes mask."""
-    attrs = 0
-    st_mode = info.get("st_mode",None)
-    if st_mode:
-        if statinfo.S_ISDIR(st_mode):
-            attrs |= FILE_ATTRIBUTE_DIRECTORY
-        elif statinfo.S_ISREG(st_mode):
-            attrs |= FILE_ATTRIBUTE_NORMAL
-    return attrs
+    def _info2attrmask(self,path,info,hinfo=None):
+        """Convert a file/directory info dict to a win32 file attribute mask."""
+        attrs = 0
+        st_mode = info.get("st_mode",None)
+        if st_mode:
+            if statinfo.S_ISDIR(st_mode):
+                attrs |= FILE_ATTRIBUTE_DIRECTORY
+            elif statinfo.S_ISREG(st_mode):
+                attrs |= FILE_ATTRIBUTE_NORMAL
+        elif hinfo:
+            if hinfo.contents.IsDirectory:
+                attrs |= FILE_ATTRIBUTE_DIRECTORY
+            else:
+                attrs |= FILE_ATTRIBUTE_NORMAL
+        else:
+            if self.fs.isdir(path):
+                attrs |= FILE_ATTRIBUTE_DIRECTORY
+            else:
+                attrs |= FILE_ATTRIBUTE_NORMAL
+        return attrs
 
-def _info2finddataw(info,data=None):
-    """Convert a file/directory info dict into a WIN32_FIND_DATAW struct."""
-    if data is None:
-        data = libdokan.WIN32_FIND_DATAW()
-    data.dwFileAttributes = _info2attrmask(info)
-    data.ftCreateTime = _datetime2filetime(info.get("created_time",None))
-    data.ftAccessTime = _datetime2filetime(info.get("accessed_time",None))
-    data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
-    data.nFileSizeHigh = info.get("size",0) >> 32
-    data.nFileSizeLow = info.get("size",0) & 0xffffff
-    data.cFileName = info.get("name","")
-    data.cAlternateFileName = ""
-    return data
+    def _info2finddataw(self,path,info,data=None,hinfo=None):
+        """Convert a file/directory info dict into a WIN32_FIND_DATAW struct."""
+        if data is None:
+            data = libdokan.WIN32_FIND_DATAW()
+        data.dwFileAttributes = self._info2attrmask(path,info,hinfo)
+        data.ftCreateTime = _datetime2filetime(info.get("created_time",None))
+        data.ftAccessTime = _datetime2filetime(info.get("accessed_time",None))
+        data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
+        data.nFileSizeHigh = info.get("size",0) >> 32
+        data.nFileSizeLow = info.get("size",0) & 0xffffff
+        data.cFileName = info.get("name","")
+        data.cAlternateFileName = ""
+        return data
 
 
 def _datetime2timestamp(dtime):
