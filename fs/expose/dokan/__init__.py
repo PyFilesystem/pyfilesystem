@@ -334,7 +334,11 @@ class FSOperations(DokanOperations):
                     self._del_file(info.contents.Context)
                 finally:
                     lock.release()
-        elif info.contents.Context >= MIN_FH:
+            info.contents.Context = 0
+
+    @handle_fs_errors
+    def CloseFile(self, path, info):
+        if info.contents.Context >= MIN_FH:
             (file,_,lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
@@ -342,12 +346,7 @@ class FSOperations(DokanOperations):
                 self._del_file(info.contents.Context)
             finally:
                 lock.release()
-        info.contents.Context = 0
-
-    @handle_fs_errors
-    def CloseFile(self, path, info):
-        if info.contents.Context != 0:
-            raise FSError("file handle not cleaned up: %s" % (path,))
+            info.contents.Context = 0
 
     @handle_fs_errors
     def ReadFile(self, path, buffer, nBytesToRead, nBytesRead, offset, info):
