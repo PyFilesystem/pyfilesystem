@@ -173,9 +173,11 @@ MIN_FH = 100
 class FSOperations(DokanOperations):
     """DokanOperations interface delegating all activities to an FS object."""
 
-    def __init__(self, fs, on_init=None, on_unmount=None):
+    def __init__(self, fs, on_init=None, on_unmount=None, fsname="Dokan FS", volname="Dokan Volume"):
         super(FSOperations,self).__init__()
         self.fs = fs
+        self.fsname = fsname
+        self.volname = volname
         self._on_init = on_init
         self._on_unmount = on_unmount
         self._files_by_handle = {}
@@ -510,7 +512,7 @@ class FSOperations(DokanOperations):
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
-        nm = ctypes.create_unicode_buffer("Dokan Volume"[:vnmSz-1])
+        nm = ctypes.create_unicode_buffer(self.volname[:vnmSz-1])
         sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(vnmBuf,nm,sz)
         if sNum:
@@ -519,7 +521,7 @@ class FSOperations(DokanOperations):
             maxLen[0] = 255
         if flags:
             flags[0] = 0
-        nm = ctypes.create_unicode_buffer("Dokan FS"[:fnmSz-1])
+        nm = ctypes.create_unicode_buffer(self.fsname[:fnmSz-1])
         sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(fnmBuf,nm,sz)
 
@@ -679,7 +681,7 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         flags = kwds.pop("flags",0)
         FSOperationsClass = kwds.pop("FSOperationsClass",FSOperations)
         opts = libdokan.DOKAN_OPTIONS(drive[:1], numthreads, flags)
-        ops = FSOperationsClass(fs, on_unmount=unmount_callback)
+        ops = FSOperationsClass(fs, on_unmount=unmount_callback, **kwds)
         if ready_callback:
             check_thread = threading.Thread(target=check_ready)
             check_thread.daemon = True
