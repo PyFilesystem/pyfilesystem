@@ -323,13 +323,8 @@ class FSOperations(DokanOperations):
 
     @handle_fs_errors
     def Cleanup(self, path, info):
-        pass
-
-    @handle_fs_errors
-    def CloseFile(self, path, info):
         path = normpath(path)
         if info.contents.DeleteOnClose:
-            assert path in self._pending_delete
             if info.contents.IsDirectory:
                 self.fs.removedir(path)
                 self._pending_delete.remove(path)
@@ -351,6 +346,12 @@ class FSOperations(DokanOperations):
                 self._del_file(info.contents.Context)
             finally:
                 lock.release()
+        info.contents.Context = 0
+
+    @handle_fs_errors
+    def CloseFile(self, path, info):
+        if info.contents.Context != 0:
+            raise FSError("file handle not cleaned up: %s" % (path,))
 
     @handle_fs_errors
     def ReadFile(self, path, buffer, nBytesToRead, nBytesRead, offset, info):
@@ -371,7 +372,10 @@ class FSOperations(DokanOperations):
         (file,_,lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
-            file.seek(offset)
+            if info.contents.WriteToEndOfFile:
+                file.seek(0,os.SEEK_END)
+            else:
+                file.seek(offset)
             data = ctypes.create_string_buffer(nBytesToWrite)
             ctypes.memmove(data,buffer,nBytesToWrite)
             file.write(data.raw)
@@ -403,6 +407,8 @@ class FSOperations(DokanOperations):
         path = normpath(path)
         for nm in self.fs.listdir(path):
             fpath = pathjoin(path,nm)
+            if self._is_pending_delete(fpath):
+                continue
             data = _info2finddataw(self.fs.getinfo(fpath))
             fillFindData(ctypes.byref(data),info)
 
@@ -413,12 +419,16 @@ class FSOperations(DokanOperations):
         try:
             for finfo in self.fs.listdir(path,info=True):
                 nm = finfo["name"]
+                if self._is_pending_delete(pathjoin(path,nm)):
+                    continue
                 if not libdokan.DokanIsNameInExpression(pattern,nm,True):
                     continue
                 infolist.append(finfo)
         except (TypeError,KeyError,UnsupportedError):
             filtered = True
             for nm in self.fs.listdir(path):
+                if self._is_pending_delete(pathjoin(path,nm)):
+                    continue
                 if not libdokan.DokanIsNameInExpression(pattern,nm,True):
                     continue
                 finfo = self.fs.getinfo(pathjoin(path,nm))
@@ -458,8 +468,9 @@ class FSOperations(DokanOperations):
     @handle_fs_errors
     def DeleteDirectory(self, path, info):
         path = normpath(path)
-        if self.fs.listdir(path):
-            raise DirectoryNotEmptyError(path)
+        for nm in self.fs.listdir(path):
+            if not self._is_pending_delete(pathjoin(path,nm)):
+                raise DirectoryNotEmptyError(path)
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
 
@@ -584,7 +595,7 @@ assert d == _filetime2datetime(f)
 
 ERROR_FILE_EXISTS = 80
 ERROR_DIR_NOT_EMPTY = 145
-ERROR_DIR_NOT_SUPPORTED = 50
+ERROR_NOT_SUPPORTED = 50
 ERROR_ACCESS_DENIED = 5
 
 def _errno2syserrcode(eno):
@@ -598,6 +609,19 @@ def _errno2syserrcode(eno):
     if eno == errno.EACCES:
         return ERROR_ACCESS_DENIED
     return eno
+
+
+def _normalise_drive_string(drive):
+    """Normalise drive string to a single letter."""
+    if not drive:
+        raise ValueError("invalid drive letter: %r" % (drive,))
+    if len(drive) > 3:
+        raise ValueError("invalid drive letter: %r" % (drive,))
+    if not drive[0].isalpha():
+        raise ValueError("invalid drive letter: %r" % (drive,))
+    if not ":\\".startswith(drive[1:]):
+        raise ValueError("invalid drive letter: %r" % (drive,))
+    return drive[0].upper()
     
 
 def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
@@ -622,21 +646,32 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         * FSOperationsClass:  custom FSOperations subclass to use
 
     """
+    drive = _normalise_drive_string(drive)
     #  This function captures the logic of checking whether the Dokan mount
     #  is up and running.  Unfortunately I can't find a way to get this
-    #  via a callback in the Dokan API.
+    #  via a callback in the Dokan API.  Instead we just check for the drive
+    #  in a loop, polling the mount proc to make sure it hasn't died.
+    def check_alive(mp):
+        if mp and mp.poll() != None:
+            raise OSError("dokan mount process exited prematurely")
     def check_ready(mp=None):
         if ready_callback is not False:
+            check_alive(mp)
             for _ in xrange(100):
                 try:
                     os.stat(drive+":\\")
-                except EnvironmentError:
+                except EnvironmentError, e:
+                    check_alive(mp)
                     time.sleep(0.05)
                 else:
-                    if mp and mp.poll() != None:
-                        raise OSError("dokan mount process exited prematurely")
+                    check_alive(mp)
                     if ready_callback:
                         return ready_callback()
+                    else:
+                        return None
+            else:
+                check_alive(mp)
+                raise OSError("dokan mount process seems to be hung")
     #  Running the the foreground is the final endpoint for the mount
     #  operation, it's where we call DokanMain().
     if foreground:
@@ -645,8 +680,10 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         FSOperationsClass = kwds.pop("FSOperationsClass",FSOperations)
         opts = libdokan.DOKAN_OPTIONS(drive[:1], numthreads, flags)
         ops = FSOperationsClass(fs, on_unmount=unmount_callback)
-        if ready_callback is not False:
-            threading.Thread(target=check_ready).start()
+        if ready_callback:
+            check_thread = threading.Thread(target=check_ready)
+            check_thread.daemon = True
+            check_thread.start()
         res = DokanMain(ctypes.byref(opts),ctypes.byref(ops.buffer))
         if res != DOKAN_SUCCESS:
             raise OSError("Dokan failed with error: %d" % (res,))
@@ -701,7 +738,7 @@ class MountProcess(subprocess.Popen):
     unmount_timeout = 5
 
     def __init__(self, fs, drive, dokan_opts={}, nowait=False, **kwds):
-        self.drive = drive[:1]
+        self.drive = _normalise_drive_string(drive)
         self.path = self.drive + ":\\"
         cmd = 'from fs.expose.dokan import MountProcess; '
         cmd = cmd + 'MountProcess._do_mount(%s)'
