@@ -72,7 +72,9 @@ from fs.functools import wraps
 
 try:
     import libdokan
-except (NotImplementedError,EnvironmentError):
+except EnvironmentError:
+    raise ImportError("Dokan not found")
+except NotImplementedError:
     raise ImportError("Dokan found but not usable")
 
 
@@ -499,9 +501,7 @@ class FSOperations(DokanOperations):
 
     @handle_fs_errors
     def GetDiskFreeSpaceEx(self, nBytesAvail, nBytesTotal, nBytesFree, info):
-        nBytesAvail[0] = 8 * 1024 * 1024
-        nBytesTotal[0] = 20 * 1024 * 1024
-        nBytesFree[0] = 12 * 1024 * 1024
+        pass
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
