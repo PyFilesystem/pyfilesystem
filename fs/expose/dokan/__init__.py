@@ -173,13 +173,11 @@ MIN_FH = 100
 class FSOperations(DokanOperations):
     """DokanOperations interface delegating all activities to an FS object."""
 
-    def __init__(self, fs, on_init=None, on_unmount=None, fsname="Dokan FS", volname="Dokan Volume"):
+    def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
         super(FSOperations,self).__init__()
         self.fs = fs
         self.fsname = fsname
         self.volname = volname
-        self._on_init = on_init
-        self._on_unmount = on_unmount
         self._files_by_handle = {}
         self._files_lock = threading.Lock()
         self._next_handle = MIN_FH
@@ -226,10 +224,6 @@ class FSOperations(DokanOperations):
             if ppath in self._pending_delete:
                 return True
         return False
-
-    def Unmount(self, info):
-        if self._on_unmount:
-            self._on_unmount()
 
     @handle_fs_errors
     def CreateFile(self, path, access, sharing, disposition, flags, info):
@@ -691,7 +685,7 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         flags = kwds.pop("flags",0)
         FSOperationsClass = kwds.pop("FSOperationsClass",FSOperations)
         opts = libdokan.DOKAN_OPTIONS(drive[:1], numthreads, flags)
-        ops = FSOperationsClass(fs, on_unmount=unmount_callback, **kwds)
+        ops = FSOperationsClass(fs, **kwds)
         if ready_callback:
             check_thread = threading.Thread(target=check_ready)
             check_thread.daemon = True
@@ -699,6 +693,8 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         res = DokanMain(ctypes.byref(opts),ctypes.byref(ops.buffer))
         if res != DOKAN_SUCCESS:
             raise OSError("Dokan failed with error: %d" % (res,))
+        if unmount_callback:
+            unmount_callback()
     #  Running the background, spawn a subprocess and wait for it
     #  to be ready before returning.
     else:
