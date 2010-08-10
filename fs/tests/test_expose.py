@@ -133,11 +133,8 @@ else:
             return self.mounted_fs.exists(p)
 
 
-try:
-    from fs.expose import dokan
-except ImportError:
-    pass
-else:
+from fs.expose import dokan
+if dokan.is_available:
     from fs.osfs import OSFS
     class DokanTestCases(FSTestCases):
         """Specialised testcases for filesystems exposed via Dokan.

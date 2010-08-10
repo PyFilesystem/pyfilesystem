@@ -209,23 +209,6 @@ class DOKAN_OPERATIONS(Structure):
 
 
 
-class DokanOperations(object):
-    """Object interface to defining a DOKAN_OPERATIONS structure."""
-
-    def __init__(self):
-        self.buffer = DOKAN_OPERATIONS()
-        for (nm,typ) in DOKAN_OPERATIONS._fields_:
-            try:
-                setattr(self.buffer,nm,typ(getattr(self,nm)))
-            except AttributeError:
-                #  This bizarre syntax creates a NULL function pointer.
-                setattr(self.buffer,nm,typ())
-
-    def _noop(self,*args):
-        return -1
-
-
-
 DokanMain.restype = c_int
 DokanMain.argtypes = (
     POINTER(DOKAN_OPTIONS),

@@ -72,14 +72,13 @@ from fs.functools import wraps
 
 try:
     import libdokan
-except EnvironmentError:
-    raise ImportError("Dokan not found")
-except NotImplementedError:
-    raise ImportError("Dokan found but not usable")
+except (NotImplementedError,EnvironmentError,ImportError):
+    is_available = False
+    sys.modules.pop("fs.expose.dokan.libdokan",None)
+    libdokan = None
+else:
+    is_available = True
 
-
-DokanMain = libdokan.DokanMain
-DokanOperations = libdokan.DokanOperations
 
 #  Options controlling the behaiour of the Dokan filesystem
 DOKAN_OPTION_DEBUG = 1
@@ -172,11 +171,12 @@ def handle_fs_errors(func):
 
 MIN_FH = 100
 
-class FSOperations(DokanOperations):
-    """DokanOperations interface delegating all activities to an FS object."""
+class FSOperations:
+    """Object delegating all DOKAN_OPERTAIONS pointers to an FS object."""
 
     def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
-        super(FSOperations,self).__init__()
+        if libdokan is None:
+            raise OSError("dokan library is not available")
         self.fs = fs
         self.fsname = fsname
         self.volname = volname
@@ -190,6 +190,17 @@ class FSOperations(DokanOperations):
         #  We explicitly keep track of the size FUSE expects a file to be.
         #  This dict is indexed by path, then file handle.
         self._files_size_written = {}
+        
+    def get_ops_struct(self):
+        """Get a DOKAN_OPERATIONS struct mapping to our methods."""
+        struct = libdokan.DOKAN_OPERATIONS()
+        for (nm,typ) in libdokan.DOKAN_OPERATIONS._fields_:
+            try:
+                setattr(struct,nm,typ(getattr(self,nm)))
+            except AttributeError:
+                #  This bizarre syntax creates a NULL function pointer.
+                setattr(struct,nm,typ())
+        return struct
 
     def _get_file(self, fh):
         try:
@@ -591,13 +602,6 @@ def _datetime2filetime(dtime):
     return _timestamp2filetime(_datetime2timestamp(dtime))
 
 
-d = datetime.datetime.now()
-t = _datetime2timestamp(d)
-f = _datetime2filetime(d)
-assert d == _timestamp2datetime(t)
-assert t == _filetime2timestamp(_timestamp2filetime(t))
-assert d == _filetime2datetime(f)
-
 ERROR_FILE_EXISTS = 80
 ERROR_DIR_NOT_EMPTY = 145
 ERROR_NOT_SUPPORTED = 50
@@ -651,6 +655,8 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         * FSOperationsClass:  custom FSOperations subclass to use
 
     """
+    if libdokan is None:
+        raise OSError("the dokan library is not available")
     drive = _normalise_drive_string(drive)
     #  This function captures the logic of checking whether the Dokan mount
     #  is up and running.  Unfortunately I can't find a way to get this
@@ -689,7 +695,8 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
             check_thread = threading.Thread(target=check_ready)
             check_thread.daemon = True
             check_thread.start()
-        res = DokanMain(ctypes.byref(opts),ctypes.byref(ops.buffer))
+        opstruct = ops.get_ops_struct()
+        res = libdokan.DokanMain(ctypes.byref(opts),ctypes.byref(opstruct))
         if res != DOKAN_SUCCESS:
             raise OSError("Dokan failed with error: %d" % (res,))
         if unmount_callback:
@@ -745,6 +752,8 @@ class MountProcess(subprocess.Popen):
     unmount_timeout = 5
 
     def __init__(self, fs, drive, dokan_opts={}, nowait=False, **kwds):
+        if libdokan is None:
+            raise OSError("the dokan library is not available")
         self.drive = _normalise_drive_string(drive)
         self.path = self.drive + ":\\"
         cmd = 'from fs.expose.dokan import MountProcess; '
