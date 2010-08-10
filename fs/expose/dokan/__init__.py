@@ -119,8 +119,11 @@ OPEN_EXISTING = 3
 OPEN_ALWAYS = 4
 TRUNCATE_EXISTING = 5
 
-GENERIC_READ = 128
-GENERIC_WRITE = 1180054
+FILE_GENERIC_READ = 1179785
+FILE_GENERIC_WRITE = 1179926
+
+REQ_GENERIC_READ = 0x80 | 0x08 | 0x01
+REQ_GENERIC_WRITE = 0x004 | 0x0100 | 0x002 | 0x0010
 
 #  Some useful per-process global information
 NATIVE_ENCODING = sys.getfilesystemencoding()
@@ -132,7 +135,7 @@ FILETIME_UNIX_EPOCH = 116444736000000000
 
 
 def _debug(*args):
-    #print args; sys.stdout.flush()
+    #print >>sys.stderr, args; sys.stderr.flush()
     pass
 
 
@@ -163,7 +166,8 @@ def handle_fs_errors(func):
         else:
             if res is None:
                 res = 0
-        _debug("RES",name,res)
+        if res != 0:
+            _debug("RES",name,res)
         return res
     return wrapper
  
@@ -171,7 +175,7 @@ def handle_fs_errors(func):
 
 MIN_FH = 100
 
-class FSOperations:
+class FSOperations(object):
     """Object delegating all DOKAN_OPERTAIONS pointers to an FS object."""
 
     def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
@@ -254,8 +258,8 @@ class FSOperations:
         # Convert the various access rights into an appropriate mode string.
         # TODO: I'm sure this misses some important semantics.
         retcode = 0
-        if access & GENERIC_READ:
-            if access & GENERIC_WRITE:
+        if access & REQ_GENERIC_READ:
+            if access & REQ_GENERIC_WRITE:
                 if disposition == CREATE_ALWAYS:
                     if self.fs.exists(path):
                         retcode = 183
@@ -274,7 +278,7 @@ class FSOperations:
                     mode = "r+b"
             else:
                 mode = "rb"
-        else:
+        elif access & REQ_GENERIC_WRITE:
             if disposition == CREATE_ALWAYS:
                 if self.fs.exists(path):
                     retcode = 183
@@ -293,6 +297,13 @@ class FSOperations:
                 mode = "w+b"
             else:
                 mode = "r+b"
+        else:
+            #  Unknown access mode, just query the metadata.
+            if self.fs.isdir(path):
+                info.contents.IsDirectory = True
+            elif not self.fs.exists(path):
+                raise ResourceNotFoundError(path)
+            return
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
         try:
@@ -417,7 +428,7 @@ class FSOperations:
             fpath = pathjoin(path,nm)
             if self._is_pending_delete(fpath):
                 continue
-            data = self._info2finddataw(path,self.fs.getinfo(fpath),None,info)
+            data = self._info2finddataw(fpath,self.fs.getinfo(fpath))
             fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
@@ -443,13 +454,13 @@ class FSOperations:
                 finfo["name"] = nm
                 infolist.append(finfo)
         for finfo in infolist:
-            data = self._info2finddataw(path,finfo,None,info)
+            fpath = pathjoin(path,finfo["name"])
+            data = self._info2finddataw(fpath,finfo,None)
             fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
     def SetFileAttributes(self, path, attrs, info):
         path = normpath(path)
-        raise UnsupportedError
         # TODO: decode various file attributes
 
     @handle_fs_errors
@@ -506,7 +517,10 @@ class FSOperations:
         (file,_,lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
-            file.truncate(length)
+            pos = file.tell()
+            file.seek(length)
+            file.truncate()
+            file.seek(min(pos,length))
         finally:
             lock.release()
 
@@ -578,7 +592,7 @@ def _timestamp2datetime(tstamp):
     return datetime.datetime.fromtimestamp(tstamp)
 
 def _timestamp2filetime(tstamp):
-    f = FILETIME_UNIX_EPOCH + int(t * 10000000)
+    f = FILETIME_UNIX_EPOCH + int(tstamp * 10000000)
     return libdokan.FILETIME(f & 0xffffffff,f >> 32)
 
 def _filetime2timestamp(ftime):
