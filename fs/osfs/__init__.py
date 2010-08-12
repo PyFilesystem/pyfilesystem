@@ -99,7 +99,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         if create:
             try:
                 _os_makedirs(root_path, mode=dir_mode)
-            except OSError:
+            except (OSError, DestinationExistsError):
                 pass
 
         if not os.path.exists(root_path):
