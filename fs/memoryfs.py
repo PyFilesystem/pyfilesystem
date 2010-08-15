@@ -34,8 +34,9 @@ class MemoryFile(object):
     def __init__(self, path, memory_fs, value, mode):
         self.closed = False
         self.path = path
-        self.memory_fs = memory_fs
+        self.memory_fs = memory_fs        
         self.mode = mode
+        value = value or ''
 
         self.mem_file = None
 
@@ -64,7 +65,7 @@ class MemoryFile(object):
             self.mem_file.write(value)
 
         else:
-            if value is not None:
+            if value:
                 self.mem_file = StringIO(value)
             else:
                 self.mem_file = StringIO()
