@@ -325,13 +325,19 @@ class FS(object):
             if not full or absolute:
                 return pathjoin(path, p)
 
-        return [(p, self.getinfo(get_path(p)))
-                    for p in self._listdir_helper(path,
-                                                  widcard=wildcard,
-                                                  full=full,
-                                                  absolute=absolute,
-                                                  dirs_only=dirs_only,
-                                                  files_only=files_only)]
+        def getinfo(p):
+            try:
+                return self.getinfo(get_path(p))
+            except FSError:
+                return {}
+
+        return [(p, getinfo(get_path(p)))
+                    for p in self.listdir(path,                                          
+                                          wildcard=wildcard,
+                                          full=full,
+                                          absolute=absolute,
+                                          dirs_only=dirs_only,
+                                          files_only=files_only)]
 
     def _listdir_helper(self, path, entries,
                               wildcard=None,
