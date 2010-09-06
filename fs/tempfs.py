@@ -47,6 +47,7 @@ class TempFS(OSFS):
         Note that once this method has been called, the FS object may
         no longer be used.
         """
+        super(TempFS,self).close()
         #  Depending on how resources are freed by the OS, there could
         #  be some transient errors when freeing a TempFS soon after it
         #  was used.  If they occur, do a small sleep and try again.

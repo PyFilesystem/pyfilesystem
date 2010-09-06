@@ -233,6 +233,8 @@ def convert_os_errors(func):
                 raise StorageSpaceError(opname,details=e),None,tb
             if e.errno == errno.EPERM:
                 raise PermissionDeniedError(opname,details=e),None,tb
+            if e.errno == errno.ENOSYS:
+                raise UnsupportedError(opname,details=e),None,tb
             if e.errno == errno.EACCES:
                 if sys.platform == "win32":
                     if e.args[0] and e.args[0] == 32:

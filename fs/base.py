@@ -424,6 +424,7 @@ class FS(object):
         """
         raise UnsupportedError("rename resource")
 
+    @convert_os_errors
     def settimes(self, path, accessed_time=None, modified_time=None):
         """Set the accessed time and modified time of a file
         

@@ -1,6 +1,6 @@
 """
 fs.osfs.watch_win32
-=============
+===================
 
 Change watcher support for OSFS, using ReadDirectoryChangesW on win32.
 
@@ -359,9 +359,13 @@ class WatchThread(threading.Thread):
                     traceback.print_exc()
                 else:
                     if iocpkey.value > 1:
-                        w = self.watched_directories[iocpkey.value]
-                        w.complete(nbytes.value)
-                        w.post()
+                        try:
+                            w = self.watched_directories[iocpkey.value]
+                        except KeyError:
+                            pass
+                        else:
+                            w.complete(nbytes.value)
+                            w.post()
                     elif not self.closed:
                         try:
                             while True:
@@ -405,11 +409,13 @@ class OSFSWatchMixin(WatchableFSMixin):
             try:
                 path = self.unsyspath(path)
             except ValueError:
-                raise
+                pass
             else:
+                if event_class in (MOVED_SRC,MOVED_DST) and args and args[0]:
+                    args = (self.unsyspath(args[0]),) + args[1:]
                 event = event_class(self,path,*args,**kwds)
                 w.handle_event(event)
-        w._watch_obj = wt.add_watcher(handle_event,syspath,w.events,w.recursive)
+        w._watch_objs = wt.add_watcher(handle_event,syspath,w.events,w.recursive)
         return w
 
     @convert_os_errors
@@ -420,7 +426,8 @@ class OSFSWatchMixin(WatchableFSMixin):
         else:
             watchers = self._find_watchers(watcher_or_callback)
         for watcher in watchers:
-            wt.del_watcher(watcher._watch_obj)
+            for wobj in watcher._watch_objs:
+                wt.del_watcher(wobj)
             super(OSFSWatchMixin,self).del_watcher(watcher)
         if not wt.watched_directories:
             self.__shutdown_watch_thread()
@@ -451,6 +458,8 @@ class OSFSWatchMixin(WatchableFSMixin):
                 OSFSWatchMixin.__watch_thread.close()
             except EnvironmentError:
                 pass
+            else:
+                OSFSWatchMixin.__watch_thread.join()
             OSFSWatchMixin.__watch_thread = None
         finally:
             self.__watch_lock.release()
