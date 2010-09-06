@@ -188,10 +188,9 @@ class FSOperations(object):
         self._files_lock = threading.Lock()
         self._next_handle = MIN_FH
         self._pending_delete = set()
-        #  TODO: do we need this for dokan?  It's a hangover from FUSE.
         #  Dokan expects a succesful write() to be reflected in the file's
         #  reported size, but the FS might buffer writes and prevent this.
-        #  We explicitly keep track of the size FUSE expects a file to be.
+        #  We explicitly keep track of the size Dokan expects a file to be.
         #  This dict is indexed by path, then file handle.
         self._files_size_written = {}
         
@@ -344,21 +343,24 @@ class FSOperations(object):
     @handle_fs_errors
     def Cleanup(self, path, info):
         path = normpath(path)
-        if info.contents.DeleteOnClose:
-            if info.contents.IsDirectory:
+        if info.contents.IsDirectory:
+            if info.contents.DeleteOnClose:
                 self.fs.removedir(path)
                 self._pending_delete.remove(path)
-            else:
-                (file,_,lock) = self._get_file(info.contents.Context)
-                lock.acquire()
-                try:
+        else:
+            (file,_,lock) = self._get_file(info.contents.Context)
+            lock.acquire()
+            try:
+                if info.contents.DeleteOnClose:
                     file.close()
                     self.fs.remove(path)
                     self._pending_delete.remove(path)
                     self._del_file(info.contents.Context)
-                finally:
-                    lock.release()
-            info.contents.Context = 0
+                    info.contents.Context = 0
+                else:
+                    file.flush()
+            finally:
+                lock.release()
 
     @handle_fs_errors
     def CloseFile(self, path, info):
@@ -388,7 +390,8 @@ class FSOperations(object):
     @handle_fs_errors
     def WriteFile(self, path, buffer, nBytesToWrite, nBytesWritten, offset, info):
         path = normpath(path)
-        (file,_,lock) = self._get_file(info.contents.Context)
+        fh = info.contents.Context
+        (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
             if info.contents.WriteToEndOfFile:
@@ -399,6 +402,8 @@ class FSOperations(object):
             ctypes.memmove(data,buffer,nBytesToWrite)
             file.write(data.raw)
             nBytesWritten[0] = len(data.raw)
+            if offset + nBytesWritten[0] > self._files_size_written[path][fh]:
+                self._files_size_written[path][fh] = offset + nBytesWritten[0]
         finally:
             lock.release()
 
@@ -420,6 +425,15 @@ class FSOperations(object):
             finfo["name"] = basename(path)
         data = buffer.contents
         self._info2finddataw(path,finfo,data,info)
+        try:
+            written_size = max(self._files_size_written[path].values())
+        except KeyError:
+            pass
+        else:
+            reported_size = (data.nFileSizeHigh << 32) + data.nFileSizeLow
+            if written_size > reported_size:
+                data.nFileSizeHigh = written_size >> 32
+                data.nFileSizeLow = written_size & 0xffffffff
 
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
@@ -573,7 +587,7 @@ class FSOperations(object):
         data.ftAccessTime = _datetime2filetime(info.get("accessed_time",None))
         data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
         data.nFileSizeHigh = info.get("size",0) >> 32
-        data.nFileSizeLow = info.get("size",0) & 0xffffff
+        data.nFileSizeLow = info.get("size",0) & 0xffffffff
         data.cFileName = info.get("name","")
         data.cAlternateFileName = ""
         return data
