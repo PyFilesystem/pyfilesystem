@@ -530,7 +530,7 @@ class DAVFS(FS):
         if response.status == 409:
             raise ParentDirectoryMissingError(dst)
         if response.status < 200 or response.status >= 300:
-            raise_generic_error(response,"copy",path)
+            raise_generic_error(response,"copy",src)
 
     def move(self,src,dst,overwrite=False,chunk_size=None):
         if self.isdir(src):
@@ -557,7 +557,7 @@ class DAVFS(FS):
         if response.status == 409:
             raise ParentDirectoryMissingError(dst)
         if response.status < 200 or response.status >= 300:
-            raise_generic_error(response,"move",path)
+            raise_generic_error(response,"move",src)
 
     @staticmethod
     def _split_xattr(name):
