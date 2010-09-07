@@ -68,7 +68,7 @@ kernel32 = ctypes.windll.kernel32
 from fs.base import threading
 from fs.errors import *
 from fs.path import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 try:
     import libdokan

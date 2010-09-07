@@ -27,7 +27,7 @@ from time import sleep
 import datetime
 import re
 from socket import error as socket_error
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 try:
     from cStringIO import StringIO

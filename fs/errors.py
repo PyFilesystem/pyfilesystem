@@ -31,7 +31,7 @@ import sys
 import errno
 
 from fs.path import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 
 class FSError(Exception):

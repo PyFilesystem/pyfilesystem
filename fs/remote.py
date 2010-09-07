@@ -29,7 +29,7 @@ from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.wrapfs.lazyfs import LazyFS
 from fs.path import *
 from fs.errors import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 try:
    from tempfile import SpooledTemporaryFile

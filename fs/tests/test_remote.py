@@ -17,7 +17,7 @@ from fs.remote import *
 from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.tempfs import TempFS
 from fs.path import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 
 class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):

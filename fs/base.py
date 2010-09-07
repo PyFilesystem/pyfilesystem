@@ -31,7 +31,7 @@ except ImportError:
 
 from fs.path import *
 from fs.errors import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 
 class DummyLock(object):

@@ -21,7 +21,7 @@ import fnmatch
 
 from fs.base import FS, threading, synchronize
 from fs.errors import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 
 def rewrite_errors(func):

@@ -36,7 +36,7 @@ import paramiko
 from fs.base import flags_to_mode
 from fs.path import *
 from fs.errors import *
-from fs.functools import wraps
+from fs.local_functools import wraps
 
 
 # Default host key used by BaseSFTPServer
