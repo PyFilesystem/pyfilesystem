@@ -15,17 +15,17 @@ from fs.watch import *
 from fs.tests import FSTestCases
 
 try:
-  from fs.osfs import watch_inotify
+    from fs.osfs import watch_inotify
 except ImportError:
-  watch_inotify = None
+    watch_inotify = None
 
 if sys.platform == "win32":
     try:
-      from fs.osfs import watch_win32
+        from fs.osfs import watch_win32
     except ImportError:
-      watch_win32 = None
+        watch_win32 = None
 else:
-  watch_win32 = None
+    watch_win32 = None
 
 
 class WatcherTestCases:
@@ -73,6 +73,14 @@ class WatcherTestCases:
         self.setupWatchers()
         self.fs.makedir("test1")
         self.assertEventOccurred(CREATED,"/test1")
+
+    def test_watch_makedir_with_two_watchers(self):
+        self.setupWatchers()
+        events2 = []
+        self.watchfs.add_watcher(events2.append)
+        self.fs.makedir("test1")
+        self.assertEventOccurred(CREATED,"/test1")
+        self.assertTrue(isinstance(events2[0],CREATED))
 
     def test_watch_readfile(self):
         self.setupWatchers()
