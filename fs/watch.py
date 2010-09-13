@@ -141,6 +141,15 @@ class WatchableFSMixin(FS):
         self._watchers = PathMap()
         super(WatchableFSMixin,self).__init__(*args,**kwds)
 
+    def __getstate__(self):
+        state = super(WatchableFSMixin,self).__getstate__()
+        state.pop("_watchers",None)
+        return state
+
+    def __setstate__(self,state):
+        super(WatchableFSMixin,self).__setstate__(state)
+        self._watchers = PathMap()
+
     def add_watcher(self,callback,path="/",events=None,recursive=True):
         """Add a watcher callback to the FS."""
         w = Watcher(self,callback,path,events,recursive=recursive)
@@ -165,9 +174,14 @@ class WatchableFSMixin(FS):
                 if watcher.callback is callback:
                     yield watcher
 
-    def notify_watchers(self,event_class,path=None,*args,**kwds):
+    def notify_watchers(self,event_or_class,path=None,*args,**kwds):
         """Notify watchers of the given event data."""
-        event = event_class(self,path,*args,**kwds)
+        if isinstance(event_or_class,EVENT):
+            event = event_or_class
+        else:
+            event = event_or_class(self,path,*args,**kwds)
+        if path is None:
+            path = event.path
         if path is None:
             for watchers in self._watchers.itervalues():
                 for watcher in watchers:
@@ -472,7 +486,13 @@ def ensure_watchable(fs,wrapper_class=PollingWatchableFS,*args,**kwds):
     for watcher callbacks.  This may be the original object if it supports them
     natively, or a wrapper class if they must be simulated.
     """
+    if isinstance(fs,wrapper_class):
+        return fs
     try:
+        #  Try to add a watcher to a path that's unlikely to exist.
+        #  It's OK if the path does exist, since we remove the watcher.
+        #  It just might be slightly slower as the fs will actually have
+        #  to establish the watcher.
         w = fs.add_watcher(lambda e: None,"/somepaththatsnotlikelytoexist")
     except (AttributeError,UnsupportedError):
         return wrapper_class(fs,*args,**kwds)
