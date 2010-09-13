@@ -43,6 +43,7 @@ class OSFSWatchMixin(WatchableFSMixin):
             wt = self.__watch_thread
             if wt is not None and not wt.watchers:
                 wt.stop()
+                wt.join()
                 OSFSWatchMixin.__watch_thread = None
         finally:
             self.__watch_lock.release()
@@ -225,17 +226,22 @@ class SharedThreadedNotifier(threading.Thread):
             self._poller.unregister(fd)
 
     def run(self):
+        #  Grab some attributes of the select module, so they're available
+        #  even when shutting down the interpreter.
+        _select_error = select.error
+        _select_POLLIN = select.POLLIN
+        #  Loop until stopped, dispatching to individual notifiers.
         self.running = True
         while self.running:
             try:
                 ready_fds = self._poller.poll()
-            except select.error, e:
+            except _select_error, e:
                 if e[0] != errno.EINTR:
                     raise
             else:
                 for (fd,event) in ready_fds:
                     #  Ignore all events other than "input ready".
-                    if not event & select.POLLIN:
+                    if not event & _select_POLLIN:
                         continue
                     #  For signals on our internal pipe, just read and discard.
                     if fd == self._pipe_r:
