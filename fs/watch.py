@@ -261,9 +261,17 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         self.notify_watchers(ACCESSED,path)
         return WatchedFile(f,self,path,mode)
 
-    def makedir(self,path,*args,**kwds):
+    def makedir(self,path,recursive=False,allow_recreate=False):
         existed = self.wrapped_fs.isdir(path)
-        super(WatchableFS,self).makedir(path,*args,**kwds)
+        try:
+            super(WatchableFS,self).makedir(path,allow_recreate=allow_recreate)
+        except ParentDirectoryMissingError:
+            if not recursive:
+                raise
+            parent = dirname(path)
+            if parent != path:
+                self.makedir(dirname(path),recursive=True,allow_recreate=True)
+            super(WatchableFS,self).makedir(path,allow_recreate=allow_recreate)
         if not existed:
             self.notify_watchers(CREATED,path)
 
@@ -271,9 +279,23 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         super(WatchableFS,self).remove(path)
         self.notify_watchers(REMOVED,path)
 
-    def removedir(self,path,*args,**kwds):
-        super(WatchableFS,self).removedir(path,*args,**kwds)
+    def removedir(self,path,recursive=False,force=False):
+        if not force:
+            for nm in self.listdir(path):
+                raise DirectoryNotEmptyError(path)
+        else:
+            for nm in self.listdir(path,dirs_only=True):
+                self.removedir(pathjoin(path,nm),force=True)
+            for nm in self.listdir(path,files_only=True):
+                self.remove(pathjoin(path,nm))
+        super(WatchableFS,self).removedir(path)
         self.notify_watchers(REMOVED,path)
+        if recursive:
+            parent = dirname(path)
+            while parent and not self.listdir(parent):
+                super(WatchableFS,self).removedir(parent)
+                self.notify_watchers(REMOVED,parent)
+                parent = dirname(parent)
 
     def rename(self,src,dst):
         d_existed = self.wrapped_fs.exists(dst)
@@ -309,36 +331,36 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         dst_paths = {}
         try:
             for (dirnm,filenms) in self.wrapped_fs.walk(dst):
-                dirnm = dirnm[len(dst):]
+                dirnm = dirnm[len(dst)+1:]
                 dst_paths[dirnm] = True
                 for filenm in filenms:
                     dst_paths[filenm] = False
         except ResourceNotFoundError:
             pass
         except ResourceInvalidError:
-            dst_paths[dst] = False
+            dst_paths[""] = False
         src_paths = {}
         try:
             for (dirnm,filenms) in self.wrapped_fs.walk(src):
-                dirnm = dirnm[len(src):]
+                dirnm = dirnm[len(src)+1:]
                 src_paths[dirnm] = True
                 for filenm in filenms:
                     src_paths[pathjoin(dirnm,filenm)] = False
         except ResourceNotFoundError:
             pass
         except ResourceInvalidError:
-            src_paths[src] = False
+            src_paths[""] = False
         return (src_paths,dst_paths)
 
     def _post_copy(self,src,dst,data):
         (src_paths,dst_paths) = data
-        for src_path,isdir in src_paths.iteritems():
+        for src_path,isdir in sorted(src_paths.items()):
             path = pathjoin(dst,src_path)
             if src_path in dst_paths:
                 self.notify_watchers(MODIFIED,path,not isdir)
             else:
                 self.notify_watchers(CREATED,path)
-        for dst_path,isdir in dst_paths.iteritems():
+        for dst_path,isdir in sorted(dst_paths.items()):
             path = pathjoin(dst,dst_path)
             if not self.wrapped_fs.exists(path):
                 self.notify_watchers(REMOVED,path)
