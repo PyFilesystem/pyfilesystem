@@ -47,6 +47,14 @@ class EVENT(object):
     def __unicode__(self):
         return u"<fs.watch.%s object (path='%s') at %s>" % (self.__class__.__name__,self.path,hex(id(self)))
 
+    def clone(self,fs=None,path=None):
+        if fs is None:
+            fs = self.fs
+        if path is None:
+            path = self.path
+        return self.__class__(fs,path)
+
+
 class ACCESSED(EVENT):
     """Event fired when a file's contents are accessed."""
     pass
@@ -65,21 +73,42 @@ class MODIFIED(EVENT):
         super(MODIFIED,self).__init__(fs,path)
         self.data_changed = data_changed
 
+    def clone(self,fs=None,path=None,data_changed=None):
+        evt = super(MODIFIED,self).clone()
+        if data_changed is None:
+            data_changed = self.data_changed
+        evt.data_changd = data_changed
+        return evt
+
 class MOVED_DST(EVENT):
     """Event fired when a file or directory is the target of a move."""
-    def __init__(self,fs,path,source):
+    def __init__(self,fs,path,source=None):
         super(MOVED_DST,self).__init__(fs,path)
         if source is not None:
             source = abspath(normpath(source))
         self.source = source
 
+    def clone(self,fs=None,path=None,source=None):
+        evt = super(MOVED_DST,self).clone()
+        if source is None:
+            source = self.source
+        evt.source = source
+        return evt
+
 class MOVED_SRC(EVENT):
     """Event fired when a file or directory is the source of a move."""
-    def __init__(self,fs,path,destination):
+    def __init__(self,fs,path,destination=None):
         super(MOVED_SRC,self).__init__(fs,path)
         if destination is not None:
             destination = abspath(normpath(destination))
         self.destination = destination
+
+    def clone(self,fs=None,path=None,destination=None):
+        evt = super(MOVED_SRC,self).clone()
+        if destination is None:
+            destination = self.destination
+        evt.destination = destination
+        return evt
 
 class CLOSED(EVENT):
     """Event fired when the filesystem is closed."""
@@ -302,8 +331,8 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         super(WatchableFS,self).rename(src,dst)
         if d_existed:
             self.notify_watchers(REMOVED,dst)
-        self.notify_watchers(MOVED_SRC,src,dst)
         self.notify_watchers(MOVED_DST,dst,src)
+        self.notify_watchers(MOVED_SRC,src,dst)
 
     def copy(self,src,dst,**kwds):
         d = self._pre_copy(src,dst)
@@ -319,13 +348,13 @@ class WatchableFS(WrapFS,WatchableFSMixin):
         d = self._pre_copy(src,dst)
         super(WatchableFS,self).move(src,dst,**kwds)
         self._post_copy(src,dst,d)
-        self.notify_watchers(REMOVED,src)
+        self._post_move(src,dst,d)
 
     def movedir(self,src,dst,**kwds):
         d = self._pre_copy(src,dst)
         super(WatchableFS,self).movedir(src,dst,**kwds)
         self._post_copy(src,dst,d)
-        self.notify_watchers(REMOVED,src)
+        self._post_move(src,dst,d)
 
     def _pre_copy(self,src,dst):
         dst_paths = {}
@@ -364,6 +393,12 @@ class WatchableFS(WrapFS,WatchableFSMixin):
             path = pathjoin(dst,dst_path)
             if not self.wrapped_fs.exists(path):
                 self.notify_watchers(REMOVED,path)
+
+    def _post_move(self,src,dst,data):
+        (src_paths,dst_paths) = data
+        for src_path,isdir in sorted(src_paths.items(),reverse=True):
+            path = pathjoin(src,src_path)
+            self.notify_watchers(REMOVED,path)
 
     def setxattr(self,path,name,value):
         super(WatchableFS,self).setxattr(path,name,value)
