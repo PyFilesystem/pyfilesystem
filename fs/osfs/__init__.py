@@ -138,6 +138,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         
         """
         path = os.path.normpath(os.path.abspath(path))
+        path = self._decode_path(path)
         prefix = os.path.normcase(self.root_path)
         if not prefix.endswith(os.path.sep):
             prefix += os.path.sep
