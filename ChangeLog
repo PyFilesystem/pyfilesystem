@@ -41,4 +41,6 @@
     * Modified listdir and walk methods to accept callables as well as strings
       for wildcards
     * Fix operation of OSFS on win32 when it points to the root of a drive.
+    * Fix OSFS.add_watcher on linux platforms; previous version would cancel
+      any watchers when a new one was added.
 
