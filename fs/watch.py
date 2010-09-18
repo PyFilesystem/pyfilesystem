@@ -266,7 +266,7 @@ class WatchedFile(object):
         self.fs.notify_watchers(MODIFIED,self.path,True)
 
 
-class WatchableFS(WrapFS,WatchableFSMixin):
+class WatchableFS(WatchableFSMixin,WrapFS):
     """FS wrapper simulating watcher callbacks.
 
     This FS wrapper intercepts method calls that modify the underlying FS
