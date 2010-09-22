@@ -21,6 +21,7 @@ import fnmatch
 
 from fs.base import FS, threading, synchronize
 from fs.errors import *
+from fs.path import *
 from fs.local_functools import wraps
 
 
@@ -146,6 +147,8 @@ class WrapFS(FS):
 
     @rewrite_errors
     def listdir(self, path="", **kwds):
+        full = kwds.pop("full",False)
+        absolute = kwds.pop("absolute",False)
         wildcard = kwds.pop("wildcard","*")
         if wildcard is None:
             wildcard = lambda fn:True
@@ -154,16 +157,22 @@ class WrapFS(FS):
             wildcard = lambda fn:bool (wildcard_re.match(fn))         
         info = kwds.get("info",False)
         entries = []
-        for e in self.wrapped_fs.listdir(self._encode(path),**kwds):
+        enc_path = self._encode(path)
+        for e in self.wrapped_fs.listdir(enc_path,**kwds):
             if info:
                 e = e.copy()
-                e["name"] = self._decode(e["name"])
+                fullnm = pathjoin(enc_path,e["name"])
+                e["name"] = basename(self._decode(fullnm))
                 if not wildcard(e["name"]):
                     continue
             else:
-                e = self._decode(e)
+                e = basename(self._decode(pathjoin(enc_path,e)))
                 if not wildcard(e):
                     continue
+                if full:
+                    e = pathjoin(path,e)
+                elif absolute:
+                    e = abspath(pathjoin(path,e))
             entries.append(e) 
         return entries
 

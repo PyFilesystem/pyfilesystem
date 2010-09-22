@@ -33,6 +33,8 @@ from fs.path import *
 from fs.errors import *
 from fs.local_functools import wraps
 
+SubFS = None   # this is lazily imported from fs.wrapfs.subfs
+
 
 class DummyLock(object):
     """A dummy lock object that doesn't do anything.
@@ -521,10 +523,12 @@ class FS(object):
         :param path: path to directory to open
         :rtype: An FS object
         """
+        global SubFS
+        if SubFS is None:
+            from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
-        sub_fs = SubFS(self, path)
-        return sub_fs
+        return SubFS(self, path)
 
     def walk(self,
              path="/",
@@ -882,137 +886,6 @@ class FS(object):
         from fs.browsewin import browse
         browse(self)
 
-
-class SubFS(FS):
-    """A SubFS represents a sub directory of another filesystem object.
-
-    SubFS objects are returned by opendir, which effectively creates a
-    'sandbox' filesystem that can only access files/dirs under a root path
-    within its 'parent' dir.
-    """
-
-    def __init__(self, parent, sub_dir):
-        self.parent = parent
-        self.sub_dir = abspath(normpath(sub_dir))
-        FS.__init__(self, thread_synchronize=False)
-
-    def __str__(self):
-        return "<SubFS: %s in %s>" % (self.sub_dir, self.parent)
-
-    def __unicode__(self):
-        return u"<SubFS: %s in %s>" % (self.sub_dir, self.parent)
-
-    def __repr__(self):
-        return str(self)
-
-    def desc(self, path):
-        if self.isdir(path):
-            return "Sub dir of %s" % str(self.parent)
-        else:
-            return "File in sub dir of %s" % str(self.parent)
-
-    def _delegate(self, path):
-        return pathjoin(self.sub_dir, relpath(normpath(path)))
-
-    def getsyspath(self, path, allow_none=False):
-        return self.parent.getsyspath(self._delegate(path), allow_none=allow_none)
-
-    def open(self, path, mode="r", **kwargs):
-        return self.parent.open(self._delegate(path), mode)
-
-    def exists(self, path):
-        return self.parent.exists(self._delegate(path))
-
-    def opendir(self, path):
-        if not self.exists(path):
-            raise ResourceNotFoundError(path)
-
-        path = self._delegate(path)
-        sub_fs = self.parent.opendir(path)
-        return sub_fs
-
-    def isdir(self, path):
-        return self.parent.isdir(self._delegate(path))
-
-    def isfile(self, path):
-        return self.parent.isfile(self._delegate(path))
-
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        paths = self.parent.listdir(self._delegate(path),
-                                    wildcard=wildcard,
-                                    full=False,
-                                    absolute=False,
-                                    dirs_only=dirs_only,
-                                    files_only=files_only)
-        if absolute:
-            listpath = normpath(path)
-            paths = [abspath(pathjoin(listpath, path)) for path in paths]
-        elif full:
-            listpath = normpath(path)
-            paths = [relpath(pathjoin(listpath, path)) for path in paths]
-        return paths
-
-
-    def makedir(self, path, recursive=False, allow_recreate=False):
-        return self.parent.makedir(self._delegate(path), recursive=recursive, allow_recreate=allow_recreate)
-
-    def remove(self, path):
-        return self.parent.remove(self._delegate(path))
-
-    def removedir(self, path, recursive=False,force=False):
-        # Careful not to recurse outside the subdir
-        if path in ("","/"):
-            if force:
-                for path2 in self.listdir(path,absolute=True,files_only=True):
-                    try:
-                        self.remove(path2)
-                    except ResourceNotFoundError:
-                        pass
-                for path2 in self.listdir(path,absolute=True,dirs_only=True):
-                    try:
-                        self.removedir(path2,force=True)
-                    except ResourceNotFoundError:
-                        pass
-        else:
-            self.parent.removedir(self._delegate(path),force=force)
-            if recursive:
-                try:
-                    self.removedir(dirname(path),recursive=True)
-                except DirectoryNotEmptyError:
-                    pass
-
-    def settimes(self, path, accessed_time=None, modified_time=None):
-        return self.parent.settimes(self._delegate(path), accessed_time, modified_time)
-
-    def getinfo(self, path):
-        return self.parent.getinfo(self._delegate(path))
-
-    def getsize(self, path):
-        return self.parent.getsize(self._delegate(path))
-
-    def rename(self, src, dst):
-        return self.parent.rename(self._delegate(src), self._delegate(dst))
-
-    def move(self, src, dst, **kwds):
-        self.parent.move(self._delegate(src),self._delegate(dst),**kwds)
-
-    def movedir(self, src, dst, **kwds):
-        self.parent.movedir(self._delegate(src),self._delegate(dst),**kwds)
-
-    def copy(self, src, dst, **kwds):
-        self.parent.copy(self._delegate(src),self._delegate(dst),**kwds)
-
-    def copydir(self, src, dst, **kwds):
-        self.parent.copydir(self._delegate(src),self._delegate(dst),**kwds)
-
-    def createfile(self, path, data=""):
-        return self.parent.createfile(self._delegate(path),data)
-
-    def setcontents(self, path, data=""):
-        return self.parent.setcontents(self._delegate(path),data)
-
-    def getcontents(self, path):
-        return self.parent.getcontents(self._delegate(path))
 
 
 def flags_to_mode(flags):
