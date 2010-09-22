@@ -244,6 +244,8 @@ def convert_os_errors(func):
             if sys.platform == "win32":
                 if e.errno in (13,):
                     raise ResourceInvalidError(path,opname=opname,details=e),None,tb
+            if e.errno == errno.ENAMETOOLONG:
+                raise PathError(path,details=e),None,tb
             raise OperationFailedError(opname,details=e),None,tb
     return wrapper
 
