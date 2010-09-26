@@ -890,8 +890,6 @@ class FS(object):
 
 def flags_to_mode(flags):
     """Convert an os.O_* flag bitmask into an FS mode string."""    
-    if flags & os.O_EXCL:
-         raise UnsupportedError("open",msg="O_EXCL is not supported")
     if flags & os.O_WRONLY:
         if flags & os.O_TRUNC:
             mode = "w"
@@ -908,4 +906,6 @@ def flags_to_mode(flags):
             mode = "r+"
     else:
         mode = "r"    
+    if flags & os.O_EXCL:
+        mode += "x"
     return mode

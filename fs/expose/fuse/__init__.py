@@ -165,7 +165,10 @@ class FSOperations(Operations):
     @handle_fs_errors
     def create(self, path, mode, fi):
         path = path.decode(NATIVE_ENCODING)
-        fh = self._reg_file(self.fs.open(path,"w"),path)
+        # FUSE doesn't seem to pass correct mode information here - at least,
+        # I haven't figured out how to distinguish between "w" and "w+".
+        # Go with the most permissive option.
+        fh = self._reg_file(self.fs.open(path,"w+"),path)
         fi.fh = fh
         fi.keep_cache = 0
 
