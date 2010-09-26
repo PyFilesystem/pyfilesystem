@@ -255,6 +255,8 @@ class WrapFS(FS):
             return False
         if attr == "wrapped_fs":
             return None
+        if attr.startswith("_"):
+            raise AttributeError(attr)
         return getattr(self.wrapped_fs,attr)
 
     @rewrite_errors
