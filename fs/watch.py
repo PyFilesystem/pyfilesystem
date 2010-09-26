@@ -314,9 +314,15 @@ class WatchableFS(WatchableFSMixin,WrapFS):
                 raise DirectoryNotEmptyError(path)
         else:
             for nm in self.listdir(path,dirs_only=True):
-                self.removedir(pathjoin(path,nm),force=True)
+                try:
+                    self.removedir(pathjoin(path,nm),force=True)
+                except ResourceNotFoundError:
+                    pass
             for nm in self.listdir(path,files_only=True):
-                self.remove(pathjoin(path,nm))
+                try:
+                    self.remove(pathjoin(path,nm))
+                except ResourceNotFoundError:
+                    pass
         super(WatchableFS,self).removedir(path)
         self.notify_watchers(REMOVED,path)
         if recursive:

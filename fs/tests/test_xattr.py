@@ -143,12 +143,18 @@ class TestXAttr_TempFS(unittest.TestCase,FSTestCases,XAttrTestCases):
         self.fs = ensure_xattrs(fs)
 
     def tearDown(self):
-        td = self.fs._temp_dir
+        try:
+            td = self.fs._temp_dir
+        except AttributeError:
+            td = self.fs.wrapped_fs._temp_dir
         self.fs.close()
         self.assert_(not os.path.exists(td))
 
     def check(self, p):
-        td = self.fs._temp_dir
+        try:
+            td = self.fs._temp_dir
+        except AttributeError:
+            td = self.fs.wrapped_fs._temp_dir
         return os.path.exists(os.path.join(td, relpath(p)))
 
 

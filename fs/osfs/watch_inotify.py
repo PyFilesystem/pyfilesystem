@@ -47,7 +47,6 @@ class OSFSWatchMixin(WatchableFSMixin):
                 OSFSWatchMixin.__watch_thread = None
         finally:
             self.__watch_lock.release()
-            
 
     def add_watcher(self,callback,path="/",events=None,recursive=True):
         super_add_watcher = super(OSFSWatchMixin,self).add_watcher
@@ -203,7 +202,7 @@ class SharedThreadedNotifier(threading.Thread):
     def __init__(self):
         super(SharedThreadedNotifier,self).__init__()
         self.daemon = True
-        self.running = False
+        self.running = True
         self._pipe_r, self._pipe_w = os.pipe()
         self._poller = select.poll()
         self._poller.register(self._pipe_r,select.POLLIN)
@@ -231,7 +230,6 @@ class SharedThreadedNotifier(threading.Thread):
         _select_error = select.error
         _select_POLLIN = select.POLLIN
         #  Loop until stopped, dispatching to individual notifiers.
-        self.running = True
         while self.running:
             try:
                 ready_fds = self._poller.poll()
