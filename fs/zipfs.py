@@ -6,6 +6,8 @@ A FS object that represents the contents of a Zip file
 
 """
 
+import datetime
+
 from fs.base import *
 from fs.path import *
 from fs.errors import *
