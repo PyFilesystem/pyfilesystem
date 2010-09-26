@@ -227,14 +227,10 @@ def convert_os_errors(func):
                 raise ResourceInvalidError(path,opname=opname,details=e),None,tb
             if e.errno == errno.EINVAL:
                 raise ResourceInvalidError(path,opname=opname,details=e),None,tb
-            if e.errno == errno.EOPNOTSUPP:
-                raise UnsupportedError(opname,details=e),None,tb
             if e.errno == errno.ENOSPC:
-                raise StorageSpaceError(opname,details=e),None,tb
+                raise StorageSpaceError(opname,path=path,details=e),None,tb
             if e.errno == errno.EPERM:
-                raise PermissionDeniedError(opname,details=e),None,tb
-            if e.errno == errno.ENOSYS:
-                raise UnsupportedError(opname,details=e),None,tb
+                raise PermissionDeniedError(opname,path=path,details=e),None,tb
             if e.errno == errno.EACCES:
                 if sys.platform == "win32":
                     if e.args[0] and e.args[0] == 32:
@@ -246,6 +242,10 @@ def convert_os_errors(func):
                     raise ResourceInvalidError(path,opname=opname,details=e),None,tb
             if e.errno == errno.ENAMETOOLONG:
                 raise PathError(path,details=e),None,tb
+            if e.errno == errno.EOPNOTSUPP:
+                raise UnsupportedError(opname,details=e),None,tb
+            if e.errno == errno.ENOSYS:
+                raise UnsupportedError(opname,details=e),None,tb
             raise OperationFailedError(opname,details=e),None,tb
     return wrapper
 
