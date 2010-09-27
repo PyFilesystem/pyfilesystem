@@ -149,7 +149,14 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):
         mode = filter(lambda c: c in "rwabt+",mode)
-        return open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
+        sys_path = self.getsyspath(path)
+        try:
+            return open(sys_path, mode, kwargs.get("buffering", -1))
+        except EnvironmentError, e:
+            #  Win32 gives EACCES when opening a directory.
+            if sys.platform == "win32" and e.errno in (errno.EACCES,):
+                raise ResourceInvalidError(path)
+            raise
 
     @convert_os_errors
     def exists(self, path):
@@ -246,7 +253,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
                 #  a directory that doesn't exist.  We want ParentMissingError
                 #  in this case.
                 if e.errno == errno.ENOENT:
-                    if not os.path.exists(dirname(path_dst)):
+                    if not os.path.exists(os.path.dirname(path_dst)):
                         raise ParentDirectoryMissingError(dst)
             raise            
         

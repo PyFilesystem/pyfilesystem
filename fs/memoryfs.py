@@ -340,6 +340,8 @@ class MemoryFS(FS):
                 raise ResourceNotFoundError(path)
 
             file_dir_entry = parent_dir_entry.contents[filename]
+            if file_dir_entry.isdir():
+                raise ResourceInvalidError(path)
 
             if 'a' in mode:
                 if file_dir_entry.islocked():

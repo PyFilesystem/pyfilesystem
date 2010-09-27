@@ -68,6 +68,10 @@ class FSTestCases(object):
         repr(self.fs)
         self.assert_(hasattr(self.fs, 'desc'))
 
+    def test_open_on_directory(self):
+        self.fs.makedir("testdir")
+        self.assertRaises(ResourceInvalidError,self.fs.open,"testdir")
+      
     def test_writefile(self):
         self.assertRaises(ResourceNotFoundError,self.fs.open,"test1.txt")
         f = self.fs.open("test1.txt","w")
