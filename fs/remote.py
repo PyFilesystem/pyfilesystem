@@ -139,7 +139,10 @@ class RemoteFileBuffer(object):
         try:
             if isinstance(self.file,SpooledTemporaryFile):
                 #  SpooledTemporaryFile.truncate doesn't accept size argument.
-                self.file._file.truncate(size)
+                if size is None:
+                    self.file._file.truncate()
+                else:
+                    self.file._file.truncate(size)
             else:
                 self.file.truncate(size)
             self.flush()
