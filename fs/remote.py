@@ -99,10 +99,14 @@ class RemoteFileBuffer(object):
                     self.file.seek(0)
         
     def __del__(self):
-        if not self.closed:
-            self.close()
+        #  Don't try to close a partially-constructed file
+        if "_lock" in self.__dict__:
+            if not self.closed:
+                self.close()
 
     def __getattr__(self,name):
+        if name in ("file","_lock","fs","path","mode","closed","_flushed"):
+            raise AttributeError(name)
         file = self.__dict__['file']
         a = getattr(file, name)
         if not callable(a):
