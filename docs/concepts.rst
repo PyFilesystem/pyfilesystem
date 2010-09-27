@@ -47,7 +47,7 @@ Paths used within an FS object use the same common format, regardless of the und
 
 When working with paths in FS objects, keep in mind the following:
 
- * Path components are separated by a forward path (/)
+ * Path components are separated by a forward slash (/)
  * Paths beginning with a forward slash are absolute (start at the root of the FS)
  * Paths not beginning with a forward slash are relative
  * A single dot means 'current directory'

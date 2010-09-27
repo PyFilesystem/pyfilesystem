@@ -21,8 +21,8 @@ The following methods are required for a minimal Filesystem interface:
     * :meth:`~fs.base.FS.makedir` Create a new directory
     * :meth:`~fs.base.FS.remove` Remove an existing file
     * :meth:`~fs.base.FS.removedir` Remove an existing directory
-    * :meth:`~fs.base.FS.rename` Automically rename a file or directory
-    * :meth:`~fs.base.FS.getinfo` Return information about the path e.h. size, mtime
+    * :meth:`~fs.base.FS.rename` Atomically rename a file or directory
+    * :meth:`~fs.base.FS.getinfo` Return information about the path e.g. size, mtime
     
 
 Non - Essential Methods
