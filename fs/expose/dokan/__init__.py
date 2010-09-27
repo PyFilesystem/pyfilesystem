@@ -49,8 +49,6 @@ systems with Dokan installed.
 #  All rights reserved; available under the terms of the MIT License.
 
 import sys
-if sys.platform != "win32":
-    raise ImportError("Dokan is only available on win32")
 
 import os
 import signal
@@ -61,9 +59,6 @@ import subprocess
 import pickle
 import datetime
 import ctypes
-from ctypes.wintypes import LPCWSTR, WCHAR
-
-kernel32 = ctypes.windll.kernel32
 
 from fs.base import threading
 from fs.errors import *
@@ -72,13 +67,14 @@ from fs.local_functools import wraps
 
 try:
     import libdokan
-except (NotImplementedError,EnvironmentError,ImportError):
+except (NotImplementedError,EnvironmentError,ImportError,NameError,):
     is_available = False
     sys.modules.pop("fs.expose.dokan.libdokan",None)
     libdokan = None
 else:
     is_available = True
-
+    from ctypes.wintypes import LPCWSTR, WCHAR
+    kernel32 = ctypes.windll.kernel32
 
 #  Options controlling the behaiour of the Dokan filesystem
 DOKAN_OPTION_DEBUG = 1

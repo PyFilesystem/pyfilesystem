@@ -70,7 +70,15 @@ class FSTestCases(object):
 
     def test_open_on_directory(self):
         self.fs.makedir("testdir")
-        self.assertRaises(ResourceInvalidError,self.fs.open,"testdir")
+        try:
+            self.fs.open("testdir")
+        except ResourceInvalidError:
+            pass
+        except Exception:
+            ecls = sys.exc_info[0]
+            assert False, "%s raised instead of ResourceInvalidError" % (ecls,)
+        else:
+            assert False, "ResourceInvalidError was not raised"
       
     def test_writefile(self):
         self.assertRaises(ResourceNotFoundError,self.fs.open,"test1.txt")
