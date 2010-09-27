@@ -266,8 +266,8 @@ class DAVFS(FS):
             raise ResourceInvalidError(path)
         if resp.status == 409:
             raise ParentDirectoryMissingError(path)
-        if resp.status not in (200,201):
-            raise_generic_error(response,"setcontents",path)
+        if resp.status not in (200,201,204):
+            raise_generic_error(resp,"setcontents",path)
 
     def open(self,path,mode="r"):
         # Truncate the file if requested
