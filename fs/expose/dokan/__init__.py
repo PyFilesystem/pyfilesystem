@@ -417,8 +417,6 @@ class FSOperations(object):
     def GetFileInformation(self, path, buffer, info):
         path = normpath(path)
         finfo = self.fs.getinfo(path)
-        if "name" not in finfo:
-            finfo["name"] = basename(path)
         data = buffer.contents
         self._info2finddataw(path,finfo,data,info)
         try:
@@ -434,37 +432,23 @@ class FSOperations(object):
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
         path = normpath(path)
-        for nm in self.fs.listdir(path):
+        for (nm,finfo) in self.fs.listdirinfo(path):
             fpath = pathjoin(path,nm)
             if self._is_pending_delete(fpath):
                 continue
-            data = self._info2finddataw(fpath,self.fs.getinfo(fpath))
+            data = self._info2finddataw(fpath,finfo)
             fillFindData(ctypes.byref(data),info)
 
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
         path = normpath(path)
         infolist = []
-        try:
-            for finfo in self.fs.listdir(path,info=True):
-                nm = finfo["name"]
-                if self._is_pending_delete(pathjoin(path,nm)):
-                    continue
-                if not libdokan.DokanIsNameInExpression(pattern,nm,True):
-                    continue
-                infolist.append(finfo)
-        except (TypeError,KeyError,UnsupportedError):
-            filtered = True
-            for nm in self.fs.listdir(path):
-                if self._is_pending_delete(pathjoin(path,nm)):
-                    continue
-                if not libdokan.DokanIsNameInExpression(pattern,nm,True):
-                    continue
-                finfo = self.fs.getinfo(pathjoin(path,nm))
-                finfo["name"] = nm
-                infolist.append(finfo)
-        for finfo in infolist:
-            fpath = pathjoin(path,finfo["name"])
+        for (nm,finfo) in self.fs.listdirinfo(path):
+            fpath = pathjoin(path,nm)
+            if self._is_pending_delete(fpath):
+                continue
+            if not libdokan.DokanIsNameInExpression(pattern,nm,True):
+                continue
             data = self._info2finddataw(fpath,finfo,None)
             fillFindData(ctypes.byref(data),info)
 
@@ -584,7 +568,7 @@ class FSOperations(object):
         data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
         data.nFileSizeHigh = info.get("size",0) >> 32
         data.nFileSizeLow = info.get("size",0) & 0xffffffff
-        data.cFileName = info.get("name","")
+        data.cFileName = basename(path)
         data.cAlternateFileName = ""
         return data
 

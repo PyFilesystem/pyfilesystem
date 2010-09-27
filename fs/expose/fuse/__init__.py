@@ -245,19 +245,10 @@ class FSOperations(Operations):
     @handle_fs_errors
     def readdir(self, path, fh=None):
         path = path.decode(NATIVE_ENCODING)
-        #  If listdir() can return info dicts directly, it will save FUSE 
-        #  having to call getinfo() on each entry individually.
-        try:
-            entries = self.fs.listdir(path,info=True)
-        except TypeError:
-            entries = []
-            for name in self.fs.listdir(path):
-                name = name.encode(NATIVE_ENCODING)
-                entries.append(name)
-        else:
-            entries = [(e["name"].encode(NATIVE_ENCODING),e,0) for e in entries]
-            for (name,attrs,offset) in entries:
-                self._fill_stat_dict(pathjoin(path,name.decode(NATIVE_ENCODING)),attrs)
+        entries = []
+        for (nm,info) in self.fs.listdirinfo(path):
+            self._fill_stat_dict(pathjoin(path,nm),info)
+            entries.append((nm.encode(NATIVE_ENCODING),info,0))
         entries = [".",".."] + entries
         return entries
 

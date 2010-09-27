@@ -158,11 +158,17 @@ if dokan.is_available:
             self.fs.remove("dir1/a.txt")
             self.assertFalse(self.check("/dir1/a.txt"))
 
+        def test_open_on_directory(self):
+            #  Dokan seems quite happy to ask me to open a directory and
+            #  then treat it like a file.
+            pass
+
         def test_settimes(self):
             #  Setting the times does actually work, but there's some sort
             #  of caching effect which prevents them from being read back
             #  out.  Disabling the test for now.
             pass
+
     class TestDokan(unittest.TestCase,DokanTestCases,ThreadingTestCases):
 
         def setUp(self):

@@ -257,8 +257,18 @@ class S3FS(FS):
           return True
         return False
 
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,info=False,dirs_only=False,files_only=False):
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         """List contents of a directory."""
+        keys = self._list_keys(self,path)
+        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
+        return [nm for (nm,k) in entries]
+
+    def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        keys = self._list_keys(self,path)
+        entries = self._listdir_helper(path,keys,wildcard,full,absolute,dirs_only,files_only)
+        return [(nm,self._get_key_info(k)) for (nm,k) in entries]
+
+    def _list_keys(self,path):
         s3path = self._s3path(path) + self._separator
         if s3path == "/":
             s3path = ""
@@ -277,34 +287,32 @@ class S3FS(FS):
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="that's not a directory: %(path)s")
                 raise ResourceNotFoundError(path)
-        return self._listdir_helper(path,keys,wildcard,full,absolute,info,dirs_only,files_only)
+        return keys
 
-    def _listdir_helper(self,path,keys,wildcard,full,absolute,info,dirs_only,files_only):
-        """Modify listdir helper to avoid additional calls to the server."""
+    def _filter_keys(self,path,keys,wildcard,full,absolute,info,dirs_only,files_only):
+        """Filter out keys not matching the given criteria.
+
+        Returns a list of (name,key) pairs.
+        """
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
         if dirs_only:
             keys = [k for k in keys if k.name.endswith(self._separator)]
         elif files_only:
             keys = [k for k in keys if not k.name.endswith(self._separator)]
-
         for k in keys:
             if k.name.endswith(self._separator):
                 k.name = k.name[:-1]
             if type(path) is not unicode:
                 k.name = k.name.encode()
-
         if wildcard is not None:
             keys = [k for k in keys if fnmatch.fnmatch(k.name, wildcard)]
-
         if full:
-            entries = [relpath(pathjoin(path, k.name)) for k in keys]
+            entries = [(relpath(pathjoin(path, k.name)),k) for k in keys]
         elif absolute:
-            entries = [abspath(pathjoin(path, k.name)) for k in keys]
-        elif info:
-            entries = [self._get_key_info(k) for k in keys]
+            entries = [(abspath(pathjoin(path, k.name)),k) for k in keys]
         else:
-            entries = [k.name for k in keys]
+            entries = [(k.name,k) for k in keys]
         return entries
 
     def makedir(self,path,recursive=False,allow_recreate=False):

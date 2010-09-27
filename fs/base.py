@@ -323,17 +323,16 @@ class FS(object):
 
         """
 
-        def get_path(p):
-            if not full or absolute:
-                return pathjoin(path, p)
-
         def getinfo(p):
             try:
-                return self.getinfo(get_path(p))
+                if full or absolute:
+                    return self.getinfo(p)
+                else:
+                    return self.getinfo(pathjoin(path,p))
             except FSError:
                 return {}
 
-        return [(p, getinfo(get_path(p)))
+        return [(p, getinfo(p))
                     for p in self.listdir(path,                                          
                                           wildcard=wildcard,
                                           full=full,

@@ -34,6 +34,7 @@ The following methods have default implementations in fs.base.FS and aren't requ
     * :meth:`~fs.base.FS.copydir` Recursively copy a directory to a new location
     * :meth:`~fs.base.FS.desc` Return a short destriptive text regarding a path
     * :meth:`~fs.base.FS.exists` Check whether a path exists as file or directory    
+    * :meth:`~fs.base.FS.listdirinfo` Get a directory listing along with the info dict for each entry
     * :meth:`~fs.base.FS.getsyspath` Get a file's name in the local filesystem, if possible
     * :meth:`~fs.base.FS.hassyspath` Check if a path maps to a system path (recognised by the OS)
     * :meth:`~fs.base.FS.move` Move a file to a new location        

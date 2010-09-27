@@ -27,6 +27,7 @@ import base64
 import re
 import datetime
 import cookielib
+import fnmatch
 
 from fs.base import *
 from fs.path import *
@@ -348,11 +349,53 @@ class DAVFS(FS):
         finally:
             response.close()
          
-    def listdir(self,path="./",wildcard=None,full=False,absolute=False,info=False,dirs_only=False,files_only=False):
-        if info:
-            pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /><getcontentlength /><getlastmodified /><getetag /></prop>")
-        else:
-            pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
+    def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
+        response = self._request(path,"PROPFIND",pf.render(),{"Depth":"1"})
+        try:
+            if response.status == 404:
+                raise ResourceNotFoundError(path)
+            if response.status != 207:
+                raise_generic_error(response,"listdir",path)
+            entries = []
+            msres = multistatus.parse(response.read())
+            dir_ok = False
+            for res in msres.responses:
+                if self._isurl(path,res.href):
+                   # The directory itself, check it's actually a directory
+                   for ps in res.propstats:
+                       if ps.props.getElementsByTagNameNS("DAV:","collection"):
+                          dir_ok = True
+                          break
+                else:
+                    nm = basename(self._url2path(res.href))
+                    if dirs_only:
+                        for ps in res.propstats:
+                            if ps.props.getElementsByTagNameNS("DAV:","collection"):
+                                entries.append(nm)
+                                break
+                    elif files_only:
+                        for ps in res.propstats:
+                            if ps.props.getElementsByTagNameNS("DAV:","collection"):
+                                break
+                        else:
+                            entries.append(nm)
+                    else:
+                        entries.append(nm)
+            if not dir_ok:
+                raise ResourceInvalidError(path)
+            if wildcard is not None:
+                entries = [e for e in entries if fnmatch.fnmatch(e,wildcard)]
+            if full:
+                entries = [relpath(pathjoin(path,e)) for e in entries]
+            elif absolute:
+                entries = [abspath(pathjoin(path,e)) for e in entries]
+            return entries
+        finally:
+            response.close()
+
+    def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /><getcontentlength /><getlastmodified /><getetag /></prop>")
         response = self._request(path,"PROPFIND",pf.render(),{"Depth":"1"})
         try:
             if response.status == 404:
@@ -372,28 +415,31 @@ class DAVFS(FS):
                 else:
                     # An entry in the directory, check if it's of the
                     # appropriate type and add to entries list as required.
-                    if info:
-                        e_info = self._info_from_propfind(res)
-                        e_info["name"] = basename(self._url2path(res.href))
-                    else:
-                        # TODO: technically, should use displayname for this
-                        e_info = basename(self._url2path(res.href))
+                    info = self._info_from_propfind(res)
+                    nm = basename(self._url2path(res.href))
                     if dirs_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
-                                entries.append(e_info)
+                                entries.append((nm,info))
                                 break
                     elif files_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
                                 break
                         else:
-                            entries.append(e_info)
+                            entries.append((nm,info))
                     else:
-                        entries.append(e_info)
+                        entries.append((nm,info))
             if not dir_ok:
                 raise ResourceInvalidError(path)
             return self._listdir_helper(path,entries,wildcard,full,absolute,False,False)
+            if wildcard is not None:
+                entries = [(e,info) for (e,info) in entries if fnmatch.fnmatch(e,wildcard)]
+            if full:
+                entries = [(relpath(pathjoin(path,e)),info) for (e,info) in entries]
+            elif absolute:
+                entries = [(abspath(pathjoin(path,e)),info) for (e,info) in entries]
+            return entries
         finally:
             response.close()
 

@@ -71,13 +71,14 @@ class FSTestCases(object):
     def test_open_on_directory(self):
         self.fs.makedir("testdir")
         try:
-            self.fs.open("testdir")
+            f = self.fs.open("testdir")
         except ResourceInvalidError:
             pass
         except Exception:
             ecls = sys.exc_info[0]
             assert False, "%s raised instead of ResourceInvalidError" % (ecls,)
         else:
+            f.close()
             assert False, "ResourceInvalidError was not raised"
       
     def test_writefile(self):
@@ -173,6 +174,71 @@ class FSTestCases(object):
         # Test that appropriate errors are raised
         self.assertRaises(ResourceNotFoundError,self.fs.listdir,"zebra")
         self.assertRaises(ResourceInvalidError,self.fs.listdir,"foo")
+
+    def test_listdirinfo(self):
+        def check_unicode(items):
+            for (nm,info) in items:
+                self.assertTrue(isinstance(nm,unicode))
+        def check_equal(items,target):
+            names = [nm for (nm,info) in items] 
+            self.assertEqual(sorted(names),sorted(target))
+        self.fs.createfile(u"a")
+        self.fs.createfile("b")
+        self.fs.createfile("foo")
+        self.fs.createfile("bar")
+        # Test listing of the root directory
+        d1 = self.fs.listdirinfo()
+        self.assertEqual(len(d1), 4)
+        check_equal(d1, [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d1)
+        d1 = self.fs.listdirinfo("")
+        self.assertEqual(len(d1), 4)
+        check_equal(d1, [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d1)
+        d1 = self.fs.listdirinfo("/")
+        self.assertEqual(len(d1), 4)
+        check_equal(d1, [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d1)
+        # Test listing absolute paths
+        d2 = self.fs.listdirinfo(absolute=True)
+        self.assertEqual(len(d2), 4)
+        check_equal(d2, [u"/a", u"/b", u"/bar", u"/foo"])
+        check_unicode(d2)
+        # Create some deeper subdirectories, to make sure their
+        # contents are not inadvertantly included
+        self.fs.makedir("p/1/2/3",recursive=True)
+        self.fs.createfile("p/1/2/3/a")
+        self.fs.createfile("p/1/2/3/b")
+        self.fs.createfile("p/1/2/3/foo")
+        self.fs.createfile("p/1/2/3/bar")
+        self.fs.makedir("q")
+        # Test listing just files, just dirs, and wildcards
+        dirs_only = self.fs.listdirinfo(dirs_only=True)
+        files_only = self.fs.listdirinfo(files_only=True)
+        contains_a = self.fs.listdirinfo(wildcard="*a*")
+        check_equal(dirs_only, [u"p", u"q"])
+        check_equal(files_only, [u"a", u"b", u"bar", u"foo"])
+        check_equal(contains_a, [u"a",u"bar"])
+        check_unicode(dirs_only)
+        check_unicode(files_only)
+        check_unicode(contains_a)
+        # Test listing a subdirectory
+        d3 = self.fs.listdirinfo("p/1/2/3")
+        self.assertEqual(len(d3), 4)
+        check_equal(d3, [u"a", u"b", u"bar", u"foo"])
+        check_unicode(d3)
+        # Test listing a subdirectory with absoliute and full paths
+        d4 = self.fs.listdirinfo("p/1/2/3", absolute=True)
+        self.assertEqual(len(d4), 4)
+        check_equal(d4, [u"/p/1/2/3/a", u"/p/1/2/3/b", u"/p/1/2/3/bar", u"/p/1/2/3/foo"])
+        check_unicode(d4)
+        d4 = self.fs.listdirinfo("p/1/2/3", full=True)
+        self.assertEqual(len(d4), 4)
+        check_equal(d4, [u"p/1/2/3/a", u"p/1/2/3/b", u"p/1/2/3/bar", u"p/1/2/3/foo"])
+        check_unicode(d4)
+        # Test that appropriate errors are raised
+        self.assertRaises(ResourceNotFoundError,self.fs.listdirinfo,"zebra")
+        self.assertRaises(ResourceInvalidError,self.fs.listdirinfo,"foo")
 
     def test_unicode(self):
         alpha = u"\N{GREEK SMALL LETTER ALPHA}"

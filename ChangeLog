@@ -40,6 +40,8 @@
         * dokan:   mount an FS object as a drive using Dokan (win32-only)
     * Modified listdir and walk methods to accept callables as well as strings
       for wildcards.
+    * Added listdirinfo method, which retrieves both the entry names and the
+      corresponding info dicts in a single operation.
     * Fixed operation of OSFS on win32 when it points to the root of a drive.
     * Made SubFS a subclass of WrapFS, and moved it into its own module at
       fs.wrapfs.subfs.
