@@ -252,7 +252,10 @@ class SharedThreadedNotifier(threading.Thread):
                             pass
                         else:
                             notifier.read_events()
-                            notifier.process_events()
+                            try:
+                                notifier.process_events()
+                            except EnvironmentError:
+                                pass
 
     def stop(self):
         if self.running:
