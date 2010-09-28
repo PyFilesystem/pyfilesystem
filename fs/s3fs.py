@@ -259,12 +259,12 @@ class S3FS(FS):
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         """List contents of a directory."""
-        keys = self._list_keys(self,path)
+        keys = self._list_keys(path)
         entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
         return [nm for (nm,k) in entries]
 
     def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
-        keys = self._list_keys(self,path)
+        keys = self._list_keys(path)
         entries = self._listdir_helper(path,keys,wildcard,full,absolute,dirs_only,files_only)
         return [(nm,self._get_key_info(k)) for (nm,k) in entries]
 
