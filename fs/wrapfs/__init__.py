@@ -155,24 +155,16 @@ class WrapFS(FS):
         elif not callable(wildcard):
             wildcard_re = re.compile(fnmatch.translate(wildcard))
             wildcard = lambda fn:bool (wildcard_re.match(fn))         
-        info = kwds.get("info",False)
         entries = []
         enc_path = self._encode(path)
         for e in self.wrapped_fs.listdir(enc_path,**kwds):
-            if info:
-                e = e.copy()
-                fullnm = pathjoin(enc_path,e["name"])
-                e["name"] = basename(self._decode(fullnm))
-                if not wildcard(e["name"]):
-                    continue
-            else:
-                e = basename(self._decode(pathjoin(enc_path,e)))
-                if not wildcard(e):
-                    continue
-                if full:
-                    e = pathjoin(path,e)
-                elif absolute:
-                    e = abspath(pathjoin(path,e))
+            e = basename(self._decode(pathjoin(enc_path,e)))
+            if not wildcard(e):
+                continue
+            if full:
+                e = pathjoin(path,e)
+            elif absolute:
+                e = abspath(pathjoin(path,e))
             entries.append(e) 
         return entries
 
