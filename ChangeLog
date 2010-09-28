@@ -47,4 +47,6 @@
       fs.wrapfs.subfs.
     * Fix OSFS.add_watcher on linux platforms; previous version would cancel
       any watchers when a new one was added.
+    * MountFS: added support for mounting at the root directory, and for
+      mounting over an existing mount.
 

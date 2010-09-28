@@ -66,6 +66,29 @@ class TestMountFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
     def check(self, p):
         return self.mount_fs.exists(os.path.join("mounted/memfs", relpath(p)))
 
+class TestMountFS_atroot(unittest.TestCase,FSTestCases,ThreadingTestCases):
+
+    def setUp(self):
+        self.mem_fs = memoryfs.MemoryFS()
+        self.fs = mountfs.MountFS()
+        self.fs.mountdir("", self.mem_fs)
+
+    def check(self, p):
+        return self.mem_fs.exists(p)
+
+class TestMountFS_stacked(unittest.TestCase,FSTestCases,ThreadingTestCases):
+
+    def setUp(self):
+        self.mem_fs1 = memoryfs.MemoryFS()
+        self.mem_fs2 = memoryfs.MemoryFS()
+        self.mount_fs = mountfs.MountFS()
+        self.mount_fs.mountdir("mem", self.mem_fs1)
+        self.mount_fs.mountdir("mem/two", self.mem_fs2)
+        self.fs = self.mount_fs.opendir("/mem/two")
+
+    def check(self, p):
+        return self.mount_fs.exists(os.path.join("mem/two", relpath(p)))
+
 
 from fs import tempfs
 class TestTempFS(unittest.TestCase,FSTestCases,ThreadingTestCases):

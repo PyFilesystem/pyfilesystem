@@ -76,6 +76,9 @@ class DisconnectingFS(WrapFS):
             time.sleep(random.random()*0.1)
             self._connected = not self._connected
 
+    def setcontents(self, path, contents):
+        return self.wrapped_fs.setcontents(path, contents)
+
     def close(self):
         if not self.closed:
             self._continue = False
@@ -83,6 +86,7 @@ class DisconnectingFS(WrapFS):
                 self._bounce_thread.join()
             self._connected = True
             super(DisconnectingFS,self).close()
+
 
 def disconnecting_wrapper(func):
     """Method wrapper to raise RemoteConnectionError if not connected."""

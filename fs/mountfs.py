@@ -45,7 +45,6 @@ Now both filesystems can be accessed with the same path structure::
 from fs.base import *
 from fs.errors import *
 from fs.path import *
-from fs.objecttree import ObjectTree
 from fs import _thread_synchronize_default
 
 
@@ -74,7 +73,7 @@ class MountFS(FS):
 
     def __init__(self, thread_synchronize=_thread_synchronize_default):
         super(MountFS, self).__init__(thread_synchronize=thread_synchronize)
-        self.mount_tree = ObjectTree()
+        self.mount_tree = PathMap()
 
     def __str__(self):
         return "<MountFS>"
@@ -85,17 +84,32 @@ class MountFS(FS):
         return unicode(self.__str__())
 
     def _delegate(self, path):
-        path = normpath(path)
-        head_path, object, tail_path = self.mount_tree.partialget(path)
+        path = abspath(normpath(path))
+        object = None
+        head_path = "/"
+        tail_path = path
+
+        for prefix in recursepath(path):
+            try:
+                object = self.mount_tree[prefix]
+            except KeyError:
+                pass
+            else:
+                head_path = prefix
+                tail_path = path[len(head_path):]
 
         if type(object) is MountFS.DirMount:
-            dirmount = object
-            return dirmount.fs, head_path, tail_path
+            return object.fs, head_path, tail_path
 
-        if object is None:
+        if type(object) is MountFS.FileMount:
+            return self, "/", path
+
+        try:
+            self.mount_tree.iternames(path).next()
+        except StopIteration:
             return None, None, None
-
-        return self, head_path, tail_path
+        else:
+            return self, "/", path
 
     def getsyspath(self, path, allow_none=False):
         fs, mount_path, delegate_path = self._delegate(path)
@@ -123,9 +137,8 @@ class MountFS(FS):
             return False
         if fs is self:
             object = self.mount_tree.get(path, None)
-            return isinstance(object, dict)
-        else:
-            return fs.isdir(delegate_path)
+            return not isinstance(object,MountFS.FileMount)
+        return fs.isdir(delegate_path)
 
     @synchronize
     def isfile(self, path):
@@ -134,23 +147,27 @@ class MountFS(FS):
             return False
         if fs is self:
             object = self.mount_tree.get(path, None)
-            return type(object) is MountFS.FileMount
-        else:
-            return fs.isfile(delegate_path)
+            return isinstance(object,MountFS.FileMount)
+        return fs.isfile(delegate_path)
+
+    @synchronize
+    def exists(self, path):
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is None:
+            return False
+        if fs is self:
+            return True
+        return fs.exists(delegate_path)
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
 
         if fs is self:
-            if files_only:
-                return []
-
-            paths = self.mount_tree[path].keys()
+            paths = self.mount_tree.names(path)
             return self._listdir_helper(path,
                                         paths,
                                         wildcard,
@@ -167,26 +184,22 @@ class MountFS(FS):
                                files_only=files_only)
             if full or absolute:
                 if full:
-                    path = abspath(normpath(path))
-                else:
                     path = relpath(normpath(path))
+                else:
+                    path = abspath(normpath(path))
                 paths = [pathjoin(path, p) for p in paths]
 
             return paths
 
     @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
-        path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
-        if fs is self:
+        if fs is self or fs is None:
             raise UnsupportedError("make directory", msg="Can only makedir for mounted paths" )
-        if not delegate_path:
-            return True
         return fs.makedir(delegate_path, recursive=recursive, allow_recreate=allow_recreate)
 
     @synchronize
     def open(self, path, mode="r", **kwargs):
-        path = normpath(path)
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
             callable = object.open_callable
@@ -194,39 +207,25 @@ class MountFS(FS):
 
         fs, mount_path, delegate_path = self._delegate(path)
 
-        if fs is None:
+        if fs is self or fs is None:
             raise ResourceNotFoundError(path)
 
         return fs.open(delegate_path, mode, **kwargs)
 
     @synchronize
     def setcontents(self, path, contents):
-        path = normpath(path)
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
             return super(MountFS,self).setcontents(path,contents)
         fs, mount_path, delegate_path = self._delegate(path)
-        if fs is None:
+        if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
         return fs.setcontents(delegate_path,contents)
 
     @synchronize
-    def exists(self, path):
-        path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
-        if fs is None:
-            return False
-        if fs is self:
-            return path in self.mount_tree
-        return fs.exists(delegate_path)
-
-    @synchronize
     def remove(self, path):
-        path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
-        if fs is None:
-            raise ResourceNotFoundError(path)
-        if fs is self:
+        if fs is self or fs is None:
             raise UnsupportedError("remove file", msg="Can only remove paths within a mounted dir")
         return fs.remove(delegate_path)
 
@@ -234,13 +233,8 @@ class MountFS(FS):
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
-
-        if fs is None or fs is self:
+        if fs is self or fs is None:
             raise ResourceInvalidError(path, msg="Can not removedir for an un-mounted path")
-
-        if not force and not fs.isdirempty(delegate_path):
-            raise DirectoryNotEmptyError("Directory is not empty: %(path)s")
-
         return fs.removedir(delegate_path, recursive, force)
 
     @synchronize
@@ -253,9 +247,6 @@ class MountFS(FS):
 
         if fs1 is not self:
             return fs1.rename(delegate_path1, delegate_path2)
-
-        path_src = normpath(src)
-        path_dst = normpath(dst)
 
         object = self.mount_tree.get(path_src, None)
         object2 = self.mount_tree.get(path_dst, None)
@@ -310,7 +301,6 @@ class MountFS(FS):
         :param fs: A filesystem object to mount
 
         """
-        path = normpath(path)
         self.mount_tree[path] = MountFS.DirMount(path, fs)
     mount = mountdir
 
@@ -323,7 +313,6 @@ class MountFS(FS):
         :param info_callable: A callable that returns a dictionary with information regarding the file-like object
         
         """
-        path = normpath(path)
         self.mount_tree[path] = MountFS.FileMount(path, callable, info_callable)
 
     @synchronize
@@ -333,15 +322,16 @@ class MountFS(FS):
         :param path: Path to unmount
 
         """
-        path = normpath(path)
         del self.mount_tree[path]
 
     @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
         path = normpath(path)
         fs, mount_path, delegate_path = self._delegate(path)
+
         if fs is None:
             raise ResourceNotFoundError(path)
+
         if fs is self:
             raise UnsupportedError("settimes")
         fs.settimes(delegate_path, accessed_time, modified_time)
@@ -372,10 +362,12 @@ class MountFS(FS):
         if fs is self:
             object = self.mount_tree.get(path, None)
 
-            if object is None or isinstance(object, dict):
+            if object is None:
                 raise ResourceNotFoundError(path)
+            if not isinstance(object,MountFS.FileMount):
+                raise ResourceInvalidError(path)
 
-            size = self.mount_tree[path].info_callable(path).get("size", None)
+            size = object.info_callable(path).get("size", None)
             return size
 
         return fs.getinfo(delegate_path).get("size", None)
@@ -419,3 +411,5 @@ class MountFS(FS):
         if fs is self:
             return []
         return fs.listxattrs(delegate_path)
+
+
