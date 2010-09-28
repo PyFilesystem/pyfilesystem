@@ -182,6 +182,16 @@ class MountFS(FS):
                                absolute=False,
                                dirs_only=dirs_only,
                                files_only=files_only)
+            for nm in self.mount_tree.names(path):
+                if nm not in paths:
+                    if dirs_only:
+                        if self.isdir(pathjoin(path,nm)):
+                            paths.append(nm)
+                    elif files_only:
+                        if self.isfile(pathjoin(path,nm)):
+                            paths.append(nm)
+                    else:
+                        paths.append(nm)
             if full or absolute:
                 if full:
                     path = relpath(normpath(path))
