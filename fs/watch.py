@@ -259,11 +259,13 @@ class WatchedFile(object):
 
     def flush(self):
         self.file.flush()
-        self.fs.notify_watchers(MODIFIED,self.path,True)
+        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+            self.fs.notify_watchers(MODIFIED,self.path,True)
 
     def close(self):
         self.file.close()
-        self.fs.notify_watchers(MODIFIED,self.path,True)
+        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
+            self.fs.notify_watchers(MODIFIED,self.path,True)
 
 
 class WatchableFS(WatchableFSMixin,WrapFS):
