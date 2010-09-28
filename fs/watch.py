@@ -21,6 +21,12 @@ An FS object that wants to be "watchable" must provide the following methods:
       Remove the given watcher object, or any watchers associated with
       the given callback.
 
+
+If you would prefer to read changes from a filesystem in a blocking fashion
+rather than using callbacks, you can use the function 'iter_changes' to obtain
+an iterator over the change events.
+
+
 """
 
 import weakref
@@ -554,15 +560,9 @@ def ensure_watchable(fs,wrapper_class=PollingWatchableFS,*args,**kwds):
     if isinstance(fs,wrapper_class):
         return fs
     try:
-        #  Try to add a watcher to a path that's unlikely to exist.
-        #  It's OK if the path does exist, since we remove the watcher.
-        #  It just might be slightly slower as the fs will actually have
-        #  to establish the watcher.
-        w = fs.add_watcher(lambda e: None,"/somepaththatsnotlikelytoexist")
-    except (AttributeError,UnsupportedError):
+        w = fs.add_watcher(lambda e: None,"/",recursive=False)
+    except (AttributeError,FSError):
         return wrapper_class(fs,*args,**kwds)
-    except FSError:
-        pass
     else:
         fs.del_watcher(w)
     return fs

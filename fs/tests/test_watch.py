@@ -7,6 +7,8 @@
 import os
 import sys
 import time
+import gc
+import pickle
 import unittest
 
 from fs.path import *
@@ -174,6 +176,7 @@ class WatcherTestCases:
         #  That should be the last event in the list
         self.assertRaises(StopIteration,changes.next,timeout=1)
         changes.close()
+
 
 
 from fs import tempfs, osfs

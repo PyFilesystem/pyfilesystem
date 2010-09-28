@@ -16,6 +16,7 @@ import struct
 import ctypes
 import ctypes.wintypes
 import traceback
+import weakref
 
 try:
     LPVOID = ctypes.wintypes.LPVOID
@@ -192,6 +193,7 @@ class WatchedDirectory(object):
         self.callback = callback
         self.recursive = recursive
         self.handle = None
+        self.error = None
         self.handle = CreateFileW(path,
                           FILE_LIST_DIRECTORY,
                           FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -219,9 +221,14 @@ class WatchedDirectory(object):
         overlapped.OffsetHigh = 0
         overlapped.Pointer = 0
         overlapped.hEvent = 0
-        ReadDirectoryChangesW(self.handle,
-                              ctypes.byref(self.result),len(self.result),
-                              self.recursive,self.flags,None,overlapped,None)
+        try:
+            ReadDirectoryChangesW(self.handle,
+                                  ctypes.byref(self.result),len(self.result),
+                                  self.recursive,self.flags,None,
+                                  overlapped,None)
+        except WindowsError, e:
+            self.error = e
+            self.close()
 
     def complete(self,nbytes):
         if nbytes == 0:
@@ -370,8 +377,11 @@ class WatchThread(threading.Thread):
                         try:
                             while True:
                                 w = self._new_watches.get_nowait()
-                                CreateIoCompletionPort(w.handle,self._iocp,hash(w),0)
-                                w.post()
+                                if w.handle is not None:
+                                    CreateIoCompletionPort(w.handle,
+                                                           self._iocp,
+                                                           hash(w),0)
+                                    w.post()
                                 w.ready.set()
                         except Queue.Empty:
                             pass
@@ -405,17 +415,26 @@ class OSFSWatchMixin(WatchableFSMixin):
         w = super(OSFSWatchMixin,self).add_watcher(callback,path,events,recursive)
         syspath = self.getsyspath(path)
         wt = self.__get_watch_thread()
+        #  Careful not to create a reference cycle here.
+        weak_self = weakref.ref(self)
         def handle_event(event_class,path,*args,**kwds):
+            selfref = weak_self()
+            if selfref is None:
+                return
             try:
-                path = self.unsyspath(path)
+                path = selfref.unsyspath(path)
             except ValueError:
                 pass
             else:
                 if event_class in (MOVED_SRC,MOVED_DST) and args and args[0]:
-                    args = (self.unsyspath(args[0]),) + args[1:]
-                event = event_class(self,path,*args,**kwds)
+                    args = (selfref.unsyspath(args[0]),) + args[1:]
+                event = event_class(selfref,path,*args,**kwds)
                 w.handle_event(event)
         w._watch_objs = wt.add_watcher(handle_event,syspath,w.events,w.recursive)
+        for wd in w._watch_objs:
+            if wd.error is not None:
+                self.del_watcher(w)
+                raise wd.error
         return w
 
     @convert_os_errors
