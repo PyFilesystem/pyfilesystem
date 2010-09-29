@@ -512,9 +512,11 @@ class FSOperations(object):
         lock.acquire()
         try:
             pos = file.tell()
-            file.seek(length)
+            if length != pos:
+                file.seek(length)
             file.truncate()
-            file.seek(min(pos,length))
+            if pos < length:
+                file.seek(min(pos,length))
         finally:
             lock.release()
 
