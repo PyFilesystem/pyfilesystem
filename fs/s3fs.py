@@ -109,10 +109,10 @@ class S3FS(FS):
             return self._tlocal.s3bukt
         except AttributeError:
             try:
-                b = self._s3conn.get_bucket(self._bucket_name)
+                b = self._s3conn.get_bucket(self._bucket_name, validate=True)
             except S3ResponseError, e:
                 if "404 Not Found" not in str(e):
-                    raise e
+                    raise
                 b = self._s3conn.create_bucket(self._bucket_name)
             self._tlocal.s3bukt = b
             return b
@@ -265,7 +265,7 @@ class S3FS(FS):
 
     def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         keys = self._list_keys(path)
-        entries = self._listdir_helper(path,keys,wildcard,full,absolute,dirs_only,files_only)
+        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
         return [(nm,self._get_key_info(k)) for (nm,k) in entries]
 
     def _list_keys(self,path):
@@ -289,7 +289,7 @@ class S3FS(FS):
                 raise ResourceNotFoundError(path)
         return keys
 
-    def _filter_keys(self,path,keys,wildcard,full,absolute,info,dirs_only,files_only):
+    def _filter_keys(self,path,keys,wildcard,full,absolute,dirs_only,files_only):
         """Filter out keys not matching the given criteria.
 
         Returns a list of (name,key) pairs.
@@ -395,7 +395,8 @@ class S3FS(FS):
         if not found:
             if self.isfile(path):
                 raise ResourceInvalidError(path,msg="removedir() called on a regular file: %(path)s")
-            raise ResourceNotFoundError(path)
+            if path not in ("","/"):
+                raise ResourceNotFoundError(path)
         self._s3bukt.delete_key(s3path)
         if recursive and path not in ("","/"):
             pdir = dirname(path)
