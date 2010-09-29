@@ -21,6 +21,7 @@ FS subclasses interfacing with a remote filesystem.  These include:
 
 """
 
+import os
 import time
 import copy
 
@@ -133,6 +134,21 @@ class RemoteFileBuffer(object):
 
     def __iter__(self):
         return iter(self.file)
+
+    def seek(self,offset,whence=os.SEEK_SET):
+        if isinstance(self.file,SpooledTemporaryFile):
+            #  SpooledTemporaryFile.seek doesn't roll to disk if seeking
+            #  beyond the max in-memory size.
+            if whence == os.SEEK_SET:
+                if offset > self.file._max_size:
+                    self.file.rollover()
+            elif whence == os.SEEK_CUR:
+                if offset + self.file.tell() > self.file._max_size:
+                    self.file.rollover()
+            else:
+                if offset > 0:
+                    self.file.rollover()
+        self.file.seek(offset,whence)
 
     def truncate(self,size=None):
         self._lock.acquire()
