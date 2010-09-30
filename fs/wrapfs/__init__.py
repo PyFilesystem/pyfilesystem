@@ -86,9 +86,8 @@ class WrapFS(FS):
 
     def _encode(self, path):
         """Encode path for the underlying FS."""
-        names = path.split("/")
         e_names = []
-        for name in names:
+        for name in iteratepath(path):
             if name == "":
                 e_names.append("")
             else:
@@ -97,9 +96,8 @@ class WrapFS(FS):
 
     def _decode(self, path):
         """Decode path from the underlying FS."""
-        names = path.split("/")
         d_names = []
-        for name in names:
+        for name in iteratepath(path):
             if name == "":
                 d_names.append("")
             else:
