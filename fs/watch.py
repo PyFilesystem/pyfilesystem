@@ -172,7 +172,11 @@ class Watcher(object):
                 if event.path != self.path:
                     if dirname(event.path) != self.path:
                         return
-        self.callback(event)
+        try:
+            self.callback(event)
+        except Exception:
+            print >>sys.stderr, "error in FS watcher callback", self.callback
+            traceback.print_exc()
 
 
 class WatchableFSMixin(FS):
