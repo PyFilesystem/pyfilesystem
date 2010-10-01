@@ -21,6 +21,7 @@ import os, os.path
 import pickle
 import random
 import copy
+from StringIO import StringIO
 
 import time
 try:
@@ -75,7 +76,7 @@ class FSTestCases(object):
         except ResourceInvalidError:
             pass
         except Exception:
-            ecls = sys.exc_info[0]
+            ecls = sys.exc_info()[0]
             assert False, "%s raised instead of ResourceInvalidError" % (ecls,)
         else:
             f.close()
@@ -97,6 +98,14 @@ class FSTestCases(object):
         f = self.fs.open("test1.txt","r")
         self.assertEquals(f.read(),"test file overwrite")
         f.close()
+
+    def test_setcontents(self):
+        #  setcontents() should accept both a string...
+        self.fs.setcontents("hello","world")
+        self.assertEquals(self.fs.getcontents("hello"),"world")
+        #  ...and a file-like object
+        self.fs.setcontents("hello",StringIO("to you, good sir!"))
+        self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))
@@ -703,7 +712,7 @@ class ThreadingTestCases:
         finally:
             sys.setcheckinterval(check_interval)
 
-    def test_setcontents(self):
+    def test_setcontents_threaded(self):
         def setcontents(name,contents):
             f = self.fs.open(name,"w")
             self._yield()
@@ -722,7 +731,7 @@ class ThreadingTestCases:
             self.assertEquals(self.fs.getcontents("thread2.txt"),c)
         self._runThreads(thread1,thread2)
 
-    def test_setcontents_samefile(self):
+    def test_setcontents_threaded_samefile(self):
         def setcontents(name,contents):
             f = self.fs.open(name,"w")
             self._yield()

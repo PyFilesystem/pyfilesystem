@@ -956,6 +956,8 @@ class FTPFS(FS):
     @ftperrors
     def open(self, path, mode='r'):
         mode = mode.lower()
+        if self.isdir(path):
+            raise ResourceInvalidError(path)
         if 'r' in mode:
             if not self.isfile(path):
                 raise ResourceNotFoundError(path)
