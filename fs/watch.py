@@ -80,7 +80,7 @@ class MODIFIED(EVENT):
         self.data_changed = data_changed
 
     def clone(self,fs=None,path=None,data_changed=None):
-        evt = super(MODIFIED,self).clone()
+        evt = super(MODIFIED,self).clone(fs,path)
         if data_changed is None:
             data_changed = self.data_changed
         evt.data_changd = data_changed
@@ -94,8 +94,11 @@ class MOVED_DST(EVENT):
             source = abspath(normpath(source))
         self.source = source
 
+    def __unicode__(self):
+        return u"<fs.watch.%s object (path=%r,src=%r) at %s>" % (self.__class__.__name__,self.path,self.source,hex(id(self)))
+
     def clone(self,fs=None,path=None,source=None):
-        evt = super(MOVED_DST,self).clone()
+        evt = super(MOVED_DST,self).clone(fs,path)
         if source is None:
             source = self.source
         evt.source = source
@@ -109,8 +112,11 @@ class MOVED_SRC(EVENT):
             destination = abspath(normpath(destination))
         self.destination = destination
 
+    def __unicode__(self):
+        return u"<fs.watch.%s object (path=%r,dst=%r) at %s>" % (self.__class__.__name__,self.path,self.destination,hex(id(self)))
+
     def clone(self,fs=None,path=None,destination=None):
-        evt = super(MOVED_SRC,self).clone()
+        evt = super(MOVED_SRC,self).clone(fs,path)
         if destination is None:
             destination = self.destination
         evt.destination = destination
