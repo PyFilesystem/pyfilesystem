@@ -22,6 +22,7 @@ FS subclasses interfacing with a remote filesystem.  These include:
 """
 
 import os
+import sys
 import time
 import copy
 

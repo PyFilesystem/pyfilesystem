@@ -160,6 +160,7 @@ def handle_fs_errors(func):
             _debug("ERR",name,e)
             raise
         else:
+            _debug("OK",name)
             if res is None:
                 res = 0
         if res != 0:
@@ -301,6 +302,12 @@ class FSOperations(object):
             return
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
+        finished = threading.Event()
+        def reset_timeout_callback():
+            while not finished.isSet():
+                libdokan.DokanResetTimeout(5*60*1000,info)
+                finished.wait(timeout=4*60)
+        threading.Thread(target=reset_timeout_callback).start()
         try:
             f = self.fs.open(path,mode)
         except ResourceInvalidError:
@@ -314,6 +321,8 @@ class FSOperations(object):
                 raise
         else:
             info.contents.Context = self._reg_file(f,path)
+        finally:
+            finished.set()
         return retcode
 
     @handle_fs_errors
@@ -345,6 +354,12 @@ class FSOperations(object):
                 self._pending_delete.remove(path)
         else:
             (file,_,lock) = self._get_file(info.contents.Context)
+            finished = threading.Event()
+            def reset_timeout_callback():
+                while not finished.isSet():
+                    libdokan.DokanResetTimeout(5*60*1000,info)
+                    finished.wait(timeout=4*60)
+            threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
             try:
                 if info.contents.DeleteOnClose:
@@ -356,17 +371,25 @@ class FSOperations(object):
                 else:
                     file.flush()
             finally:
+                finished.set()
                 lock.release()
 
     @handle_fs_errors
     def CloseFile(self, path, info):
         if info.contents.Context >= MIN_FH:
             (file,_,lock) = self._get_file(info.contents.Context)
+            finished = threading.Event()
+            def reset_timeout_callback():
+                while not finished.isSet():
+                    libdokan.DokanResetTimeout(5*60*1000,info)
+                    finished.wait(timeout=4*60)
+            threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
             try:
                 file.close()
                 self._del_file(info.contents.Context)
             finally:
+                finished.set()
                 lock.release()
             info.contents.Context = 0
 
@@ -398,8 +421,14 @@ class FSOperations(object):
             ctypes.memmove(data,buffer,nBytesToWrite)
             file.write(data.raw)
             nBytesWritten[0] = len(data.raw)
-            if offset + nBytesWritten[0] > self._files_size_written[path][fh]:
-                self._files_size_written[path][fh] = offset + nBytesWritten[0]
+            try:
+                size_written = self._files_size_written[path][fh]
+            except KeyError:
+                pass
+            else:
+                if offset + nBytesWritten[0] > size_written:
+                    new_size_written = offset + nBytesWritten[0]
+                    self._files_size_written[path][fh] = new_size_written
         finally:
             lock.release()
 
@@ -509,6 +538,12 @@ class FSOperations(object):
     def SetEndOfFile(self, path, length, info):
         path = normpath(path)
         (file,_,lock) = self._get_file(info.contents.Context)
+        finished = threading.Event()
+        def reset_timeout_callback():
+            while not finished.isSet():
+                libdokan.DokanResetTimeout(5*60*1000,info)
+                finished.wait(timeout=4*60)
+        threading.Thread(target=reset_timeout_callback).start()
         lock.acquire()
         try:
             pos = file.tell()
@@ -518,6 +553,7 @@ class FSOperations(object):
             if pos < length:
                 file.seek(min(pos,length))
         finally:
+            finished.set()
             lock.release()
 
     @handle_fs_errors

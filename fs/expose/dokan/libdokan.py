@@ -239,6 +239,8 @@ DokanDriverVersion.argtypes = (
 DokanResetTimeout = windll.Dokan.DokanResetTimeout
 DokanResetTimeout.restype = BOOL
 DokanResetTimeout.argtypes = (
+    ULONG,  #timeout
+    PDOKAN_FILE_INFO,  # file info pointer
 )
 
 
