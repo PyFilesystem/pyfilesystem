@@ -305,7 +305,12 @@ class FSOperations(object):
         finished = threading.Event()
         def reset_timeout_callback():
             while not finished.isSet():
-                libdokan.DokanResetTimeout(5*60*1000,info)
+                finished._Event__cond.acquire()
+                try:
+                    if not finished.isSet():
+                        libdokan.DokanResetTimeout(5*60*1000,info)
+                finally:
+                    finished._Event__cond.release()
                 finished.wait(timeout=4*60)
         threading.Thread(target=reset_timeout_callback).start()
         try:
@@ -357,7 +362,12 @@ class FSOperations(object):
             finished = threading.Event()
             def reset_timeout_callback():
                 while not finished.isSet():
-                    libdokan.DokanResetTimeout(5*60*1000,info)
+                    finished._Event__cond.acquire()
+                    try:
+                        if not finished.isSet():
+                            libdokan.DokanResetTimeout(5*60*1000,info)
+                    finally:
+                        finished._Event__cond.release()
                     finished.wait(timeout=4*60)
             threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
@@ -381,7 +391,12 @@ class FSOperations(object):
             finished = threading.Event()
             def reset_timeout_callback():
                 while not finished.isSet():
-                    libdokan.DokanResetTimeout(5*60*1000,info)
+                    finished._Event__cond.acquire()
+                    try:
+                        if not finished.isSet():
+                            libdokan.DokanResetTimeout(5*60*1000,info)
+                    finally:
+                        finished._Event__cond.release()
                     finished.wait(timeout=4*60)
             threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
@@ -541,7 +556,12 @@ class FSOperations(object):
         finished = threading.Event()
         def reset_timeout_callback():
             while not finished.isSet():
-                libdokan.DokanResetTimeout(5*60*1000,info)
+                finished._Event__cond.acquire()
+                try:
+                    if not finished.isSet():
+                        libdokan.DokanResetTimeout(5*60*1000,info)
+                finally:
+                    finished._Event__cond.release()
                 finished.wait(timeout=4*60)
         threading.Thread(target=reset_timeout_callback).start()
         lock.acquire()
@@ -558,7 +578,12 @@ class FSOperations(object):
 
     @handle_fs_errors
     def GetDiskFreeSpaceEx(self, nBytesAvail, nBytesTotal, nBytesFree, info):
-        pass
+        #  This returns a stupidly large number by default.
+        #  It's better to pretend an operation is possible and have it fail
+        #  than to pretend an operation will fail when it's actually possible.
+        nBytesAvail[0] = 100 * 1024*1024*1024
+        nBytesFree[0] = 100 * 1024*1024*1024
+        nBytesTotal[0] = 200 * 1024*1024*1024
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
