@@ -29,7 +29,7 @@ class HideDotFilesFS(WrapFS):
         return path
 
     def listdir(self, path="", **kwds):
-        hidden = kwds.pop("hidden",True)
+        hidden = kwds.pop("hidden",False)
         entries = self.wrapped_fs.listdir(path,**kwds)
         if not hidden:
             entries = [e for e in entries if not self.is_hidden(e)]

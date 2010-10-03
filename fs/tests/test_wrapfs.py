@@ -72,3 +72,28 @@ class TestLimitSizeFS(TestWrapFS):
         else:
             self.assertTrue(False,"StorageSpaceError not raised")           
 
+
+from fs.wrapfs.hidedotfilesfs import HideDotFilesFS
+class TestHideDotFilesFS(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp(u"fstest")
+        open(os.path.join(self.temp_dir, u".dotfile"), 'w').close()
+        open(os.path.join(self.temp_dir, u"regularfile"), 'w').close()
+        os.mkdir(os.path.join(self.temp_dir, u".dotdir"))
+        os.mkdir(os.path.join(self.temp_dir, u"regulardir"))
+        self.fs = HideDotFilesFS(osfs.OSFS(self.temp_dir))
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def test_hidden(self):
+        self.assertEquals(len(self.fs.listdir(hidden=False)), 2)
+
+    def test_nonhidden(self):
+        self.assertEquals(len(self.fs.listdir(hidden=True)), 4)
+
+    def test_default(self):
+        self.assertEquals(len(self.fs.listdir()), 2)
+
+
