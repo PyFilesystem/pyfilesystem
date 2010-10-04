@@ -147,7 +147,7 @@ class WrapFS(FS):
     def listdir(self, path="", **kwds):
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
-        wildcard = kwds.pop("wildcard","*")
+        wildcard = kwds.pop("wildcard",None)
         if wildcard is None:
             wildcard = lambda fn:True
         elif not callable(wildcard):
@@ -170,7 +170,7 @@ class WrapFS(FS):
     def listdirinfo(self, path="", **kwds):
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
-        wildcard = kwds.pop("wildcard","*")
+        wildcard = kwds.pop("wildcard",None)
         if wildcard is None:
             wildcard = lambda fn:True
         elif not callable(wildcard):
