@@ -122,8 +122,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
 
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)
-        path = os.path.join(self.root_path, path)        
-        path = self._decode_path(path)        
+        path = os.path.join(self.root_path, path)
+        path = self._decode_path(path)
         return path
 
     def unsyspath(self, path):

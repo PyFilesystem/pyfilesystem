@@ -513,6 +513,8 @@ class MemoryFS(FS):
     @synchronize
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src_dir_entry = self._get_dir_entry(src)
+        if src_dir_entry is None:
+            raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
         super(MemoryFS, self).copydir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
         dst_dir_entry = self._get_dir_entry(dst)
@@ -522,6 +524,8 @@ class MemoryFS(FS):
     @synchronize
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src_dir_entry = self._get_dir_entry(src)
+        if src_dir_entry is None:
+            raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
         super(MemoryFS, self).movedir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
         dst_dir_entry = self._get_dir_entry(dst)
@@ -531,6 +535,8 @@ class MemoryFS(FS):
     @synchronize
     def copy(self, src, dst, overwrite=False, chunk_size=16384):
         src_dir_entry = self._get_dir_entry(src)
+        if src_dir_entry is None:
+            raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
         super(MemoryFS, self).copy(src, dst, overwrite, chunk_size)        
         dst_dir_entry = self._get_dir_entry(dst)
@@ -540,6 +546,8 @@ class MemoryFS(FS):
     @synchronize
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         src_dir_entry = self._get_dir_entry(src)
+        if src_dir_entry is None:
+            raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
         super(MemoryFS, self).move(src, dst, overwrite, chunk_size)        
         dst_dir_entry = self._get_dir_entry(dst)

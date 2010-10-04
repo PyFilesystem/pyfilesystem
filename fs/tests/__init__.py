@@ -440,6 +440,11 @@ class FSTestCases(object):
         self.assert_(check("a/foo/bar/baz.txt"))
 
 
+    def test_cant_copy_from_os(self):
+        sys_executable = os.path.abspath(os.path.realpath(sys.executable))
+        print "COPY", sys_executable
+        self.assertRaises(FSError,self.fs.copy,sys_executable,"py.exe")
+
     def test_copyfile(self):
         check = self.check
         contents = "If the implementation is hard to explain, it's a bad idea."
@@ -457,6 +462,7 @@ class FSTestCases(object):
         self.fs.copy("foo/bar/a.txt", "foo/b.txt")
         self.assert_(check("foo/bar/a.txt"))
         self.assert_(check("foo/b.txt"))
+        self.assert_(checkcontents("foo/bar/a.txt"))
         self.assert_(checkcontents("foo/b.txt"))
 
         self.fs.copy("foo/b.txt", "c.txt")
