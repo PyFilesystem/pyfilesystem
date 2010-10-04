@@ -267,6 +267,7 @@ class DAVFS(FS):
         if resp.status == 409:
             raise ParentDirectoryMissingError(path)
         if resp.status not in (200,201,204):
+            print resp.status
             raise_generic_error(resp,"setcontents",path)
 
     def open(self,path,mode="r"):
@@ -287,6 +288,8 @@ class DAVFS(FS):
             elif contents.status != 200:
                 contents.close()
                 raise_generic_error(resp,"open",path)
+            elif self.isdir(path):
+                raise ResourceInvalidError(path)
         if mode == "r-":
             contents.size = contents.getheader("Content-Length",None)
             if contents.size is not None:
@@ -432,7 +435,6 @@ class DAVFS(FS):
                         entries.append((nm,info))
             if not dir_ok:
                 raise ResourceInvalidError(path)
-            return self._listdir_helper(path,entries,wildcard,full,absolute,False,False)
             if wildcard is not None:
                 entries = [(e,info) for (e,info) in entries if fnmatch.fnmatch(e,wildcard)]
             if full:

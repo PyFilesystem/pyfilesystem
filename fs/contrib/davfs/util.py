@@ -49,7 +49,10 @@ def normalize_req_body(body,chunk_size=1024*64):
     This function is used to accept a variety of different inputs in HTTP
     requests, converting them to a standard format.
     """
-    if hasattr(body,"read"):
+    if hasattr(body,"getvalue"):
+        value = body.getvalue()
+        return (len(value),[value])
+    elif hasattr(body,"read"):
         try:
             size = int(body.size)
         except (AttributeError,TypeError):
