@@ -29,9 +29,11 @@ an iterator over the change events.
 
 """
 
+import sys
 import weakref
 import threading 
 import Queue
+import traceback
 
 from fs.path import *
 from fs.errors import *
