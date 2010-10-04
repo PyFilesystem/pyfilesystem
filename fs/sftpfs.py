@@ -322,7 +322,7 @@ class SFTPFS(FS):
             info['accessed_time'] = datetime.datetime.fromtimestamp(at)
         mt = info.get('st_mtime', None)
         if mt is not None:
-            info['modified_time'] = datetime.datetime.fromtimestamp(at)
+            info['modified_time'] = datetime.datetime.fromtimestamp(mt)
         return info
 
     @convert_os_errors
