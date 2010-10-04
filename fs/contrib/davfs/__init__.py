@@ -285,9 +285,12 @@ class DAVFS(FS):
                     raise ResourceNotFoundError(path)
                 contents = ""
                 self.setcontents(path,contents)
+            elif contents.status in (401,403):
+                contents.close()
+                raise PermissionDeniedError("open")
             elif contents.status != 200:
                 contents.close()
-                raise_generic_error(resp,"open",path)
+                raise_generic_error(contents,"open",path)
             elif self.isdir(path):
                 raise ResourceInvalidError(path)
         if mode == "r-":
