@@ -406,7 +406,10 @@ class FSOperations(Operations):
                     info[key1] = STARTUP_TIME
         #  Ensure the reported size reflects any writes performed, even if
         #  they haven't been flushed to the filesystem yet.
-        info.setdefault("st_size",info.get("size",1024))
+        if "size" in info:
+            info["st_size"] = info["size"]
+        elif "st_size" not in info:
+            info["st_size"] = 0
         try:
             written_sizes = self._files_size_written[path]
         except KeyError:
