@@ -167,6 +167,29 @@ class WrapFS(FS):
         return entries
 
     @rewrite_errors
+    def listdirinfo(self, path="", **kwds):
+        full = kwds.pop("full",False)
+        absolute = kwds.pop("absolute",False)
+        wildcard = kwds.pop("wildcard","*")
+        if wildcard is None:
+            wildcard = lambda fn:True
+        elif not callable(wildcard):
+            wildcard_re = re.compile(fnmatch.translate(wildcard))
+            wildcard = lambda fn:bool (wildcard_re.match(fn))         
+        entries = []
+        enc_path = self._encode(path)
+        for (nm,info) in self.wrapped_fs.listdirinfo(enc_path,**kwds):
+            nm = basename(self._decode(pathjoin(enc_path,nm)))
+            if not wildcard(nm):
+                continue
+            if full:
+                nm = pathjoin(path,nm)
+            elif absolute:
+                nm = abspath(pathjoin(path,nm))
+            entries.append((nm,info))
+        return entries
+
+    @rewrite_errors
     def makedir(self, path, *args, **kwds):
         return self.wrapped_fs.makedir(self._encode(path),*args,**kwds)
 
