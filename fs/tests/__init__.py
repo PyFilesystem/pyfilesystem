@@ -442,7 +442,6 @@ class FSTestCases(object):
 
     def test_cant_copy_from_os(self):
         sys_executable = os.path.abspath(os.path.realpath(sys.executable))
-        print "COPY", sys_executable
         self.assertRaises(FSError,self.fs.copy,sys_executable,"py.exe")
 
     def test_copyfile(self):

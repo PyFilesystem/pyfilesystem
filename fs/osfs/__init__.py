@@ -123,6 +123,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)
         path = os.path.join(self.root_path, path)
+        if not path.startswith(self.root_path):
+            raise PathError(path,msg="OSFS given path outside root: %(path)s")
         path = self._decode_path(path)
         return path
 
