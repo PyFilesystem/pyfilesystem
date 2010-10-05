@@ -255,7 +255,9 @@ class WatchedFile(object):
         self.mode = mode
 
     def __del__(self):
-        self.close()
+        #  Don't bother if python if being torn down
+        if Watcher is not None:
+            self.close()
 
     def __getattr__(self,name):
         file = self.__dict__['file']
