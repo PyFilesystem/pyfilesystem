@@ -205,10 +205,10 @@ class MultiFS(FS):
         raise ResourceNotFoundError(path)
 
     @synchronize
-    def removedir(self, path, recursive=False):
+    def removedir(self, path, recursive=False, force=False):
         for fs in self:
             if fs.isdir(path):
-                fs.removedir(path, recursive)
+                fs.removedir(path, recursive=recursive, force=force)
                 return
         raise ResourceNotFoundError(path)
 
