@@ -169,6 +169,28 @@ def handle_fs_errors(func):
     return wrapper
  
 
+def timeout_protect(func):
+    """Method decorator to enable timeout protection during call."""
+    @wraps(func)
+    def wrapper(self,*args):
+        info = args[-1]
+        finished = threading.Event()
+        def reset_timeout_callback():
+            while not finished.isSet():
+                finished._Event__cond.acquire()
+                try:
+                    if not finished.isSet():
+                        libdokan.DokanResetTimeout(5*60*1000,info)
+                finally:
+                    finished._Event__cond.release()
+                finished.wait(timeout=4*60)
+        threading.Thread(target=reset_timeout_callback).start()
+        try:
+            return func(self,*args)
+        finally:
+            finished.set()
+    return wrapper
+
 
 MIN_FH = 100
 
@@ -238,6 +260,7 @@ class FSOperations(object):
                 return True
         return False
 
+    @timeout_protect
     @handle_fs_errors
     def CreateFile(self, path, access, sharing, disposition, flags, info):
         path = normpath(path)
@@ -302,17 +325,6 @@ class FSOperations(object):
             return
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
-        finished = threading.Event()
-        def reset_timeout_callback():
-            while not finished.isSet():
-                finished._Event__cond.acquire()
-                try:
-                    if not finished.isSet():
-                        libdokan.DokanResetTimeout(5*60*1000,info)
-                finally:
-                    finished._Event__cond.release()
-                finished.wait(timeout=4*60)
-        threading.Thread(target=reset_timeout_callback).start()
         try:
             f = self.fs.open(path,mode)
         except ResourceInvalidError:
@@ -326,10 +338,9 @@ class FSOperations(object):
                 raise
         else:
             info.contents.Context = self._reg_file(f,path)
-        finally:
-            finished.set()
         return retcode
 
+    @timeout_protect
     @handle_fs_errors
     def OpenDirectory(self, path, info):
         path = normpath(path)
@@ -342,6 +353,7 @@ class FSOperations(object):
                  raise ResourceInvalidError(path)
         info.contents.IsDirectory = True
 
+    @timeout_protect
     @handle_fs_errors
     def CreateDirectory(self, path, info):
         path = normpath(path)
@@ -350,6 +362,7 @@ class FSOperations(object):
         self.fs.makedir(path)
         info.contents.IsDirectory = True
 
+    @timeout_protect
     @handle_fs_errors
     def Cleanup(self, path, info):
         path = normpath(path)
@@ -359,17 +372,6 @@ class FSOperations(object):
                 self._pending_delete.remove(path)
         else:
             (file,_,lock) = self._get_file(info.contents.Context)
-            finished = threading.Event()
-            def reset_timeout_callback():
-                while not finished.isSet():
-                    finished._Event__cond.acquire()
-                    try:
-                        if not finished.isSet():
-                            libdokan.DokanResetTimeout(5*60*1000,info)
-                    finally:
-                        finished._Event__cond.release()
-                    finished.wait(timeout=4*60)
-            threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
             try:
                 if info.contents.DeleteOnClose:
@@ -381,33 +383,22 @@ class FSOperations(object):
                 else:
                     file.flush()
             finally:
-                finished.set()
                 lock.release()
 
+    @timeout_protect
     @handle_fs_errors
     def CloseFile(self, path, info):
         if info.contents.Context >= MIN_FH:
             (file,_,lock) = self._get_file(info.contents.Context)
-            finished = threading.Event()
-            def reset_timeout_callback():
-                while not finished.isSet():
-                    finished._Event__cond.acquire()
-                    try:
-                        if not finished.isSet():
-                            libdokan.DokanResetTimeout(5*60*1000,info)
-                    finally:
-                        finished._Event__cond.release()
-                    finished.wait(timeout=4*60)
-            threading.Thread(target=reset_timeout_callback).start()
             lock.acquire()
             try:
                 file.close()
                 self._del_file(info.contents.Context)
             finally:
-                finished.set()
                 lock.release()
             info.contents.Context = 0
 
+    @timeout_protect
     @handle_fs_errors
     def ReadFile(self, path, buffer, nBytesToRead, nBytesRead, offset, info):
         path = normpath(path)
@@ -421,6 +412,7 @@ class FSOperations(object):
         finally:
             lock.release()
 
+    @timeout_protect
     @handle_fs_errors
     def WriteFile(self, path, buffer, nBytesToWrite, nBytesWritten, offset, info):
         path = normpath(path)
@@ -447,6 +439,7 @@ class FSOperations(object):
         finally:
             lock.release()
 
+    @timeout_protect
     @handle_fs_errors
     def FlushFileBuffers(self, path, offset, info):
         path = normpath(path)
@@ -457,6 +450,7 @@ class FSOperations(object):
         finally:
             lock.release()
 
+    @timeout_protect
     @handle_fs_errors
     def GetFileInformation(self, path, buffer, info):
         path = normpath(path)
@@ -473,6 +467,7 @@ class FSOperations(object):
                 data.nFileSizeHigh = written_size >> 32
                 data.nFileSizeLow = written_size & 0xffffffff
 
+    @timeout_protect
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
         path = normpath(path)
@@ -483,6 +478,7 @@ class FSOperations(object):
             data = self._info2finddataw(fpath,finfo)
             fillFindData(ctypes.byref(data),info)
 
+    @timeout_protect
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
         path = normpath(path)
@@ -496,11 +492,13 @@ class FSOperations(object):
             data = self._info2finddataw(fpath,finfo,None)
             fillFindData(ctypes.byref(data),info)
 
+    @timeout_protect
     @handle_fs_errors
     def SetFileAttributes(self, path, attrs, info):
         path = normpath(path)
         # TODO: decode various file attributes
 
+    @timeout_protect
     @handle_fs_errors
     def SetFileTime(self, path, ctime, atime, mtime, info):
         path = normpath(path)
@@ -511,6 +509,7 @@ class FSOperations(object):
             mtime = _filetime2datetime(mtime.contents)
         self.fs.settimes(path, atime, mtime)
 
+    @timeout_protect
     @handle_fs_errors
     def DeleteFile(self, path, info):
         path = normpath(path)
@@ -522,6 +521,7 @@ class FSOperations(object):
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
 
+    @timeout_protect
     @handle_fs_errors
     def DeleteDirectory(self, path, info):
         path = normpath(path)
@@ -531,6 +531,7 @@ class FSOperations(object):
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
 
+    @timeout_protect
     @handle_fs_errors
     def MoveFile(self, src, dst, overwrite, info):
         #  Close the file if we have an open handle to it.
@@ -549,21 +550,11 @@ class FSOperations(object):
         else:
             self.fs.move(src,dst,overwrite=overwrite)
 
+    @timeout_protect
     @handle_fs_errors
     def SetEndOfFile(self, path, length, info):
         path = normpath(path)
         (file,_,lock) = self._get_file(info.contents.Context)
-        finished = threading.Event()
-        def reset_timeout_callback():
-            while not finished.isSet():
-                finished._Event__cond.acquire()
-                try:
-                    if not finished.isSet():
-                        libdokan.DokanResetTimeout(5*60*1000,info)
-                finally:
-                    finished._Event__cond.release()
-                finished.wait(timeout=4*60)
-        threading.Thread(target=reset_timeout_callback).start()
         lock.acquire()
         try:
             pos = file.tell()
@@ -573,7 +564,6 @@ class FSOperations(object):
             if pos < length:
                 file.seek(min(pos,length))
         finally:
-            finished.set()
             lock.release()
 
     @handle_fs_errors
