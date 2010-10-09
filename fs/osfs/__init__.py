@@ -157,7 +157,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         except EnvironmentError, e:
             #  Win32 gives EACCES when opening a directory.
             if sys.platform == "win32" and e.errno in (errno.EACCES,):
-                raise ResourceInvalidError(path)
+                if self.isdir(path):
+                    raise ResourceInvalidError(path)
             raise
 
     @convert_os_errors
