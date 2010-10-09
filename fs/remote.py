@@ -403,6 +403,7 @@ class CacheFS(WrapFS):
             cache[""].pop("getinfo",None)
             cache[""].pop("getsize",None)
             cache[""].pop("listdir",None)
+            cache[""].pop("listdirinfo",None)
         # Clear all cached info for the path itself.
         cache[names[-1]] = {"":{}}
 
@@ -421,6 +422,10 @@ class CacheFS(WrapFS):
     @_cached_method
     def listdir(self,path="",**kwds):
         return super(CacheFS,self).listdir(path,**kwds)
+
+    @_cached_method
+    def listdirinfo(self,path="",**kwds):
+        return super(CacheFS,self).listdirinfo(path,**kwds)
 
     @_cached_method
     def getinfo(self,path):
