@@ -99,6 +99,7 @@ class RemoteFileBuffer(object):
                 self._eof = True
                 
             if not hasattr(rfile, "read"):
+                raise rfile
                 rfile = StringIO(unicode(rfile))
                 
             self._rfile = rfile
@@ -111,6 +112,8 @@ class RemoteFileBuffer(object):
             # Do not use remote file object
             self._eof = True
             self._rfile = None
+            if rfile is not None and hasattr(rfile,"close"):
+                rfile.close()
 
     def __del__(self):
         #  Don't try to close a partially-constructed file
@@ -183,6 +186,8 @@ class RemoteFileBuffer(object):
                 self._eof = True
                 break
         
+        if self._eof and self._rfile is not None:
+            self._rfile.close()
         self._readlen += bytes_read
     
     def _fillbuffer(self, length=None):  
@@ -281,6 +286,8 @@ class RemoteFileBuffer(object):
                 self._eof = True
                 
             self.flush()
+            if self._rfile is not None:
+                self._rfile.close()
         finally:
             self._lock.release()
 
@@ -315,6 +322,8 @@ class RemoteFileBuffer(object):
                 self._setcontents()
                 self.file.close()
                 self.closed = True
+                if self._rfile is not None:
+                    self._rfile.close()
         finally:
             self._lock.release()
 

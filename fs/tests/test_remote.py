@@ -22,14 +22,16 @@ from fs.tempfs import TempFS
 from fs.path import *
 from fs.local_functools import wraps
 
+
 class RemoteTempFS(TempFS):
-    '''
+    """
         Simple filesystem implementing setfilecontents
         for RemoteFileBuffer tests
-    '''
+    """
     def open(self, path, mode='rb', write_on_flush=True):
         if 'a' in mode or 'r' in mode or '+' in mode:
             f = super(RemoteTempFS, self).open(path, 'rb')
+            f = TellAfterCloseFile(f)
         else:
             f = None
         
@@ -43,6 +45,28 @@ class RemoteTempFS(TempFS):
         else:
             f.write(content)
         f.close()
+
+
+class TellAfterCloseFile(object):
+    """File-like object that allows calling tell() after it's been closed."""
+
+    def __init__(self,file):
+        self._finalpos = None
+        self.file = file
+
+    def close(self):
+        if self._finalpos is None:
+            self._finalpos = self.file.tell()
+        self.file.close()
+
+    def tell(self):
+        if self._finalpos is not None:
+            return self._finalpos
+        return self.file.tell()
+
+    def __getattr__(self,attr):
+        return getattr(self.file,attr)
+
 
 class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
     class FakeException(Exception): pass
