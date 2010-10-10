@@ -215,15 +215,9 @@ class RemoteFileBuffer(object):
                 self.file.seek(curpos)
         
     def read(self, length=None):
-        if length is None:
-            self._fillbuffer()
-            return self.file.read()
-        else:
-            toread = self.file.tell() + length - self._readlen
-            if toread > 0:
-                self._fillbuffer(toread)
-            return self.file.read(length)
-        
+        self._fillbuffer(length)
+        return self.file.read(length if length != None else -1)
+
     def seek(self,offset,whence=SEEK_SET):           
         if isinstance(self.file,SpooledTemporaryFile):
             #  SpooledTemporaryFile.seek doesn't roll to disk if seeking
