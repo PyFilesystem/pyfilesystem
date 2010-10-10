@@ -99,7 +99,6 @@ class RemoteFileBuffer(object):
                 self._eof = True
                 
             if not hasattr(rfile, "read"):
-                raise rfile
                 rfile = StringIO(unicode(rfile))
                 
             self._rfile = rfile
