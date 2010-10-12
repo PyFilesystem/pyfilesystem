@@ -1,7 +1,10 @@
 """
-Defines the Exception classes thrown by PyFilesystem objects. Exceptions relating to the underling filesystem are translated in to one of the following Exceptions. Exceptions that relate to a path store that path in `self.path`.
+Defines the Exception classes thrown by PyFilesystem objects. Exceptions relating
+to the underling filesystem are translated in to one of the following Exceptions.
+Exceptions that relate to a path store that path in `self.path`.
 
-All Exception classes are derived from `FSError` which can be used as a catch-all exception.
+All Exception classes are derived from `FSError` which can be used as a
+catch-all exception.
 
 """
 
@@ -17,6 +20,7 @@ __all__ = ['FSError',
            'OperationTimeoutError',
            'ResourceError',
            'NoSysPathError',
+           'NoPathURLError',
            'ResourceNotFoundError',
            'ResourceInvalidError',           
            'DestinationExistsError',
@@ -125,6 +129,11 @@ class ResourceError(FSError):
 class NoSysPathError(ResourceError):
     """Exception raised when there is no syspath for a given path."""
     default_message = "No mapping to OS filesystem: %(path)s"
+
+
+class NoPathURLError(ResourceError):
+    """Exception raised when there is no URL form for a given path."""
+    default_message = "No URL form: %(path)s"
 
 
 class ResourceNotFoundError(ResourceError):

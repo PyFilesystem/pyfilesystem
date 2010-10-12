@@ -139,7 +139,7 @@ class FS(object):
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
         :type thread_synchronize: bool
         """
-        super(FS,self).__init__()
+        super(FS, self).__init__()
         self.closed = False
         if thread_synchronize:
             self._lock = threading.RLock()
@@ -199,6 +199,7 @@ class FS(object):
         :type allow_none: bool
         :raises NoSysPathError: If the path does not map on to a system path, and allow_none is set to False (default)
         :rtype: unicode
+        
         """
         if not allow_none:
             raise NoSysPathError(path=path)
@@ -207,11 +208,41 @@ class FS(object):
     def hassyspath(self, path):
         """Check if the path maps to a system path (a path recognised by the OS).
 
-        :param path: -- path to check
+        :param path: path to check
         :returns: True if `path` maps to a system path
-        :rtype: bool        
+        :rtype: bool  
+              
         """
         return self.getsyspath(path, allow_none=True) is not None
+    
+    def getpathurl(self, path, allow_none=False):
+        """Returns a url that corresponds to the given path, if one exists.
+        
+        If the path does not have an equivalent URL form (and allow_none is False)
+        then a NoPathURLError exception is thrown. Otherwise the URL will be
+        returns as an unicode string.
+        
+        :param path: a path within the filesystem
+        :param allow_none: if true, this method can return None if there is no
+        URL form of the given path
+        :type allow_none: bool
+        :raises NoPathURLError: If no URL form exists, and allow_none is False (the default)
+        :rtype: unicode 
+        
+        """
+        if not allow_none:
+            raise NoPathURLError(path=path)
+        return None
+    
+    def haspathurl(self, path):
+        """Check if the path has an equivalent URL form
+
+        :param path: path to check
+        :returns: True if `path` has a URL form
+        :rtype: bool
+                
+        """
+        return self.getpathurl(path, allow_none=True) is not None
 
     def open(self, path, mode="r", **kwargs):
         """Open a the given path as a file-like object.
