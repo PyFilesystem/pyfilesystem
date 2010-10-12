@@ -271,16 +271,16 @@ class DAVFS(FS):
             raise_generic_error(resp,"setcontents",path)
 
     def open(self,path,mode="r"):
-        # Truncate the file if requested
         mode = mode.replace("b","").replace("t","")
+        # Truncate the file if requested
         contents = ""
         if "w" in mode:
             self.setcontents(path,contents)
         else:
             contents = self._request(path,"GET")
             if contents.status == 404:
-                # Create the file if it's missing
-                if "w" not in mode and "a" not in mode:
+                # Create the file if it's missing in append mode.
+                if "a" not in mode:
                     contents.close()
                     raise ResourceNotFoundError(path)
                 contents = ""
@@ -292,7 +292,9 @@ class DAVFS(FS):
                 contents.close()
                 raise_generic_error(contents,"open",path)
             elif self.isdir(path):
+                contents.close()
                 raise ResourceInvalidError(path)
+        #  For streaming reads, return the socket contents directly.
         if mode == "r-":
             contents.size = contents.getheader("Content-Length",None)
             if contents.size is not None:
@@ -301,11 +303,9 @@ class DAVFS(FS):
                 except ValueError:
                     contents.size = None
             return contents
-        try:
-            return RemoteFileBuffer(self,path,mode,contents)
-        finally:
-            if hasattr(contents,"close"):
-                contents.close()
+        #  For everything else, use a RemoteFileBuffer.
+        #  This will take care of closing the socket when it's done.
+        return RemoteFileBuffer(self,path,mode,contents)
 
     def exists(self,path):
         response = self._request(path,"PROPFIND","",{"Depth":"0"})

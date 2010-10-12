@@ -210,6 +210,7 @@ class S3FS(FS):
             if not self.isdir(dirname(path)):
                 raise ParentDirectoryMissingError(path)
             k = self._sync_set_contents(s3path,"")
+        # TODO: support streaming reads
         return RemoteFileBuffer(self,path,mode,k)
 
     def exists(self,path):

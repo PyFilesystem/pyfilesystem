@@ -158,6 +158,11 @@ class RemoteFileBuffer(object):
         # TODO: implement this with on-demand loading.
         self._fillbuffer()
         return self.file.__iter__()
+
+    def readline(self):
+        # TODO: implement this with on-demand loading.
+        self._fillbuffer()
+        return self.file.readline()
         
     def _read(self, length=None):
         """Read data from the remote file into the local buffer."""

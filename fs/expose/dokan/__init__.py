@@ -170,7 +170,17 @@ def handle_fs_errors(func):
  
 
 def timeout_protect(func):
-    """Method decorator to enable timeout protection during call."""
+    """Method decorator to enable timeout protection during call.
+
+    During long-running operations, Dokan requires that the DokanResetTimeout
+    function be called periodically to indicate the progress is still being
+    made.  Unfortunately we don't have an facility for the underlying FS
+    to make these calls for us, so we have to hack around it.
+
+    The idea is to use a single background thread to monitor all active Dokan
+    method calls, checking that they haven't deadlocked and resetting the
+    appropriate timeout.
+    """
     @wraps(func)
     def wrapper(self,*args):
         info = args[-1]
