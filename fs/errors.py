@@ -196,7 +196,7 @@ def convert_fs_errors(func):
         except StorageSpaceError, e:
             raise OSError(errno.ENOSPC,str(e))
         except RemoteConnectionError, e:
-            raise OSError(errno.ENONET,str(e))
+            raise OSError(errno.ENETDOWN,str(e))
         except UnsupportedError, e:
             raise OSError(errno.ENOSYS,str(e))
         except FSError, e:
@@ -241,6 +241,8 @@ def convert_os_errors(func):
             if e.errno == errno.EPERM:
                 raise PermissionDeniedError(opname,path=path,details=e),None,tb
             if e.errno == errno.ENONET:
+                raise RemoteConnectionError(opname,path=path,details=e),None,tb
+            if e.errno == errno.ENETDOWN:
                 raise RemoteConnectionError(opname,path=path,details=e),None,tb
             if e.errno == errno.EACCES:
                 if sys.platform == "win32":
