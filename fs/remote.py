@@ -36,11 +36,15 @@ from fs import SEEK_SET, SEEK_CUR, SEEK_END
 
 try:
    from tempfile import SpooledTemporaryFile
+   def _MakeSpooledTempFile(*args, **kwds):
+        return SpooledTemporaryFile(*args, **kwds)
 except ImportError:
    from tempfile import NamedTemporaryFile
-   class SpooledTemporaryFile(NamedTemporaryFile):
-        def __init__(self,max_size=0,*args,**kwds):
-            NamedTemporaryFile.__init__(self,*args,**kwds)
+   class SpooledTemporaryFile(object):
+        """Fake SpooledTemporaryFile, for faking out isinstance() checks."""
+        pass
+   def _MakeSpooledTempFile(max_size=0, *args, **kwds):
+       return NamedTemporaryFile(*args,**kwds)
 
 
 class RemoteFileBuffer(object):
@@ -77,7 +81,7 @@ class RemoteFileBuffer(object):
         optional argument 'rfile' is provided, it must be a read()-able
         object or a string containing the initial file contents.
         """
-        self.file = SpooledTemporaryFile(max_size=self.max_size_in_memory)
+        self.file = _MakeSpooledTempFile(max_size=self.max_size_in_memory)
         self.fs = fs
         self.path = path
         self.mode = mode
@@ -273,7 +277,10 @@ class RemoteFileBuffer(object):
                 else:
                     self.file._file.truncate(size)
             else:
-                self.file.truncate(size)
+                if size is None:
+                    self.file.truncate()
+                else:
+                    self.file.truncate(size)
             self._changed = True
 
             if not self._eof and self._readlen < size:
