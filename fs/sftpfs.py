@@ -301,7 +301,7 @@ class SFTPFS(FS):
             self.client.rename(nsrc,ndst)
         except IOError, e:
             if getattr(e,"errno",None) == 2:
-                raise ResourceNotFoundError(path)
+                raise ResourceNotFoundError(src)
             if self.exists(dst):
                 raise DestinationExistsError(dst)
             if not self.isdir(dirname(dst)):
