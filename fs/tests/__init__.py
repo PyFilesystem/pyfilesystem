@@ -406,6 +406,7 @@ class FSTestCases(object):
         def makefile(path):
             self.fs.createfile(path, contents)
 
+        self.assertRaises(ResourceNotFoundError,self.fs.movedir,"a","b")
         self.fs.makedir("a")
         self.fs.makedir("b")
         makefile("a/1.txt")

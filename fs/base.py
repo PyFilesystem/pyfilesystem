@@ -783,7 +783,9 @@ class FS(object):
             is required
         """
         if not self.isdir(src):
-            raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
+            if self.isfile(src):
+                raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
+            raise ResourceNotFoundError(src)
         if not overwrite and self.exists(dst):
             raise DestinationExistsError(dst)
 
