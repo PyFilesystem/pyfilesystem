@@ -626,9 +626,9 @@ class FSOperations(object):
         if data is None:
             data = libdokan.WIN32_FIND_DATAW()
         data.dwFileAttributes = self._info2attrmask(path,info,hinfo)
-        data.ftCreateTime = _datetime2filetime(info.get("created_time",None))
-        data.ftAccessTime = _datetime2filetime(info.get("accessed_time",None))
-        data.ftWriteTime = _datetime2filetime(info.get("modified_time",None))
+        data.ftCreationTime = _datetime2filetime(info.get("created_time",None))
+        data.ftLastAccessTime = _datetime2filetime(info.get("accessed_time",None))
+        data.ftLastWriteTime = _datetime2filetime(info.get("modified_time",None))
         data.nFileSizeHigh = info.get("size",0) >> 32
         data.nFileSizeLow = info.get("size",0) & 0xffffffff
         data.cFileName = basename(path)
