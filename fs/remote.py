@@ -21,6 +21,7 @@ FS subclasses interfacing with a remote filesystem.  These include:
 
 """
 
+import sys
 import time
 import copy
 from StringIO import StringIO
@@ -547,7 +548,10 @@ class CacheFS(WrapFS):
             cache[""].pop("listdir",None)
             cache[""].pop("listdirinfo",None)
         # Clear all cached info for the path itself.
-        cache[names[-1]] = {"":{}}
+        if names:
+            cache[names[-1]] = {"":{}}
+        else:
+            cache[""] = {}
 
     @_cached_method
     def exists(self,path):
