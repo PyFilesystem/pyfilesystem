@@ -715,5 +715,7 @@ def raise_generic_error(response,opname,path):
         raise ResourceLockedError(path,opname=opname,details=response)
     if response.status == 501:
         raise UnsupportedError(opname,details=response)
-    raise OperationFailedError(opname,details=response)
+    if response.status == 403:
+        raise ResourceInvalidError(path,opname=opname,details=response)
+    raise OperationFailedError(opname,msg="Server Error: %s" % (response.status,),details=response)
 
