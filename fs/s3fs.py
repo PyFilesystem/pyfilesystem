@@ -204,6 +204,8 @@ class S3FS(FS):
         so that it can be worked on efficiently.  Any changes made to the
         file are only sent back to S3 when the file is flushed or closed.
         """
+        if self.isdir(path):
+            raise ResourceInvalidError(path)
         s3path = self._s3path(path)
         # Truncate the file if requested
         if "w" in mode:
