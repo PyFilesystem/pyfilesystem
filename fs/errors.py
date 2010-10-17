@@ -240,7 +240,7 @@ def convert_os_errors(func):
                 raise StorageSpaceError(opname,path=path,details=e),None,tb
             if e.errno == errno.EPERM:
                 raise PermissionDeniedError(opname,path=path,details=e),None,tb
-            if e.errno == errno.ENONET:
+            if hasattr(errno,"ENONET") and e.errno == errno.ENONET:
                 raise RemoteConnectionError(opname,path=path,details=e),None,tb
             if e.errno == errno.ENETDOWN:
                 raise RemoteConnectionError(opname,path=path,details=e),None,tb
