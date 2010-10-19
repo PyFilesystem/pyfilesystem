@@ -17,6 +17,7 @@ Requires the dexml module:
 #  All rights reserved; available under the terms of the MIT License.
 
 import os
+import sys
 import httplib
 import socket
 from urlparse import urlparse
@@ -267,7 +268,6 @@ class DAVFS(FS):
         if resp.status == 409:
             raise ParentDirectoryMissingError(path)
         if resp.status not in (200,201,204):
-            print resp.status
             raise_generic_error(resp,"setcontents",path)
 
     def open(self,path,mode="r"):
@@ -302,6 +302,9 @@ class DAVFS(FS):
                     contents.size = int(contents.size)
                 except ValueError:
                     contents.size = None
+            if not hasattr(contents,"__exit__"):
+                contents.__enter__ = lambda *a: contents
+                contents.__exit__ = lambda *a: contents.close()
             return contents
         #  For everything else, use a RemoteFileBuffer.
         #  This will take care of closing the socket when it's done.

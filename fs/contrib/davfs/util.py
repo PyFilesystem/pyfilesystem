@@ -27,8 +27,22 @@ def get_fileno(file):
         else:
            raise AttributeError
     return file.fileno()
-    
 
+
+def get_filesize(file):
+    """Get the "size" attribute of a file-like object."""
+    while not hasattr(file,"size"):
+        if hasattr(file,"file"):
+            file = file.file
+        elif hasattr(file,"_file"):
+            file = file._file
+        elif hasattr(file,"_fileobj"):
+            file = file._fileobj
+        else:
+           raise AttributeError
+    return file.size
+
+    
 def file_chunks(f,chunk_size=1024*64):
     """Generator yielding chunks of a file.
 
@@ -54,7 +68,7 @@ def normalize_req_body(body,chunk_size=1024*64):
         return (len(value),[value])
     elif hasattr(body,"read"):
         try:
-            size = int(body.size)
+            size = int(get_filesize(body))
         except (AttributeError,TypeError):
             try:
                 size = os.fstat(get_fileno(body)).st_size
