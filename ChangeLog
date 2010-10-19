@@ -56,4 +56,7 @@
     * MountFS: added support for mounting at the root directory, and for
       mounting over an existing mount.
     * Added 'getpathurl' and 'haspathurl' methods
+    * Added utils.isdir(fs,path,info) and utils.isfile(fs,path,info); these
+      can often determine whether a path is a file or directory by inspecting
+      the info dict and avoid an additional query to the filesystem.
 

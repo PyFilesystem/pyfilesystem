@@ -15,6 +15,7 @@ __all__ = ['copyfile',
 import shutil
 import os
 import sys
+import stat
 from fs.mountfs import MountFS
 from fs.path import pathjoin, pathsplit
 from fs.errors import DestinationExistsError
@@ -178,6 +179,38 @@ def countbytes(fs):
     """
     total = sum(fs.getsize(f) for f in fs.walkfiles())
     return total
+
+
+def isdir(fs,path,info=None):
+    """Check whether a path within a filesystem is a directory.
+
+    If you're able to provide the info dict for the path, this may be possible
+    without querying the filesystem (e.g. by checking st_mode).
+    """
+    if info is not None:
+        st_mode = info.get("st_mode")
+        if st_mode:
+            if stat.S_ISDIR(st_mode):
+                return True
+            if stat.S_ISREG(st_mode):
+                return False
+    return fs.isdir(path)
+
+
+def isfile(fs,path,info=None):
+    """Check whether a path within a filesystem is a file.
+
+    If you're able to provide the info dict for the path, this may be possible
+    without querying the filesystem (e.g. by checking st_mode).
+    """
+    if info is not None:
+        st_mode = info.get("st_mode")
+        if st_mode:
+            if stat.S_ISREG(st_mode):
+                return True
+            if stat.S_ISDIR(st_mode):
+                return False
+    return fs.isfile(path)
 
 
 def find_duplicates(fs,
