@@ -254,6 +254,16 @@ class FSOperations(object):
         finally:
             self._files_lock.release()
 
+    def _rereg_file(self, fh, f):
+        self._files_lock.acquire()
+        try:
+            (f2,path,lock) = self._files_by_handle[fh]
+            assert f2.closed
+            self._files_by_handle[fh] = (f,path,lock)
+            return fh
+        finally:
+            self._files_lock.release()
+
     def _del_file(self, fh):
         self._files_lock.acquire()
         try:
@@ -384,14 +394,12 @@ class FSOperations(object):
             (file,_,lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
+                file.close()
                 if info.contents.DeleteOnClose:
-                    file.close()
                     self.fs.remove(path)
                     self._pending_delete.remove(path)
                     self._del_file(info.contents.Context)
                     info.contents.Context = 0
-                else:
-                    file.flush()
             finally:
                 lock.release()
 
@@ -415,6 +423,11 @@ class FSOperations(object):
         (file,_,lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
+            #  This may be called after Cleanup, meaning we
+            #  need to re-open the file.
+            if file.closed:
+                file = self.fs.open(path,file.mode)
+                self._rereg_file(info.contents.Context,file)
             file.seek(offset)
             data = file.read(nBytesToRead)
             ctypes.memmove(buffer,ctypes.create_string_buffer(data),len(data))
@@ -430,6 +443,11 @@ class FSOperations(object):
         (file,_,lock) = self._get_file(fh)
         lock.acquire()
         try:
+            #  This may be called after Cleanup, meaning we
+            #  need to re-open the file.
+            if file.closed:
+                file = self.fs.open(path,file.mode)
+                self._rereg_file(info.contents.Context,file)
             if info.contents.WriteToEndOfFile:
                 file.seek(0,os.SEEK_END)
             else:
