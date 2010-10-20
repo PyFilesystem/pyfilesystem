@@ -11,6 +11,7 @@ If you open a file from a `memoryfs` you will get back a StringIO object from th
 """
 
 import datetime
+import stat
 from fs.path import iteratepath, pathsplit, normpath
 from fs.base import *
 from fs.errors import *
@@ -503,10 +504,10 @@ class MemoryFS(FS):
         info['accessed_time'] = dir_entry.accessed_time                
 
         if dir_entry.isdir():
-            info['st_mode'] = 0755
+            info['st_mode'] = 0755 | stat.S_IFDIR
         else:
             info['size'] = len(dir_entry.data or '')
-            info['st_mode'] = 0666
+            info['st_mode'] = 0666 | stat.S_IFREG
             
         return info    
     
