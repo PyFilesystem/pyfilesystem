@@ -442,8 +442,9 @@ class S3FS(FS):
             info["st_mode"] =  0700 | statinfo.S_IFREG
         if hasattr(key,"size"):
             info['size'] = int(key.size)
-        if hasattr(key,"md5"):
-            info['etag'] = key.md5
+        etag = getattr(key,"etag",None)
+        if etag is not None:
+            info['etag'] = etag.strip('"').strip("'")
         if hasattr(key,"last_modified"):
             # TODO: does S3 use any other formats?
             fmt = "%a, %d %b %Y %H:%M:%S %Z"
