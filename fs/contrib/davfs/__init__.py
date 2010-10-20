@@ -38,6 +38,9 @@ from fs.remote import RemoteFileBuffer
 from fs.contrib.davfs.util import *
 from fs.contrib.davfs.xmlobj import *
 
+import logging
+logger = logging.getLogger("fs.contrib.davfs")
+
 import errno
 _RETRYABLE_ERRORS = [errno.EADDRINUSE]
 try:
@@ -103,7 +106,7 @@ class DAVFS(FS):
                 raise PermissionDeniedError("listdir")
             if resp.status != 207:
                 msg = "server at %s doesn't speak WebDAV" % (self.url,)
-                raise RemoteConnectionError("",msg=msg,details=resp)
+                raise RemoteConnectionError("",msg=msg,details=resp.read())
         finally:
             resp.close()
         self.url = resp.request_url
@@ -223,6 +226,7 @@ class DAVFS(FS):
             except KeyError:
                 msg = "unsupported protocol: '%s'" % (url.scheme,)
                 raise RemoteConnectionError(msg=msg)
+            #logger.debug("DAVFS >REQ %s %s/%s",method,url.hostname,url.path)
             con = ConClass(url.hostname,url.port,timeout=self.timeout)
             self._add_connection(con)
             try:
@@ -238,6 +242,7 @@ class DAVFS(FS):
                     if self.closed:
                         raise RemoteConnectionError("",msg="FS is closed")
                 resp = con.getresponse()
+                #logger.debug("DAVFS <RESP %s %s/%s",method,url.hostname,url.path)
                 self._cookiejar.extract_cookies(FakeResp(resp),FakeReq(con,url.scheme,url.path))
             except Exception, e:
                 self._del_connection(con)
@@ -650,7 +655,7 @@ class DAVFS(FS):
                          return "".join(c.toxml() for c in propNode.childNodes)
                        if ps.status.code == 404:
                          return default
-                   raise OperationFailedError("getxattr",details=response)
+                   raise OperationFailedError("getxattr",msres.render())
         return default
 
     def setxattr(self,path,name,value):
@@ -711,14 +716,14 @@ class DAVFS(FS):
 
 def raise_generic_error(response,opname,path):
     if response.status == 404:
-        raise ResourceNotFoundError(path,details=response)
+        raise ResourceNotFoundError(path,details=response.read())
     if response.status in (401,403):
-        raise PermissionDeniedError(opname,details=response)
+        raise PermissionDeniedError(opname,details=response.read())
     if response.status == 423:
-        raise ResourceLockedError(path,opname=opname,details=response)
+        raise ResourceLockedError(path,opname=opname,details=response.read())
     if response.status == 501:
-        raise UnsupportedError(opname,details=response)
+        raise UnsupportedError(opname,details=response.read())
     if response.status == 405:
-        raise ResourceInvalidError(path,opname=opname,details=response)
-    raise OperationFailedError(opname,msg="Server Error: %s" % (response.status,),details=response)
+        raise ResourceInvalidError(path,opname=opname,details=response.read())
+    raise OperationFailedError(opname,msg="Server Error: %s" % (response.status,),details=response.read())
 
