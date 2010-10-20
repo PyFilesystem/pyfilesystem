@@ -609,12 +609,12 @@ class FSOperations(object):
                 attrs |= FILE_ATTRIBUTE_DIRECTORY
             elif statinfo.S_ISREG(st_mode):
                 attrs |= FILE_ATTRIBUTE_NORMAL
-        elif hinfo:
+        if not attrs and hinfo:
             if hinfo.contents.IsDirectory:
                 attrs |= FILE_ATTRIBUTE_DIRECTORY
             else:
                 attrs |= FILE_ATTRIBUTE_NORMAL
-        else:
+        if not attrs:
             if self.fs.isdir(path):
                 attrs |= FILE_ATTRIBUTE_DIRECTORY
             else:
