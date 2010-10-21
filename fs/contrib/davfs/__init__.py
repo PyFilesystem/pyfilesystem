@@ -145,7 +145,7 @@ class DAVFS(FS):
         self._url_p = urlparse(self.url)
         self._cookiejar = cookielib.CookieJar()
 
-    def _path2url(self,path):
+    def getpathurl(self, path, allow_none=False):
         """Convert a client-side path into a server-side URL."""
         path = relpath(normpath(path))
         if path.endswith("/"):
@@ -172,7 +172,7 @@ class DAVFS(FS):
         This is a simple wrapper around httplib that does basic error and
         sanity checking e.g. following redirects and providing authentication.
         """
-        url = self._path2url(path)
+        url = self.getpathurl(path)
         visited = []
         resp = None
         try:
@@ -577,7 +577,7 @@ class DAVFS(FS):
         self._copy(src,dst,overwrite=overwrite)
 
     def _copy(self,src,dst,overwrite=False):
-        headers = {"Destination":self._path2url(dst)}
+        headers = {"Destination":self.getpathurl(dst)}
         if overwrite:
             headers["Overwrite"] = "T"
         else:
@@ -604,7 +604,7 @@ class DAVFS(FS):
         self._move(src,dst,overwrite=overwrite)
 
     def _move(self,src,dst,overwrite=False):
-        headers = {"Destination":self._path2url(dst)}
+        headers = {"Destination":self.getpathurl(dst)}
         if overwrite:
             headers["Overwrite"] = "T"
         else:
