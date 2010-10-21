@@ -193,6 +193,36 @@ class S3FS(FS):
             key.set_contents_from_file(contents)
         return self._sync_key(key)
 
+
+    def makepublic(self, path):
+        """Mark given path as publicly accessible using HTTP(S)"""
+        s3path = self._s3path(path)
+        k = self._s3bukt.get_key(s3path)
+        k.make_public()
+        
+    def getpathurl(self, path, allow_none=False, expires=3600):
+        """Returns a url that corresponds to the given path."""
+        s3path = self._s3path(path)
+        k = self._s3bukt.get_key(s3path)
+
+        # Is there AllUsers group with READ permissions?
+        is_public = True in [grant.permission == 'READ' and \
+                grant.uri == 'http://acs.amazonaws.com/groups/global/AllUsers'
+                for grant in k.get_acl().acl.grants ]
+           
+        url = k.generate_url(expires, force_http=is_public)
+        
+        if url == None:
+            if not allow_none:
+                raise NoPathURLError(path=path)
+            return None
+
+        if is_public:
+            # Strip time token; it has no sense for public resource
+            url = url.split('?')[0]
+        
+        return url
+
     def setcontents(self,path,contents):
         s3path = self._s3path(path)
         self._sync_set_contents(s3path,contents)
