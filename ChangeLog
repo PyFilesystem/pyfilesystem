@@ -30,8 +30,8 @@
     * Added settimes method to base implementation
     * New implementation of print_fs, accessible through tree method on base class
 
-0.4:
 
+0.4:
 
     * New FS implementations (under fs.contrib):
         * BigFS:   read contents of a BIG file (C&C game file format)
@@ -40,19 +40,16 @@
         * dokan:   mount an FS object as a drive using Dokan (win32-only)
     * Modified listdir and walk methods to accept callables as well as strings
       for wildcards.
-    * Added listdirinfo method, which retrieves both the entry names and the
+    * Added listdirinfo method, which yields both the entry names and the
       corresponding info dicts in a single operation.
     * Fixed operation of OSFS on win32 when it points to the root of a drive.
     * Made SubFS a subclass of WrapFS, and moved it into its own module at
       fs.wrapfs.subfs.
     * OSFSWatchMixin improvements:
-        * ensure that immortal reference cycles aren't created.
         * watch_inotify:  allow more than one watcher on a single path.
         * watch_win32:  report errors if the filesystem does't support
                         ReadDirectoryChangesW.
         * watch_win32:  don't create immortal reference cycles.
-    * Fix OSFS.add_watcher on linux platforms; previous version would cancel
-      any watchers when a new one was added.
     * MountFS: added support for mounting at the root directory, and for
       mounting over an existing mount.
     * Added 'getpathurl' and 'haspathurl' methods
