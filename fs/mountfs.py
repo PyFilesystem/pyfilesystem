@@ -119,6 +119,15 @@ class MountFS(FS):
             else:
                 raise NoSysPathError(path=path)
         return fs.getsyspath(delegate_path, allow_none=allow_none)
+ 
+    def getpathurl(self, path, allow_none=False):
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is self or fs is None:
+            if allow_none:
+                return None
+            else:
+                raise NoPathURLError(path=path)
+        return fs.getpathurl(delegate_path, allow_none=allow_none)
 
     @synchronize
     def desc(self, path):
