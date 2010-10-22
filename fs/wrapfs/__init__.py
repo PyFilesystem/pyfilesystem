@@ -122,6 +122,10 @@ class WrapFS(FS):
         return self.wrapped_fs.getsyspath(self._encode(path),allow_none)
 
     @rewrite_errors
+    def getpathurl(self, path, allow_none=False):
+        return self.wrapped_fs.getpathurl(self._encode(path),allow_none)
+
+    @rewrite_errors
     def hassyspath(self, path):
         return self.wrapped_fs.hassyspath(self._encode(path))
 
