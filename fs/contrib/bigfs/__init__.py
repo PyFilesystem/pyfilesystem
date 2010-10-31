@@ -7,6 +7,9 @@ A FS object that represents the contents of a BIG file
 
 Written by Koen van de Sande
 http://www.tibed.net
+
+Contributed under the terms of the BSD License:
+http://www.opensource.org/licenses/bsd-license.php
 """
 
 from fs.base import *

@@ -10,6 +10,9 @@ be used.
 
 Written by Koen van de Sande
 http://www.tibed.net
+
+Contributed under the terms of the BSD License:
+http://www.opensource.org/licenses/bsd-license.php
 """
 
 
