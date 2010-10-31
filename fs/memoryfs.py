@@ -196,6 +196,8 @@ class MemoryFS(FS):
 
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
+        if not callable(self.file_factory):
+            raise ValueError("file_factory should be callable")
 
         self.root = self._make_dir_entry('dir', 'root')
 
