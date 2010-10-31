@@ -432,6 +432,11 @@ if __name__ == "__main__":
     #browse(m)
 
     from osfs import *
-    f = OSFS('/home/will/projects')
-    print_fs(f)
+    #f = OSFS('/home/will/projects')
+    f=OSFS('/home/will/tests')
+    from fs.memoryfs import MemoryFS
+    mem = MemoryFS()
+    from fs.utils import copydir
+    copydir(f, mem)
+    print_fs(mem)
     
