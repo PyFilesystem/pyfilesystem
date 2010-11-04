@@ -7,5 +7,6 @@ The ``fs.contrib`` module contains a number of filesystem implementations provid
    :maxdepth: 3
    
    davfs.rst
+   tahoefs.rst
    bigfs.rst
 
