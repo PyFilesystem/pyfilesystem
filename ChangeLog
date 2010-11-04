@@ -34,8 +34,9 @@
 0.4:
 
     * New FS implementations (under fs.contrib):
-        * BigFS:   read contents of a BIG file (C&C game file format)
-        * DAVFS:   access remote files stored on a WebDAV server
+        * BigFS:    read contents of a BIG file (C&C game file format)
+        * DAVFS:    access remote files stored on a WebDAV server
+        * TahoeFS:  access files stored in a Tahoe-LAFS grid
     * New fs.expose implementations:
         * dokan:   mount an FS object as a drive using Dokan (win32-only)
     * Modified listdir and walk methods to accept callables as well as strings
@@ -52,7 +53,7 @@
         * watch_win32:  don't create immortal reference cycles.
     * MountFS: added support for mounting at the root directory, and for
       mounting over an existing mount.
-    * Added 'getpathurl' and 'haspathurl' methods
+    * Added 'getpathurl' and 'haspathurl' methods.
     * Added utils.isdir(fs,path,info) and utils.isfile(fs,path,info); these
       can often determine whether a path is a file or directory by inspecting
       the info dict and avoid an additional query to the filesystem.
