@@ -61,7 +61,7 @@ class LimitSizeFS(WrapFS):
                 self._file_sizes[path] = 0
             return LimitSizeFile(self,path,f,mode,size)
 
-    def _ensure_file_size(self, path, size):
+    def _ensure_file_size(self, path, size, shrink=False):
         path = relpath(normpath(path))
         with self._size_lock:
             if path not in self._file_sizes:
@@ -71,6 +71,9 @@ class LimitSizeFS(WrapFS):
             if diff > 0:
                 if self.cur_size + diff > self.max_size:
                     raise StorageSpaceError("write")
+                self.cur_size += diff
+                self._file_sizes[path] = size
+            elif diff < 0 and shrink:
                 self.cur_size += diff
                 self._file_sizes[path] = size
 
@@ -141,7 +144,7 @@ class LimitSizeFile(object):
         pos = self.file.tell()
         if size is None:
             size = pos
-        self.fs._ensure_file_size(self.path,size)
+        self.fs._ensure_file_size(self.path,size,shrink=True)
         self.file.truncate(size)
         self.size = size
 

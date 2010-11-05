@@ -598,6 +598,25 @@ class FSTestCases(object):
         f7.close()
         self.assertEqual(self.fs.getcontents("a.txt"), all_strings)
 
+    def test_truncate(self):
+        def checkcontents(path, check_contents):
+            read_contents = self.fs.getcontents(path)
+            self.assertEqual(read_contents,check_contents)
+            return read_contents == check_contents
+        self.fs.setcontents("hello","world")
+        checkcontents("hello","world")
+        self.fs.setcontents("hello","hi")
+        checkcontents("hello","hi")
+        self.fs.setcontents("hello","1234567890")
+        checkcontents("hello","1234567890")
+        with self.fs.open("hello","r+") as f:
+            f.truncate(7)
+        checkcontents("hello","1234567")
+        with self.fs.open("hello","r+") as f:
+            f.seek(5)
+            f.truncate()
+        checkcontents("hello","12345")
+
     def test_with_statement(self):
         #  This is a little tricky since 'with' is actually new syntax.
         #  We use eval() to make this method safe for old python versions.

@@ -152,8 +152,16 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
     def canonicalize(self, path):
         return abspath(normpath(path))
 
+    @report_sftp_errors
     def chattr(self, path, attr):
-        return paramiko.SFTP_OP_UNSUPPORTED
+        #  f.truncate() is implemented by setting the size attr.
+        #  Any other attr requests fail out.
+        if attr._flags:
+            if attr._flags != attr.FLAG_SIZE:
+                raise UnsupportedError
+            with self.fs.open(path,"r+") as f:
+                f.truncate(attr.st_size)
+        return paramiko.SFTP_OK
 
     def readlink(self, path):
         return paramiko.SFTP_OP_UNSUPPORTED

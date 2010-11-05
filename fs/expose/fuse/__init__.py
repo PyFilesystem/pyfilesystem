@@ -312,7 +312,7 @@ class FSOperations(Operations):
             self.fs.open(path,"w").close()
         else:
             if fh is None:
-                f = self.fs.open(path,"w+")
+                f = self.fs.open(path,"r+")
                 if not hasattr(f,"truncate"):
                     raise UnsupportedError("truncate")
                 f.truncate(length)

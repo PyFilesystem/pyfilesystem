@@ -142,6 +142,14 @@ class SFTPFS(FS):
         #  paramiko implements its own buffering and write-back logic,
         #  so we don't need to use a RemoteFileBuffer here.
         f = self.client.open(npath,mode,bufsize)
+        #  Unfortunately it has a broken truncate() method.
+        #  TODO: implement this as a wrapper
+        old_truncate = f.truncate
+        def new_truncate(size=None):
+            if size is None:
+                size = f.tell()
+            return old_truncate(size)
+        f.truncate = new_truncate
         return f
 
     @convert_os_errors
