@@ -44,6 +44,10 @@ class SubFS(WrapFS):
         else:
             return "File in sub dir of %s" % str(self.wrapped_fs)
 
+    def setcontents(self,path,contents):
+        path = self._encode(path)
+        return self.wrapped_fs.setcontents(path,contents)
+
     def opendir(self, path):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
