@@ -20,6 +20,10 @@ logging.getLogger('fs.tahoefs').addHandler(logging.StreamHandler(sys.stdout))
 WEBAPI = 'http://pubgrid.tahoe-lafs.org'
 
 class TestTahoeFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
+
+    #  Disabled by default because it takes a *really* long time.
+    __test__ = False
+
     def setUp(self):
         self.dircap = TahoeFS.createdircap(WEBAPI)
         self.fs = TahoeFS(self.dircap, timeout=0, webapi=WEBAPI)
