@@ -56,6 +56,13 @@ class S3FS(FS):
     or flushed.
     """
 
+    _meta = { 'virtual': False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,
+              'may_block' : True,
+              }
+
     class meta:
         PATH_MAX = None
         NAME_MAX = None

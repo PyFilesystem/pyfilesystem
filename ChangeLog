@@ -59,4 +59,5 @@
       the info dict and avoid an additional query to the filesystem.
     * Added utility module 'fs.filelike' with some helpers for building and
       manipulating file-like objects.
+    * Added getmeta and hasmeta methods
 

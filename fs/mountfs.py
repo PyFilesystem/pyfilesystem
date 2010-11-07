@@ -68,6 +68,13 @@ class FileMount(object):
 class MountFS(FS):
     """A filesystem that delegates to other filesystems."""
 
+
+    _meta = { 'virtual': True,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False
+              }
+
     DirMount = DirMount
     FileMount = FileMount
 

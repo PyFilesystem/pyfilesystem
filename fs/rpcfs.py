@@ -88,6 +88,13 @@ class RPCFS(FS):
 
     """
 
+    _meta = { 'virtual': False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,
+              'may_block' : True,
+              }
+
     def __init__(self, uri, transport=None):
         """Constructor for RPCFS objects.
 

@@ -7,6 +7,7 @@ A FS object that represents the contents of a Zip file
 """
 
 import datetime
+import os.path
 
 from fs.base import *
 from fs.path import *
@@ -67,6 +68,12 @@ class _ExceptionProxy(object):
 class ZipFS(FS):
 
     """A FileSystem that represents a zip file."""
+    
+    _meta = { 'virtual' : False,
+              'read_only' : False,
+              'unicode_paths' : os.path.supports_unicode_filenames,
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+             }
 
     def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
         """Create a FS that maps on to a zip file.
@@ -115,6 +122,8 @@ class ZipFS(FS):
         self._path_fs = MemoryFS()
         if mode in 'ra':
             self._parse_resource_list()
+        
+        self._meta['read_only'] = self.zip_mode != 'w'
 
     def __str__(self):
         return "<ZipFS: %s>" % self.zip_path
@@ -137,7 +146,6 @@ class ZipFS(FS):
                 self._path_fs.makedir(dirpath, recursive=True, allow_recreate=True)
             f = self._path_fs.open(path, 'w')
             f.close()
-
 
     def close(self):
         """Finalizes the zip file so that it can be read.

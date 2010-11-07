@@ -68,6 +68,12 @@ class MultiFS(FS):
     it succeeds. In effect, creating a filesystem that combines the files and
     dirs of its children.
     """
+    
+    _meta = { 'virtual': True,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False
+              }
 
     def __init__(self):
         super(MultiFS, self).__init__(thread_synchronize=_thread_synchronize_default)

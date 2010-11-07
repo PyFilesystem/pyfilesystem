@@ -72,6 +72,12 @@ class DAVFS(FS):
         "http":  httplib.HTTPConnection,
         "https":  httplib.HTTPSConnection,
     }
+    
+    _meta = { 'virtual' : False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,             
+             }
 
     def __init__(self,url,credentials=None,get_credentials=None,thread_synchronize=True,connection_classes=None,timeout=None):
         """DAVFS constructor.

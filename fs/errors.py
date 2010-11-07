@@ -20,6 +20,7 @@ __all__ = ['FSError',
            'OperationTimeoutError',
            'ResourceError',
            'NoSysPathError',
+           'NoMetaError',
            'NoPathURLError',
            'ResourceNotFoundError',
            'ResourceInvalidError',           
@@ -129,6 +130,14 @@ class ResourceError(FSError):
 class NoSysPathError(ResourceError):
     """Exception raised when there is no syspath for a given path."""
     default_message = "No mapping to OS filesystem: %(path)s"
+
+
+class NoMetaError(FSError):
+    """Exception raised when there is no meta value available."""
+    default_message = "No meta value named '%(meta_name)s' could be retrieved"
+    def __init__(self, meta_name, msg=None):
+        self.meta_name = meta_name
+        super(NoMetaError, self).__init__(msg)
 
 
 class NoPathURLError(ResourceError):

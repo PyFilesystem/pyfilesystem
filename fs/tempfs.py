@@ -19,6 +19,12 @@ class TempFS(OSFS):
 
     """Create a Filesystem in a tempory directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
+    
+    _meta = { 'virtual' : False,
+              'read_only' : False,
+              'unicode_paths' : os.path.supports_unicode_filenames,
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+             }
 
     def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_synchronize_default):
         """Creates a temporary Filesystem

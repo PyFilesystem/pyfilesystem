@@ -118,6 +118,14 @@ class WrapFS(FS):
         return (mode,mode)
 
     @rewrite_errors
+    def getmeta(self, meta_name, default=Ellipsis):
+        return self.wrapped_fs.getmeta(meta_name, default)
+    
+    @rewrite_errors
+    def hasmeta(self, meta_name):
+        return self.wrapped_fs.hasmeta(meta_name)
+
+    @rewrite_errors
     def getsyspath(self, path, allow_none=False):
         return self.wrapped_fs.getsyspath(self._encode(path),allow_none)
 

@@ -43,7 +43,15 @@ class SFTPFS(FS):
 
     This is basically a compatability wrapper for the excellent SFTPClient
     class in the paramiko module.
+    
     """
+
+    _meta = { 'virtual': False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,
+              'may_block' : True,
+              }
 
     def __init__(self, connection, root_path="/", encoding=None, **credentials):
         """SFTPFS constructor.

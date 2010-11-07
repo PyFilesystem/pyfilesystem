@@ -14,6 +14,7 @@ For example, to print all the files and directories in the OS root::
 
 
 import os
+import os.path
 import sys
 import errno
 import datetime
@@ -71,6 +72,12 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     filesytem of the OS.  Most of its methods simply defer to the corresponding
     methods in the os and os.path modules.
     """
+    
+    _meta = { 'virtual' : False,
+              'read_only' : False,
+              'unicode_paths' : os.path.supports_unicode_filenames,
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+             }
 
     def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700):
         """
@@ -118,7 +125,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def _decode_path(self, p):
         if isinstance(p, unicode):
             return p        
-        return p.decode(self.encoding, 'replace')            
+        return p.decode(self.encoding, 'replace')                    
 
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/",os.sep)

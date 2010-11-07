@@ -132,6 +132,8 @@ class FS(object):
     of filesytem, such as the OS filesystem or a zip file.
 
     """
+    
+    _meta = {}
 
     def __init__(self, thread_synchronize=False):
         """The base class for Filesystem objects.
@@ -185,6 +187,33 @@ class FS(object):
                 self._lock = threading.RLock()
             else:
                 self._lock = DummyLock()
+
+    def getmeta(self, meta_name, default=Ellipsis):
+        """Retrieve a meta value associated with the FS object
+        
+        :param meta_name: The name of the meta value to retrieve
+        :param default: An option default to return, if the meta value isn't present
+        :raises NoMetaError: If specified meta value is not present, and there is no default        
+        
+        """         
+        if meta_name not in self._meta:
+            if default is not Ellipsis:
+                return default
+            raise NoMetaError(meta_name=meta_name)        
+        return self._meta[meta_name]
+        
+    def hasmeta(self, meta_name):
+        """Check that a meta value is supported
+        
+        :param meta_name: The name of a meta value to check
+        :rtype: bool
+        
+        """
+        try:
+            self.getmeta('meta_name')
+        except NoMetaError:
+            return False
+        return True        
 
     def getsyspath(self, path, allow_none=False):
         """Returns the system path (a path recognised by the OS) if present.

@@ -156,6 +156,12 @@ class _ExceptionProxy(object):
 class BigFS(FS):
 
     """A FileSystem that represents a BIG file."""
+    
+    _meta = { 'virtual' : False,
+              'read_only' : True,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,             
+             }
 
     def __init__(self, filename, mode="r", thread_synchronize=True):
         """Create a FS that maps on to a big file.

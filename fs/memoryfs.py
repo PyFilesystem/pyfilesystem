@@ -183,6 +183,12 @@ class MemoryFS(FS):
     """An in-memory filesystem.
 
     """
+    
+    _meta = { 'virtual': False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False
+              }
 
     def _make_dir_entry(self, *args, **kwargs):
         return self.dir_entry_factory(*args, **kwargs)
