@@ -233,6 +233,9 @@ class DAVFS(FS):
                 con.putrequest(method,url.path)
                 if size is not None:
                     con.putheader("Content-Length",str(size))
+                if hasattr(body,"md5"):
+                    md5 = body.md5.decode("hex").encode("base64")
+                    con.putheader("Content-MD5",md5)
                 for hdr,val in headers.iteritems():
                     con.putheader(hdr,val)
                 self._cookiejar.add_cookie_header(FakeReq(con,url.scheme,url.path))
