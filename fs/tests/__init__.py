@@ -5,6 +5,8 @@
 
 """
 
+from __future__ import with_statement
+
 #  Send any output from the logging module to stdout, so it will
 #  be captured by nose and reported appropriately
 import sys
@@ -14,6 +16,7 @@ logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 from fs.base import *
 from fs.path import *
 from fs.errors import *
+from fs.filelike import StringIO
 
 import datetime
 import unittest
@@ -21,7 +24,6 @@ import os, os.path
 import pickle
 import random
 import copy
-from StringIO import StringIO
 
 import time
 try:
@@ -616,6 +618,17 @@ class FSTestCases(object):
             f.seek(5)
             f.truncate()
         checkcontents("hello","12345")
+
+    def test_truncate_to_larger_size(self):
+        with self.fs.open("hello","w") as f:
+            f.truncate(30)
+        self.assertEquals(self.fs.getsize("hello"),30)
+        with self.fs.open("hello","r+") as f:
+            f.seek(25)
+            f.write("123456")
+        with self.fs.open("hello","r") as f:
+            f.seek(25)
+            self.assertEquals(f.read(),"123456")
 
     def test_with_statement(self):
         #  This is a little tricky since 'with' is actually new syntax.
