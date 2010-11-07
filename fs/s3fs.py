@@ -471,10 +471,12 @@ class S3FS(FS):
         else:
             k = self._s3bukt.get_key(s3path)
             if k is None:
-                k = self._s3bukt.get_key(s3path+"/")
-                if k is None:
+                ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
+                for k in ks:
+                    if isinstance(k,Prefix):
+                        break
+                else:
                     raise ResourceNotFoundError(path)
-                k = Prefix(bucket=self._s3bukt,name=k.name)
         return self._get_key_info(k)
 
     def _get_key_info(self,key):
