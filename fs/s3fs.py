@@ -13,6 +13,7 @@ import os
 import time
 import datetime
 import tempfile
+import fnmatch
 import stat as statinfo
 
 import boto.s3.connection
@@ -89,6 +90,8 @@ class S3FS(FS):
             prefix = prefix[1:]
         if not prefix.endswith(separator) and prefix != "":
             prefix = prefix + separator
+        if isinstance(prefix,unicode):
+            prefix = prefix.encode("utf8")
         if aws_access_key is None:
             if "AWS_ACCESS_KEY_ID" not in os.environ:
                 raise CreateFailedError("AWS_ACCESS_KEY_ID not set")
@@ -146,6 +149,8 @@ class S3FS(FS):
         s3path = self._prefix + path
         if s3path and s3path[-1] == self._separator:
             s3path = s3path[:-1]
+        if isinstance(s3path,unicode):
+            s3path = s3path.encode("utf8")
         return s3path
 
     def _sync_key(self,k):
@@ -179,6 +184,10 @@ class S3FS(FS):
             key = self._s3bukt.new_key(key)
         if isinstance(contents,basestring):
             key.set_contents_from_string(contents)
+        elif hasattr(contents,"md5"):
+            hexmd5 = contents.md5
+            b64md5 = hexmd5.decode("hex").encode("base64").strip()
+            key.set_contents_from_file(contents,md5=(hexmd5,b64md5))
         else:
             try:
                 contents.seek(0)
@@ -192,7 +201,6 @@ class S3FS(FS):
                 contents = tf
             key.set_contents_from_file(contents)
         return self._sync_key(key)
-
 
     def makepublic(self, path):
         """Mark given path as publicly accessible using HTTP(S)"""
@@ -262,10 +270,10 @@ class S3FS(FS):
         ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
         for k in ks:
             # A regular file
-            if k.name == s3path:
+            if _eq_utf8(k.name,s3path):
                 return True
             # A directory
-            if k.name == s3pathD:
+            if _eq_utf8(k.name,s3pathD):
                 return True
         return False
 
@@ -321,6 +329,8 @@ class S3FS(FS):
             # Skip over the entry for the directory itself, if it exists
             if k.name[i:] != "":
                 k.name = k.name[i:]
+                if not isinstance(k.name,unicode):
+                    k.name = k.name.decode("utf8")
                 keys.append(k)
         if not isDir:
             if s3path != self._prefix:
@@ -343,10 +353,11 @@ class S3FS(FS):
         for k in keys:
             if k.name.endswith(self._separator):
                 k.name = k.name[:-1]
-            if type(path) is not unicode:
-                k.name = k.name.encode()
         if wildcard is not None:
-            keys = [k for k in keys if fnmatch.fnmatch(k.name, wildcard)]
+            if callable(wildcard):
+                keys = [k for k in keys if wildcard(k.name)]
+            else:
+                keys = [k for k in keys if fnmatch.fnmatch(k.name, wildcard)]
         if full:
             entries = [(relpath(pathjoin(path, k.name)),k) for k in keys]
         elif absolute:
@@ -379,10 +390,10 @@ class S3FS(FS):
         for k in ks:
             if not parentExists:
                 parentExists = True
-            if k.name == s3path:
+            if _eq_utf8(k.name,s3path):
                 # It's already a file
                 raise ResourceInvalidError(path, msg="Destination exists as a regular file: %(path)s")
-            if k.name == s3pathD:
+            if _eq_utf8(k.name,s3pathD):
                 # It's already a directory
                 if allow_recreate:
                     return
@@ -402,9 +413,9 @@ class S3FS(FS):
         s3path = self._s3path(path)
         ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
         for k in ks:
-            if k.name == s3path:
+            if _eq_utf8(k.name,s3path):
                 break
-            if k.name.startswith(s3path + "/"):
+            if _startswith_utf8(k.name,s3path + "/"):
                 raise ResourceInvalidError(path,msg="that's not a file: %(path)s")
         else:
             raise ResourceNotFoundError(path)
@@ -428,7 +439,7 @@ class S3FS(FS):
         found = False
         for k in ks:
             found = True
-            if k.name != s3path:
+            if not _eq_utf8(k.name,s3path):
                 if not force:
                     raise DirectoryNotEmptyError(path)
                 self._s3bukt.delete_key(k.name)
@@ -448,7 +459,10 @@ class S3FS(FS):
     def rename(self,src,dst):
         """Rename the file at 'src' to 'dst'."""
         # Actually, in S3 'rename' is exactly the same as 'move'
-        self.move(src,dst)
+        if self.isfile(src):
+            self.move(src,dst)
+        else:
+            self.movedir(src,dst)
 
     def getinfo(self,path):
         s3path = self._s3path(path)
@@ -505,7 +519,7 @@ class S3FS(FS):
         dstOK = False
         for k in ks:
             # It exists as a regular file
-            if k.name == s3path_dst:
+            if _eq_utf8(k.name,s3path_dst):
                 if not overwrite:
                     raise DestinationExistsError(dst)
                 dstOK = True
@@ -513,7 +527,7 @@ class S3FS(FS):
             # Check if it refers to a directory.  If so, we copy *into* it.
             # Since S3 lists in lexicographic order, subsequent iterations
             # of the loop will check for the existence of the new filename.
-            if k.name == s3path_dstD:
+            if _eq_utf8(k.name,s3path_dstD):
                 nm = basename(src)
                 dst = pathjoin(dirname(dst),nm)
                 s3path_dst = s3path_dstD + nm
@@ -540,3 +554,19 @@ class S3FS(FS):
     def get_total_size(self):
         """Get total size of all files in this FS."""
         return sum(k.size for k in self._s3bukt.list(prefix=self._prefix))
+
+
+def _eq_utf8(name1,name2):
+    if isinstance(name1,unicode):
+        name1 = name1.encode("utf8")
+    if isinstance(name2,unicode):
+        name2 = name2.encode("utf8")
+    return name1 == name2
+
+def _startswith_utf8(name1,name2):
+    if isinstance(name1,unicode):
+        name1 = name1.encode("utf8")
+    if isinstance(name2,unicode):
+        name2 = name2.encode("utf8")
+    return name1.startswith(name2)
+
