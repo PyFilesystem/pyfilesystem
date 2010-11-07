@@ -80,7 +80,7 @@ class TahoeFS(CacheFS):
               'read_only' : False,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
-              'may_block' : False
+              'may_block' : True
              }
     
     def __init__(self, dircap, timeout=60, autorun=True, largefilesize=10*1024*1024, webapi='http://127.0.0.1:3456'):
