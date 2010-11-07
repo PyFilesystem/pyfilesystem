@@ -3,9 +3,10 @@ fs.multifs
 ==========
 
 A MultiFS is a filesytem composed of a sequence of other filesystems, where
-the directory structure of each filesystem is overlaid over the previous filesystem.
-When you attempt to access a file from the MultiFS it will try each 'child'
-FS in order, until it either finds a path that exists or raises a ResourceNotFoundError.
+the directory structure of each filesystem is overlaid over the previous
+filesystem. When you attempt to access a file from the MultiFS it will try
+each 'child' FS in order, until it either finds a path that exists or raises a
+ResourceNotFoundError.
 
 One use for such a filesystem would be to selectively override a set of files,
 to customize behaviour. For example, to create a filesystem that could be used
@@ -61,11 +62,11 @@ from fs.errors import ResourceNotFoundError
 
 class MultiFS(FS):
 
-    """A MultiFS is a filesystem that delegates to a sequence of other filesystems.
-    Operations on the MultiFS will try each 'child' filesystem in order, until it
-    succeeds. In effect, creating a filesystem that combines the files and dirs of
-    its children.
+    """A filesystem that delegates to a sequence of other filesystems.
 
+    Operations on the MultiFS will try each 'child' filesystem in order, until
+    it succeeds. In effect, creating a filesystem that combines the files and
+    dirs of its children.
     """
 
     def __init__(self):

@@ -16,11 +16,7 @@ from fs.path import iteratepath, pathsplit, normpath
 from fs.base import *
 from fs.errors import *
 from fs import _thread_synchronize_default
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from fs.filelike import StringIO
 
 
 def _check_mode(mode, mode_chars):

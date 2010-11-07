@@ -14,17 +14,7 @@ from fs.base import *
 from fs.errors import *
 from fs.path import *
 
-from StringIO import StringIO
-if hasattr(StringIO,"__exit__"):
-    class StringIO(StringIO):
-        pass
-else:
-    class StringIO(StringIO):
-        def __enter__(self):
-            return self
-        def __exit__(self,exc_type,exc_value,traceback):
-            self.close()
-            return False
+from fs.filelike import StringIO
 
 
 def re_raise_faults(func):
@@ -173,14 +163,19 @@ class RPCFS(FS):
             f.seek(0,2)
         oldflush = f.flush
         oldclose = f.close
+        oldtruncate = f.truncate
         def newflush():
             oldflush()
             self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
         def newclose():
             f.flush()
             oldclose()
+        def newtruncate(size=None):
+            oldtruncate(size)
+            f.flush()
         f.flush = newflush
         f.close = newclose
+        f.truncate = newtruncate
         return f
 
     def exists(self, path):

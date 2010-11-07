@@ -29,11 +29,6 @@ import re
 from socket import error as socket_error
 from fs.local_functools import wraps
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 import time
 import sys
 

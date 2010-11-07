@@ -11,14 +11,10 @@ import datetime
 from fs.base import *
 from fs.path import *
 from fs.errors import *
+from fs.filelike import StringIO
 
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED, BadZipfile, LargeZipFile
 from memoryfs import MemoryFS
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 
 import tempfs
 

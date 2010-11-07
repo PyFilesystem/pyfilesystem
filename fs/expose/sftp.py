@@ -29,7 +29,6 @@ import stat as statinfo
 import time
 import SocketServer as sockserv
 import threading
-from StringIO import StringIO
 
 import paramiko
 
@@ -37,6 +36,7 @@ from fs.base import flags_to_mode
 from fs.path import *
 from fs.errors import *
 from fs.local_functools import wraps
+from fs.filelike import StringIO
 
 
 # Default host key used by BaseSFTPServer

@@ -12,15 +12,13 @@ Contributed under the terms of the BSD License:
 http://www.opensource.org/licenses/bsd-license.php
 """
 
+from struct import pack, unpack
+
 from fs.base import *
 from fs.memoryfs import MemoryFS
-from fs.contrib.bigfs.subrangefile import SubrangeFile
+from fs.filelike import StringIO
 
-from struct import pack, unpack
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from fs.contrib.bigfs.subrangefile import SubrangeFile
 
 class BIGEntry:
     def __init__(self, filename, offset, storedSize, isCompressed, realSize):

@@ -57,4 +57,6 @@
     * Added utils.isdir(fs,path,info) and utils.isfile(fs,path,info); these
       can often determine whether a path is a file or directory by inspecting
       the info dict and avoid an additional query to the filesystem.
+    * Added utility module 'fs.filelike' with some helpers for building and
+      manipulating file-like objects.
 

@@ -36,7 +36,7 @@ class RemoteTempFS(TempFS):
             f = None
         
         return RemoteFileBuffer(self, path, mode, f,
-                    write_on_flush=write_on_flush)
+                                      write_on_flush=write_on_flush)
         
     def setcontents(self, path, content):
         f = super(RemoteTempFS, self).open(path, 'wb')
@@ -109,7 +109,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         
         f = self.fs.open('test.txt', 'rb')
         self.assertEquals(f.read(10), contents[:10])
-        f.file.seek(0, SEEK_END)
+        f.wrapped_file.seek(0, SEEK_END)
         self.assertEquals(f._rfile.tell(), 10)
         f.seek(20)
         self.assertEquals(f.tell(), 20)
@@ -136,9 +136,9 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         f._rfile.seek(len(contents[:-5]))
         # Write 10 new characters (will make contents longer for 5 chars)
         f.write(u'1234567890')
+        f.flush()
         # We are on the end of file (and buffer not serve anything anymore)
         self.assertEquals(f.read(), '')
-        f.close()
         
         self.fakeOn()
         
