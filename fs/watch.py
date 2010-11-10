@@ -10,7 +10,7 @@ simulate such an ability on top of an ordinary FS object.
 
 An FS object that wants to be "watchable" must provide the following methods:
 
-  * add_watcher(path,callback,events=None,recursive=True)
+  * add_watcher(callback,path="/",events=None,recursive=True)
 
       Request that the given callback be executed in response to changes 
       to the given path.  A specific set of change events can be specified.

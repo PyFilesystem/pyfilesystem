@@ -251,7 +251,7 @@ class DAVFS(FS):
                     if self.closed:
                         raise RemoteConnectionError("",msg="FS is closed")
                 resp = con.getresponse()
-                #logger.debug("DAVFS <RESP %s %s/%s",method,url.hostname,url.path)
+                #logger.debug("DAVFS <RESP %s %s %s/%s",resp.status,method,url.hostname,url.path)
                 self._cookiejar.extract_cookies(FakeResp(resp),FakeReq(con,url.scheme,url.path))
             except Exception, e:
                 self._del_connection(con)

@@ -48,6 +48,7 @@ class OSFSWatchMixin(WatchableFSMixin):
         finally:
             self.__watch_lock.release()
 
+    @convert_os_errors
     def add_watcher(self,callback,path="/",events=None,recursive=True):
         super_add_watcher = super(OSFSWatchMixin,self).add_watcher
         w = super_add_watcher(callback,path,events,recursive)
@@ -79,6 +80,7 @@ class OSFSWatchMixin(WatchableFSMixin):
             self.__watch_lock.release()
         return w
 
+    @convert_os_errors
     def del_watcher(self,watcher_or_callback):
         if isinstance(watcher_or_callback,Watcher):
             watchers = [watcher_or_callback]
