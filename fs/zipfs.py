@@ -49,6 +49,9 @@ class _TempWriteFile(object):
     def close(self):
         self._file.close()
         self.close_callback(self.filename)
+        
+    def flush(self):
+        self._file.flush()
 
 
 class _ExceptionProxy(object):
