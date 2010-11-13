@@ -71,8 +71,8 @@ class ZipFS(FS):
     
     _meta = { 'virtual' : False,
               'read_only' : False,
-              'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+              'unicode_paths' : True,
+              'case_insensitive_paths' : False,             
              }
 
     def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
@@ -113,8 +113,7 @@ class ZipFS(FS):
             raise ZipNotFoundError("Zip file not found (%s)" % str(zip_file),
                                   details=ioe)
                 
-        self.zip_path = str(zip_file)
-
+        self.zip_path = str(zip_file)        
         self.temp_fs = None
         if mode in 'wa':
             self.temp_fs = tempfs.TempFS()
@@ -122,8 +121,8 @@ class ZipFS(FS):
         self._path_fs = MemoryFS()
         if mode in 'ra':
             self._parse_resource_list()
-        
-        self._meta['read_only'] = self.zip_mode != 'w'
+            
+        self.read_only = mode == 'r'        
 
     def __str__(self):
         return "<ZipFS: %s>" % self.zip_path
@@ -147,6 +146,12 @@ class ZipFS(FS):
             f = self._path_fs.open(path, 'w')
             f.close()
 
+    def getmeta(self, meta_name, default=Ellipsis):        
+        if meta_name == 'read_only':
+            return self.read_only
+        return super(ZipFS, self).getmeta(meta_name, default)
+        
+
     def close(self):
         """Finalizes the zip file so that it can be read.
         No further operations will work after this method is called."""
@@ -161,7 +166,9 @@ class ZipFS(FS):
 
         if 'r' in mode:
             if self.zip_mode not in 'ra':
-                raise OperationFailedError("open file", path=path, msg="Zip file must be opened for reading ('r') or appending ('a')")
+                raise OperationFailedError("open file",
+                                           path=path,
+                                           msg="Zip file must be opened for reading ('r') or appending ('a')")
             try:
                 contents = self.zf.read(path.encode(self.encoding))
             except KeyError:
@@ -169,6 +176,10 @@ class ZipFS(FS):
             return StringIO(contents)
 
         if 'w' in mode:
+            if self.zip_mode not in 'wa':
+                raise OperationFailedError("open file",
+                                           path=path,
+                                           msg="Zip file must be opened for writing ('w') or appending ('a')")
             dirname, filename = pathsplit(path)
             if dirname:
                 self.temp_fs.makedir(dirname, recursive=True, allow_recreate=True)
