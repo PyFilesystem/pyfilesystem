@@ -570,7 +570,8 @@ class FS(object):
                     chunk = data.read(1024*512)
             else:
                 f.write(data)
-            f.flush()
+            if hasattr(f, 'flush'):
+                f.flush()
         finally:
             if f is not None:
                 f.close()
