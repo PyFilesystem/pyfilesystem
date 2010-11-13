@@ -9,6 +9,8 @@ __all__ = ['copyfile',
            'movedir',
            'copydir',
            'countbytes',
+           'isfile',
+           'isdir',
            'find_duplicates',
            'print_fs']
 
