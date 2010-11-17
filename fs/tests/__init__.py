@@ -310,6 +310,11 @@ class FSTestCases(object):
         self.assert_(not check("foo/bar/baz"))
         self.assert_(not check("foo/bar"))
         self.assert_(not check("foo"))
+        self.fs.makedir("foo/bar/baz", recursive=True)
+        self.fs.setcontents("foo/file.txt", "please don't delete me")
+        self.fs.removedir("foo/bar/baz", recursive=True)
+        self.assert_(not check("foo/bar/baz"))
+        self.assert_(not check("foo/bar"))
         #  Ensure that force=True works as expected
         self.fs.makedir("frollic/waggle", recursive=True)
         self.fs.createfile("frollic/waddle.txt","waddlewaddlewaddle")
