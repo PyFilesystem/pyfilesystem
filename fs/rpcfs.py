@@ -145,13 +145,14 @@ class RPCFS(FS):
         return path.decode("base64").decode("utf8")
     
     def getmeta(self, meta_name, default=NoDefaultMeta):
-        if meta_name in self._meta:
-            return self._meta[meta_name]
-        return self.proxy.getmeta(meta_name, default)
+        try:        
+            return self.proxy.getmeta(meta_name)
+        except NoMetaError:
+            if default is not NoDefaultMeta:
+                return default
+            raise             
     
-    def hasmeta(self, meta_name):
-        if meta_name in self._meta:
-            return True
+    def hasmeta(self, meta_name):        
         return self.proxy.hasmeta(meta_name)
 
     def open(self, path, mode="r"):

@@ -42,6 +42,17 @@ class RPCFSInterface(object):
         """Decode paths arriving over the wire."""
         return path.decode("base64").decode("utf8")
 
+    def getmeta(self, meta_name):
+        meta = self.fs.getmeta(meta_name)
+        return meta
+    
+    def getmeta_default(self, meta_name, default):
+        meta = self.fs.getmeta(meta_name, default)
+        return xmlrpclib.Binary(meta)
+    
+    def hasmeta(self, meta_name):
+        return self.fs.hasmeta(meta_name)
+
     def get_contents(self, path):
         path = self.decode_path(path)
         data = self.fs.getcontents(path)
