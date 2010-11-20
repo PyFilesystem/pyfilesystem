@@ -60,7 +60,10 @@ class S3FS(FS):
               'read_only' : False,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
-              'may_block' : True,
+              'network' : True,
+              'atomic.makedir' : True,
+              'atomic.rename' : False,
+              'atomic.setconetns' : True
               }
 
     class meta:

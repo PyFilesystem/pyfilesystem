@@ -6,6 +6,7 @@ An FS wrapper class for blocking operations that would modify the FS.
 
 """
 
+from fs.base import NoDefaultMeta
 from fs.wrapfs import WrapFS
 from fs.errors import UnsupportedError, NoSysPathError
 
@@ -20,7 +21,7 @@ class ReadOnlyFS(WrapFS):
     
     """
     
-    def getmeta(self, meta_name, default=Ellipsis):
+    def getmeta(self, meta_name, default=NoDefaultMeta):
         if meta_name == 'read_only':
             return True
         return self.wrapped_fs(meta_name, default)

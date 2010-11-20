@@ -75,7 +75,9 @@ class ZipFS(FS):
     _meta = { 'virtual' : False,
               'read_only' : False,
               'unicode_paths' : True,
-              'case_insensitive_paths' : False,             
+              'case_insensitive_paths' : False,
+              'network' : False,
+              'atomic.setcontents' : False             
              }
 
     def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
@@ -149,7 +151,7 @@ class ZipFS(FS):
             f = self._path_fs.open(path, 'w')
             f.close()
 
-    def getmeta(self, meta_name, default=Ellipsis):        
+    def getmeta(self, meta_name, default=NoDefaultMeta):        
         if meta_name == 'read_only':
             return self.read_only
         return super(ZipFS, self).getmeta(meta_name, default)

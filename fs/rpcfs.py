@@ -88,11 +88,8 @@ class RPCFS(FS):
 
     """
 
-    _meta = { 'virtual': False,
-              'read_only' : False,
-              'unicode_paths' : True,
-              'case_insensitive_paths' : False,
-              'may_block' : True,
+    _meta = { 'virtual': False,                                          
+              'network' : True,              
               }
 
     def __init__(self, uri, transport=None):
@@ -146,6 +143,16 @@ class RPCFS(FS):
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
         return path.decode("base64").decode("utf8")
+    
+    def getmeta(self, meta_name, default=NoDefaultMeta):
+        if meta_name in self._meta:
+            return self._meta[meta_name]
+        return self.proxy.getmeta(meta_name, default)
+    
+    def hasmeta(self, meta_name):
+        if meta_name in self._meta:
+            return True
+        return self.proxy.hasmeta(meta_name)
 
     def open(self, path, mode="r"):
         # TODO: chunked transport of large files

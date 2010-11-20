@@ -18,6 +18,7 @@ import os.path
 import sys
 import errno
 import datetime
+import platform
 
 from fs.base import *
 from fs.errors import *
@@ -73,10 +74,14 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     methods in the os and os.path modules.
     """
     
-    _meta = { 'virtual' : False,
+    _meta = { 'network' : False,
+              'virtual' : False,
               'read_only' : False,
               'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',
+              'atomic.makedir' : True,
+              'atomic.rename' : True,
+              'atomic.setcontents' : False,
              }
 
     def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700):
@@ -154,6 +159,26 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         if not os.path.normcase(path).startswith(prefix):
             raise ValueError("path not within this FS: %s (%s)" % (os.path.normcase(path),prefix))
         return path[len(self.root_path):]
+
+    def getmeta(self, meta_name, default=NoDefaultMeta):
+        
+        if meta_name == 'free_space':
+            if platform.system() == 'Windows':
+                try:
+                    import ctypes
+                    free_bytes = ctypes.ulonglong(0)
+                    ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(self.root_path), None, None, ctypes.pointer(free_bytes))
+                    return free_bytes.value
+                except ImportError:
+                    # Fall through to call the base class
+                    pass
+            else:
+                stat = os.statvfs(self.root_path)
+                return stat.f_bfree * stat.f_bsize
+        
+        return super(OSFS, self).getmeta(meta_name, default)
+            
+        
 
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):

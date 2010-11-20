@@ -19,7 +19,7 @@ import re
 import sys
 import fnmatch
 
-from fs.base import FS, threading, synchronize
+from fs.base import FS, threading, synchronize, NoDefaultMeta
 from fs.errors import *
 from fs.path import *
 from fs.local_functools import wraps
@@ -118,7 +118,7 @@ class WrapFS(FS):
         return (mode,mode)
 
     @rewrite_errors
-    def getmeta(self, meta_name, default=Ellipsis):
+    def getmeta(self, meta_name, default=NoDefaultMeta):
         return self.wrapped_fs.getmeta(meta_name, default)
     
     @rewrite_errors

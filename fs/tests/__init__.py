@@ -48,6 +48,26 @@ class FSTestCases(object):
         """Check that a file exists within self.fs"""
         return self.fs.exists(p)
 
+    def test_meta(self):
+        """Checks getmeta / hasmeta are functioning"""
+        # getmeta / hasmeta are hard to test, since there is no way to validate
+        # the implementations response
+        meta_names = ["read_only",
+                      "network",
+                      "unicode_paths"]
+        stupid_meta = 'thismetashouldnotexist!"r$$%^&&*()_+'
+        self.assertRaises(NoMetaError, self.fs.getmeta, stupid_meta)
+        self.assertFalse(self.fs.hasmeta(stupid_meta))
+        self.assertEquals(None, self.fs.getmeta(stupid_meta, None))
+        self.assertEquals(3.14, self.fs.getmeta(stupid_meta, 3.14))
+        for meta_name in meta_names:
+            try:
+                meta = self.fs.getmeta(meta_name)
+                self.assertTrue(self.fs.hasmeta(meta_name))
+            except NoMetaError:
+                self.assertFalse(self.fs.hasmeta(meta_name))
+        
+
     def test_root_dir(self):
         self.assertTrue(self.fs.isdir(""))
         self.assertTrue(self.fs.isdir("/"))

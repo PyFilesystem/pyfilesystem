@@ -23,7 +23,11 @@ class TempFS(OSFS):
     _meta = { 'virtual' : False,
               'read_only' : False,
               'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',             
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa', 
+              'network' : False,
+              'atomic.makedir' : True,
+              'atomic.rename' : True,
+              'atomic.setcontents' : False            
              }
 
     def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_synchronize_default):

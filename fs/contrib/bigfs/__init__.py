@@ -160,7 +160,8 @@ class BigFS(FS):
     _meta = { 'virtual' : False,
               'read_only' : True,
               'unicode_paths' : True,
-              'case_insensitive_paths' : False,             
+              'case_insensitive_paths' : False,
+              'network' : False,                        
              }
 
     def __init__(self, filename, mode="r", thread_synchronize=True):

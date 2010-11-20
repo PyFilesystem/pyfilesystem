@@ -15,7 +15,8 @@ __all__ = ['DummyLock',
            'NullFile',
            'synchronize',
            'FS',
-           'flags_to_mode']
+           'flags_to_mode',
+           'NoDefaultMeta']
 
 import os, os.path
 import sys
@@ -32,9 +33,6 @@ except ImportError:
 from fs.path import *
 from fs.errors import *
 from fs.local_functools import wraps
-
-SubFS = None   # this is lazily imported from fs.wrapfs.subfs
-
 
 class DummyLock(object):
     """A dummy lock object that doesn't do anything.
@@ -66,6 +64,11 @@ def silence_fserrors(f, *args, **kwargs):
         return f(*args, **kwargs)
     except FSError:
         return None
+
+
+class NoDefaultMeta(object):
+    """A singleton used to signify that there is no default for getmeta"""
+    pass
 
 
 class NullFile(object):
@@ -188,8 +191,33 @@ class FS(object):
             else:
                 self._lock = DummyLock()
 
-    def getmeta(self, meta_name, default=Ellipsis):
-        """Retrieve a meta value associated with the FS object
+    def getmeta(self, meta_name, default=NoDefaultMeta):
+        """Retrieve a meta value associated with an FS object. Meta values are
+        a way of an FS implementation to report potentially useful information
+        associated with the file system.
+        
+        A meta key is a lower case string with no spaces. Meta keys may also
+        be grouped in namespaces in a dotted notation, e.g. 'atomic.namespaces'.                
+        
+        FS implementations aren't obliged to return any meta values, but the
+        following are common:
+        
+         * *read_only* True if the file system can not be modified
+         * *network* True if the file system requires network access
+         * *unicode_paths* True if the file system can use unicode paths
+         * *case_insensitive_paths* True if the file system ignores the case of paths        
+         * *atomic.makedir* True if making a directory is an atomic operation
+         * *atomic.rename" True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
+         * *atomic.setcontents" True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)
+         
+        The following are less common:
+        
+         * *free_space* The free space (in bytes) available on the file system   
+        
+        FS implementations may expose non-generic meta data through a self-named namespace. e.g. 'somefs.some_meta'
+        
+        Since no meta value is guaranteed to exist, it is advisable to always supply a
+        default value to `getmeta`.   
         
         :param meta_name: The name of the meta value to retrieve
         :param default: An option default to return, if the meta value isn't present
@@ -197,7 +225,7 @@ class FS(object):
         
         """         
         if meta_name not in self._meta:
-            if default is not Ellipsis:
+            if default is not NoDefaultMeta:
                 return default
             raise NoMetaError(meta_name=meta_name)        
         return self._meta[meta_name]
@@ -210,7 +238,7 @@ class FS(object):
         
         """
         try:
-            self.getmeta('meta_name')
+            self.getmeta(meta_name)
         except NoMetaError:
             return False
         return True        
@@ -512,7 +540,16 @@ class FS(object):
     def getinfo(self, path):
         """Returns information for a path as a dictionary. The exact content of
         this dictionary will vary depending on the implementation, but will
-        likely include a few common values.
+        likely include a few common values. The following values will be found
+        in info dictionaries for most implementations:
+        
+         * "size" - Number of bytes used to store the file or directory
+         * "created_time" - A datetime object containing the time the resource
+        was created
+         * "accessed_time" - A datetime object containing the time the resource
+        was last accessed  
+         * "modified_time" - A datetime object containing the time the resource
+         was modified
 
         :param path: a path to retrieve information for
         :rtype: dict
@@ -521,7 +558,7 @@ class FS(object):
 
     def desc(self, path):
         """Returns short descriptive text regarding a path. Intended mainly as
-        a debugging aid
+        a debugging aid.
 
         :param path: A path to describe
         :rtype: str
@@ -583,9 +620,8 @@ class FS(object):
         :param path: path to directory to open
         :rtype: An FS object
         """
-        global SubFS
-        if SubFS is None:
-            from fs.wrapfs.subfs import SubFS
+        
+        from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         return SubFS(self, path)

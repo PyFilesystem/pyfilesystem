@@ -72,7 +72,7 @@ class MountFS(FS):
     _meta = { 'virtual': True,
               'read_only' : False,
               'unicode_paths' : True,
-              'case_insensitive_paths' : False
+              'case_insensitive_paths' : False,              
               }
 
     DirMount = DirMount

@@ -76,7 +76,8 @@ class DAVFS(FS):
     _meta = { 'virtual' : False,
               'read_only' : False,
               'unicode_paths' : True,
-              'case_insensitive_paths' : False,             
+              'case_insensitive_paths' : False,
+              'network' : True            
              }
 
     def __init__(self,url,credentials=None,get_credentials=None,thread_synchronize=True,connection_classes=None,timeout=None):

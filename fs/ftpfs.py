@@ -737,11 +737,14 @@ class FTPFS(FS):
 
     _locals = threading.local()
     
-    _meta = { 'virtual': False,
+    _meta = { 'network' : True,
+              'virtual': False,
               'read_only' : False,
               'unicode_paths' : True,
-              'case_insensitive_paths' : False,
-              'may_block' : True
+              'case_insensitive_paths' : False,              
+              'atomic.makedir' : True,
+              'atomic.rename' : True,
+              'atomic.setcontents' : False,
               }
 
     def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT,
