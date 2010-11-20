@@ -48,7 +48,7 @@ class RPCFSInterface(object):
     
     def getmeta_default(self, meta_name, default):
         meta = self.fs.getmeta(meta_name, default)
-        return xmlrpclib.Binary(meta)
+        return meta
     
     def hasmeta(self, meta_name):
         return self.fs.hasmeta(meta_name)
