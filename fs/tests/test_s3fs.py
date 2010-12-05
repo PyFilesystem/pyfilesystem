@@ -26,6 +26,9 @@ class TestS3FS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         for k in self.fs._s3bukt.list():
             self.fs._s3bukt.delete_key(k)
 
+    def tearDown(self):
+        self.fs.close()
+
     def test_concurrent_copydir(self):
         #  makedir() on S3FS is currently not atomic
         pass
@@ -46,3 +49,5 @@ class TestS3FS_prefix(TestS3FS):
         for k in self.fs._s3bukt.list():
             self.fs._s3bukt.delete_key(k)
 
+    def tearDown(self):
+        self.fs.close()

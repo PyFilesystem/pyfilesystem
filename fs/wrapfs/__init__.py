@@ -144,6 +144,14 @@ class WrapFS(FS):
         return self._file_wrap(f, mode)
 
     @rewrite_errors
+    def setcontents(self, path, data, chunk_size=64*1024):
+        return self.wrapped_fs.setcontents(self._encode(path), data, chunk_size=chunk_size)
+
+    @rewrite_errors
+    def createfile(self, path):
+        return self.wrapped_fs.createfile(self._encode(path))
+
+    @rewrite_errors
     def exists(self, path):
         return self.wrapped_fs.exists(self._encode(path))
 
@@ -156,7 +164,7 @@ class WrapFS(FS):
         return self.wrapped_fs.isfile(self._encode(path))
 
     @rewrite_errors
-    def listdir(self, path="", **kwds):
+    def listdir(self, path="", **kwds):        
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
         wildcard = kwds.pop("wildcard",None)
@@ -325,6 +333,6 @@ def wrap_fs_methods(decorator, cls=None, exclude=[]):
 wrap_fs_methods.method_names = ["open","exists","isdir","isfile","listdir",
     "makedir","remove","setcontents","removedir","rename","getinfo","copy",
     "move","copydir","movedir","close","getxattr","setxattr","delxattr",
-    "listxattrs","getsyspath","createfile"]
+    "listxattrs","getsyspath","createfile", "hasmeta", "getmeta"]
 
 

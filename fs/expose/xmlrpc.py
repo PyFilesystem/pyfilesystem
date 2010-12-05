@@ -60,7 +60,7 @@ class RPCFSInterface(object):
 
     def set_contents(self, path, data):
         path = self.decode_path(path)
-        self.fs.createfile(path,data.data)
+        self.fs.setcontents(path,data.data)
 
     def exists(self, path):
         path = self.decode_path(path)

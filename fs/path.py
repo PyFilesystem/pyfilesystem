@@ -170,16 +170,57 @@ def pathsplit(path):
 
     >>> pathsplit("foo/bar/baz")
     ('foo/bar', 'baz')
+    
+    >>> pathsplit("/foo/bar/baz")
+    ('/foo/bar', 'baz')
 
     """
     split = normpath(path).rsplit('/', 1)
     if len(split) == 1:
         return (u'', split[0])
-    return tuple(split)
+    return split[0] or '/', split[1]
 
 # Allow pathsplit() to be used as fs.path.split()
 split = pathsplit
 
+def splitext(path):
+    """Splits the extension from the path, and returns the path (up to the last
+    '.' and the extension
+    
+    :param path: A path to split
+    
+    >>> splitext('baz.txt')
+    ('baz', 'txt')
+    
+    >>> splitext('foo/bar/baz.txt')
+    ('foo/bar/baz', 'txt')
+    
+    """
+    
+    parent_path, pathname = pathsplit(path)
+    if '.' not in pathname:
+        return path, ''
+    pathname, ext = pathname.rsplit('.', 1)
+    path = pathjoin(parent_path, pathname)
+    return path, '.' + ext
+
+def isdotfile(path):
+    """Detects if a path references a dot file, i.e. a resource who's name
+    starts with a '.'
+    
+    :param path: Path to check
+    
+    >>> isdotfile('.baz')
+    True
+    
+    >>> isdotfile('foo/bar/.baz')
+    True
+    
+    >>> isdotfile('foo/bar.baz')
+    False
+    
+    """
+    return pathsplit(path)[-1].startswith('.')
 
 def dirname(path):
     """Returns the parent directory of a path.

@@ -60,4 +60,7 @@
     * Added utility module 'fs.filelike' with some helpers for building and
       manipulating file-like objects.
     * Added getmeta and hasmeta methods
+    * Separated behaviour of setcontents and createfile
+    * Added a getmmap to base
+    * Added command line scripts fsls, fstree, fscat, fscp, fsmv
 

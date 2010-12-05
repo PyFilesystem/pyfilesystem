@@ -51,6 +51,8 @@ class SFTPFS(FS):
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
               'network' : True,
+              'atomic.move' : True,
+              'atomic.copy' : True,
               'atomic.makedir' : True,
               'atomic.rename' : True,
               'atomic.setcontents' : False
@@ -135,6 +137,7 @@ class SFTPFS(FS):
                 self.client.close()
             if self._owns_transport and self._transport:
                 self._transport.close()
+            self.closed = True
 
     def _normpath(self,path):
         if not isinstance(path,unicode):
@@ -145,7 +148,7 @@ class SFTPFS(FS):
         return npath
 
     @convert_os_errors
-    def open(self,path,mode="r",bufsize=-1):
+    def open(self,path,mode="rb",bufsize=-1):
         npath = self._normpath(path)
         if self.isdir(path):
             msg = "that's a directory: %(path)s"
@@ -162,6 +165,11 @@ class SFTPFS(FS):
             return old_truncate(size)
         f.truncate = new_truncate
         return f
+
+    def desc(self, path):
+        npath = self._normpath(path)
+        addr, port = self._transport.getpeername()
+        return u'%s on sftp://%s:%i' % (self.client.normalize(npath), addr, port)
 
     @convert_os_errors
     def exists(self,path):
@@ -328,10 +336,10 @@ class SFTPFS(FS):
             raise
 
     @convert_os_errors
-    def getinfo(self, path):
+    def getinfo(self, path):        
         npath = self._normpath(path)
         stats = self.client.stat(npath)
-        info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
+        info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )        
         info['size'] = info['st_size']
         ct = info.get('st_ctime', None)
         if ct is not None:

@@ -38,12 +38,12 @@ class RemoteTempFS(TempFS):
         return RemoteFileBuffer(self, path, mode, f,
                                       write_on_flush=write_on_flush)
         
-    def setcontents(self, path, content):
+    def setcontents(self, path, data, chunk_size=64*1024):
         f = super(RemoteTempFS, self).open(path, 'wb')
-        if getattr(content, 'read', False):
-            f.write(content.read())
+        if getattr(data, 'read', False):
+            f.write(data.read())
         else:
-            f.write(content)
+            f.write(data)
         f.close()
 
 
@@ -64,7 +64,7 @@ class TellAfterCloseFile(object):
             return self._finalpos
         return self.file.tell()
 
-    def __getattr__(self,attr):
+    def __getattr__(self,attr):        
         return getattr(self.file,attr)
 
 
@@ -75,10 +75,10 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         self.fs = RemoteTempFS()
         self.original_setcontents = self.fs.setcontents
 
-    def tearDown(self):
+    def tearDown(self):        
         self.fs.close()
 
-    def fake_setcontents(self, path, content):
+    def fake_setcontents(self, path, content='', chunk_size=16*1024):
         ''' Fake replacement for RemoteTempFS setcontents() '''
         raise self.FakeException("setcontents should not be called here!")
     
@@ -245,7 +245,7 @@ class TestConnectionManagerFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 class DisconnectingFS(WrapFS):
     """FS subclass that raises lots of RemoteConnectionErrors."""
 
-    def __init__(self,fs=None):
+    def __init__(self,fs=None):        
         if fs is None:
             fs = TempFS()
         self._connected = True
@@ -272,7 +272,7 @@ class DisconnectingFS(WrapFS):
             time.sleep(random.random()*0.1)
             self._connected = not self._connected
 
-    def setcontents(self, path, contents):
+    def setcontents(self, path, contents='', chunk_size=64*1024):
         return self.wrapped_fs.setcontents(path, contents)
 
     def close(self):

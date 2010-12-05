@@ -45,16 +45,17 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
 class DebugFS(object):
-    def __init__(self, fs, identifier=None, skip=()):
+    def __init__(self, fs, identifier=None, skip=(), verbose=True):
         '''
             fs - Reference to object to debug
             identifier - Custom string-like object will be added
                 to each log line as identifier.
             skip - list of method names which DebugFS should not log
-        '''
+        '''        
         self.__wrapped_fs = fs
         self.__identifier = identifier
-        self.__skip = skip 
+        self.__skip = skip
+        self.__verbose = verbose 
         super(DebugFS, self).__init__()
         
     def __log(self, level, message):
@@ -65,8 +66,8 @@ class DebugFS(object):
         
     def __parse_param(self, value):
         if isinstance(value, basestring):
-            if len(value) > 20:
-                value = "%s (length %d)" % (repr(value[:20]), len(value))
+            if len(value) > 60:
+                value = "%s ... (length %d)" % (repr(value[:60]), len(value))
             else:
                 value = repr(value) 
         elif isinstance(value, list):
@@ -96,6 +97,7 @@ class DebugFS(object):
         self.__log(INFO, "%s %s%s -> %s" % (msg, str(key), args, value))
     
     def __getattr__(self, key):
+        
         if key.startswith('__'):
             # Internal calls, nothing interesting
             return object.__getattribute__(self, key)
@@ -117,7 +119,7 @@ class DebugFS(object):
         
         def _method(*args, **kwargs):
             try:
-                value = attr(*args, **kwargs)
+                value = attr(*args, **kwargs)                
                 self.__report("Call method", key, value, *args, **kwargs)
             except FSError, e:
                 self.__log(ERROR, "Call method %s%s -> Exception %s: %s" % \
@@ -134,6 +136,7 @@ class DebugFS(object):
                 raise e, None, tb
             return value
         
-        if key not in self.__skip:
-            self.__log(DEBUG, "Asking for method %s" % key)
+        if self.__verbose:
+            if key not in self.__skip:
+                self.__log(DEBUG, "Asking for method %s" % key)
         return _method

@@ -77,7 +77,7 @@ class ZipFS(FS):
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
               'network' : False,
-              'atomic.setcontents' : False             
+              'atomic.setcontents' : False
              }
 
     def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
@@ -106,19 +106,24 @@ class ZipFS(FS):
 
         self.zip_mode = mode
         self.encoding = encoding
+        
+        if isinstance(zip_file, basestring):
+            zip_file = os.path.expanduser(os.path.expandvars(zip_file))
+            zip_file = os.path.normpath(os.path.abspath(zip_file))
+        
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allow_zip_64)
         except BadZipfile, bzf:            
             raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                details=bzf)
-        except IOError, ioe:
+        except IOError, ioe:            
             if str(ioe).startswith('[Errno 22] Invalid argument'):
                 raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                    details=ioe)
             raise ZipNotFoundError("Zip file not found (%s)" % str(zip_file),
                                   details=ioe)
                 
-        self.zip_path = str(zip_file)        
+        self.zip_path = str(zip_file)
         self.temp_fs = None
         if mode in 'wa':
             self.temp_fs = tempfs.TempFS()
@@ -214,11 +219,9 @@ class ZipFS(FS):
         sys_path = self.temp_fs.getsyspath(filename)
         self.zf.write(sys_path, filename.encode(self.encoding))
 
-    def desc(self, path):
-        if self.isdir(path):
-            return "Dir in zip file: %s" % self.zip_path
-        else:
-            return "File in zip file: %s" % self.zip_path
+    def desc(self, path):        
+        return "%s in zip file %s" % (path, self.zip_path)
+        
 
     def isdir(self, path):
         return self._path_fs.isdir(path)
@@ -258,4 +261,5 @@ class ZipFS(FS):
         if 'date_time' in zinfo:
             info['created_time'] = datetime.datetime(*zinfo['date_time'])
         info.update(zinfo)
+        
         return info

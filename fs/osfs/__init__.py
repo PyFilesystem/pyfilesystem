@@ -177,8 +177,6 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
                 return stat.f_bfree * stat.f_bsize
         
         return super(OSFS, self).getmeta(meta_name, default)
-            
-        
 
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):
@@ -209,8 +207,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         return os.path.isfile(path)
 
     @convert_os_errors
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        paths = [self._decode_path(p) for p in os.listdir(self.getsyspath(path))]
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
+        paths = [self._decode_path(p) for p in os.listdir(self.getsyspath(path))]        
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @convert_os_errors

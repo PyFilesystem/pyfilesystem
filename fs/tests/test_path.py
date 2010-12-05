@@ -87,7 +87,8 @@ class TestPathFunctions(unittest.TestCase):
                     ("a/b/c", ("a/b", "c")),
                     ("a", ("", "a")),
                     ("", ("", "")),
-                    ("/", ("", "")),
+                    ("/", ("/", "")),
+                    ("/foo", ("/", "foo")),
                     ("foo/bar", ("foo", "bar")),
                     ("foo/bar/baz", ("foo/bar", "baz")),
                 ]

@@ -315,9 +315,9 @@ class TahoeFS(CacheFS):
             self._uncache(dst,added=True)
 
     @_fix_path
-    def setcontents(self, path, file):
+    def setcontents(self, path, data, chunk_size=64*1024):
         try:
-            self.wrapped_fs.setcontents(path, file)
+            self.wrapped_fs.setcontents(path, data, chunk_size=chunk_size)
         finally:
             self._uncache(path, added=True)
 

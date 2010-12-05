@@ -10,10 +10,10 @@ class TestWalk(unittest.TestCase):
     
     def setUp(self):
         self.fs = MemoryFS()
-        self.fs.createfile('a.txt', 'hello')
-        self.fs.createfile('b.txt', 'world')
-        self.fs.makeopendir('foo').createfile('c', '123')
-        self.fs.makeopendir('.svn').createfile('ignored')
+        self.fs.setcontents('a.txt', 'hello')
+        self.fs.setcontents('b.txt', 'world')
+        self.fs.makeopendir('foo').setcontents('c', '123')
+        self.fs.makeopendir('.svn').setcontents('ignored', '')
     
     def test_wildcard(self):
         for dir_path, paths in self.fs.walk(wildcard='*.txt'):

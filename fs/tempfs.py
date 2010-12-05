@@ -25,6 +25,8 @@ class TempFS(OSFS):
               'unicode_paths' : os.path.supports_unicode_filenames,
               'case_insensitive_paths' : os.path.normcase('Aa') == 'aa', 
               'network' : False,
+              'atomic.move' : True,
+              'atomic.copy' : True,
               'atomic.makedir' : True,
               'atomic.rename' : True,
               'atomic.setcontents' : False            

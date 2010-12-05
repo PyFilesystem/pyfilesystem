@@ -207,8 +207,8 @@ class FS(object):
          * *unicode_paths* True if the file system can use unicode paths
          * *case_insensitive_paths* True if the file system ignores the case of paths        
          * *atomic.makedir* True if making a directory is an atomic operation
-         * *atomic.rename" True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
-         * *atomic.setcontents" True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)
+         * *atomic.rename* True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
+         * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)
          
         The following are less common:
         
@@ -569,11 +569,9 @@ class FS(object):
         try:
             sys_path = self.getsyspath(path)
         except NoSysPathError:
-            return "No description available"
-        if self.isdir(path):
-            return "OS dir, maps to %s" % sys_path
-        else:
-            return "OS file, maps to %s" % sys_path
+            return "No description available"        
+        return "OS resource, maps to %s" % sys_path
+        
 
     def getcontents(self, path):
         """Returns the contents of a file as a string.
@@ -591,28 +589,52 @@ class FS(object):
             if f is not None:
                 f.close()
 
-    def createfile(self, path, data=""):
-        """A convenience method to create a new file from a string.
+    def setcontents(self, path, data, chunk_size=1024*64):
+        """A convenience method to create a new file from a string or file-like object
 
         :param path: a path of the file to create
         :param data: a string or a file-like object containing the contents for the new file
+        :param chunk_size: Number of bytes to read in a chunk, if the implementation has to resort to a read / copy loop
         """
+        
+        if not data:
+            self.createfile(path)
+        else:
+            f = None
+            try:
+                f = self.open(path, 'wb')
+                if hasattr(data, "read"):
+                    read = data.read
+                    write = f.write
+                    chunk = read(chunk_size)
+                    while chunk:
+                        write(chunk)
+                        chunk = read(chunk_size)
+                else:
+                    f.write(data)
+                if hasattr(f, 'flush'):
+                    f.flush()
+            finally:
+                if f is not None:
+                    f.close()
+        
+    def createfile(self, path, wipe=False):
+        """Creates an empty file if it doesn't exist
+        
+        :param path: path to the file to create
+        :param wipe: If True, the contents of the file will be erased 
+        
+        """
+        if not wipe and self.isfile(path):
+            return
+            
         f = None
         try:
-            f = self.open(path, 'wb')
-            if hasattr(data, "read"):
-                chunk = data.read(1024*512)
-                while chunk:
-                    f.write(chunk)
-                    chunk = data.read(1024*512)
-            else:
-                f.write(data)
-            if hasattr(f, 'flush'):
-                f.flush()
+            f = self.open(path, 'w')
         finally:
             if f is not None:
                 f.close()
-    setcontents = createfile
+            
 
     def opendir(self, path):
         """Opens a directory and returns a FS object representing its contents.
@@ -775,24 +797,17 @@ class FS(object):
         if src_syspath is not None and dst_syspath is not None:
             self._shutil_copyfile(src_syspath, dst_syspath)
         else:
-            src_file, dst_file = None, None
+            src_file = None            
             try:
-                src_file = self.open(src, "rb")
-                dst_file = self.open(dst, "wb")
-
-                while True:
-                    chunk = src_file.read(chunk_size)
-                    dst_file.write(chunk)
-                    if len(chunk) != chunk_size:
-                        break
+                src_file = self.open(src, "rb")                
+                self.setcontents(dst, src_file, chunk_size=chunk_size)                
             finally:
                 if src_file is not None:
-                    src_file.close()
-                if dst_file is not None:
-                    dst_file.close()
-
-    @convert_os_errors
-    def _shutil_copyfile(self, src_syspath, dst_syspath):
+                    src_file.close()                
+    
+    @classmethod
+    @convert_os_errors    
+    def _shutil_copyfile(cls, src_syspath, dst_syspath):
         try:
             shutil.copyfile(src_syspath, dst_syspath)
         except IOError, e:
@@ -801,6 +816,12 @@ class FS(object):
                 if not os.path.exists(dirname(dst_syspath)):
                     raise ParentDirectoryMissingError(dst_syspath)
             raise
+        
+    @classmethod
+    @convert_os_errors
+    def _shutil_movefile(cls, src_syspath, dst_syspath):
+        shutil.move(src_syspath, dst_syspath)
+        
 
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         """moves a file from one location to another.
@@ -984,6 +1005,36 @@ class FS(object):
         from fs.browsewin import browse
         browse(self)
 
+    def getmmap(self, path, read_only=False, copy=False):
+        """Returns a mmap object for this path.
+        
+        See http://docs.python.org/library/mmap.html for more details on the mmap module.
+        
+        :param path: A path on this filesystem
+        :param read_only: If True, the mmap may not be modified
+        :param copy: If False then changes wont be written back to the file
+        :raises NoMMapError: Only paths that have a syspath can be opened as a mmap 
+         
+        """        
+        syspath = self.getsyspath(path, allow_none=True)
+        if syspath is None:
+            raise NoMMapError(path)
+        
+        import mmap
+        
+        if read_only:
+            f = open(syspath, 'rb')
+            access = mmap.ACCESS_READ
+        else:
+            if copy:
+                f = open(syspath, 'rb')
+                access = mmap.ACCESS_COPY
+            else:
+                f = open(syspath, 'r+b')
+                access = mmap.ACCESS_WRITE      
+                  
+        m = mmap.mmap(f.fileno, 0, access=access)
+        return m
 
 
 def flags_to_mode(flags):

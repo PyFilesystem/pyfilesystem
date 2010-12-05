@@ -253,16 +253,30 @@ class RemoteFileBuffer(FileWrapper):
         if "w" in self.mode or "a" in self.mode or "+" in self.mode:
             pos = self.wrapped_file.tell()
             self.wrapped_file.seek(0)
-            self.fs.setcontents(self.path, self.wrapped_file)
+            
+#            chunk_size = 64*1024
+#            f = None
+#            try:
+#                f = self.fs.wrapped_fs.open(self.path, 'wb')                
+#                chunk = self.wrapped_file.read(chunk_size)
+#                while chunk:
+#                    f.write(chunk)
+#                    chunk = self.wrapped_file.read(chunk_size)
+#            finally:
+#                if f is not None:
+#                    f.close()
+            
+            self.fs.setcontents(self.path, self.wrapped_file)            
+            
             self.wrapped_file.seek(pos)
     
-    def close(self):
+    def close(self):        
         with self._lock:
-            if not self.closed:
+            if not self.closed:        
                 self._setcontents()
                 if self._rfile is not None:
                     self._rfile.close()
-                super(RemoteFileBuffer,self).close()
+                super(RemoteFileBuffer,self).close()                
 
 
 class ConnectionManagerFS(LazyFS):
@@ -309,8 +323,8 @@ class ConnectionManagerFS(LazyFS):
         self._poll_sleeper = threading.Event()
         self.connected = connected
 
-    def setcontents(self,path,data):
-        return self.wrapped_fs.setcontents(path,data)
+    def setcontents(self, path, data, chunk_size=64*1024):
+        return self.wrapped_fs.setcontents(path, data, chunk_size=chunk_size)
 
     def __getstate__(self):
         state = super(ConnectionManagerFS,self).__getstate__()
@@ -521,8 +535,8 @@ class CacheFS(WrapFS):
         self._uncache(path,unmoved=True)
         return f
 
-    def setcontents(self,path,contents):
-        res = super(CacheFS,self).setcontents(path,contents)
+    def setcontents(self, path, contents='', chunk_size=64*1024):
+        res = super(CacheFS,self).setcontents(path, contents, chunk_size=chunk_size)
         self._uncache(path,unmoved=True)
         return res
 

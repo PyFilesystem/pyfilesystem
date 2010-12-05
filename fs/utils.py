@@ -21,10 +21,11 @@ import stat
 from fs.mountfs import MountFS
 from fs.path import pathjoin, pathsplit
 from fs.errors import DestinationExistsError
+from fs.base import FS
 
 
 
-def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=16384):
+def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
@@ -49,30 +50,20 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=1638
 
     # System copy if there are two sys paths
     if src_syspath is not None and dst_syspath is not None:
-        shutil.copyfile(src_syspath, dst_syspath)
+        FS._shutil_copyfile(src_syspath, dst_syspath)
         return
 
-    src, dst = None, None        
-
+    src = None        
     try:
         # Chunk copy
-        src = src_fs.open(src_path, 'rb')
-        dst = dst_fs.open(dst_path, 'wb')
-
-        while True:
-            chunk = src.read(chunk_size)
-            if not chunk:
-                break
-            dst.write(chunk)
-
+        src = src_fs.open(src_path, 'rb')        
+        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
     finally:
         if src is not None:
             src.close()
-        if dst is not None:
-            dst.close()
 
 
-def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=16384):
+def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """Move a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
     Otherwise file will be copied a chunk at a time.
 
@@ -94,33 +85,21 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=1638
         return
 
     # System copy if there are two sys paths
-    if src_syspath is not None and dst_syspath is not None:
-        shutil.move(src_syspath, dst_syspath)
+    if src_syspath is not None and dst_syspath is not None:        
+        FS._shutil_movefile(src_syspath, dst_syspath)        
         return
 
-    src, dst = None, None
-
-    try:
-        # Chunk copy
+    src = None
+    try:        
         src = src_fs.open(src_path, 'rb')
-        dst = dst_fs.open(dst_path, 'wb')
-
-        while True:
-            chunk = src.read(chunk_size)
-            if not chunk:
-                break
-            dst.write(chunk)
-
+        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)        
         src_fs.remove(src_path)
 
     finally:
         if src is not None:
             src.close()
-        if dst is not None:
-            dst.close()
 
-
-def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
+def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
     """Moves contents of a directory from one filesystem to another.
 
     :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
@@ -142,12 +121,12 @@ def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     mount_fs.mount('dst', fs2)
 
     mount_fs.movedir('src', 'dst',
-                     overwrite=True,
+                     overwrite=overwrite,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
 
 
-def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
+def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
     """Copies contents of a directory from one filesystem to another.
 
     :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
@@ -168,9 +147,22 @@ def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=16384):
     mount_fs.mount('src', fs1)
     mount_fs.mount('dst', fs2)
     mount_fs.copydir('src', 'dst',
-                     overwrite=True,
+                     overwrite=overwrite,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
+
+
+def copystructure(src_fs, dst_fs):
+    """Copies the directory structure from one filesystem to another, so that
+    all directories in `src_fs` will have a corresponding directory in `dst_fs`
+    
+    :param src_fs: Filesystem to copy structure from
+    :param dst_fs: Filesystem to copy structure to
+    
+    """
+    
+    for path in src_fs.walkdirs(wildcard="depth"):
+        dst_fs.makedir(path, allow_recreate=True)
 
 
 def countbytes(fs):
@@ -214,6 +206,13 @@ def isfile(fs,path,info=None):
                 return False
     return fs.isfile(path)
 
+def contains_files(fs, path='/'):
+    """Check if there are any files in the filesystem"""
+    try:
+        iter(fs.walkfiles(path)).next()
+    except StopIteration:
+        return False
+    return True
 
 def find_duplicates(fs,
                     compare_paths=None,
@@ -350,14 +349,16 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
     if file_out is None:
         file_out = sys.stdout
 
+    file_encoding = getattr(file_out, 'encoding', 'utf-8')
+
     if terminal_colors is None:
-        if sys.platform == 'win32':
+        if sys.platform.startswith('win'):
             terminal_colors = False
         else:
             terminal_colors = True
-
+    
     def write(line):
-        file_out.write(line.encode(file_out.encoding or 'utf-8')+'\n')
+        file_out.write(line.encode(file_encoding)+'\n')
         
     def wrap_prefix(prefix):
        if not terminal_colors:
@@ -407,7 +408,8 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
             if is_dir:                
                 write('%s %s' % (wrap_prefix(prefix + '--'), wrap_dirname(item)))
                 if max_levels is not None and len(levels) >= max_levels:
-                    write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
+                    pass
+                    #write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
                 else:
                     print_dir(fs, pathjoin(path, item), levels[:] + [is_last_item])                                            
             else:

@@ -60,7 +60,22 @@ class LimitSizeFS(WrapFS):
                 size = 0
                 self._file_sizes[path] = 0
             return LimitSizeFile(self,path,f,mode,size)
-
+                
+    def setcontents(self, path, data, chunk_size=64*1024):            
+        f = None
+        try:                
+            f = self.open(path, 'w')
+            if hasattr(data, 'read'):
+                chunk = data.read(chunk_size)            
+                while chunk:
+                    f.write(chunk)
+                    chunk = data.read(chunk_size)
+            else:
+                f.write(data)
+        finally:
+            if f is not None:
+                f.close()
+    
     def _ensure_file_size(self, path, size, shrink=False):
         path = relpath(normpath(path))
         with self._size_lock:

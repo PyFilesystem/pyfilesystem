@@ -43,6 +43,7 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
         else:
             os.system('kill '+str(self.ftp_server.pid))
         shutil.rmtree(self.temp_dir)
+        self.fs.close()
 
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, relpath(p)))

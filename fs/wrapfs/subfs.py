@@ -38,15 +38,13 @@ class SubFS(WrapFS):
     def __repr__(self):
         return str(self)
 
-    def desc(self, path):
-        if self.isdir(path):
-            return "Sub dir of %s" % str(self.wrapped_fs)
-        else:
-            return "File in sub dir of %s" % str(self.wrapped_fs)
-
-    def setcontents(self,path,contents):
+    def desc(self, path):        
+        desc = "%s in sub dir %s of %s" % (path, self.sub_dir, str(self.wrapped_fs))
+        return desc
+        
+    def setcontents(self, path, data, chunk_size=64*1024):
         path = self._encode(path)
-        return self.wrapped_fs.setcontents(path,contents)
+        return self.wrapped_fs.setcontents(path, data, chunk_size=chunk_size)
 
     def opendir(self, path):
         if not self.exists(path):

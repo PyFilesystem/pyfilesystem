@@ -312,6 +312,24 @@ class WatchableFS(WatchableFSMixin,WrapFS):
         self.notify_watchers(ACCESSED,path)
         return WatchedFile(f,self,path,mode)
 
+    def setcontents(self, path, data='', chunk_size=64*1024):
+        existed = self.wrapped_fs.isfile(path)
+        ret = super(WatchableFS, self).setcontents(path, data, chunk_size=chunk_size)
+        if not existed:
+            self.notify_watchers(CREATED,path)
+        self.notify_watchers(ACCESSED,path)
+        if data:
+            self.notify_watchers(MODIFIED,path,True)
+        return ret
+
+    def createfile(self, path):
+        existed = self.wrapped_fs.isfile(path)
+        ret = super(WatchableFS, self).createfile(path)
+        if not existed:
+            self.notify_watchers(CREATED,path)
+        self.notify_watchers(ACCESSED,path)
+        return retq
+
     def makedir(self,path,recursive=False,allow_recreate=False):
         existed = self.wrapped_fs.isdir(path)
         try:

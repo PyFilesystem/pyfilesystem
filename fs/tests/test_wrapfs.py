@@ -26,6 +26,7 @@ class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
+        self.fs.close()
 
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
@@ -40,6 +41,7 @@ class TestLazyFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
+        self.fs.close()
 
     def check(self, p):
         return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
@@ -58,6 +60,7 @@ class TestLimitSizeFS(TestWrapFS):
         self.fs.removedir("/",force=True)
         self.assertEquals(self.fs.cur_size,0)
         super(TestLimitSizeFS,self).tearDown()
+        self.fs.close()
 
     def test_storage_error(self):
         total_written = 0
@@ -86,6 +89,7 @@ class TestHideDotFilesFS(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
+        self.fs.close()
 
     def test_hidden(self):
         self.assertEquals(len(self.fs.listdir(hidden=False)), 2)

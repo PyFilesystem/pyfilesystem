@@ -26,11 +26,11 @@ class XAttrTestCases:
             self.assertEqual(self.fs.getxattr(p,"xattr1"),"value1")
             self.fs.delxattr(p,"xattr1")
             self.assertEqual(self.fs.getxattr(p,"xattr1"),None)
-        self.fs.createfile("test.txt","hello")
+        self.fs.setcontents("test.txt","hello")
         do_getsetdel("test.txt")
         self.assertRaises(ResourceNotFoundError,self.fs.getxattr,"test2.txt","xattr1")
         self.fs.makedir("mystuff")
-        self.fs.createfile("/mystuff/test.txt","")
+        self.fs.setcontents("/mystuff/test.txt","")
         do_getsetdel("mystuff")
         do_getsetdel("mystuff/test.txt")
 
@@ -49,15 +49,15 @@ class XAttrTestCases:
             self.assertEquals(sorted(self.fs.listxattrs(p)),["attr2"])
             self.fs.delxattr(p,"attr2")
             self.assertEquals(sorted(self.fs.listxattrs(p)),[])
-        self.fs.createfile("test.txt","hello")
+        self.fs.setcontents("test.txt","hello")
         do_list("test.txt")
         self.fs.makedir("mystuff")
-        self.fs.createfile("/mystuff/test.txt","")
+        self.fs.setcontents("/mystuff/test.txt","")
         do_list("mystuff")
         do_list("mystuff/test.txt")
 
     def test_copy_xattrs(self):
-        self.fs.createfile("a.txt","content")
+        self.fs.setcontents("a.txt","content")
         self.fs.setxattr("a.txt","myattr","myvalue")
         self.fs.setxattr("a.txt","testattr","testvalue")
         self.fs.makedir("stuff")
@@ -75,7 +75,7 @@ class XAttrTestCases:
         self.assertEquals(self.fs.getxattr("stuff","dirattr"),"a directory")
 
     def test_move_xattrs(self):
-        self.fs.createfile("a.txt","content")
+        self.fs.setcontents("a.txt","content")
         self.fs.setxattr("a.txt","myattr","myvalue")
         self.fs.setxattr("a.txt","testattr","testvalue")
         self.fs.makedir("stuff")

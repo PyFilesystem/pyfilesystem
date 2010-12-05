@@ -275,7 +275,7 @@ class DAVFS(FS):
                 msg = str(e)
             raise RemoteConnectionError("",msg=msg,details=e)
 
-    def setcontents(self,path,contents):
+    def setcontents(self,path, contents, chunk_size=1024*64):
         resp = self._request(path,"PUT",contents)
         resp.close()
         if resp.status == 405:

@@ -1,8 +1,18 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
-
 from fs import __version__ as VERSION
+
+COMMANDS = ['fscat',
+            'fscp',
+            'fsinfo',
+            'fsls',
+            'fsmv',
+            'fscp',
+            'fsrm',
+            'fsserve',
+            'fstree']
+
 
 classifiers = [
     'Development Status :: 3 - Alpha',
@@ -25,7 +35,8 @@ setup(name='fs',
       platforms = ['any'],
       packages=['fs','fs.expose','fs.expose.fuse','fs.tests','fs.wrapfs',
                 'fs.osfs','fs.contrib','fs.contrib.bigfs','fs.contrib.davfs',
-                'fs.expose.dokan',],
+                'fs.expose.dokan', 'fs.commands'],
+      scripts=['fs/commands/%s' % command for command in COMMANDS],
       classifiers=classifiers,
       )
 

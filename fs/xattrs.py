@@ -173,7 +173,7 @@ class SimulateXAttr(WrapFS):
             try:
                 self.wrapped_fs.removedir(path,recursive=recursive)
             except FSError:
-                self.wrapped_fs.createfile(attr_file,attr_file_contents)
+                self.wrapped_fs.setcontents(attr_file,attr_file_contents)
                 raise
 
     def copy(self,src,dst,**kwds):

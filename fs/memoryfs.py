@@ -189,6 +189,8 @@ class MemoryFS(FS):
               'read_only' : False,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
+              'atomic.move' : False,
+              'atomic.copy' : False,
               'atomic.makedir' : True,
               'atomic.rename' : True,
               'atomic.setcontents' : False,              

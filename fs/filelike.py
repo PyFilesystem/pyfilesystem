@@ -102,6 +102,7 @@ class FileLikeBase(object):
         read at a time when looking for a newline character.  Setting this to
         a larger number when lines are long should improve efficiency.
         """
+        super(FileLikeBase, self).__init__()
         # File-like attributes
         self.closed = False
         self.softspace = 0
@@ -110,8 +111,8 @@ class FileLikeBase(object):
         self._rbuffer = None     # data that's been read but not returned
         self._wbuffer = None     # data that's been given but not written
         self._sbuffer = None     # data between real & apparent file pos
-        self._soffset = 0        # internal offset of file pointer
-
+        self._soffset = 0        # internal offset of file pointer        
+    
     #
     #  The following five methods are the ones that subclasses are expected
     #  to implement.  Carefully check their docstrings.

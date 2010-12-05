@@ -61,6 +61,8 @@ class S3FS(FS):
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
               'network' : True,
+              'atomic.move' : True,
+              'atomic.copy' : True,
               'atomic.makedir' : True,
               'atomic.rename' : False,
               'atomic.setconetns' : True
@@ -241,9 +243,9 @@ class S3FS(FS):
         
         return url
 
-    def setcontents(self,path,contents):
+    def setcontents(self, path, data, chunk_size=64*1024):
         s3path = self._s3path(path)
-        self._sync_set_contents(s3path,contents)
+        self._sync_set_contents(s3path, data)
 
     def open(self,path,mode="r"):
         """Open the named file in the given mode.

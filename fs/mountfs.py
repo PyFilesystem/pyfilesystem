@@ -244,14 +244,24 @@ class MountFS(FS):
         return fs.open(delegate_path, mode, **kwargs)
 
     @synchronize
-    def setcontents(self, path, contents):
+    def setcontents(self, path, data, chunk_size=64*1024):
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
-            return super(MountFS,self).setcontents(path,contents)
+            return super(MountFS,self).setcontents(path, data, chunk_size=chunk_size)
         fs, mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
-        return fs.setcontents(delegate_path,contents)
+        return fs.setcontents(delegate_path, data, chunk_size)
+
+    @synchronize
+    def createfile(self, path):
+        object = self.mount_tree.get(path, None)
+        if type(object) is MountFS.FileMount:
+            return super(MountFS,self).setcontents(path, contents, chunk_size=chunk_size)
+        fs, mount_path, delegate_path = self._delegate(path)
+        if fs is self or fs is None:
+            raise ParentDirectoryMissingError(path)
+        return fs.createfile(delegate_path)
 
     @synchronize
     def remove(self, path):

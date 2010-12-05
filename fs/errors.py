@@ -28,6 +28,7 @@ __all__ = ['FSError',
            'DirectoryNotEmptyError',
            'ParentDirectoryMissingError',
            'ResourceLockedError',
+           'NoMMapError',
            'convert_fs_errors',
            'convert_os_errors'
            ]
@@ -174,6 +175,9 @@ class ResourceLockedError(ResourceError):
     """Exception raised when a resource can't be used because it is locked."""
     default_message = "Resource is locked: %(path)s"
 
+class NoMMapError(ResourceError):
+    """Exception raise when getmmap fails to create a mmap"""
+    default_message = "Can't get mmap for %(path)s"
 
 
 def convert_fs_errors(func):
