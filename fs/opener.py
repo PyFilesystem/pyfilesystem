@@ -297,32 +297,9 @@ opener = OpenerRegistry([OSFSOpener,
 
 def main():
     
-    #fs, path = opener.parse('*.py')
-    #fs, path = opener.parse('[osfs]/home/will/+projects/pyfilesystem')
-    
-    #fs, path = opener.parse('~/t.zip')
-    fs, path = opener.parse('[sftp]will:password')
-    #fs, path = opener.parse('[zip]([osfs]~/+test.zip)+a.txt')
-    
     print fs, path
-    
-    #fs, path = opener.parse('[zip#[sftp]root:hamster5921@willmcgugan.com+/home/www/willmcgugan.com/files/langtonants.zip]+/langtonants')
-    #fs, path = opener.parse('[sftp]root:hamster5921@willmcgugan.com+chesscommander+')
-    #print fs
-    #print path    
-    #print fs.opendir(path).listdir()
     
 if __name__ == "__main__":
        
     main()             
-    #fs, path = opener.parse('[ftp]ftp.mozilla.org+pub')
-    #print fs.listdir(path)
-                
-    #print registry.parse("/home/will/Pictures/darkpie.png")    
-    #print registry.parse("[file]/home/will/Pictures/+darkpie.png")
-    #print registry.parse("/home/will/Pictures/+darkpie.png")
-    #print registry.parse("/home/will/Pictures/")
-    #print registry.parse("[zip]/home/will/Pictures/Pictures.zip+DSC00717.JPG")
-    #print registry.open("[zip]/home/will/Pictures/t.zip+t.txt").read()
-    #print registry.getcontents("[zip]/home/will/Pictures/t.zip+t.txt")
-    #print registry.parse("ftp:ftp.site.org+/some/site")
+    
