@@ -9,6 +9,7 @@ class from the :mod:`fs.expose.xmlrpc` module.
 """
 
 import xmlrpclib
+import socket
 
 from fs.base import *
 from fs.errors import *
@@ -40,6 +41,8 @@ def re_raise_faults(func):
             if cls:
                 raise cls(msg)
             raise f
+        except socket.error, e:
+            raise RemoteConnectionError(str(e), details=e)
     return wrapper
 
 
@@ -109,10 +112,12 @@ class RPCFS(FS):
 
     def _make_proxy(self):
         kwds = dict(allow_none=True)
+        
         if self._transport is not None:
             proxy = xmlrpclib.ServerProxy(self.uri,self._transport,**kwds)
         else:
-            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)
+            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)            
+    
         return ReRaiseFaults(proxy)
 
     def __str__(self):
