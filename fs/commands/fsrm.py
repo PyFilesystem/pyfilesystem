@@ -7,6 +7,9 @@ import sys
 
 class FSrm(Command):
     
+    usage = """fsrm [OPTION]... [PATH]
+Remove a file or directory at PATH"""
+    
     def get_optparse(self):
         optparse = super(FSrm, self).get_optparse()
         optparse.add_option('-f', '--force', dest='force', action='store_true', default=False,

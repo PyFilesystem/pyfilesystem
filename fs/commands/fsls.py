@@ -7,7 +7,11 @@ from collections import defaultdict
 import sys
 
 class FSList(Command):
-                
+    
+    usage = """fsls [OPTIONS]... [PATH]
+List contents of [PATH]"""
+    
+    
     def get_optparse(self):
         optparse = super(FSList, self).get_optparse()        
         optparse.add_option('-u', '--full', dest='fullpath', action="store_true", default=False,

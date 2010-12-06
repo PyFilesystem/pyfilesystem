@@ -65,8 +65,8 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         try:
             info = self._fs.getinfo(path)
             f = self._fs.open(path, 'r')
-        except FSError:
-            self.send_error(404, "File not found")
+        except FSError, e:
+            self.send_error(404, str(e))
             return None
         self.send_response(200)        
         self.send_header("Content-type", ctype)        

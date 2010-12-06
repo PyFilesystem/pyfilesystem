@@ -42,9 +42,10 @@ def _unicode(text):
 
 class Command(object):
     
-    def __init__(self, usage='', version=''):
-        self.usage = usage
-        self.version = version
+    usage = ''
+    version = ''
+    
+    def __init__(self, usage='', version=''):        
         self.output_file = sys.stdout
         self.error_file = sys.stderr
         self.encoding = getattr(self.output_file, 'encoding', 'utf-8') or 'utf-8'
@@ -230,9 +231,9 @@ class Command(object):
             return 0
         #except IOError:
         #    return 1
-        except Exception, e:            
-            self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
-            return 1
+        #except Exception, e:            
+        #    self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
+        #    return 1
         
         
         

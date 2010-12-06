@@ -3,6 +3,10 @@ from fs.commands import fscp
 import sys
 
 class FSMove(fscp.FSCopy):
+    
+    usage = """fsmv [OPTION]... [SOURCE] [DESTINATION]
+Move files from SOURCE to DESTINATION"""
+    
     def get_action(self):        
         return movefile
     

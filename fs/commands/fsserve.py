@@ -7,7 +7,10 @@ from fs.utils import print_fs
 
 
 class FSServe(Command):
-        
+    
+    """fsserve [OPTION]... [PATH]
+Serves the contents of PATH with one of a number of methods"""
+    
     def get_optparse(self):
         optparse = super(FSServe, self).get_optparse()                
         optparse.add_option('-t', '--type', dest='type', type="string", default="http",
@@ -23,7 +26,7 @@ class FSServe(Command):
         try:
             fs_url = args[0]
         except IndexError:
-            self.error('FS required\n')
+            self.error('FS path required\n')
             return 1
             
         fs, path = self.open_fs(fs_url)
@@ -42,7 +45,7 @@ class FSServe(Command):
             from fs.expose.xmlrpc import RPCFSServer
             if port is None:
                 port = 80
-            s = RPCFSServer(fs, (options.addr, options.port))
+            s = RPCFSServer(fs, (options.addr, port))
             s.serve_forever()
         
         elif options.type == 'sftp':            

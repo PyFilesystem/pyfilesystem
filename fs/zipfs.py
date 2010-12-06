@@ -261,5 +261,6 @@ class ZipFS(FS):
         if 'date_time' in zinfo:
             info['created_time'] = datetime.datetime(*zinfo['date_time'])
         info.update(zinfo)
-        
+        if 'FileHeader' in info:
+            del info['FileHeader']
         return info

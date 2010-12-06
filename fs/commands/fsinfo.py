@@ -8,6 +8,9 @@ from datetime import datetime
 
 class FSInfo(Command):
      
+    usage = """fsinfo [OPTION]... [PATH]
+Display information regarding an FS resource"""
+     
     def get_optparse(self):
         optparse = super(FSInfo, self).get_optparse()
         optparse.add_option('-k', '--key', dest='keys', action='append', default=[],

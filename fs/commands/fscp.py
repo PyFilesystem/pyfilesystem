@@ -9,7 +9,7 @@ import time
 import threading
 
 
-class FileOpThread(threading.Thread):        
+class FileOpThread(threading.Thread):            
     
     def __init__(self, action, name, dest_fs, queue, on_done, on_error):
         self.action = action                  
@@ -46,6 +46,9 @@ class FileOpThread(threading.Thread):
 class FSCopy(Command):
     
     DIR, FILE = 0, 1
+    
+    usage = """fscp [OPTION]... [SOURCE]... [DESTINATION]
+Copy SOURCE to DESTINATION"""
     
     def get_action(self):
         return copyfile

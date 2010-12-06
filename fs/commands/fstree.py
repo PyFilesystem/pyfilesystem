@@ -7,7 +7,10 @@ from fs.commands.runner import Command
 from fs.utils import print_fs
 
 class FSTree(Command):
-        
+    
+    usage = """fstree [OPTION]... [PATH]
+Recursively display the contents of PATH in an ascii tree"""
+    
     def get_optparse(self):
         optparse = super(FSTree, self).get_optparse()        
         optparse.add_option('-d', '--depth', dest='depth', type="int", default=5,

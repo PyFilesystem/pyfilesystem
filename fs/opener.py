@@ -76,13 +76,15 @@ class OpenerRegistry(object):
                         
         fs_name, paren_url, fs_url, path = self.split_segments(fs_url)
         
+        fs_url = fs_url or paren_url
         if fs_name is None and path is None:
+            fs_url = os.path.expanduser(os.path.expandvars(fs_url))
+            fs_url = os.path.normpath(os.path.abspath(fs_url))
             fs_url, path = pathsplit(fs_url)
             if not fs_url:
                 fs_url = '/'
         
-        fs_name = fs_name or self.default_opener        
-        fs_url = fs_url or paren_url                  
+        fs_name = fs_name or self.default_opener                                
         
         if fs_name is None:
             fs_name = fs_default_name
@@ -190,6 +192,17 @@ class ZipOpener(Opener):
         zipfs = ZipFS(zip_file, mode=mode, allow_zip_64=allow_zip_64)
         return zipfs
     
+class RPCOpener(Opener):
+    names = ['rpc']
+
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
+        from fs.rpcfs import RPCFS             
+        username, password, fs_path = registry.parse_credentials(fs_path)
+        if not fs_path.startswith('http://'):
+            fs_path = 'http://' + fs_path                
+        rpcfs = RPCFS(fs_path)
+        return rpcfs
 
 class FTPOpener(Opener):
     names = ['ftp']
@@ -287,6 +300,7 @@ class TempOpener(Opener):
 
 opener = OpenerRegistry([OSFSOpener,
                          ZipOpener,
+                         RPCOpener,
                          FTPOpener,
                          SFTPOpener,
                          MemOpener,
@@ -297,6 +311,7 @@ opener = OpenerRegistry([OSFSOpener,
 
 def main():
     
+    fs, path = opener.parse('galleries.zip')
     print fs, path
     
 if __name__ == "__main__":
