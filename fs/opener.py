@@ -157,9 +157,9 @@ class ZipOpener(Opener):
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
-                
-        
-        create_zip = fs_name_params == 'new'        
+                        
+        create_zip = fs_name_params == 'new' 
+        append_zip = fs_name_params == 'append'       
         
         zip_file = None
         if fs_path.startswith('['):
@@ -168,27 +168,33 @@ class ZipOpener(Opener):
                 raise OpenerError("Not a file")
             container_mode = 'r+b'
             if create_zip:
-                container_mode = 'w+'
-            zip_file = container_fs.open(container_path, mode=container_mode)                            
+                container_mode = 'w+b'
+            elif writeable:
+                container_mode = 'w+b'
+                
+            zip_file = container_fs.open(container_path, mode=container_mode)                                      
                         
         username, password, fs_path = registry.parse_credentials(fs_path)
         
         from fs.zipfs import ZipFS
         if zip_file is None:            
             zip_file = fs_path
-            
-        if create_zip:
+           
+        if append_zip:
+            mode = 'a'            
+        elif create_zip or create:
             mode = 'w'
         else:
             if writeable:
-                mode = 'a'
+                mode = 'w'
             else:
-                mode = 'r'        
+                mode = 'a'        
                 
         if fs_name == 'zip64':
             allow_zip_64 = True
         else:
-            allow_zip_64 = False
+            allow_zip_64 = False  
+              
         zipfs = ZipFS(zip_file, mode=mode, allow_zip_64=allow_zip_64)
         return zipfs
     
@@ -280,7 +286,7 @@ class DebugOpener(Opener):
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
         from fs.wrapfs.debugfs import DebugFS
         if fs_path:
-            fs, path = registry.parse(fs_path)
+            fs, path = registry.parse(fs_path, writeable=writeable, create=create)
             return DebugFS(fs, verbose=False)     
         if fs_name_params == 'ram':
             from fs.memoryfs import MemoryFS

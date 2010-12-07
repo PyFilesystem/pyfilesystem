@@ -105,7 +105,7 @@ class ZipFS(FS):
             raise ValueError("mode must be 'r', 'w' or 'a'")
 
         self.zip_mode = mode
-        self.encoding = encoding
+        self.encoding = encoding                
         
         if isinstance(zip_file, basestring):
             zip_file = os.path.expanduser(os.path.expandvars(zip_file))
@@ -171,25 +171,25 @@ class ZipFS(FS):
             self.zf = _ExceptionProxy()
 
     @synchronize
-    def open(self, path, mode="r", **kwargs):
+    def open(self, path, mode="r", **kwargs):        
         path = normpath(relpath(path))        
 
         if 'r' in mode:
             if self.zip_mode not in 'ra':
                 raise OperationFailedError("open file",
                                            path=path,
-                                           msg="Zip file must be opened for reading ('r') or appending ('a')")
+                                           msg="1 Zip file must be opened for reading ('r') or appending ('a')")
             try:
                 contents = self.zf.read(path.encode(self.encoding))
             except KeyError:
                 raise ResourceNotFoundError(path)
             return StringIO(contents)
 
-        if 'w' in mode:
-            if self.zip_mode not in 'wa':
+        if 'w' in mode:            
+            if self.zip_mode not in 'wa':                
                 raise OperationFailedError("open file",
                                            path=path,
-                                           msg="Zip file must be opened for writing ('w') or appending ('a')")
+                                           msg="2 Zip file must be opened for writing ('w') or appending ('a')")
             dirname, filename = pathsplit(path)
             if dirname:
                 self.temp_fs.makedir(dirname, recursive=True, allow_recreate=True)
@@ -211,7 +211,7 @@ class ZipFS(FS):
         except KeyError:
             raise ResourceNotFoundError(path)
         except RuntimeError:
-            raise OperationFailedError("read file", path=path, msg="Zip file must be oppened with 'r' or 'a' to read")
+            raise OperationFailedError("read file", path=path, msg="3 Zip file must be opened with 'r' or 'a' to read")
         return contents
 
     @synchronize
@@ -220,8 +220,7 @@ class ZipFS(FS):
         self.zf.write(sys_path, filename.encode(self.encoding))
 
     def desc(self, path):        
-        return "%s in zip file %s" % (path, self.zip_path)
-        
+        return "%s in zip file %s" % (path, self.zip_path)        
 
     def isdir(self, path):
         return self._path_fs.isdir(path)
@@ -236,7 +235,7 @@ class ZipFS(FS):
     def makedir(self, dirname, recursive=False, allow_recreate=False):
         dirname = normpath(dirname)
         if self.zip_mode not in "wa":
-            raise OperationFailedError("create directory", path=dirname, msg="Zip file must be opened for writing ('w') or appending ('a')")
+            raise OperationFailedError("create directory", path=dirname, msg="4 Zip file must be opened for writing ('w') or appending ('a')")
         if not dirname.endswith('/'):
             dirname += '/'
         self._add_resource(dirname)

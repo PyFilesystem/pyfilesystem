@@ -20,10 +20,12 @@ from fs.filelike import StringIO
 
 def re_raise_faults(func):
     """Decorator to re-raise XML-RPC faults as proper exceptions."""
-    def wrapper(*args,**kwds):
+    def wrapper(*args,**kwds):        
         try:
             return func(*args,**kwds)
         except xmlrpclib.Fault, f:
+            import traceback
+            traceback.print_exc()           
             # Make sure it's in a form we can handle
             bits = f.faultString.split(" ")
             if bits[0] not in ["<type","<class"]:

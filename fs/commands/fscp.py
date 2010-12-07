@@ -29,7 +29,7 @@ class FileOpThread(threading.Thread):
                 except queue.Empty:
                     continue
                 try:
-                    if path_type == FSCopy.DIR:
+                    if path_type == FScp.DIR:                        
                         self.dest_fs.makedir(path, recursive=True, allow_recreate=True)
                     else:                                                                
                         self.action(fs, path, self.dest_fs, dest_path, overwrite=True) 
@@ -43,7 +43,7 @@ class FileOpThread(threading.Thread):
         except Exception, e:            
             self.on_error(e)            
 
-class FSCopy(Command):
+class FScp(Command):
     
     DIR, FILE = 0, 1
     
@@ -54,7 +54,7 @@ Copy SOURCE to DESTINATION"""
         return copyfile
 
     def get_optparse(self):
-        optparse = super(FSCopy, self).get_optparse()
+        optparse = super(FScp, self).get_optparse()
         optparse.add_option('-p', '--progress', dest='progress', action="store_true", default=False,
                             help="show progress", metavar="PROGRESS")
         optparse.add_option('-t', '--threads', dest='threads', action="store", default=1,
@@ -100,8 +100,9 @@ Copy SOURCE to DESTINATION"""
                 if src_fs.isdir(src_path): 
                     self.root_dirs.append((src_fs, src_path))                                        
                     src_sub_fs = src_fs.opendir(src_path)
-                    for dir_path, file_paths in src_sub_fs.walk():                                            
-                        copy_fs_paths.append((self.DIR, src_sub_fs, dir_path, dir_path))
+                    for dir_path, file_paths in src_sub_fs.walk():
+                        if dir_path not in ('', '/'):                                            
+                            copy_fs_paths.append((self.DIR, src_sub_fs, dir_path, dir_path))
                         sub_fs = src_sub_fs.opendir(dir_path)
                         for file_path in file_paths:                                                         
                             copy_fs_paths.append((self.FILE, sub_fs, file_path, pathjoin(dir_path, file_path)))
@@ -111,8 +112,7 @@ Copy SOURCE to DESTINATION"""
                     else:
                         self.error('%s is not a file or directory\n' % src_path)
                         return 1                    
-                                
-                
+                                        
         if self.options.threads > 1:            
             copy_fs_dirs = [r for r in copy_fs_paths if r[0] == self.DIR]
             copy_fs_paths = [r for r in copy_fs_paths if r[0] == self.FILE]            
@@ -150,8 +150,7 @@ Copy SOURCE to DESTINATION"""
             # caught until the queue is finished 
             #file_queue.join()
         
-        except KeyboardInterrupt:
-            print "!"
+        except KeyboardInterrupt:            
             options.progress = False
             if self.action_error:
                 self.error(self.wrap_error(unicode(self.action_error)) + '\n')  
@@ -229,7 +228,7 @@ Copy SOURCE to DESTINATION"""
         return bar
         
 def run():
-    return FSCopy().run()
+    return FScp().run()
 
 if __name__ == "__main__":
     sys.exit(run())

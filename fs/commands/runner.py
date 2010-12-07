@@ -213,7 +213,7 @@ class Command(object):
                             help="make output verbose", metavar="VERBOSE")        
         return optparse
         
-    def run(self):        
+    def run(self):    
         parser = self.get_optparse()
         options, args = parser.parse_args()
         args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]
@@ -227,13 +227,15 @@ class Command(object):
             if self.is_terminal():
                 self.output("\n")
             return 0
+        except ValueError:
+            pass
         except SystemExit:
             return 0
-        #except IOError:
-        #    return 1
-        #except Exception, e:            
-        #    self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
-        #    return 1
+        except IOError:
+            return 1
+        except Exception, e:            
+            self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
+            return 1
         
         
         
