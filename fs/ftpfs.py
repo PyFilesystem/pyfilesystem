@@ -751,8 +751,7 @@ class FTPFS(FS):
 
     def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT,
                  port=21,
-                 dircache=True,
-                 max_buffer_size=128*1024*1024):
+                 dircache=True):
         """ Connect to a FTP server.
         
         :param host: Host to connect to
@@ -765,8 +764,7 @@ class FTPFS(FS):
         which will speed up operations such as getinfo, isdi, isfile, but
         changes to the ftp file structure will not be visible until
         `~fs.ftpfs.FTPFS.clear_dircache` is called        
-        :param dircache: If True directory information will be cached for fast access
-        :param max_buffer_size: Number of bytes to hold before blocking write operations
+        :param dircache: If True directory information will be cached for fast access        
 
         """
 
@@ -780,9 +778,7 @@ class FTPFS(FS):
         self.timeout = timeout
 
         self.use_dircache = dircache
-        self.get_dircache()
-
-        self.max_buffer_size = max_buffer_size
+        self.get_dircache()        
 
         self._cache_hint = False
         self._locals._ftp = None

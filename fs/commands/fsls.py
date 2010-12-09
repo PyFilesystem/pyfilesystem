@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from fs.opener import opener
-from fs.path import pathsplit, abspath, isdotfile
+from fs.path import pathsplit, abspath, isdotfile, iswildcard
 from fs.commands.runner import Command
 from collections import defaultdict
 import sys
@@ -43,10 +43,10 @@ List contents of [PATH]"""
             path = path or '.'
             wildcard = None
             
-            if self.is_wildcard(path):
+            if iswildcard(path):
                 path, wildcard = pathsplit(path)
                 
-            if fs.isfile(path):                
+            if path != '.' and fs.isfile(path):                
                 if not options.dirsonly:                    
                     file_paths.append(path)
             else:                  

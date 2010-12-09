@@ -2,7 +2,7 @@ import sys
 from optparse import OptionParser
 from fs.opener import opener, OpenerError
 from fs.errors import FSError
-from fs.path import splitext, pathsplit, isdotfile
+from fs.path import splitext, pathsplit, isdotfile, iswildcard
 import platform
 from collections import defaultdict
 
@@ -55,11 +55,6 @@ class Command(object):
         self.terminal_width = w
         self.name = self.__class__.__name__.lower()
     
-    def is_wildcard(self, path):
-        if path is None:
-            return False
-        return '*' in path or '?' in path
-    
     def is_terminal(self):
         try:
             return self.output_file.isatty()
@@ -111,7 +106,7 @@ class Command(object):
         if path is None:
             return [], []
         pathname, resourcename = pathsplit(path)
-        if self.is_wildcard(resourcename):
+        if iswildcard(resourcename):
             dir_paths = fs.listdir(pathname,
                                    wildcard=resourcename,
                                    absolute=True,
@@ -137,7 +132,7 @@ class Command(object):
         resources = []
         
         for fs, path in fs_paths:
-            if self.is_wildcard(path):
+            if path and iswildcard(path):
                 if not files_only:
                     dir_paths = fs.listdir(wildcard=path, dirs_only=True)
                     for path in dir_paths:
@@ -227,8 +222,8 @@ class Command(object):
             if self.is_terminal():
                 self.output("\n")
             return 0
-        except ValueError:
-            pass
+        #except ValueError:
+        #    pass
         except SystemExit:
             return 0
         except IOError:

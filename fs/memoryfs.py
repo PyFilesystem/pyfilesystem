@@ -156,7 +156,7 @@ class DirEntry(object):
         self.locks += 1
 
     def unlock(self):
-        self.locks -=1
+        self.locks -= 1
         assert self.locks >=0, "Lock / Unlock mismatch!"
 
     def desc_contents(self):
@@ -494,7 +494,7 @@ class MemoryFS(FS):
         if dir_entry is None:
             raise ResourceNotFoundError(path)
         if dir_entry.isfile():
-            raise ResourceInvalidError(path,msg="that's a file, not a directory: %(path)s")
+            raise ResourceInvalidError(path, msg="not a directory: %(path)s")
         paths = dir_entry.contents.keys()
         for (i,p) in enumerate(paths):
             if not isinstance(p,unicode):
@@ -522,7 +522,7 @@ class MemoryFS(FS):
         return info    
     
     @synchronize
-    def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
+    def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
@@ -533,7 +533,7 @@ class MemoryFS(FS):
             dst_dir_entry.xattrs.update(src_xattrs)
     
     @synchronize
-    def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
+    def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
@@ -544,7 +544,7 @@ class MemoryFS(FS):
             dst_dir_entry.xattrs.update(src_xattrs)
     
     @synchronize
-    def copy(self, src, dst, overwrite=False, chunk_size=16384):
+    def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
@@ -555,7 +555,7 @@ class MemoryFS(FS):
             dst_dir_entry.xattrs.update(src_xattrs)
     
     @synchronize
-    def move(self, src, dst, overwrite=False, chunk_size=16384):
+    def move(self, src, dst, overwrite=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
@@ -564,6 +564,27 @@ class MemoryFS(FS):
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
             dst_dir_entry.xattrs.update(src_xattrs)        
+    
+    @synchronize
+    def getcontents(self, path):        
+        dir_entry = self._get_dir_entry(path)
+        if dir_entry is None:
+            raise ResourceNotFoundError(path)
+        if not dir_entry.isfile():
+            raise ResourceInvalidError(path, msg="not a directory: %(path)s")
+        return dir_entry.data or ''
+    
+    @synchronize
+    def setcontents(self, path, data, chunk_size=1024*64):
+        if not isinstance(data, str):
+            return super(MemoryFS, self).setcontents(path, data, chunk_size)        
+        if not self.exists(path):      
+            self.open(path, 'w').close()                    
+            
+        dir_entry = self._get_dir_entry(path)
+        if not dir_entry.isfile():
+            raise ResourceInvalidError('Not a directory %(path)s', path)
+        dir_entry.data = data                
     
     @synchronize
     def setxattr(self, path, key, value):                

@@ -515,3 +515,16 @@ class PathMap(object):
     def names(self,root="/"):
         return list(self.iternames(root))
 
+_wild_chars = frozenset('*?[]!{}')
+def iswildcard(path):
+    """Check if a path ends with a wildcard
+    
+    >>> is_wildcard('foo/bar/baz.*')
+    True
+    >>> is_wildcard('foo/bar')
+    False
+    
+    """
+    assert path is not None
+    base_chars = frozenset(basename(path))    
+    return not base_chars.isdisjoint(_wild_chars)    

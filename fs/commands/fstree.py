@@ -14,7 +14,9 @@ Recursively display the contents of PATH in an ascii tree"""
     def get_optparse(self):
         optparse = super(FSTree, self).get_optparse()        
         optparse.add_option('-d', '--depth', dest='depth', type="int", default=5,
-                            help="Maximum depth to display", metavar="DEPTH")        
+                            help="Maximum depth to display", metavar="DEPTH")
+        optparse.add_option('-a', '--all', dest='all', action='store_true', default=False,
+                            help="do not hide dot files")        
         return optparse
         
     def do_run(self, options, args):        
@@ -31,7 +33,8 @@ Recursively display the contents of PATH in an ascii tree"""
             print_fs(fs, path or '',
                      file_out=self.output_file,
                      max_levels=options.depth,
-                     terminal_colors=self.is_terminal())        
+                     terminal_colors=self.is_terminal(),
+                     hide_dotfiles=not options.all)        
    
 def run():
     return FSTree().run()          

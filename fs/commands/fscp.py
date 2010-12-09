@@ -1,6 +1,6 @@
 from fs.opener import opener
 from fs.utils import copyfile, copystructure
-from fs.path import pathjoin
+from fs.path import pathjoin, iswildcard
 from fs.errors import FSError
 from fs.commands.runner import Command
 import sys
@@ -92,7 +92,7 @@ Copy SOURCE to DESTINATION"""
             if src_path is None:
                 src_path = '/'
 
-            if self.is_wildcard(src_path):
+            if iswildcard(src_path):
                 for file_path in src_fs.listdir(wildcard=src_path, full=True):
                     copy_fs_paths.append((self.FILE, src_fs, file_path, file_path))
                     

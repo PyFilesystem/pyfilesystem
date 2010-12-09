@@ -56,10 +56,13 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     src = None        
     try:
         # Chunk copy
-        src = src_fs.open(src_path, 'rb')        
+        if src_fs.getsize(src_path) < chunk_size:
+            src = src_fs.getcontents(src_path)
+        else:
+            src = src_fs.open(src_path, 'rb')        
         dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
     finally:
-        if src is not None:
+        if src is not None and hasattr(src, 'close'):
             src.close()
 
 
@@ -89,14 +92,18 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_movefile(src_syspath, dst_syspath)        
         return
 
-    src = None
-    try:        
-        src = src_fs.open(src_path, 'rb')
-        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)        
-        src_fs.remove(src_path)
 
+    src = None        
+    try:
+        # Chunk copy
+        if src_fs.getsize(src_path) < chunk_size:
+            src = src_fs.getcontents(src_path)
+        else:
+            src = src_fs.open(src_path, 'rb')        
+        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
+        src_fs.remove(src_path)
     finally:
-        if src is not None:
+        if src is not None and hasattr(src, 'close'):
             src.close()
 
 def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
@@ -324,7 +331,7 @@ def find_duplicates(fs,
             paths = list(set(paths).difference(dups))
 
 
-def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
+def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hide_dotfiles=False):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
@@ -343,13 +350,14 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
     :param file_out: File object to write output to (defaults to sys.stdout)
     :param terminal_colors: If True, terminal color codes will be written, set to False for non-console output.
         The default (None) will select an appropriate setting for the platform.
+    :param hide_dotfiles: if True, files or directories begining with '.' will be removed
 
     """
 
     if file_out is None:
         file_out = sys.stdout
 
-    file_encoding = getattr(file_out, 'encoding', 'utf-8')
+    file_encoding = getattr(file_out, 'encoding', 'utf-8') or 'utf-8'
 
     if terminal_colors is None:
         if sys.platform.startswith('win'):
@@ -388,11 +396,15 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None):
     def print_dir(fs, path, levels=[]):
         
         try:
-            dir_listing = [(fs.isdir(pathjoin(path,p)), p) for p in fs.listdir(path)]
+            dir_listing = ( [(True, p) for p in fs.listdir(path, dirs_only=True)] +
+                            [(False, p) for p in fs.listdir(path, files_only=True)] )            
         except Exception, e:
             prefix = ''.join([('|   ', '    ')[last] for last in levels]) + '   '
             write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unabled to retrieve directory list (%s) ..." % str(e)))
             return 0        
+        
+        if hide_dotfiles:
+            dir_listing = [(isdir, p) for isdir, p in dir_listing if not p.startswith('.')]
         
         dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
                             

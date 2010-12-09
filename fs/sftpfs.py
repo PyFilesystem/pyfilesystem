@@ -9,12 +9,15 @@ Filesystem accessing an SFTP server (via paramiko)
 import datetime
 import stat as statinfo
 import threading
-
+import os
 import paramiko
+from getpass import getuser
+from binascii import hexlify
 
 from fs.base import *
 from fs.path import *
 from fs.errors import *
+from fs.utils import isdir, isfile
 
 # SFTPClient appears to not be thread-safe, so we use an instance per thread
 if hasattr(threading, "local"):
@@ -58,6 +61,7 @@ class SFTPFS(FS):
               'atomic.setcontents' : False
               }
 
+
     def __init__(self, connection, root_path="/", encoding=None, **credentials):
         """SFTPFS constructor.
 
@@ -88,18 +92,81 @@ class SFTPFS(FS):
         self._tlocal = thread_local()
         self._transport = None
         self._client = None
+        
+        
+        hostname = None
+        if isinstance(connection, basestring):
+            hostname = connection
+        else:
+            try:
+                hostname, port = connection
+            except ValueError:
+                pass
+            
+        
+        hostkeytype = None
+        hostkey = None
+                
+        if hostname is not None:
+            try:
+                host_keys = paramiko.util.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
+            except IOError:
+                try:
+                    # try ~/ssh/ too, because windows can't have a folder named ~/.ssh/
+                    host_keys = paramiko.util.load_host_keys(os.path.expanduser('~/ssh/known_hosts'))
+                except IOError:
+                    
+                    host_keys = {}
+                        
+            if host_keys.has_key(hostname):
+                hostkeytype = host_keys[hostname].keys()[0]
+                hostkey = host_keys[hostname][hostkeytype]
+                credentials['hostkey'] = hostkey                
+        
+        if not credentials.get('username'):
+            credentials['username'] = getuser()                    
+        
+        super(SFTPFS, self).__init__()
+        
         if isinstance(connection,paramiko.Channel):
             self._transport = None
             self._client = paramiko.SFTPClient(connection)
-        else:
-            if not isinstance(connection,paramiko.Transport):
+        else:            
+            if not isinstance(connection, paramiko.Transport):
                 connection = paramiko.Transport(connection)
                 self._owns_transport = True
-            if not connection.is_authenticated():
-                connection.connect(**credentials)
+            try:           
+                if not connection.is_authenticated():                                            
+                    connection.connect(**credentials)
+                if not connection.is_authenticated():
+                    self._agent_auth(connection, credentials.get('username'))
+                if not connection.is_authenticated():
+                    connection.close()
+                    raise RemoteConnectionError('No auth')
+            except paramiko.AuthenticationException:
+                raise RemoteConnectionError('Auth rejected')
             self._transport = connection
         self.root_path = abspath(normpath(root_path))
-        super(SFTPFS, self).__init__()
+
+    @classmethod
+    def _agent_auth(cls, transport, username):
+        """
+        Attempt to authenticate to the given transport using any of the private
+        keys available from an SSH agent.
+        """
+        
+        agent = paramiko.Agent()
+        agent_keys = agent.get_keys()
+        if len(agent_keys) == 0:
+            return False
+            
+        for key in agent_keys:            
+            try:
+                transport.auth_publickey(username, key)                
+                return key
+            except paramiko.SSHException:
+                pass
+        return None       
 
     def __del__(self):
         self.close()
@@ -184,6 +251,8 @@ class SFTPFS(FS):
 
     @convert_os_errors
     def isdir(self,path):
+        if path == '/':
+            return True
         npath = self._normpath(path)
         try:
             stat = self.client.stat(npath)
@@ -209,6 +278,10 @@ class SFTPFS(FS):
         npath = self._normpath(path)
         try:
             paths = self.client.listdir(npath)
+            if dirs_only or files_only:
+                path_attrs = self.client.listdir_attr(npath)
+            else:
+                path_attrs = None
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 if self.isfile(path):
@@ -217,10 +290,72 @@ class SFTPFS(FS):
             elif self.isfile(path):
                 raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
             raise
+        
+        if path_attrs is not None:
+            if dirs_only:
+                filter_paths = []
+                for path, attr in zip(paths, path_attrs):
+                    if isdir(self, path, attr.__dict__):
+                        filter_paths.append(path)
+                paths = filter_paths
+            elif files_only:
+                filter_paths = []
+                for path, attr in zip(paths, path_attrs):
+                    if isfile(self, path, attr.__dict__):
+                        filter_paths.append(path)
+                paths = filter_paths
+        
         for (i,p) in enumerate(paths):
             if not isinstance(p,unicode):
                 paths[i] = p.decode(self.encoding)
-        return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
+        return self._listdir_helper(path, paths, wildcard, full, absolute, False, False)
+
+
+    @convert_os_errors
+    def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        npath = self._normpath(path)
+        try:
+            paths = self.client.listdir(npath)
+            attrs = self.client.listdir_attr(npath)
+            attrs_map = dict(zip(paths, attrs))            
+        except IOError, e:
+            if getattr(e,"errno",None) == 2:
+                if self.isfile(path):
+                    raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
+                raise ResourceNotFoundError(path)
+            elif self.isfile(path):
+                raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
+            raise
+        
+    
+        if dirs_only:
+            filter_paths = []
+            for path, attr in zip(paths, attrs):
+                if isdir(self, path, attr.__dict__):
+                    filter_paths.append(path)
+            paths = filter_paths
+        elif files_only:
+            filter_paths = []
+            for path, attr in zip(paths, attrs):
+                if isfile(self, path, attr.__dict__):
+                    filter_paths.append(path)
+            paths = filter_paths
+            
+        for (i, p) in enumerate(paths):
+            if not isinstance(p, unicode):
+                paths[i] = p.decode(self.encoding)
+                
+        def getinfo(p):
+            resourcename = basename(p)
+            info = attrs_map.get(resourcename)
+            if info is None:
+                return self.getinfo(pathjoin(path, p))
+            return self._extract_info(info.__dict__)
+                
+        return [(p, getinfo(p)) for p in 
+                    self._listdir_helper(path, paths, wildcard, full, absolute, False, False)]
+
+
 
     @convert_os_errors
     def makedir(self,path,recursive=False,allow_recreate=False):
@@ -334,6 +469,23 @@ class SFTPFS(FS):
             if not self.isdir(dirname(dst)):
                 raise ParentDirectoryMissingError(dst,msg="Destination directory does not exist: %(path)s")
             raise
+
+    _info_vars = frozenset('st_size st_uid st_gid st_mode st_atime st_mtime'.split())
+    @classmethod
+    def _extract_info(cls, stats):
+        fromtimestamp = datetime.datetime.fromtimestamp
+        info = dict((k, v) for k, v in stats.iteritems() if k in cls._info_vars)        
+        info['size'] = info['st_size']
+        ct = info.get('st_ctime')
+        if ct is not None:
+            info['created_time'] = fromtimestamp(ct)
+        at = info.get('st_atime')
+        if at is not None:
+            info['accessed_time'] = fromtimestamp(at)
+        mt = info.get('st_mtime')
+        if mt is not None:
+            info['modified_time'] = fromtimestamp(mt)
+        return info
 
     @convert_os_errors
     def getinfo(self, path):        
