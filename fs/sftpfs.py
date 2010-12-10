@@ -102,51 +102,21 @@ class SFTPFS(FS):
                 hostname, port = connection
             except ValueError:
                 pass
-            
-        
-        hostkeytype = None
-        hostkey = None
-                
-        if hostname is not None:
-            try:
-                host_keys = paramiko.util.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
-            except IOError:
-                try:
-                    # try ~/ssh/ too, because windows can't have a folder named ~/.ssh/
-                    host_keys = paramiko.util.load_host_keys(os.path.expanduser('~/ssh/known_hosts'))
-                except IOError:
                     
-                    host_keys = {}
-                        
-            if host_keys.has_key(hostname):
-                hostkeytype = host_keys[hostname].keys()[0]
-                hostkey = host_keys[hostname][hostkeytype]
-                credentials['hostkey'] = hostkey                
-        
-        if not credentials.get('username'):
-            credentials['username'] = getuser()                    
-        
-        super(SFTPFS, self).__init__()
+        super(SFTPFS, self).__init__()        
+        self.root_path = abspath(normpath(root_path))
         
         if isinstance(connection,paramiko.Channel):
             self._transport = None
             self._client = paramiko.SFTPClient(connection)
-        else:            
-            if not isinstance(connection, paramiko.Transport):
+        else:
+            if not isinstance(connection,paramiko.Transport):
                 connection = paramiko.Transport(connection)
                 self._owns_transport = True
-            try:           
-                if not connection.is_authenticated():                                            
-                    connection.connect(**credentials)
-                if not connection.is_authenticated():
-                    self._agent_auth(connection, credentials.get('username'))
-                if not connection.is_authenticated():
-                    connection.close()
-                    raise RemoteConnectionError('No auth')
-            except paramiko.AuthenticationException:
-                raise RemoteConnectionError('Auth rejected')
+            if not connection.is_authenticated():
+                connection.connect(**credentials)
             self._transport = connection
-        self.root_path = abspath(normpath(root_path))
+        
 
     @classmethod
     def _agent_auth(cls, transport, username):

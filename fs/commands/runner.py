@@ -208,7 +208,7 @@ class Command(object):
                             help="make output verbose", metavar="VERBOSE")        
         return optparse
         
-    def run(self):    
+    def run(self):        
         parser = self.get_optparse()
         options, args = parser.parse_args()
         args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]

@@ -45,7 +45,7 @@ List contents of [PATH]"""
             
             if iswildcard(path):
                 path, wildcard = pathsplit(path)
-                
+                            
             if path != '.' and fs.isfile(path):                
                 if not options.dirsonly:                    
                     file_paths.append(path)

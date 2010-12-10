@@ -229,7 +229,7 @@ class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         sys.setcheckinterval(self._check_interval)
 
 
-class TestConnectionManagerFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
+class TestConnectionManagerFS(unittest.TestCase,FSTestCases):#,ThreadingTestCases):
     """Test simple operation of ConnectionManagerFS"""
 
     def setUp(self):
@@ -255,6 +255,7 @@ class DisconnectingFS(WrapFS):
         if random.choice([True,False]):
             raise RemoteConnectionError("")
         self._bounce_thread = threading.Thread(target=self._bounce)
+        self._bounce_thread.daemon = True
         self._bounce_thread.start()
 
     def __getstate__(self):
@@ -265,6 +266,7 @@ class DisconnectingFS(WrapFS):
     def __setstate__(self,state):
         super(DisconnectingFS,self).__setstate__(state)
         self._bounce_thread = threading.Thread(target=self._bounce)
+        self._bounce_thread.daemon = True
         self._bounce_thread.start()
 
     def _bounce(self):

@@ -24,8 +24,8 @@ def re_raise_faults(func):
         try:
             return func(*args,**kwds)
         except xmlrpclib.Fault, f:
-            import traceback
-            traceback.print_exc()           
+            #import traceback
+            #traceback.print_exc()           
             # Make sure it's in a form we can handle
             bits = f.faultString.split(" ")
             if bits[0] not in ["<type","<class"]:

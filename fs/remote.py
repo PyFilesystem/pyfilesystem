@@ -253,30 +253,16 @@ class RemoteFileBuffer(FileWrapper):
         if "w" in self.mode or "a" in self.mode or "+" in self.mode:
             pos = self.wrapped_file.tell()
             self.wrapped_file.seek(0)
-            
-#            chunk_size = 64*1024
-#            f = None
-#            try:
-#                f = self.fs.wrapped_fs.open(self.path, 'wb')                
-#                chunk = self.wrapped_file.read(chunk_size)
-#                while chunk:
-#                    f.write(chunk)
-#                    chunk = self.wrapped_file.read(chunk_size)
-#            finally:
-#                if f is not None:
-#                    f.close()
-            
-            self.fs.setcontents(self.path, self.wrapped_file)            
-            
+            self.fs.setcontents(self.path, self.wrapped_file)
             self.wrapped_file.seek(pos)
     
-    def close(self):        
+    def close(self):
         with self._lock:
-            if not self.closed:        
+            if not self.closed:
                 self._setcontents()
                 if self._rfile is not None:
                     self._rfile.close()
-                super(RemoteFileBuffer,self).close()                
+                super(RemoteFileBuffer,self).close()
 
 
 class ConnectionManagerFS(LazyFS):
@@ -345,6 +331,7 @@ class ConnectionManagerFS(LazyFS):
                 if not self._poll_thread:
                     target = self._poll_connection
                     self._poll_thread = threading.Thread(target=target)
+                    self._poll_thread.daemon = True
                     self._poll_thread.start()
                 self._connection_cond.wait(timeout)
         finally:

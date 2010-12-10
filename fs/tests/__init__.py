@@ -761,7 +761,9 @@ class ThreadingTestCases:
                 func()
             except Exception:
                 errors.append(sys.exc_info())
-        return threading.Thread(target=runThread)
+        thread = threading.Thread(target=runThread)
+        thread.daemon = True
+        return thread
 
     def _runThreads(self,*funcs):
         check_interval = sys.getcheckinterval()

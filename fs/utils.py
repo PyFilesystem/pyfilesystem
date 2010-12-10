@@ -168,7 +168,7 @@ def copystructure(src_fs, dst_fs):
     
     """
     
-    for path in src_fs.walkdirs(wildcard="depth"):
+    for path in src_fs.walkdirs():
         dst_fs.makedir(path, allow_recreate=True)
 
 
@@ -291,7 +291,7 @@ def find_duplicates(fs,
         return
 
     def identical(p1, p2):
-        """ Returns True if the contests of two files are identical. """
+        """ Returns True if the contents of two files are identical. """
         f1, f2 = None, None
         try:
             f1 = fs.open(p1, 'rb')
@@ -397,7 +397,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         
         try:
             dir_listing = ( [(True, p) for p in fs.listdir(path, dirs_only=True)] +
-                            [(False, p) for p in fs.listdir(path, files_only=True)] )            
+                            [(False, p) for p in fs.listdir(path, files_only=True)] )
         except Exception, e:
             prefix = ''.join([('|   ', '    ')[last] for last in levels]) + '   '
             write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unabled to retrieve directory list (%s) ..." % str(e)))
