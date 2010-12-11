@@ -26,43 +26,49 @@ Serves the contents of PATH with one of a number of methods"""
         try:
             fs_url = args[0]
         except IndexError:
-            self.error('FS path required\n')
-            return 1
+            fs_url = './'            
             
         fs, path = self.open_fs(fs_url)
-        if path and fs.isdir(path):
-            fs, path = fs.opendir(path), '/'        
-            
+                    
         port = options.port
-                        
-        if options.type == 'http':            
-            from fs.expose.http import serve_fs            
-            if port is None:
-                port = 80
-            serve_fs(fs, options.addr, port)
-                
-        elif options.type == 'rpc':            
-            from fs.expose.xmlrpc import RPCFSServer
-            if port is None:
-                port = 80
-            s = RPCFSServer(fs, (options.addr, port))
-            s.serve_forever()
-        
-        elif options.type == 'sftp':            
-            from fs.expose.sftp import BaseSFTPServer
-            if port is None:
-                port = 22
-            server = BaseSFTPServer((options.addr, port), fs)
-            try:
-                server.serve_forever()
-            except Exception, e:
-                pass
-            finally:
-                server.server_close()
-        
-        else:
-            self.error("Server type '%s' not recognised\n" % options.type)
             
+        try:
+                                
+            if options.type == 'http':            
+                from fs.expose.http import serve_fs            
+                if port is None:
+                    port = 80                            
+                serve_fs(fs, options.addr, port)            
+                    
+            elif options.type == 'rpc':            
+                from fs.expose.xmlrpc import RPCFSServer
+                if port is None:
+                    port = 80
+                s = RPCFSServer(fs, (options.addr, port))
+                s.serve_forever()
+            
+            elif options.type == 'sftp':            
+                from fs.expose.sftp import BaseSFTPServer
+                if port is None:
+                    port = 22
+                server = BaseSFTPServer((options.addr, port), fs)
+                try:
+                    server.serve_forever()
+                except Exception, e:
+                    pass
+                finally:
+                    server.server_close()
+            
+            else:
+                self.error("Server type '%s' not recognised\n" % options.type)
+            
+        except IOError, e:
+            if e.errno == 13:
+                self.error('Permission denied\n')
+                return 1
+            else:                
+                self.error(e.strerror + '\n')
+                return 1            
             
 def run():                               
     return FSServe().run()        

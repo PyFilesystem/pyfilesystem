@@ -131,8 +131,7 @@ class OpenerRegistry(object):
             fs = fs.opendir(pathname)
             fs_path = resourcename
                 
-        return fs, fs_path
-        
+        return fs, fs_path        
     
     def parse_credentials(self, url):
         
@@ -154,7 +153,7 @@ class OpenerRegistry(object):
             return fs_name, None
 
     def open(self, fs_url, mode='r'):        
-        writeable = 'w' in mode or 'a' in mode
+        writeable = 'w' in mode or 'a' in mode or '+' in mode
         fs, path = self.parse(fs_url, writeable=writeable)
         file_object = fs.open(path, mode)
         return file_object
@@ -179,12 +178,11 @@ class OSFSOpener(Opener):
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
         from fs.osfs import OSFS 
-        username, password, fs_path = registry.parse_credentials(fs_path)                
-        
-                
+                                            
         path = _expand_syspath(fs_path)
         if create:
-            sys.makedirs(fs_path)
+            from fs.osfs import _os_makedirs
+            _os_makedirs(fs_path)
         if os.path.isdir(path):
             osfs = OSFS(path)
             filepath = None
@@ -236,6 +234,7 @@ class ZipOpener(Opener):
         zipfs = ZipFS(zip_file, mode=mode, allow_zip_64=allow_zip_64)
         return zipfs, None
     
+
 class RPCOpener(Opener):
     names = ['rpc']
 
@@ -254,6 +253,7 @@ class RPCOpener(Opener):
             rpcfs.makedir(path, recursive=True, allow_recreate=True)
         
         return rpcfs, path or None
+
 
 class FTPOpener(Opener):
     names = ['ftp']
@@ -320,9 +320,6 @@ class SFTPOpener(Opener):
             else:
                 host = (addr, port)
             
-        #if not username or not password:
-        #    raise OpenerError('SFTP requires authentication')
-            
         if create:
             sftpfs = SFTPFS(host, root_path='/', **credentials)
             if not sftpfs._transport.is_authenticated():
@@ -350,6 +347,7 @@ class MemOpener(Opener):
             memfs = memfs.makeopendir(fs_path)
         return memfs, None
     
+    
 class DebugOpener(Opener):
     names = ['debug']
     
@@ -366,13 +364,14 @@ class DebugOpener(Opener):
             from fs.tempfs import TempFS
             return DebugFS(TempFS(), identifier=fs_name_params, verbose=False), None
     
+    
 class TempOpener(Opener):
     names = ['temp']
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
         from fs.tempfs import TempFS        
-        return TempFS(identifier=fs_name_params, temp_dir=fs_path), None
+        return TempFS(identifier=fs_name_params, temp_dir=fs_path, create=create), None
     
 
 opener = OpenerRegistry([OSFSOpener,

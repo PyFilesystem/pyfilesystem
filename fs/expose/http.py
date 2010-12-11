@@ -124,24 +124,21 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return path
         
 
-def serve_fs(fs, address='', port=8000):
+def serve_fs(fs, address='', port=8000):        
     
     def Handler(request, client_address, server):
         return FSHTTPRequestHandler(fs, request, client_address, server)
     
     #class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    #    pass
-    
-    httpd = SocketServer.TCPServer((address, port), Handler, bind_and_activate=False)
+    #    pass    
+    httpd = SocketServer.TCPServer((address, port), Handler, bind_and_activate=False)    
     #httpd = ThreadedTCPServer((address, port), Handler, bind_and_activate=False)
     httpd.allow_reuse_address = True
     httpd.server_bind()
     httpd.server_activate()
     
-    server_thread = threading.Thread(target=httpd.serve_forever)    
-    server_thread.setDaemon(True)
-    server_thread.start()
-    
+    server_thread = threading.Thread(target=httpd.serve_forever)        
+    server_thread.start()    
     try:
         while True:
             time.sleep(0.1)

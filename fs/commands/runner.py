@@ -225,9 +225,7 @@ class Command(object):
         #except ValueError:
         #    pass
         except SystemExit:
-            return 0
-        except IOError:
-            return 1
+            return 0        
         except Exception, e:            
             self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
             return 1
