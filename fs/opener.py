@@ -49,7 +49,7 @@ class OpenerRegistry(object):
 )
 
 (?:
-\+(.*?)$
+\!(.*?)$
 )*$
 ''', re.VERBOSE)
         

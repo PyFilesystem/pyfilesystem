@@ -50,6 +50,12 @@ class DummyLock(object):
     def release(self):
         """Releasing a DummyLock always succeeds."""
         pass
+    
+    def __enter__(self):
+        pass
+    
+    def __exit__(self, *args):
+        pass
 
 
 def silence_fserrors(f, *args, **kwargs):

@@ -12,6 +12,7 @@ import fs
 from fs.base import *
 from fs.errors import *
 from fs.path import pathsplit, abspath, dirname, recursepath, normpath
+from fs.remote import RemoteFileBuffer
 
 from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
 
@@ -28,6 +29,11 @@ import datetime
 import re
 from socket import error as socket_error
 from fs.local_functools import wraps
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 import time
 import sys
@@ -528,7 +534,7 @@ class _FTPFile(object):
 
     def __init__(self, ftpfs, ftp, path, mode):
         if not hasattr(self, '_lock'):
-            self._lock = threading.RLock()
+            self._lock = threading.RLock()        
         self.ftpfs = ftpfs
         self.ftp = ftp
         self.path = path
@@ -536,18 +542,23 @@ class _FTPFile(object):
         self.read_pos = 0
         self.write_pos = 0
         self.closed = False
+        self.file_size = None
         if 'r' in mode or 'a' in mode:
             self.file_size = ftpfs.getsize(path)
         self.conn = None
 
         path = _encode(path)
         #self._lock = ftpfs._lock
+        self._start_file(mode, path)
 
+    def _start_file(self, mode, path):
+        self.read_pos = 0
+        self.write_pos = 0
         if 'r' in mode:
             self.ftp.voidcmd('TYPE I')
-            self.conn = ftp.transfercmd('RETR '+path, None)
+            self.conn = self.ftp.transfercmd('RETR '+path, None)
 
-        elif 'w' in mode or 'a' in mode:
+        else:#if 'w' in mode or 'a' in mode:
             self.ftp.voidcmd('TYPE I')
             if 'a' in mode:
                 self.write_pos = self.file_size
@@ -607,15 +618,16 @@ class _FTPFile(object):
     def __exit__(self,exc_type,exc_value,traceback):
         self.close()
 
-    @synchronize
+    #@synchronize
     def flush(self):
         return
 
+    @synchronize
     def seek(self, pos, where=fs.SEEK_SET):
         # Ftp doesn't support a real seek, so we close the transfer and resume
         # it at the new position with the REST command
         # I'm not sure how reliable this method is!
-        if not self.file_size:
+        if self.file_size is None:
             raise ValueError("Seek only works with files open for read")
 
         self._lock.acquire()
@@ -657,6 +669,33 @@ class _FTPFile(object):
             return self.read_pos
         else:
             return self.write_pos
+
+    @synchronize
+    def truncate(self, size=None):
+        # Inefficient, but I don't know how else to implement this
+        if size is None:        
+            size = self.tell()
+         
+        if self.conn is not None:           
+            self.conn.close()
+        self.close()
+                
+        read_f = None        
+        try:
+            read_f = self.ftpfs.open(self.path, 'rb')
+            data = read_f.read(size)
+        finally:
+            if read_f is not None:
+                read_f.close()           
+            
+        self.ftp = self.ftpfs._open_ftp()        
+        self.mode = 'w'
+        self.__init__(self.ftpfs, self.ftp, _encode(self.path), self.mode)
+        #self._start_file(self.mode, self.path)        
+        self.write(data)
+        if len(data) < size:
+            self.write('\0' * (size - len(data)))
+        
 
     @synchronize
     def close(self):
@@ -706,7 +745,7 @@ class _FTPFile(object):
 
 
 
-def ftperrors(f):
+def ftperrors(f):    
     @wraps(f)
     def deco(self, *args, **kwargs):
         self._lock.acquire()
@@ -747,6 +786,7 @@ class FTPFS(FS):
               'atomic.makedir' : True,
               'atomic.rename' : True,
               'atomic.setcontents' : False,
+              'file.read_and_write' : False,
               }
 
     def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT,
@@ -967,8 +1007,24 @@ class FTPFS(FS):
         if 'w' in mode or 'a' in mode:
             self.clear_dircache(dirname(path))
         ftp = self._open_ftp()
-        f = _FTPFile(self, ftp, path, mode)
-        return f
+        f = _FTPFile(self, ftp, path, mode)  
+        return f      
+        #remote_f = RemoteFileBuffer(self, path, mode, rfile = f)
+        #return remote_f
+    
+    @ftperrors
+    def setcontents(self, path, data, chunk_size=8192):
+        if isinstance(data, basestring):
+            data = StringIO(data)
+        self.ftp.storbinary('STOR %s' % _encode(normpath(path)), data, blocksize=chunk_size)
+        
+    @ftperrors
+    def getcontents(self, path, chunk_size=8192):
+        if not self.exists(path):
+            raise ResourceNotFoundError(path=path)
+        contents = StringIO()
+        self.ftp.retrbinary('RETR %s' % _encode(normpath(path)), contents.write, blocksize=chunk_size)
+        return contents.getvalue()        
 
     @ftperrors
     def exists(self, path):

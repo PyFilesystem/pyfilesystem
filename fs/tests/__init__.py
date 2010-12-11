@@ -645,15 +645,20 @@ class FSTestCases(object):
         checkcontents("hello","12345")
 
     def test_truncate_to_larger_size(self):
+        
         with self.fs.open("hello","w") as f:
             f.truncate(30)
-        self.assertEquals(self.fs.getsize("hello"),30)
-        with self.fs.open("hello","r+") as f:
-            f.seek(25)
-            f.write("123456")
-        with self.fs.open("hello","r") as f:
-            f.seek(25)
-            self.assertEquals(f.read(),"123456")
+        self.assertEquals(self.fs.getsize("hello"), 30)
+        
+        # Some file systems (FTPFS) don't support both reading and writing
+        if self.fs.getmeta('file.read_and_write', True):
+            with self.fs.open("hello","r+") as f:
+                f.seek(25)
+                f.write("123456")
+                
+            with self.fs.open("hello","r") as f:
+                f.seek(25)
+                self.assertEquals(f.read(),"123456")
 
     def test_with_statement(self):
         #  This is a little tricky since 'with' is actually new syntax.
