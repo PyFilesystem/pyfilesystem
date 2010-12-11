@@ -44,12 +44,12 @@ class OpenerRegistry(object):
 :\/\/
 
 (?:
-\((.*?)\)
 |(.*?)
+|(?:(.*?)!)
 )
 
 (?:
-\!(.*?)$
+!(.*?)$
 )*$
 ''', re.VERBOSE)
         
@@ -85,11 +85,16 @@ class OpenerRegistry(object):
         match = self.split_segments(fs_url)
         
         if match:
-            fs_name, paren_url, fs_url, path = match.groups()                                
-            fs_url = fs_url or paren_url or ''          
+            fs_name, fs_url, _, path = match.groups()
+            path = path or ''
+            fs_url = fs_url or ''
             if ':' in fs_name:
                 fs_name, sub_protocol = fs_name.split(':', 1)
                 fs_url = '%s://%s' % (sub_protocol, fs_url)
+            if '!' in path:
+                paths = path.split('!')
+                path = paths.pop()
+                fs_url = '%s!%s' % (fs_url, '!'.join(paths))
             
             fs_name = fs_name or self.default_opener                                                                    
                 
@@ -105,31 +110,29 @@ class OpenerRegistry(object):
         if fs_url is None:
             raise OpenerError("Unable to parse '%s'" % orig_url)
         
-        wildcard = None
-        if iswildcard(fs_url):
-            fs_url, wildcard = pathsplit(fs_url)
+        #wildcard = None
+        #if iswildcard(fs_url):
+        #    fs_url, wildcard = pathsplit(fs_url)
         
         fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create)
-                
-        if wildcard:
-            fs_path = join(fs_path or '', wildcard)
-        else:
-            path = join(fs_path or '', path)
         
-        if path:
-            pathname, resourcename = pathsplit(path)
-            if pathname:
-                fs = fs.opendir(pathname)
-                path = resourcename
-            if not iswildcard(path):
-                if fs.isdir(path):
-                    fs = fs.opendir(path)
-                    fs_path = ''
-                else:
-                    fs_path = path
-                
+        pathname, resourcename = pathsplit(fs_path or '')
+        if pathname:
+            fs = fs.opendir(pathname)
+            fs_path = resourcename
         
+        if fs_path and iswildcard(fs_path):
+            return fs, fs_path     
+        
+        fs_path = join(fs_path, path)
+        
+        pathname, resourcename = pathsplit(fs_path or '')
+        if pathname:
+            fs = fs.opendir(pathname)
+            fs_path = resourcename
+                
         return fs, fs_path
+        
     
     def parse_credentials(self, url):
         
@@ -385,7 +388,7 @@ opener = OpenerRegistry([OSFSOpener,
 
 def main():
     
-    fs, path = opener.parse('sftp://willmcgugan.com')
+    fs, path = opener.parse('zip:zip://~/zips.zip!t.zip!')
     print fs, path
     
 if __name__ == "__main__":

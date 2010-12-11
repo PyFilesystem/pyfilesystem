@@ -331,7 +331,7 @@ def find_duplicates(fs,
             paths = list(set(paths).difference(dups))
 
 
-def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hide_dotfiles=False):
+def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hide_dotfiles=False, dirs_first=False):
     """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
@@ -406,7 +406,10 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         if hide_dotfiles:
             dir_listing = [(isdir, p) for isdir, p in dir_listing if not p.startswith('.')]
         
-        dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
+        if dirs_first:
+            dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
+        else:
+            dir_listing.sort(key = lambda (isdir, p):p.lower())
                             
         for i, (is_dir, item) in enumerate(dir_listing):
             

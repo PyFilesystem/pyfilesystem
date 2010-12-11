@@ -38,7 +38,7 @@ class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
                     raise
         self.server_addr = ("localhost",port)
         self.serve_more_requests = True
-        self.server_thread = threading.Thread(target=self.runServer)        
+        self.server_thread = threading.Thread(target=self.runServer)            
         self.server_thread.start()
 
     def runServer(self):

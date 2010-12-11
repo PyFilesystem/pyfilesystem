@@ -19,6 +19,9 @@ from fs.path import *
 from fs.errors import *
 from fs.utils import isdir, isfile
 
+class WrongHostKeyError(RemoteConnectionError):
+    pass
+
 # SFTPClient appears to not be thread-safe, so we use an instance per thread
 if hasattr(threading, "local"):
     thread_local = threading.local
@@ -62,7 +65,7 @@ class SFTPFS(FS):
               }
 
 
-    def __init__(self, connection, root_path="/", encoding=None, username='', password=None, pkey=None):
+    def __init__(self, connection, root_path="/", encoding=None, hostkey=None, username='', password=None, pkey=None):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
@@ -80,6 +83,7 @@ class SFTPFS(FS):
         :param connection: a connection string
         :param root_path: The root path to open
         :param encoding: String encoding of paths (defaults to UTF-8)
+        :param hostkey: the host key expected from the server or None if you don't require server validation
         :param username: Name of SFTP user
         :param password: Password for SFTP user
         :param pkey: Public key
@@ -113,11 +117,16 @@ class SFTPFS(FS):
                 connection.daemon = True
                 self._owns_transport = True
             
-        if not connection.is_authenticated():
+        if hostkey is not None:
+            key = self.get_remote_server_key()
+            if hostkey != key:
+                raise WrongHostKeyError('Host keys do not match')
             
-            try:                                
-                connection.start_client()                    
-                
+        connection.start_client()
+        
+        if (password or pkey) and not connection.is_authenticated():
+            
+            try:                
                 if pkey:                    
                     connection.auth_publickey(username, pkey)
                 
@@ -126,12 +135,12 @@ class SFTPFS(FS):
                   
                 if not connection.is_authenticated():  
                     self._agent_auth(connection, username)
-                
+                            
                 if not connection.is_authenticated():
                     connection.close()
                     raise RemoteConnectionError('no auth')
                 
-            except paramiko.SSHException, e:
+            except paramiko.SSHException, e:                
                 connection.close()
                 raise RemoteConnectionError('SSH exception (%s)' % str(e), details=e)
                 
@@ -312,7 +321,7 @@ class SFTPFS(FS):
         try:            
             attrs = self.client.listdir_attr(npath)
             attrs_map = dict((a.filename, a) for a in attrs)                        
-            paths = attrs.keys()            
+            paths = attrs_map.keys()            
         except IOError, e:
             if getattr(e,"errno",None) == 2:
                 if self.isfile(path):
