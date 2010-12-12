@@ -14,8 +14,7 @@ Make a directory"""
     def do_run(self, options, args):
                 
         for fs_url in args:                    
-            fs, path = self.open_fs(fs_url, create=True)
-            print fs, path                  
+            fs, path = self.open_fs(fs_url, create=True)                        
     
 def run():
     return FSMkdir().run()

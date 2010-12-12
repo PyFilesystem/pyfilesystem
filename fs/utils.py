@@ -99,6 +99,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
             src.close()
     src_fs.remove(src_path)
 
+
 def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
     """Moves contents of a directory from one filesystem to another.
 

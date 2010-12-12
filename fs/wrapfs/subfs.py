@@ -38,7 +38,8 @@ class SubFS(WrapFS):
     def __repr__(self):
         return str(self)
 
-    def desc(self, path):        
+    def desc(self, path):
+        #return self.wrapped_fs.desc(join(self.sub_dir, path))     
         desc = "%s!%s" % (str(self), path)
         return desc
         
