@@ -63,4 +63,8 @@
     * Separated behaviour of setcontents and createfile
     * Added a getmmap to base
     * Added command line scripts fsls, fstree, fscat, fscp, fsmv
+    * Added command line scripts fsmkdir, fsmount
+    * Made automatically pick up keys if no other authentication is available
+    * Optimized listdir and listdirinfo in SFTPFS
+    * Made memoryfs work with threads
 

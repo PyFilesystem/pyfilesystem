@@ -38,7 +38,7 @@ def re_raise_faults(func):
             cls = _object_by_name(cls)
             # Re-raise using the remainder of the fault code as message
             if cls:                            
-                raise cls(msg=msg)
+                raise cls('', msg=msg)
             raise f
         except socket.error, e:
             raise RemoteConnectionError(str(e), details=e)

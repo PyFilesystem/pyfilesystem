@@ -365,7 +365,7 @@ class TempOpener(Opener):
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
         from fs.tempfs import TempFS        
-        return TempFS(identifier=fs_name_params, temp_dir=fs_path, create=create), None
+        return TempFS(identifier=fs_name_params, temp_dir=fs_path), None
     
 
 opener = OpenerRegistry([OSFSOpener,

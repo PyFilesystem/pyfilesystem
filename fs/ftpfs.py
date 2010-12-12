@@ -17,11 +17,9 @@ from fs.remote import RemoteFileBuffer
 from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
 
 try:
-    from ftplib import _GLOBAL_DEFAULT_TIMEOUT
-    _FTPLIB_TIMEOUT = True
+    from ftplib import _GLOBAL_DEFAULT_TIMEOUT    
 except ImportError:
-    _GLOBAL_DEFAULT_TIMEOUT = None
-    _FTPLIB_TIMEOUT = False
+    _GLOBAL_DEFAULT_TIMEOUT = object()    
 
 import threading
 from time import sleep
@@ -934,7 +932,7 @@ class FTPFS(FS):
     def _open_ftp(self):
         try:
             ftp = FTP()
-            if _FTPLIB_TIMEOUT:
+            if self.timeout is not _GLOBAL_DEFAULT_TIMEOUT:
                 ftp.connect(self.host, self.port, self.timeout)
             else:
                 ftp.connect(self.host, self.port)

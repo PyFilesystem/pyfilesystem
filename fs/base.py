@@ -149,9 +149,11 @@ class FS(object):
 
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
         :type thread_synchronize: bool
+        
         """
         super(FS, self).__init__()
         self.closed = False
+        self.thread_synchronize = thread_synchronize
         if thread_synchronize:
             self._lock = threading.RLock()
         else:
@@ -188,9 +190,10 @@ class FS(object):
         return state
 
     def __setstate__(self,state):
-        for (k,v) in state.iteritems():
-            self.__dict__[k] = v
-        lock = state.get("_lock",None)
+        self.__dict__.update(state)
+        #for (k,v) in state.iteritems():
+        #    self.__dict__[k] = v
+        lock = state.get("_lock")
         if lock is not None:
             if lock:
                 self._lock = threading.RLock()

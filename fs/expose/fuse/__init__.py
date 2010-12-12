@@ -245,11 +245,14 @@ class FSOperations(Operations):
     @handle_fs_errors
     def readdir(self, path, fh=None):
         path = path.decode(NATIVE_ENCODING)
-        entries = []
+        entries = ['.', '..']
+        #print
+        #print self.fs
         for (nm,info) in self.fs.listdirinfo(path):
+            #print "*", repr(nm), info
             self._fill_stat_dict(pathjoin(path,nm),info)
-            entries.append((nm.encode(NATIVE_ENCODING),info,0))
-        entries = [".",".."] + entries
+            entries.append((nm.encode(NATIVE_ENCODING),info,0))  
+        #print      
         return entries
 
     @handle_fs_errors
@@ -472,7 +475,7 @@ def unmount(path):
             return
         if "not found" in stderr:
             return
-    raise OSError("filesystem could not be unmounted: %s (%s) " % (path,stderr,))
+    raise OSError("filesystem could not be unmounted: %s (%s) " % (path, str(stderr).rstrip(),))
 
 
 class MountProcess(subprocess.Popen):
