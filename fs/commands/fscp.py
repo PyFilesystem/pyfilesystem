@@ -124,7 +124,7 @@ Copy SOURCE to DESTINATION"""
         self.total_files = len(copy_fs_paths)
         self.done_files = 0
                 
-        file_queue = queue.Queue()
+        file_queue = queue.Queue()        
         threads = [FileOpThread(self.get_action(),
                                 'T%i' % i,
                                 dst_fs,

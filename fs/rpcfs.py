@@ -27,21 +27,18 @@ def re_raise_faults(func):
             #import traceback
             #traceback.print_exc()           
             # Make sure it's in a form we can handle
-            bits = f.faultString.split(" ")
+            bits = f.faultString.split(" ")            
             if bits[0] not in ["<type","<class"]:
                 raise f
             # Find the class/type object
             bits = " ".join(bits[1:]).split(">:")
-            cls = bits[0]
-            msg = ">:".join(bits[1:])
-            while cls[0] in ["'",'"']:
-                cls = cls[1:]
-            while cls[-1] in ["'",'"']:
-                cls = cls[:-1]
+            cls = bits[0]            
+            msg = ">:".join(bits[1:])            
+            cls = cls.strip('\'')        
             cls = _object_by_name(cls)
             # Re-raise using the remainder of the fault code as message
-            if cls:
-                raise cls(msg)
+            if cls:                            
+                raise cls(msg=msg)
             raise f
         except socket.error, e:
             raise RemoteConnectionError(str(e), details=e)
@@ -210,7 +207,7 @@ class RPCFS(FS):
         path = self.encode_path(path)
         return self.proxy.isfile(path)
 
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
         path = self.encode_path(path)
         entries =  self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
         return [self.decode_path(e) for e in entries]

@@ -221,13 +221,11 @@ class Command(object):
         except KeyboardInterrupt:
             if self.is_terminal():
                 self.output("\n")
-            return 0
-        #except ValueError:
-        #    pass
+            return 0        
         except SystemExit:
             return 0        
         except Exception, e:            
-            self.error(self.wrap_error('Internal Error - %s\n' % unicode(e)))
+            self.error(self.wrap_error('Error - %s\n' % unicode(e)))
             return 1
         
         

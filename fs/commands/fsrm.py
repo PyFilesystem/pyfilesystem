@@ -25,7 +25,7 @@ Remove a file or directory at PATH"""
         interactive = options.interactive
         verbose = options.verbose
         
-        for fs, path, is_dir in self.get_resources(args):                     
+        for fs, path, is_dir in self.get_resources(args):                              
             if interactive:
                 if is_dir:
                     msg = "remove directory '%s'?" % path

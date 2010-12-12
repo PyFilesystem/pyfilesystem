@@ -13,7 +13,7 @@ Recursively display the contents of PATH in an ascii tree"""
     
     def get_optparse(self):
         optparse = super(FSTree, self).get_optparse()        
-        optparse.add_option('-L', '--level', dest='depth', type="int", default=5,
+        optparse.add_option('-l', '--level', dest='depth', type="int", default=5,
                             help="Descend only LEVEL directories deep", metavar="LEVEL")
         optparse.add_option('-a', '--all', dest='all', action='store_true', default=False,
                             help="do not hide dot files")        

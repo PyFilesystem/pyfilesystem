@@ -79,7 +79,7 @@ class OpenerRegistry(object):
         for name in opener.names:
             self.registry[name] = index
     
-    def parse(self, fs_url, default_fs_name=None, writeable=False, create=False):
+    def parse(self, fs_url, default_fs_name=None, open_dir=True, writeable=False, create=False):
                    
         orig_url = fs_url     
         match = self.split_segments(fs_url)
@@ -110,27 +110,27 @@ class OpenerRegistry(object):
         if fs_url is None:
             raise OpenerError("Unable to parse '%s'" % orig_url)
         
-        #wildcard = None
-        #if iswildcard(fs_url):
-        #    fs_url, wildcard = pathsplit(fs_url)
         
         fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create)
         
-        pathname, resourcename = pathsplit(fs_path or '')
-        if pathname:
-            fs = fs.opendir(pathname)
-            fs_path = resourcename
-        
         if fs_path and iswildcard(fs_path):
-            return fs, fs_path     
-        
+            pathname, resourcename = pathsplit(fs_path or '')
+            if pathname:
+                fs = fs.opendir(pathname)
+            return fs, resourcename
+            
+        #pathname, resourcename = pathsplit(fs_path or '')
+        #if pathname and resourcename:
+        #    fs = fs.opendir(pathname)
+        #    fs_path = resourcename
+                
         fs_path = join(fs_path, path)
-        
-        pathname, resourcename = pathsplit(fs_path or '')
-        if pathname:
+                
+        pathname, resourcename = pathsplit(fs_path or '')        
+        if pathname and resourcename:
             fs = fs.opendir(pathname)
             fs_path = resourcename
-                
+                       
         return fs, fs_path        
     
     def parse_credentials(self, url):
@@ -180,17 +180,12 @@ class OSFSOpener(Opener):
         from fs.osfs import OSFS 
                                             
         path = _expand_syspath(fs_path)
-        if create:
-            from fs.osfs import _os_makedirs
-            _os_makedirs(fs_path)
-        if os.path.isdir(path):
-            osfs = OSFS(path)
-            filepath = None
-        else:
-            path, filepath = pathsplit(path)
-            osfs = OSFS(path, create=create)
-        return osfs, filepath
-        
+        if create and not os.path.exists(path):
+            from fs.osfs import _os_makedirs                    
+            _os_makedirs(path)            
+        dirname, resourcename = pathsplit(fs_path)
+        osfs = OSFS(dirname)
+        return osfs, resourcename                
         
 class ZipOpener(Opener):
     names = ['zip', 'zip64']
@@ -210,8 +205,7 @@ class ZipOpener(Opener):
         else:
             open_mode = 'rb'
                     
-        zip_file = zip_fs.open(zip_path, mode=open_mode)         
-                                            
+        zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
                         
         username, password, fs_path = registry.parse_credentials(fs_path)
         
@@ -251,7 +245,7 @@ class RPCOpener(Opener):
         
         if create and path:
             rpcfs.makedir(path, recursive=True, allow_recreate=True)
-        
+                
         return rpcfs, path or None
 
 
@@ -387,7 +381,9 @@ opener = OpenerRegistry([OSFSOpener,
 
 def main():
     
-    fs, path = opener.parse('zip:zip://~/zips.zip!t.zip!')
+    #fs, path = opener.parse('zip:zip://~/zips.zip!t.zip!')
+    fs, path = opener.parse('rpc://127.0.0.1/a/*.JPG')
+    
     print fs, path
     
 if __name__ == "__main__":

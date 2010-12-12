@@ -2,7 +2,7 @@ from fs.utils import movefile, contains_files
 from fs.commands import fscp
 import sys
 
-class FSMove(fscp.FSCopy):
+class FSMove(fscp.FScp):
     
     usage = """fsmv [OPTION]... [SOURCE] [DESTINATION]
 Move files from SOURCE to DESTINATION"""

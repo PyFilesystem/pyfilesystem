@@ -230,7 +230,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     @convert_os_errors
     def remove(self, path):
         sys_path = self.getsyspath(path)
-        try:
+        try:            
             os.remove(sys_path)
         except OSError, e:
             if e.errno == errno.EACCES and sys.platform == "win32":

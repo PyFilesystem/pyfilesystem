@@ -30,16 +30,16 @@ class SubFS(WrapFS):
         return abspath(normpath(path))[len(self.sub_dir):]
 
     def __str__(self):
-        return "<SubFS: %s in %s>" % (self.sub_dir, self.wrapped_fs)
+        return "%s/%s" % (self.wrapped_fs, self.sub_dir.lstrip('/'))
 
     def __unicode__(self):
-        return u"<SubFS: %s in %s>" % (self.sub_dir, self.wrapped_fs)
+        return u"%s/%s" % (self.wrapped_fs, self.sub_dir.lstrip('/'))
 
     def __repr__(self):
         return str(self)
 
     def desc(self, path):        
-        desc = "%s in sub dir %s of %s" % (path, self.sub_dir, str(self.wrapped_fs))
+        desc = "%s!%s" % (str(self), path)
         return desc
         
     def setcontents(self, path, data, chunk_size=64*1024):

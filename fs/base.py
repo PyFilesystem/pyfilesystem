@@ -649,6 +649,8 @@ class FS(object):
         :rtype: An FS object
         """
         
+        if path in ('', '/'):
+            return self
         from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)

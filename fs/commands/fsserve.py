@@ -29,6 +29,13 @@ Serves the contents of PATH with one of a number of methods"""
             fs_url = './'            
             
         fs, path = self.open_fs(fs_url)
+        
+        if fs.isdir(path):
+            fs = fs.opendir(path)
+            path = '/'
+        
+        if options.verbose:
+            print "Serving \"%s\" in %s" % (path, fs)
                     
         port = options.port
             

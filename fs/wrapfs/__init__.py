@@ -164,7 +164,12 @@ class WrapFS(FS):
         return self.wrapped_fs.isfile(self._encode(path))
 
     @rewrite_errors
-    def listdir(self, path="", **kwds):        
+    def listdir(self, path="", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+        kwds = dict(wildcard=wildcard,
+                    full=full,
+                    absolute=absolute,
+                    dirs_only=dirs_only,
+                    files_only=files_only)        
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
         wildcard = kwds.pop("wildcard",None)

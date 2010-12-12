@@ -56,10 +56,7 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     src = None        
     try:
         # Chunk copy
-        if src_fs.getsize(src_path) < chunk_size:
-            src = src_fs.getcontents(src_path)
-        else:
-            src = src_fs.open(src_path, 'rb')        
+        src = src_fs.open(src_path, 'rb')        
         dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
     finally:
         if src is not None and hasattr(src, 'close'):
@@ -92,19 +89,15 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_movefile(src_syspath, dst_syspath)        
         return
 
-
     src = None        
     try:
         # Chunk copy
-        if src_fs.getsize(src_path) < chunk_size:
-            src = src_fs.getcontents(src_path)
-        else:
-            src = src_fs.open(src_path, 'rb')        
-        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
-        src_fs.remove(src_path)
+        src = src_fs.open(src_path, 'rb')        
+        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)            
     finally:
         if src is not None and hasattr(src, 'close'):
             src.close()
+    src_fs.remove(src_path)
 
 def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
     """Moves contents of a directory from one filesystem to another.
