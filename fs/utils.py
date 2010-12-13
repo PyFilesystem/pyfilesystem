@@ -55,10 +55,9 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
 
     src = None
     dst = None        
-    try:
-        # Chunk copy
+    try:        
         src = src_fs.open(src_path, 'rb')        
-        dst = src_fs.open(dst_path, 'wb')
+        dst = dst_fs.open(dst_path, 'wb')
         write = dst.write
         read = src.read
         chunk = read(chunk_size)

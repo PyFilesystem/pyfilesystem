@@ -522,13 +522,27 @@ def _skip(s, i, c):
     return i
 
 
-
+def fileftperrors(f):    
+    @wraps(f)
+    def deco(self, *args, **kwargs):
+        self._lock.acquire()
+        try:                        
+            try:
+                ret = f(self, *args, **kwargs)
+            except Exception, e:                
+                self.ftpfs._translate_exception(args[0] if args else '', e)                        
+        finally:
+            self._lock.release()
+        return ret
+    return deco
 
 
 
 class _FTPFile(object):
 
     """ A file-like that provides access to a file being streamed over ftp."""
+
+    blocksize = 1024 * 64
 
     def __init__(self, ftpfs, ftp, path, mode):
         if not hasattr(self, '_lock'):
@@ -549,6 +563,7 @@ class _FTPFile(object):
         #self._lock = ftpfs._lock
         self._start_file(mode, path)
 
+    @fileftperrors
     def _start_file(self, mode, path):
         self.read_pos = 0
         self.write_pos = 0
@@ -564,7 +579,7 @@ class _FTPFile(object):
             else:
                 self.conn = self.ftp.transfercmd('STOR '+path)
 
-    @synchronize
+    @fileftperrors
     def read(self, size=None):
         if self.conn is None:
             return ''
@@ -572,7 +587,7 @@ class _FTPFile(object):
         chunks = []
         if size is None:
             while 1:
-                data = self.conn.recv(4096)
+                data = self.conn.recv(self.blocksize)
                 if not data:
                     self.conn.close()
                     self.conn = None
@@ -584,7 +599,7 @@ class _FTPFile(object):
 
         remaining_bytes = size
         while remaining_bytes:
-            read_size = min(remaining_bytes, 4096)
+            read_size = min(remaining_bytes, self.blocksize)
             data = self.conn.recv(read_size)
             if not data:
                 self.conn.close()
@@ -597,14 +612,14 @@ class _FTPFile(object):
 
         return ''.join(chunks)
 
-    @synchronize
+    @fileftperrors
     def write(self, data):
 
         data_pos = 0
         remaining_data = len(data)
 
         while remaining_data:
-            chunk_size = min(remaining_data, 4096)
+            chunk_size = min(remaining_data, self.blocksize)
             self.conn.sendall(data[data_pos:data_pos+chunk_size])
             data_pos += chunk_size
             remaining_data -= chunk_size
@@ -617,11 +632,11 @@ class _FTPFile(object):
     def __exit__(self,exc_type,exc_value,traceback):
         self.close()
 
-    #@synchronize
+    @fileftperrors
     def flush(self):
         self.ftpfs._on_file_written(self.path)
 
-    @synchronize
+    @fileftperrors
     def seek(self, pos, where=fs.SEEK_SET):
         # Ftp doesn't support a real seek, so we close the transfer and resume
         # it at the new position with the REST command
@@ -662,14 +677,14 @@ class _FTPFile(object):
 
         #raise UnsupportedError('ftp seek')
 
-    @synchronize
+    @fileftperrors
     def tell(self):
         if 'r' in self.mode:
             return self.read_pos
         else:
             return self.write_pos
 
-    @synchronize
+    @fileftperrors
     def truncate(self, size=None):
         self.ftpfs._on_file_written(self.path)
         # Inefficient, but I don't know how else to implement this
@@ -697,16 +712,22 @@ class _FTPFile(object):
             self.write('\0' * (size - len(data)))
         
 
-    @synchronize
+    @fileftperrors
     def close(self):
         if 'w' in self.mode or 'a' in self.mode or '+' in self.mode:
             self.ftpfs._on_file_written(self.path)
         if self.conn is not None:
-            self.conn.close()
-            self.conn = None
-            self.ftp.voidresp()
+            try:
+                self.conn.close()
+                self.conn = None
+                self.ftp.voidresp()
+            except error_temp, error_perm:
+                pass
         if self.ftp is not None:
-            self.ftp.close()
+            try:
+                self.ftp.close()
+            except error_temp, error_perm:
+                pass
         self.closed = True        
 
     def __iter__(self):
@@ -998,7 +1019,7 @@ class FTPFS(FS):
             code, message = str(exception).split(' ', 1)
             code = int(code)
             if code == 550:
-                raise ResourceNotFoundError(path)
+                pass                
             if code == 552:
                 raise StorageSpaceError
             raise PermissionDeniedError(str(exception), path=path, msg="FTP error: %s" % str(exception), details=exception)
@@ -1016,10 +1037,10 @@ class FTPFS(FS):
 
     @ftperrors
     def open(self, path, mode='r'):
-        mode = mode.lower()
+        mode = mode.lower()        
         if self.isdir(path):
-            raise ResourceInvalidError(path)
-        if 'r' in mode:
+            raise ResourceInvalidError(path)        
+        if 'r' in mode or 'a' in mode:
             if not self.isfile(path):
                 raise ResourceNotFoundError(path)
         if 'w' in mode or 'a' in mode or '+' in mode:
@@ -1029,7 +1050,7 @@ class FTPFS(FS):
         return f 
     
     @ftperrors
-    def setcontents(self, path, data, chunk_size=8192):        
+    def setcontents(self, path, data, chunk_size=1024*64):        
         path = normpath(path)        
         if isinstance(data, basestring):
             data = StringIO(data)        
@@ -1039,7 +1060,7 @@ class FTPFS(FS):
     @ftperrors
     def getcontents(self, path):            
         contents = StringIO()                            
-        self.ftp.retrbinary('RETR %s' % _encode(normpath(path)), contents.write, blocksize=1024*16)            
+        self.ftp.retrbinary('RETR %s' % _encode(normpath(path)), contents.write, blocksize=1024*64)            
         return contents.getvalue()        
 
     @ftperrors

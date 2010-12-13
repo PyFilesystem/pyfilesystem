@@ -579,7 +579,7 @@ class FS(object):
             sys_path = self.getsyspath(path)
         except NoSysPathError:
             return "No description available"        
-        return "OS resource, maps to %s" % sys_path
+        return sys_path
         
 
     def getcontents(self, path):

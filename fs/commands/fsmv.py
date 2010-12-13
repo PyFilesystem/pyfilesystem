@@ -7,6 +7,9 @@ class FSMove(fscp.FScp):
     usage = """fsmv [OPTION]... [SOURCE] [DESTINATION]
 Move files from SOURCE to DESTINATION"""
     
+    def get_verb(self):
+        return 'moving...'
+    
     def get_action(self):        
         return movefile
     

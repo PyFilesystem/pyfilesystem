@@ -52,6 +52,9 @@ Copy SOURCE to DESTINATION"""
     
     def get_action(self):
         return copyfile
+    
+    def get_verb(self):
+        return 'copying...'
 
     def get_optparse(self):
         optparse = super(FScp, self).get_optparse()
@@ -83,11 +86,15 @@ Copy SOURCE to DESTINATION"""
         
         copy_fs_paths = []
         
-        progress = options.progress
+        progress = options.progress                
+        
+        if progress:
+            sys.stdout.write(self.progress_bar(len(srcs), 0, 'scanning...'))
+            sys.stdout.flush()
         
         self.root_dirs = [] 
-        for fs_url in srcs:
-            src_fs, src_path = self.open_fs(fs_url)            
+        for i, fs_url in enumerate(srcs):
+            src_fs, src_path = self.open_fs(fs_url)                      
 
             if src_path is None:
                 src_path = '/'
@@ -111,7 +118,15 @@ Copy SOURCE to DESTINATION"""
                         copy_fs_paths.append((self.FILE, src_fs, src_path, src_path))
                     else:
                         self.error('%s is not a file or directory\n' % src_path)
-                        return 1                    
+                        return 1 
+                    
+            if progress:
+                sys.stdout.write(self.progress_bar(len(srcs), i + 1, 'scanning...'))
+                sys.stdout.flush()
+                                       
+        if progress:
+            sys.stdout.write(self.progress_bar(len(copy_fs_paths), 0, self.get_verb()))
+            sys.stdout.flush()
                                         
         if self.options.threads > 1:            
             copy_fs_dirs = [r for r in copy_fs_paths if r[0] == self.DIR]
@@ -174,7 +189,7 @@ Copy SOURCE to DESTINATION"""
         dst_fs.close()
         
         if complete and options.progress:
-            sys.stdout.write(self.progress_bar(self.total_files, self.done_files))
+            sys.stdout.write(self.progress_bar(self.total_files, self.done_files, ''))
             sys.stdout.write('\n')
             sys.stdout.flush()        
         
@@ -191,7 +206,7 @@ Copy SOURCE to DESTINATION"""
                     print "%s -> %s" % (src_fs.desc(src_path), dst_fs.desc(dst_path))
             elif self.options.progress:
                 self.done_files += 1        
-                sys.stdout.write(self.progress_bar(self.total_files, self.done_files))
+                sys.stdout.write(self.progress_bar(self.total_files, self.done_files, self.get_verb()))
                 sys.stdout.flush()
         finally:
             self.lock.release()
@@ -219,12 +234,15 @@ Copy SOURCE to DESTINATION"""
         done_steps = int(done * bar_width)
         bar_steps = ('#' * done_steps).ljust(bar_width) 
         
-        msg = '%i%% ' % int(done * 100.0)
+        
+        msg = '%s %i%%' % (msg, int(done * 100.0))
+        
+        msg = msg.ljust(20)
         
         if total == remaining:
             throb = ''
             
-        bar = '\r%s[%s] %s' % (throb, bar_steps, msg)
+        bar = '\r%s[%s] %s\r' % (throb, bar_steps, msg.lstrip())
         return bar
         
 def run():
