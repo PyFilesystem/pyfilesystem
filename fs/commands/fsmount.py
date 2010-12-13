@@ -22,6 +22,8 @@ Mounts a file system on a system path"""
                             help="run the mount process in the foreground", metavar="FOREGROUND")
         optparse.add_option('-u', '--unmount', dest='unmount', action="store_true", default=False,
                             help="unmount path", metavar="UNMOUNT")
+        optparse.add_option('-n', '--nocache', dest='nocache', action="store_true", default=False,
+                            help="do not cache network filesystems", metavar="NOCACHE")
         
         return optparse
     
@@ -59,17 +61,20 @@ Mounts a file system on a system path"""
                     return 1
                 fs = fs.opendir(path)
                 path = '/'
+            if not options.nocache:
+                fs.cache_hint(True)
             if not os.path.exists(mount_path):
                os.makedirs(mount_path)
             from fs.expose import fuse
-            if options.foreground:                            
+            if options.foreground:                                            
                 fuse_process = fuse.mount(fs,
                                           mount_path,
                                           foreground=True)                                                    
-            else:                
-                mp = fuse.mount(fs,
-                                mount_path,
-                                foreground=False)
+            else:
+                if not os.fork():                
+                    mp = fuse.mount(fs,
+                                    mount_path,
+                                    foreground=True)
                 
 
     

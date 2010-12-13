@@ -419,7 +419,7 @@ class FS(object):
         :raises ResourceInvalidError: If the path exists, but is not a directory
 
         """
-
+        path = normpath(path)
         def getinfo(p):
             try:
                 if full or absolute:
@@ -783,7 +783,7 @@ class FS(object):
             raise OperationFailedError("get size of resource", path)
         return size
 
-    def copy(self, src, dst, overwrite=False, chunk_size=16384):
+    def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
         """Copies a file from src to dst.
 
         :param src: the source path

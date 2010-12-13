@@ -245,14 +245,10 @@ class FSOperations(Operations):
     @handle_fs_errors
     def readdir(self, path, fh=None):
         path = path.decode(NATIVE_ENCODING)
-        entries = ['.', '..']
-        #print
-        #print self.fs
-        for (nm,info) in self.fs.listdirinfo(path):
-            #print "*", repr(nm), info
+        entries = ['.', '..']        
+        for (nm,info) in self.fs.listdirinfo(path):            
             self._fill_stat_dict(pathjoin(path,nm),info)
-            entries.append((nm.encode(NATIVE_ENCODING),info,0))  
-        #print      
+            entries.append((nm.encode(NATIVE_ENCODING),info,0))              
         return entries
 
     @handle_fs_errors

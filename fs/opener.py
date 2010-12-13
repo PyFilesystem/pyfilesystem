@@ -102,14 +102,12 @@ class OpenerRegistry(object):
             fs_name = default_fs_name or self.default_opener
             fs_url = _expand_syspath(fs_url) 
             path = ''           
-
     
         fs_name,  fs_name_params = self.parse_name(fs_name)        
         opener = self.get_opener(fs_name)
         
         if fs_url is None:
-            raise OpenerError("Unable to parse '%s'" % orig_url)
-        
+            raise OpenerError("Unable to parse '%s'" % orig_url)        
         
         fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create)
         
@@ -118,19 +116,14 @@ class OpenerRegistry(object):
             if pathname:
                 fs = fs.opendir(pathname)
             return fs, resourcename
-            
-        #pathname, resourcename = pathsplit(fs_path or '')
-        #if pathname and resourcename:
-        #    fs = fs.opendir(pathname)
-        #    fs_path = resourcename
-                
+                            
         fs_path = join(fs_path, path)
                 
         pathname, resourcename = pathsplit(fs_path or '')        
         if pathname and resourcename:
             fs = fs.opendir(pathname)
             fs_path = resourcename
-                       
+                               
         return fs, fs_path        
     
     def parse_credentials(self, url):
@@ -198,13 +191,10 @@ class ZipOpener(Opener):
         zip_fs, zip_path = registry.parse(fs_path)
         if zip_path is None:
             raise OpenerError('File required for zip opener')
-        if create:
-            open_mode = 'wb'        
-            if append_zip:
-                open_mode = 'r+b'
+        if writeable:
+            open_mode = 'r+b'
         else:
             open_mode = 'rb'
-                    
         zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
                         
         username, password, fs_path = registry.parse_credentials(fs_path)
@@ -212,18 +202,12 @@ class ZipOpener(Opener):
         from fs.zipfs import ZipFS
         if zip_file is None:            
             zip_file = fs_path
-           
-        if append_zip:
+        
+        mode = 'r'
+        if writeable:
             mode = 'a'            
-        elif create:
-            mode = 'w'
-        else:
-            if writeable:
-                mode = 'w'
-            else:
-                mode = 'a'        
          
-        allow_zip_64 = fs_name == 'zip64'                
+        allow_zip_64 = fs_name.endswith('64')                
               
         zipfs = ZipFS(zip_file, mode=mode, allow_zip_64=allow_zip_64)
         return zipfs, None
@@ -256,7 +240,7 @@ class FTPOpener(Opener):
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
         from fs.ftpfs import FTPFS
         username, password, fs_path = registry.parse_credentials(fs_path)
-                    
+                                        
         scheme, netloc, path, params, query, fragment = urlparse(fs_path)
         if not scheme:
             fs_path = 'ftp://' + fs_path
@@ -365,7 +349,11 @@ class TempOpener(Opener):
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
         from fs.tempfs import TempFS        
-        return TempFS(identifier=fs_name_params, temp_dir=fs_path), None
+        fs = TempFS(identifier=fs_name_params)
+        if create and fs_path:
+            fs = fs.makeopendir(fs_path)
+            fs_path = pathsplit(fs_path)
+        return fs, fs_path
     
 
 opener = OpenerRegistry([OSFSOpener,
@@ -382,7 +370,7 @@ opener = OpenerRegistry([OSFSOpener,
 def main():
     
     #fs, path = opener.parse('zip:zip://~/zips.zip!t.zip!')
-    fs, path = opener.parse('rpc://127.0.0.1/a/*.JPG')
+    fs, path = opener.parse('ftp://releases.mozilla.org/welcome.msg')
     
     print fs, path
     

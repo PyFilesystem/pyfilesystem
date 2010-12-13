@@ -131,7 +131,7 @@ class Command(object):
         
         resources = []
         
-        for fs, path in fs_paths:
+        for fs, path in fs_paths:            
             if path and iswildcard(path):
                 if not files_only:
                     dir_paths = fs.listdir(wildcard=path, dirs_only=True)

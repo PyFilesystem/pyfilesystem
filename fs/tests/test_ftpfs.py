@@ -32,8 +32,9 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
         self.ftp_server = subprocess.Popen([sys.executable, abspath(__file__), self.temp_dir, str(use_port)])
         # Need to sleep to allow ftp server to start
-        time.sleep(.1)
-        self.fs = ftpfs.FTPFS('127.0.0.1', 'user', '12345', port=use_port, timeout=5.0)
+        time.sleep(.2)
+        self.fs = ftpfs.FTPFS('127.0.0.1', 'user', '12345', dircache=True, port=use_port, timeout=5.0)
+        self.fs.cache_hint(True)
 
 
     def tearDown(self):

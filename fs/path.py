@@ -266,6 +266,10 @@ def issamedir(path1, path2):
     """
     return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
 
+def isbase(path1, path2):
+    p1 = forcedir(abspath(path1))
+    p2 = forcedir(abspath(path2))
+    return p1 == p2 or p1.startswith(p2) 
 
 def isprefix(path1, path2):
     """Return true is path1 is a prefix of path2.

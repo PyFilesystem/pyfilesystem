@@ -108,6 +108,7 @@ class RPCFS(FS):
         self._transport = transport
         self.proxy = self._make_proxy()
         FS.__init__(self,thread_synchronize=False)
+        self.isdir('/')
 
     def _make_proxy(self):
         kwds = dict(allow_none=True)

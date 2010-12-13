@@ -486,6 +486,7 @@ class FSTestCases(object):
         makefile("foo/bar/a.txt")
         self.assert_(check("foo/bar/a.txt"))
         self.assert_(checkcontents("foo/bar/a.txt"))
+        #import rpdb2; rpdb2.start_embedded_debugger('password');
         self.fs.copy("foo/bar/a.txt", "foo/b.txt")
         self.assert_(check("foo/bar/a.txt"))
         self.assert_(check("foo/b.txt"))

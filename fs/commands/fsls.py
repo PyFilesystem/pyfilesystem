@@ -6,14 +6,14 @@ from fs.commands.runner import Command
 from collections import defaultdict
 import sys
 
-class FSList(Command):
+class FSls(Command):
     
     usage = """fsls [OPTIONS]... [PATH]
 List contents of [PATH]"""
     
     
     def get_optparse(self):
-        optparse = super(FSList, self).get_optparse()        
+        optparse = super(FSls, self).get_optparse()        
         optparse.add_option('-u', '--full', dest='fullpath', action="store_true", default=False,
                             help="output full path", metavar="FULL")
         optparse.add_option('-s', '--syspath', dest='syspath', action="store_true", default=False,
@@ -37,9 +37,11 @@ List contents of [PATH]"""
             args = [u'.']
             
         dir_paths = []   
-        file_paths = []             
+        file_paths = []
+        fs_used = set()             
         for fs_url in args:                        
-            fs, path = self.open_fs(fs_url)                
+            fs, path = self.open_fs(fs_url) 
+            fs_used.add(fs)               
             path = path or '.'
             wildcard = None
             
@@ -61,7 +63,13 @@ List contents of [PATH]"""
                                              wildcard=wildcard,
                                              full=options.fullpath,                                   
                                              files_only=True)
-                        
+        
+        try:
+            for fs in fs_used:
+                fs.close()
+        except FSError:
+            pass
+        
         if options.syspath:
             dir_paths = [fs.getsyspath(path, allow_none=True) or path for path in dir_paths]
             file_paths = [fs.getsyspath(path, allow_none=True) or path for path in file_paths]
@@ -154,7 +162,7 @@ List contents of [PATH]"""
             output('\n')
 
 def run():
-    return FSList().run()            
+    return FSls().run()            
     
 if __name__ == "__main__":
     sys.exit(run())

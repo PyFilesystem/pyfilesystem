@@ -53,14 +53,23 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_copyfile(src_syspath, dst_syspath)
         return
 
-    src = None        
+    src = None
+    dst = None        
     try:
         # Chunk copy
         src = src_fs.open(src_path, 'rb')        
-        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
+        dst = src_fs.open(dst_path, 'wb')
+        write = dst.write
+        read = src.read
+        chunk = read(chunk_size)
+        while chunk:            
+            write(chunk)
+            chunk = read(chunk_size)                    
     finally:
-        if src is not None and hasattr(src, 'close'):
+        if src is not None:
             src.close()
+        if dst is not None:
+            dst.close()
 
 
 def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
@@ -89,14 +98,23 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_movefile(src_syspath, dst_syspath)        
         return
 
-    src = None        
+    src = None
+    dst = None        
     try:
         # Chunk copy
         src = src_fs.open(src_path, 'rb')        
-        dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)            
+        dst = src_fs.open(dst_path, 'wb')
+        write = dst.write
+        read = src.read
+        chunk = read(chunk_size)
+        while chunk:            
+            write(chunk)
+            chunk = read(chunk_size)                    
     finally:
-        if src is not None and hasattr(src, 'close'):
+        if src is not None:
             src.close()
+        if dst is not None:
+            dst.close()
     src_fs.remove(src_path)
 
 
@@ -416,7 +434,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
                                             
             if is_dir:                
                 write('%s %s' % (wrap_prefix(prefix + '--'), wrap_dirname(item)))
-                if max_levels is not None and len(levels) >= max_levels:
+                if max_levels is not None and len(levels) + 1 >= max_levels:
                     pass
                     #write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
                 else:
