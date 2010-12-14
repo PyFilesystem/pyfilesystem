@@ -9,10 +9,8 @@ from urlparse import urlparse
 class OpenerError(Exception):
     pass
 
-
 class NoOpenerError(OpenerError):
     pass
-
 
 class MissingParameterError(OpenerError):
     pass
@@ -32,7 +30,24 @@ def _expand_syspath(path):
 
     return path
 
+    
+def _parse_credentials(url):        
+    username = None
+    password = None
+    if '@' in url:
+        credentials, url = url.split('@', 1)
+        if ':' in credentials:
+            username, password = credentials.split(':', 1)
+        else:
+            username = credentials
+    return username, password, url
 
+def _parse_name(fs_name):
+    if '#' in fs_name:
+        fs_name, fs_name_params = fs_name.split('#', 1)
+        return fs_name, fs_name_params
+    else:
+        return fs_name, None
 
 
 class OpenerRegistry(object):
@@ -79,7 +94,7 @@ class OpenerRegistry(object):
         for name in opener.names:
             self.registry[name] = index
     
-    def parse(self, fs_url, default_fs_name=None, open_dir=True, writeable=False, create=False):
+    def parse(self, fs_url, default_fs_name=None, open_dir=True, writeable=False, create_dir=False):
                    
         orig_url = fs_url     
         match = self.split_segments(fs_url)
@@ -103,13 +118,13 @@ class OpenerRegistry(object):
             fs_url = _expand_syspath(fs_url) 
             path = ''           
     
-        fs_name,  fs_name_params = self.parse_name(fs_name)        
+        fs_name,  fs_name_params = _parse_name(fs_name)        
         opener = self.get_opener(fs_name)
         
         if fs_url is None:
             raise OpenerError("Unable to parse '%s'" % orig_url)        
         
-        fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create)
+        fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create_dir)
         
         if fs_path and iswildcard(fs_path):
             pathname, resourcename = pathsplit(fs_path or '')
@@ -125,31 +140,59 @@ class OpenerRegistry(object):
             fs_path = resourcename
                                
         return fs, fs_path        
-    
-    def parse_credentials(self, url):
-        
-        username = None
-        password = None
-        if '@' in url:
-            credentials, url = url.split('@', 1)
-            if ':' in credentials:
-                username, password = credentials.split(':', 1)
-            else:
-                username = credentials
-        return username, password, url
-    
-    def parse_name(self, fs_name):
-        if '#' in fs_name:
-            fs_name, fs_name_params = fs_name.split('#', 1)
-            return fs_name, fs_name_params
-        else:
-            return fs_name, None
 
-    def open(self, fs_url, mode='r'):        
+    def open(self, fs_url, mode='rb'):
+        """Opens a file from a given FS url
+        
+        If you intend to do a lot of file manipulation, it would likely be more
+        efficient to do it directly through the an FS instance (from `parse` or 
+        `opendir`). This method is fine for one-offs though.
+        
+        :param fs_url: a FS URL, e.g. ftp://ftp.mozilla.org/README
+        :param mode: mode to open file file
+        :rtype: a file        
+        
+        """        
+        
         writeable = 'w' in mode or 'a' in mode or '+' in mode
-        fs, path = self.parse(fs_url, writeable=writeable)
+        fs, path = self.parse(fs_url, writeable=writeable)                
         file_object = fs.open(path, mode)
+        
+        # If we just return the file, the fs goes out of scope and closes,
+        # which may make the file unusable. To get around this, we store a
+        # reference in the file object to the FS, and patch the file's
+        # close method to also close the FS.    
+        close = file_object.close
+        def replace_close():
+            fs.close()
+            return close()
+        file_object.close = replace_close
+                    
         return file_object
+    
+    def getcontents(self, fs_url):
+        """Gets the contents from a given FS url (if it references a file)
+        
+        :param fs_url: a FS URL e.g. ftp://ftp.mozilla.org/README
+        
+        """
+        
+        fs, path = self.parse(fs_url)
+        return fs.getcontents(path)
+    
+    def opendir(self, fs_url, writeable=True, create_dir=False):
+        """Opens an FS object from an FS URL
+        
+        :param fs_url: an FS URL e.g. ftp://ftp.mozilla.org
+        :param writeable: set to True (the default) if the FS must be writeable
+        :param create_dir: create the directory references by the FS URL, if
+        it doesn't already exist          
+        
+        """
+        fs, path = self.parse(fs_url, writable=writeable, create_dir=create_dir)
+        if path:
+            return fs.opendir(path)
+        return fs
                     
 
 class Opener(object):
@@ -166,14 +209,15 @@ class Opener(object):
 
 
 class OSFSOpener(Opener):
-    names = ['osfs', 'file']
+    names = ['osfs', 'file']    
+    desc = "OS filesystem opener, works with any valid system path. This is the default opener and will be used if you don't indicate which opener to use."
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.osfs import OSFS 
                                             
         path = _expand_syspath(fs_path)
-        if create and not os.path.exists(path):
+        if create_dir and not os.path.exists(path):
             from fs.osfs import _os_makedirs                    
             _os_makedirs(path)            
         dirname, resourcename = pathsplit(fs_path)
@@ -181,23 +225,27 @@ class OSFSOpener(Opener):
         return osfs, resourcename                
         
 class ZipOpener(Opener):
-    names = ['zip', 'zip64']
+    names = ['zip', 'zip64']    
+    desc = "Opens zip files. Use zip64 for > 2 megabyte zip files, if you have a 64 bit processor.\ne.g. zip://myzip"
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
                                 
         append_zip = fs_name_params == 'add'     
                 
         zip_fs, zip_path = registry.parse(fs_path)
         if zip_path is None:
             raise OpenerError('File required for zip opener')
-        if writeable:
-            open_mode = 'r+b'
+        if zip_fs.exists(zip_path):
+            if writeable:
+                open_mode = 'r+b'
+            else:
+                open_mode = 'rb'
         else:
-            open_mode = 'rb'
+            open_mode = 'w+'
         zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
                         
-        username, password, fs_path = registry.parse_credentials(fs_path)
+        username, password, fs_path = _parse_credentials(fs_path)
         
         from fs.zipfs import ZipFS
         if zip_file is None:            
@@ -215,11 +263,12 @@ class ZipOpener(Opener):
 
 class RPCOpener(Opener):
     names = ['rpc']
+    desc = "An opener for filesystems server over RPC (see the fsserve command). e.g. rpc://127.0.0.1"
 
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.rpcfs import RPCFS             
-        username, password, fs_path = registry.parse_credentials(fs_path)
+        username, password, fs_path = _parse_credentials(fs_path)
         if not fs_path.startswith('http://'):
             fs_path = 'http://' + fs_path
             
@@ -227,7 +276,7 @@ class RPCOpener(Opener):
 
         rpcfs = RPCFS('%s://%s' % (scheme, netloc))
         
-        if create and path:
+        if create_dir and path:
             rpcfs.makedir(path, recursive=True, allow_recreate=True)
                 
         return rpcfs, path or None
@@ -235,11 +284,12 @@ class RPCOpener(Opener):
 
 class FTPOpener(Opener):
     names = ['ftp']
+    desc = "An opener for FTP (File Transfer Protocl) servers. e.g. ftp://ftp.mozilla.org"
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.ftpfs import FTPFS
-        username, password, fs_path = registry.parse_credentials(fs_path)
+        username, password, fs_path = _parse_credentials(fs_path)
                                         
         scheme, netloc, path, params, query, fragment = urlparse(fs_path)
         if not scheme:
@@ -252,7 +302,7 @@ class FTPOpener(Opener):
         ftpfs = FTPFS(url, user=username or '', passwd=password or '')
         ftpfs.cache_hint(True)
         
-        if create and path:
+        if create_dir and path:
             ftpfs.makedir(path, recursive=True, allow_recreate=True)
         
         if dirpath:
@@ -266,10 +316,11 @@ class FTPOpener(Opener):
 
 class SFTPOpener(Opener):
     names = ['sftp']
+    desc = "An opener for SFTP (Secure File Transfer Protocol) servers"
 
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
-        username, password, fs_path = registry.parse_credentials(fs_path)        
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
+        username, password, fs_path = _parse_credentials(fs_path)        
         
         from fs.sftpfs import SFTPFS
         
@@ -298,7 +349,7 @@ class SFTPOpener(Opener):
             else:
                 host = (addr, port)
             
-        if create:
+        if create_dir:
             sftpfs = SFTPFS(host, root_path='/', **credentials)
             if not sftpfs._transport.is_authenticated():
                 sftpfs.close()
@@ -316,24 +367,26 @@ class SFTPOpener(Opener):
     
 class MemOpener(Opener):
     names = ['mem', 'ram']
+    desc = """Creates an in-memory filesystem (very fast but contents will disappear on exit)."""
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.memoryfs import MemoryFS
         memfs = MemoryFS()
-        if create:
+        if create_dir:
             memfs = memfs.makeopendir(fs_path)
         return memfs, None
     
     
 class DebugOpener(Opener):
     names = ['debug']
+    desc = "For developer -- adds debugging information to output. To use prepend an exisiting opener with debug: e.g debug:ftp://ftp.mozilla.org"
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.wrapfs.debugfs import DebugFS
         if fs_path:
-            fs, path = registry.parse(fs_path, writeable=writeable, create=create)
+            fs, path = registry.parse(fs_path, writeable=writeable, create=create_dir)
             return DebugFS(fs, verbose=False), None     
         if fs_name_params == 'ram':
             from fs.memoryfs import MemoryFS
@@ -345,12 +398,13 @@ class DebugOpener(Opener):
     
 class TempOpener(Opener):
     names = ['temp']
+    desc = "Creates a temporary filesystem, that is erased on exit."
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create):
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.tempfs import TempFS        
         fs = TempFS(identifier=fs_name_params)
-        if create and fs_path:
+        if create_dir and fs_path:
             fs = fs.makeopendir(fs_path)
             fs_path = pathsplit(fs_path)
         return fs, fs_path

@@ -263,7 +263,7 @@ class FS(object):
         :param allow_none: if True, this method will return None when there is no system path,
             rather than raising NoSysPathError
         :type allow_none: bool
-        :raises NoSysPathError: If the path does not map on to a system path, and allow_none is set to False (default)
+        :raises NoSysPathError: if the path does not map on to a system path, and allow_none is set to False (default)
         :rtype: unicode
         
         """

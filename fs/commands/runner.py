@@ -95,7 +95,7 @@ class Command(object):
         
     def open_fs(self, fs_url, writeable=False, create=False):
         try:
-            fs, path = opener.parse(fs_url, writeable=writeable, create=create)
+            fs, path = opener.parse(fs_url, writeable=writeable, create_dir=create)
         except OpenerError, e:
             self.error(str(e)+'\n')
             sys.exit(1)
@@ -204,19 +204,70 @@ class Command(object):
         
     def get_optparse(self):
         optparse = OptionParser(usage=self.usage, version=self.version)
+        optparse.add_option('--debug', dest='debug', action="store_true", default=False,
+                            help="Show debug information", metavar="DEBUG")
         optparse.add_option('-v', '--verbose', dest='verbose', action="store_true", default=False,
-                            help="make output verbose", metavar="VERBOSE")        
+                            help="make output verbose", metavar="VERBOSE")
+        optparse.add_option('--listopeners', dest='listopeners', action="store_true", default=False,
+                            help="list all FS openers", metavar="LISTOPENERS")
         return optparse
+    
+    def list_openers(self):
+        
+        opener_table = []
+                
+        for fs_opener in opener.openers.itervalues():
+            names = fs_opener.names
+            desc = getattr(fs_opener, 'desc', '')            
+            opener_table.append((names, desc))
+
+        opener_table.sort(key = lambda r:r[0])
+              
+        def wrap_line(text):
+            
+            lines = text.split('\n')            
+            for line in lines:
+                words = []
+                line_len = 0
+                for word in line.split():                                        
+                    if line_len + len(word) > self.terminal_width:
+                        self.output(' '.join(words))
+                        self.output('\n')
+                        del words[:]
+                        line_len = 0
+                    words.append(word)
+                    line_len += len(word) + 1
+                if words:
+                    self.output(' '.join(words))
+                self.output('\n')
+              
+        for names, desc in opener_table:
+            self.output('\n')            
+            proto = ', '.join([n+'://' for n in names])
+            self.output(self.wrap_dirname('[%s]' % proto))
+            self.output('\n')
+            if not desc.strip():
+                desc = "No information available"            
+            wrap_line(desc)
+            self.output('\n')
+        
         
     def run(self):        
         parser = self.get_optparse()
         options, args = parser.parse_args()
+        
+        if options.listopeners:
+            self.list_openers()
+            return 0
+        
         args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]
         self.verbose = options.verbose        
         try:
             return self.do_run(options, args) or 0
         except FSError, e:
             self.error(self.wrap_error(unicode(e)) + '\n')
+            if options.debug:
+                raise
             return 1        
         except KeyboardInterrupt:
             if self.is_terminal():
@@ -226,6 +277,8 @@ class Command(object):
             return 0        
         except Exception, e:            
             self.error(self.wrap_error('Error - %s\n' % unicode(e)))
+            if options.debug:
+                raise
             return 1
         
         
