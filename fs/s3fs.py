@@ -13,7 +13,7 @@ import os
 import time
 import datetime
 import tempfile
-import fnmatch
+from fnmatch import fnmatch
 import stat as statinfo
 
 import boto.s3.connection
@@ -319,64 +319,74 @@ class S3FS(FS):
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         """List contents of a directory."""
-        keys = self._list_keys(path)
-        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
-        return [nm for (nm,k) in entries]
+        return list(self.ilistdir(path,wildcard,full,absolute,dirs_only,files_only))
 
     def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
-        keys = self._list_keys(path)
-        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
-        return [(nm,self._get_key_info(k)) for (nm,k) in entries]
+        return list(self.ilistdirinfo(path,wildcard,full,absolute,dirs_only,files_only))
 
-    def _list_keys(self,path):
+    def ilistdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        """List contents of a directory."""
+        keys = self._iter_keys(path)
+        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
+        return (nm for (nm,k) in entries)
+
+    def ilistdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        keys = self._iter_keys(path)
+        entries = self._filter_keys(path,keys,wildcard,full,absolute,dirs_only,files_only)
+        return ((nm,self._get_key_info(k)) for (nm,k) in entries)
+
+    def _iter_keys(self,path):
+        """Iterator over keys contained in the given directory.
+
+        This generator yields (name,key) pairs for each entry in the given
+        directory.  If the path is not a directory, it raises the approprate
+        error.
+        """
         s3path = self._s3path(path) + self._separator
         if s3path == "/":
             s3path = ""
         i = len(s3path)
-        keys = []
         isDir = False
         for k in self._s3bukt.list(prefix=s3path,delimiter=self._separator):
             if not isDir:
                 isDir = True
             # Skip over the entry for the directory itself, if it exists
             if k.name[i:] != "":
-                k.name = k.name[i:]
-                if not isinstance(k.name,unicode):
-                    k.name = k.name.decode("utf8")
-                keys.append(k)
+                name = k.name[i:]
+                if not isinstance(name,unicode):
+                    name = name.decode("utf8")
+                if name.endswith(self._separator):
+                    name = name[:-1]
+                yield (name,k)
         if not isDir:
             if s3path != self._prefix:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="that's not a directory: %(path)s")
                 raise ResourceNotFoundError(path)
-        return keys
 
     def _filter_keys(self,path,keys,wildcard,full,absolute,dirs_only,files_only):
         """Filter out keys not matching the given criteria.
 
-        Returns a list of (name,key) pairs.
+        Given a (name,key) iterator as returned by _iter_keys, this method
+        applies the given filtering criteria and returns a filtered iterator.
         """
+        sep = self._separator
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
         if dirs_only:
-            keys = [k for k in keys if k.name.endswith(self._separator)]
+            keys = ((nm,k) for (nm,k) in keys if k.name.endswith(sep))
         elif files_only:
-            keys = [k for k in keys if not k.name.endswith(self._separator)]
-        for k in keys:
-            if k.name.endswith(self._separator):
-                k.name = k.name[:-1]
+            keys = ((nm,k) for (nm,k) in keys if not k.name.endswith(sep))
         if wildcard is not None:
             if callable(wildcard):
-                keys = [k for k in keys if wildcard(k.name)]
+                keys = ((nm,k) for (nm,k) in keys if wildcard(nm))
             else:
-                keys = [k for k in keys if fnmatch.fnmatch(k.name, wildcard)]
+                keys = ((nm,k) for (nm,k) in keys if fnmatch(nm,wildcard))
         if full:
-            entries = [(relpath(pathjoin(path, k.name)),k) for k in keys]
+            return ((relpath(pathjoin(path, nm)),k) for (nm,k) in keys)
         elif absolute:
-            entries = [(abspath(pathjoin(path, k.name)),k) for k in keys]
-        else:
-            entries = [(k.name,k) for k in keys]
-        return entries
+            return ((abspath(pathjoin(path, nm)),k) for (nm,k) in keys)
+        return keys
 
     def makedir(self,path,recursive=False,allow_recreate=False):
         """Create a directory at the given path.
