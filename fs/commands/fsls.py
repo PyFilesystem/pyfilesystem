@@ -17,7 +17,9 @@ List contents of [PATH]"""
         optparse.add_option('-u', '--full', dest='fullpath', action="store_true", default=False,
                             help="output full path", metavar="FULL")
         optparse.add_option('-s', '--syspath', dest='syspath', action="store_true", default=False,
-                            help="output system path", metavar="SYSPATH")         
+                            help="output system path (if one exists)", metavar="SYSPATH")         
+        optparse.add_option('-r', '--url', dest='url', action="store_true", default=False,
+                            help="output URL in place of path (if one exists)", metavar="URL")
         optparse.add_option('-d', '--dirsonly', dest='dirsonly', action="store_true", default=False,
                             help="list directories only", metavar="DIRSONLY")
         optparse.add_option('-f', '--filesonly', dest='filesonly', action="store_true", default=False,
@@ -52,30 +54,36 @@ List contents of [PATH]"""
                 if not options.dirsonly:                    
                     file_paths.append(path)
             else:                  
-                if not options.filesonly:                    
+                if not options.filesonly:
                     dir_paths += fs.listdir(path,
                                             wildcard=wildcard,
-                                            full=options.fullpath,
+                                            full=options.fullpath or options.url,
                                             dirs_only=True)
                 
                 if not options.dirsonly:                                    
                     file_paths += fs.listdir(path,
                                              wildcard=wildcard,
-                                             full=options.fullpath,                                   
+                                             full=options.fullpath or options.url,                                   
                                              files_only=True)
         
-        try:
-            for fs in fs_used:
+        for fs in fs_used:
+            try:
                 fs.close()
-        except FSError:
-            pass
-        
+            except FSError:
+                pass
+                
         if options.syspath:
-            dir_paths = [fs.getsyspath(path, allow_none=True) or path for path in dir_paths]
-            file_paths = [fs.getsyspath(path, allow_none=True) or path for path in file_paths]
+            # Path without a syspath, just won't be displayed
+            dir_paths = filter(None, [fs.getsyspath(path, allow_none=True) for path in dir_paths])
+            file_paths = filter(None, [fs.getsyspath(path, allow_none=True) for path in file_paths])
+                          
+        if options.url:
+            # Path without a syspath, just won't be displayed
+            dir_paths = filter(None, [fs.getpathurl(path, allow_none=True) for path in dir_paths])
+            file_paths = filter(None, [fs.getpathurl(path, allow_none=True) for path in file_paths])
                         
-        dirs = frozenset(dir_paths)                
-        paths = sorted(dir_paths + file_paths, key=lambda p:p.lower())        
+        dirs = frozenset(dir_paths)
+        paths = sorted(dir_paths + file_paths, key=lambda p:p.lower())
         
         if not options.all:            
             paths = [path for path in paths if not isdotfile(path)]
@@ -129,9 +137,9 @@ List contents of [PATH]"""
         if options.long:            
             for path in paths:
                 if path in dirs:
-                    output(self.wrap_dirname(path) + '\n')
+                    output((self.wrap_dirname(path), '\n'))
                 else:
-                    output(self.wrap_filename(path) + '\n')            
+                    output((self.wrap_filename(path), '\n'))            
                                 
         else:            
             terminal_width = self.terminal_width
@@ -158,8 +166,7 @@ List contents of [PATH]"""
                 num_cols -= 1                                
             num_cols = max(1, num_cols)                               
             columns = columnize(paths, num_cols)                
-            output(condense_columns(columns))
-            output('\n')
+            output((condense_columns(columns), '\n'))            
 
 def run():
     return FSls().run()            

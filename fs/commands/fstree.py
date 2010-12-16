@@ -15,6 +15,8 @@ Recursively display the contents of PATH in an ascii tree"""
         optparse = super(FSTree, self).get_optparse()        
         optparse.add_option('-l', '--level', dest='depth', type="int", default=5,
                             help="Descend only LEVEL directories deep", metavar="LEVEL")
+        optparse.add_option('-g', '--gui', dest='gui', action='store_true', default=False,
+                            help="browse the tree with a gui")
         optparse.add_option('-a', '--all', dest='all', action='store_true', default=False,
                             help="do not hide dot files")        
         optparse.add_option('-d', '--dirsfirst', dest='dirsfirst', action='store_true', default=False,
@@ -26,18 +28,23 @@ Recursively display the contents of PATH in an ascii tree"""
         if not args:
             args = ['.']
     
-        for fs, path, is_dir in self.get_resources(args, single=True):
-            if path is not None:
-                fs.opendir(path)                
+        for fs, path, is_dir in self.get_resources(args, single=True):                            
             if not is_dir:
                 self.error(u"'%s' is not a dir\n" % path)
                 return 1
-            print_fs(fs, path or '',
-                     file_out=self.output_file,
-                     max_levels=options.depth,
-                     terminal_colors=self.is_terminal(),
-                     hide_dotfiles=not options.all,
-                     dirs_first=options.dirsfirst)        
+            fs.cache_hint(True)
+            if options.gui:
+                from fs.browsewin import browse
+                if path:
+                    fs = fs.opendir(path)
+                browse(fs, hide_dotfiles=not options.all)
+            else:
+                print_fs(fs, path or '',
+                         file_out=self.output_file,
+                         max_levels=options.depth,
+                         terminal_colors=self.is_terminal(),
+                         hide_dotfiles=not options.all,
+                         dirs_first=options.dirsfirst)        
    
 def run():
     return FSTree().run()          

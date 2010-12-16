@@ -8,7 +8,7 @@ from fs.utils import print_fs
 
 class FSServe(Command):
     
-    """fsserve [OPTION]... [PATH]
+    usage = """fsserve [OPTION]... [PATH]
 Serves the contents of PATH with one of a number of methods"""
     
     def get_optparse(self):

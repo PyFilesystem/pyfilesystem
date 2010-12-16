@@ -210,7 +210,13 @@ class Opener(object):
 
 class OSFSOpener(Opener):
     names = ['osfs', 'file']    
-    desc = "OS filesystem opener, works with any valid system path. This is the default opener and will be used if you don't indicate which opener to use."
+    desc = """OS filesystem opener, works with any valid system path. This is the default opener and will be used if you don't indicate which opener to use.
+    
+    examples:
+    * file://relative/foo/bar/baz.txt (opens a relative file)
+    * file:///home/user (opens a directory from a absolute path)
+    * osfs://~/ (open the user's home directory)
+    * foo/bar.baz (file:// is the default opener)"""
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
@@ -226,7 +232,12 @@ class OSFSOpener(Opener):
         
 class ZipOpener(Opener):
     names = ['zip', 'zip64']    
-    desc = "Opens zip files. Use zip64 for > 2 megabyte zip files, if you have a 64 bit processor.\ne.g. zip://myzip"
+    desc = """Opens zip files. Use zip64 for > 2 megabyte zip files, if you have a 64 bit processor.
+    
+    examples:
+    * zip://myzip.zip (open a local zip file)
+    * zip://myzip.zip!foo/bar/insidezip.txt (reference a file insize myzip.zip)
+    * zip:ftp://ftp.example.org/myzip.zip (open a zip file stored on a ftp server)"""
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
@@ -263,7 +274,11 @@ class ZipOpener(Opener):
 
 class RPCOpener(Opener):
     names = ['rpc']
-    desc = "An opener for filesystems server over RPC (see the fsserve command). e.g. rpc://127.0.0.1"
+    desc = """An opener for filesystems server over RPC (see the fsserve command).
+    
+examples:
+rpc://127.0.0.1:8000 (opens a RPC server running on local host, port 80)
+rpc://www.example.org (opens an RPC server on www.example.org, default port 80)"""
 
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
@@ -284,7 +299,11 @@ class RPCOpener(Opener):
 
 class FTPOpener(Opener):
     names = ['ftp']
-    desc = "An opener for FTP (File Transfer Protocl) servers. e.g. ftp://ftp.mozilla.org"
+    desc = """An opener for FTP (File Transfer Protocl) server
+
+examples:
+* ftp://ftp.mozilla.org (opens the root of ftp.mozilla.org)
+* ftp://ftp.example.org/foo/bar (opens /foo/bar on ftp.mozilla.org)"""
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
@@ -316,7 +335,11 @@ class FTPOpener(Opener):
 
 class SFTPOpener(Opener):
     names = ['sftp']
-    desc = "An opener for SFTP (Secure File Transfer Protocol) servers"
+    desc = """An opener for SFTP (Secure File Transfer Protocol) servers
+    
+examples:
+* sftp://username:password@example.org (opens sftp server example.org with username and password
+* sftp://example.org (opens example.org with public key authentication)"""
 
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
@@ -367,7 +390,13 @@ class SFTPOpener(Opener):
     
 class MemOpener(Opener):
     names = ['mem', 'ram']
-    desc = """Creates an in-memory filesystem (very fast but contents will disappear on exit)."""
+    desc = """Creates an in-memory filesystem (very fast but contents will disappear on exit).
+Useful for creating a fast temporary filesystem for serving or mounting with fsserve or fsmount.
+NB: If you user fscp or fsmv to copy/move files here, you are effectively deleting them!
+
+examples:
+* mem:// (opens a new memory filesystem)
+* mem://foo/bar (opens a new memory filesystem with subdirectory /foo/bar)    """
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
@@ -380,7 +409,10 @@ class MemOpener(Opener):
     
 class DebugOpener(Opener):
     names = ['debug']
-    desc = "For developer -- adds debugging information to output. To use prepend an exisiting opener with debug: e.g debug:ftp://ftp.mozilla.org"
+    desc = """For developers -- adds debugging information to output.
+    
+example:
+    * debug:ftp://ftp.mozilla.org (displays details of calls made to a ftp filesystem)"""
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
@@ -398,7 +430,12 @@ class DebugOpener(Opener):
     
 class TempOpener(Opener):
     names = ['temp']
-    desc = "Creates a temporary filesystem, that is erased on exit."
+    desc = """Creates a temporary filesystem, that is erased on exit.
+Probably only useful for mounting or serving.
+NB: If you user fscp or fsmv to copy/move files here, you are effectively deleting them!
+
+example:
+* temp://"""
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):

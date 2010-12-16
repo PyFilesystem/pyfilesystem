@@ -54,7 +54,7 @@ Mounts a file system on a system path"""
         if platform.system() == 'Windows':
             pass
         else:
-            fs, path = self.open_fs(fs_url, create=True)
+            fs, path = self.open_fs(fs_url, create_dir=True)
             if path:
                 if not fs.isdir(path):
                     self.error('%s is not a directory on %s' % (fs_url. fs))

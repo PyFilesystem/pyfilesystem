@@ -74,7 +74,7 @@ Copy SOURCE to DESTINATION"""
         srcs = args[:-1]
         dst = args[-1] 
         
-        dst_fs, dst_path = self.open_fs(dst, writeable=True, create=True)
+        dst_fs, dst_path = self.open_fs(dst, writeable=True, create_dir=True)
         
         if dst_path is not None and dst_fs.isfile(dst_path):
             self.error('Destination must be a directory\n')

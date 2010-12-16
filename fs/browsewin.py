@@ -14,12 +14,13 @@ Requires wxPython.
 import wx
 import wx.gizmos
 
-import base as fs
+from fs.path import isdotfile, pathsplit
+from fs.errors import FSError
 
 class InfoFrame(wx.Frame):
 
-    def __init__(self, path, desc, info):
-        wx.Frame.__init__(self, None, -1, style=wx.DEFAULT_FRAME_STYLE, size=(500, 500))
+    def __init__(self, parent, path, desc, info):
+        wx.Frame.__init__(self, parent, -1, style=wx.DEFAULT_FRAME_STYLE, size=(500, 500))
 
         self.SetTitle("FS Object info - %s (%s)" % (path, desc))
 
@@ -34,19 +35,22 @@ class InfoFrame(wx.Frame):
         self.list_ctrl.SetColumnWidth(0, 190)
         self.list_ctrl.SetColumnWidth(1, 300)
 
-        for key in keys:
-            self.list_ctrl.Append((key, str(info.get(key))))
+        for key in sorted(keys, key=lambda k:k.lower()):
+            self.list_ctrl.Append((key, unicode(info.get(key))))
+            
+        self.Center()
 
 
 
 class BrowseFrame(wx.Frame):
 
-    def __init__(self, fs):
+    def __init__(self, fs, hide_dotfiles=False):
 
         wx.Frame.__init__(self, None, size=(1000, 600))
 
         self.fs = fs
-        self.SetTitle("FS Browser - "+str(fs))
+        self.hide_dotfiles = hide_dotfiles
+        self.SetTitle("FS Browser - " + unicode(fs))
 
         self.tree = wx.gizmos.TreeListCtrl(self, -1, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT)
 
@@ -98,7 +102,19 @@ class BrowseFrame(wx.Frame):
         if item_data['expanded']:
             return
 
-        paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
+        try:
+            paths = ( [(True, p) for p in self.fs.listdir(path, absolute=True, dirs_only=True)] +
+                      [(False, p) for p in self.fs.listdir(path, absolute=True, files_only=True)] )
+        except FSError, e:
+                msg = "Failed to get directory listing for %s\n\nThe following error was reported:\n\n%s" % (path, e)
+                wx.MessageDialog(self, msg, "Error listing directory", wx.OK).ShowModal()
+                paths = []
+            
+                
+        #paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
+        
+        if self.hide_dotfiles:
+            paths = [p for p in paths if not isdotfile(p[1])]
 
         if not paths:
             #self.tree.SetItemHasChildren(item_id, False)
@@ -109,7 +125,7 @@ class BrowseFrame(wx.Frame):
 
         for is_dir, new_path in paths:
 
-            name = fs.pathsplit(new_path)[-1]
+            name = pathsplit(new_path)[-1]
 
             new_item = self.tree.AppendItem(item_id, name, data=wx.TreeItemData({'path':new_path, 'expanded':False}))
 
@@ -157,20 +173,22 @@ class BrowseFrame(wx.Frame):
         path = item_data["path"]
         info = self.fs.getinfo(path)
 
-        info_frame = InfoFrame(path, self.fs.desc(path), info)
+        info_frame = InfoFrame(self, path, self.fs.desc(path), info)        
         info_frame.Show()
+        info_frame.CenterOnParent()
 
 
-def browse(fs):
+def browse(fs, hide_dotfiles=False):
     """Displays a window containing a tree control that displays an FS
     object. Double-click a file/folder to display extra info.
 
     :param fs: A filesystem object
+    :param hide_fotfiles: If True, files and folders that begin with a dot will be hidden
 
     """
 
     app = wx.PySimpleApp()
-    frame = BrowseFrame(fs)
+    frame = BrowseFrame(fs, hide_dotfiles=True)
     frame.Show()
     app.MainLoop()
 

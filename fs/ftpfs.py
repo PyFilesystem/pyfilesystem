@@ -1035,6 +1035,15 @@ class FTPFS(FS):
                 pass        
             self.closed = True
 
+    def getpathurl(self, path, allow_none=False):
+        path = normpath(path)
+        credentials = '%s:%s' % (self.user, self.passwd)        
+        if credentials == ':':            
+            url = 'ftp://%s%s' % (self.host.rstrip('/'), abspath(path))
+        else:
+            url = 'ftp://%s@%s%s' % (credentials, self.host.rstrip('/'), abspath(path))        
+        return url             
+
     @ftperrors
     def open(self, path, mode='r'):
         mode = mode.lower()        
@@ -1249,6 +1258,9 @@ class FTPFS(FS):
 
     @ftperrors
     def desc(self, path):
+        url = self.getpathurl(path, allow_none=True)
+        if url:
+            return url
         dirlist, fname = self._check_path(path)
         if fname not in dirlist:
             raise ResourceNotFoundError(path)

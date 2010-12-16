@@ -5,7 +5,7 @@ from fs.errors import FSError
 from fs.path import splitext, pathsplit, isdotfile, iswildcard
 import platform
 from collections import defaultdict
-
+import re
 
 if platform.system() == 'Linux' :
     def getTerminalSize():
@@ -51,8 +51,11 @@ class Command(object):
         self.encoding = getattr(self.output_file, 'encoding', 'utf-8') or 'utf-8'
         self.verbosity_level = 0
         self.terminal_colors = not sys.platform.startswith('win') and self.is_terminal()
-        w, h = getTerminalSize()
-        self.terminal_width = w
+        if self.is_terminal():
+            w, h = getTerminalSize()
+            self.terminal_width = w
+        else:
+            self.terminal_width = 80
         self.name = self.__class__.__name__.lower()
     
     def is_terminal(self):
@@ -74,7 +77,9 @@ class Command(object):
     def wrap_filename(self, fname):        
         fname = _unicode(fname)
         if not self.terminal_colors:
-            return fname            
+            return fname
+        if '://' in fname:
+            return fname
         if '.' in fname:
             name, ext = splitext(fname)
             fname = u'%s\x1b[36m%s\x1b[0m' % (name, ext)
@@ -88,16 +93,35 @@ class Command(object):
             return text
         return u'\x1b[2m%s\x1b[0m' % text
     
+    def wrap_link(self, text):
+        if not self.terminal_colors:
+            return text
+        return u'\x1b[1;33m%s\x1b[0m' % text
+    
+    def wrap_strong(self, text):
+        if not self.terminal_colors:
+            return text
+        return u'\x1b[1m%s\x1b[0m' % text
+    
     def wrap_table_header(self, name):
         if not self.terminal_colors:
             return name
         return '\x1b[1;32m%s\x1b[0m' % name
         
-    def open_fs(self, fs_url, writeable=False, create=False):
+    def highlight_fsurls(self, text):
+        if not self.terminal_colors:
+            return text
+        re_fs = r'(\S*?://\S*)'
+        def repl(matchobj):
+            fs_url = matchobj.group(0)
+            return self.wrap_link(fs_url)
+        return re.sub(re_fs, repl, text)
+                
+    def open_fs(self, fs_url, writeable=False, create_dir=False):
         try:
-            fs, path = opener.parse(fs_url, writeable=writeable, create_dir=create)
+            fs, path = opener.parse(fs_url, writeable=writeable, create_dir=create_dir)
         except OpenerError, e:
-            self.error(str(e)+'\n')
+            self.error(str(e), '\n')
             sys.exit(1)
         fs.cache_hint(True)        
         return fs, path
@@ -168,12 +192,15 @@ class Command(object):
                     
         return text
     
-    def output(self, msg, verbose=False):
-        if verbose and not self.verbose:
-            return        
-        self.output_file.write(self.text_encode(msg))
         
-    
+    def output(self, msgs, verbose=False):        
+        if verbose and not self.verbose:
+            return  
+        if isinstance(msgs, basestring):
+            msgs = (msgs,)  
+        for msg in msgs:    
+            self.output_file.write(self.text_encode(msg))
+            
     def output_table(self, table, col_process=None, verbose=False):
         
         if verbose and not self.verbose:
@@ -199,8 +226,9 @@ class Command(object):
             lines.append(self.text_encode('%s\n' % '  '.join(out_col).rstrip()))
         self.output(''.join(lines))        
                                         
-    def error(self, msg):
-        self.error_file.write('%s: %s' % (self.name, self.text_encode(msg)))        
+    def error(self, *msgs):
+        for msg in msgs:
+            self.error_file.write('%s: %s' % (self.name, self.text_encode(msg)))        
         
     def get_optparse(self):
         optparse = OptionParser(usage=self.usage, version=self.version)
@@ -229,23 +257,23 @@ class Command(object):
             for line in lines:
                 words = []
                 line_len = 0
-                for word in line.split():                                        
+                for word in line.split():
+                    if word == '*':
+                        word = ' *'                                        
                     if line_len + len(word) > self.terminal_width:
-                        self.output(' '.join(words))
-                        self.output('\n')
+                        self.output((self.highlight_fsurls(' '.join(words)), '\n'))                        
                         del words[:]
                         line_len = 0
                     words.append(word)
                     line_len += len(word) + 1
                 if words:
-                    self.output(' '.join(words))
+                    self.output(self.highlight_fsurls(' '.join(words)))
                 self.output('\n')
               
-        for names, desc in opener_table:
-            self.output('\n')            
+        for names, desc in opener_table:            
+            self.output(('-' * self.terminal_width, '\n'))                                
             proto = ', '.join([n+'://' for n in names])
-            self.output(self.wrap_dirname('[%s]' % proto))
-            self.output('\n')
+            self.output((self.wrap_dirname('[%s]' % proto), '\n\n'))            
             if not desc.strip():
                 desc = "No information available"            
             wrap_line(desc)
@@ -280,8 +308,7 @@ class Command(object):
             if options.debug:
                 raise
             return 1
-        
-        
+                
         
 if __name__ == "__main__":
     command = Command()
