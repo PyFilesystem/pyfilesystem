@@ -47,7 +47,7 @@ if not hasattr(paramiko.SFTPFile,"__enter__"):
 class SFTPFS(FS):
     """A filesystem stored on a remote SFTP server.
 
-    This is basically a compatability wrapper for the excellent SFTPClient
+    This is basically a compatibility wrapper for the excellent SFTPClient
     class in the paramiko module.
     
     """
@@ -65,7 +65,7 @@ class SFTPFS(FS):
               }
 
 
-    def __init__(self, connection, root_path="/", encoding=None, hostkey=None, username='', password=None, pkey=None):
+    def __init__(self, connection, root_path="/", encoding=None, hostkey=None, username='', password=None, pkey=None, agent_auth=True, no_auth=False):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
@@ -78,7 +78,7 @@ class SFTPFS(FS):
             * a paramiko.Channel instance in "sftp" mode
 
         The kwd argument 'root_path' specifies the root directory on the remote
-        machine - access to files outsite this root wil be prevented. 
+        machine - access to files outside this root wil be prevented. 
         
         :param connection: a connection string
         :param root_path: The root path to open
@@ -87,6 +87,8 @@ class SFTPFS(FS):
         :param username: Name of SFTP user
         :param password: Password for SFTP user
         :param pkey: Public key
+        :param agent_auth: attempt to authorise with the user's public keys
+        :param no_auth: attempt to log in without any kind of authorisation
         
         """
         
@@ -127,20 +129,29 @@ class SFTPFS(FS):
             key = self.get_remote_server_key()
             if hostkey != key:
                 raise WrongHostKeyError('Host keys do not match')
-            
+                        
         connection.start_client()
         
-        if not connection.is_authenticated():        
+        if not connection.is_active():
+            raise RemoteConnectionError('Unable to connect')
+        
+        if no_auth:
+            try:
+                connection.auth_none('')
+            except paramiko.SSHException:
+                pass
+        
+        if not connection.is_authenticated():                
             try:                
-                if pkey:                    
-                    connection.auth_publickey(username, pkey)
+                if pkey:                                               
+                    connection.auth_publickey(username, pkey)                    
                 
                 if not connection.is_authenticated() and password:                    
-                    connection.auth_password(username, password)                                    
-                  
-                if not connection.is_authenticated():                    
-                    self._agent_auth(connection, username)
-                            
+                    connection.auth_password(username, password)                                                    
+                                  
+                if agent_auth and not connection.is_authenticated():                                
+                    self._agent_auth(connection, username)                    
+                                                
                 if not connection.is_authenticated():                    
                     connection.close()
                     raise RemoteConnectionError('no auth')
@@ -163,11 +174,10 @@ class SFTPFS(FS):
         
         agent = paramiko.Agent()
         agent_keys = agent.get_keys()
-        if len(agent_keys) == 0:
-            return False
-            
+        if not agent_keys:
+            return None        
         for key in agent_keys:            
-            try:
+            try:                
                 transport.auth_publickey(username, key)                
                 return key
             except paramiko.SSHException:
@@ -382,8 +392,6 @@ class SFTPFS(FS):
                 
         return [(p, getinfo(p)) for p in 
                     self._listdir_helper(path, paths, wildcard, full, absolute, False, False)]
-
-
 
     @convert_os_errors
     def makedir(self,path,recursive=False,allow_recreate=False):

@@ -38,7 +38,8 @@ class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
                     raise
         self.server_addr = ("localhost",port)
         self.serve_more_requests = True
-        self.server_thread = threading.Thread(target=self.runServer)            
+        self.server_thread = threading.Thread(target=self.runServer)
+        self.server_thread.daemon = True            
         self.server_thread.start()
 
     def runServer(self):
@@ -94,7 +95,7 @@ class TestSFTPFS(TestRPCFS):
 
     def setUp(self):
         self.startServer()
-        self.fs = sftpfs.SFTPFS(self.server_addr)
+        self.fs = sftpfs.SFTPFS(self.server_addr, no_auth=True)
 
     def bump(self):
         # paramiko doesn't like being bumped, just wait for it to timeout.

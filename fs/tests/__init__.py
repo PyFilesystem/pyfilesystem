@@ -691,8 +691,7 @@ class FSTestCases(object):
         fs3 = pickle.loads(pickle.dumps(self.fs,-1))
         self.assert_(fs3.isfile("test1"))
 
-    def test_big_file(self):
-        return
+    def test_big_file(self):        
         chunk_size = 1024 * 256
         num_chunks = 4
         def chunk_stream():

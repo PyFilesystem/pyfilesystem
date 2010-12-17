@@ -174,6 +174,10 @@ class FS(object):
         pass
 
     def close(self):
+        """Close the filesystem. This will perform any shutdown related
+        operations required. This method will be called automatically when
+        an the filesystem object is cleaned up, but it is a good idea to call
+        it explicitly."""
         self.closed = True
 
     def __getstate__(self):
@@ -190,9 +194,7 @@ class FS(object):
         return state
 
     def __setstate__(self,state):
-        self.__dict__.update(state)
-        #for (k,v) in state.iteritems():
-        #    self.__dict__[k] = v
+        self.__dict__.update(state)        
         lock = state.get("_lock")
         if lock is not None:
             if lock:
@@ -202,7 +204,7 @@ class FS(object):
 
     def getmeta(self, meta_name, default=NoDefaultMeta):
         """Retrieve a meta value associated with an FS object. Meta values are
-        a way of an FS implementation to report potentially useful information
+        a way for an FS implementation to report potentially useful information
         associated with the file system.
         
         A meta key is a lower case string with no spaces. Meta keys may also
@@ -213,7 +215,7 @@ class FS(object):
         
          * *read_only* True if the file system can not be modified
          * *network* True if the file system requires network access
-         * *unicode_paths* True if the file system can use unicode paths
+         * *unicode_paths* True if the file system supports unicode paths
          * *case_insensitive_paths* True if the file system ignores the case of paths        
          * *atomic.makedir* True if making a directory is an atomic operation
          * *atomic.rename* True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
@@ -342,6 +344,7 @@ class FS(object):
 
         :param path: A path in the filessystem
         :rtype: bool
+        
         """
         return self.isfile(path) or self.isdir(path)
 
@@ -1031,7 +1034,10 @@ class FS(object):
         if syspath is None:
             raise NoMMapError(path)
         
-        import mmap
+        try:
+            import mmap            
+        except ImportError:
+            raise NoMMapError(msg="mmap not supported")
         
         if read_only:
             f = open(syspath, 'rb')
@@ -1044,7 +1050,7 @@ class FS(object):
                 f = open(syspath, 'r+b')
                 access = mmap.ACCESS_WRITE      
                   
-        m = mmap.mmap(f.fileno, 0, access=access)
+        m = mmap.mmap(f.fileno(), 0, access=access)
         return m
 
 

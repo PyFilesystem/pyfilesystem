@@ -54,12 +54,12 @@ class TempFS(OSFS):
     def __unicode__(self):
         return u'<TempFS: %s>' % self._temp_dir
     
-    def __setstate__(self, state):
-        state = super(TempFS, self).__setstate__(state)
-        self._temp_dir = tempfile.mkdtemp(self.identifier or "TempFS", dir=self.temp_dir)  
-        super(TempFS, self).__init__(self._temp_dir,
-                                     dir_mode=self.dir_mode,
-                                     thread_synchronize=self.thread_synchronize)      
+#    def __setstate__(self, state):
+#        state = super(TempFS, self).__setstate__(state)
+#        self._temp_dir = tempfile.mkdtemp(self.identifier or "TempFS", dir=self.temp_dir)  
+#        super(TempFS, self).__init__(self._temp_dir,
+#                                     dir_mode=self.dir_mode,
+#                                     thread_synchronize=self.thread_synchronize)      
 
     def close(self):
         """Removes the temporary directory.
