@@ -27,13 +27,12 @@ class FileOpThread(threading.Thread):
                 path_type, fs, path, dest_path = self.queue.get(timeout=0.1)
             except queue.Empty:
                 continue
-            try:
+            try:                
                 if path_type == FScp.DIR:                        
                     self.dest_fs.makedir(path, recursive=True, allow_recreate=True)
                 else:                                                                
-                    self.action(fs, path, self.dest_fs, dest_path, overwrite=True) 
-            except Exception, e:
-                print e
+                    self.action(fs, path, self.dest_fs, dest_path, overwrite=True)                    
+            except Exception, e:                
                 self.on_error(e)                                
                 self.queue.task_done()                                  
                 break                   
@@ -183,14 +182,14 @@ Copy SOURCE to DESTINATION"""
             for thread in threads:
                 thread.join()
             complete = True
-            self.post_actions()
+            if not any_error():
+                self.post_actions()
                                    
         dst_fs.close()
         
         if self.action_errors:
             for error in self.action_errors:
-                self.error(self.wrap_error(unicode(error)) + '\n')
-            sys.stdout.write('\n')
+                self.error(self.wrap_error(unicode(error)) + '\n')            
             sys.stdout.flush()
         else:
             if complete and options.progress:
@@ -216,8 +215,7 @@ Copy SOURCE to DESTINATION"""
         finally:
             self.lock.release()
             
-    def on_error(self, e):
-        print e
+    def on_error(self, e):        
         self.lock.acquire()
         try:
             self.action_errors.append(e)
@@ -239,10 +237,8 @@ Copy SOURCE to DESTINATION"""
         
         done_steps = int(done * bar_width)
         bar_steps = ('#' * done_steps).ljust(bar_width) 
-        
-        
-        msg = '%s %i%%' % (msg, int(done * 100.0))
-        
+                
+        msg = '%s %i%%' % (msg, int(done * 100.0))        
         msg = msg.ljust(20)
         
         if total == remaining:
