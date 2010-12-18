@@ -147,8 +147,7 @@ class Command(object):
         
     def get_resources(self, fs_urls, dirs_only=False, files_only=False, single=False):
         
-        fs_paths = [self.open_fs(fs_url) for fs_url in fs_urls]        
-        
+        fs_paths = [self.open_fs(fs_url) for fs_url in fs_urls]                
         resources = []
         
         for fs, path in fs_paths:            
@@ -187,10 +186,9 @@ class Command(object):
         text = text.encode(self.encoding, 'replace')
                     
         return text
-    
-        
+            
     def output(self, msgs, verbose=False):        
-        if verbose and not self.verbose:
+        if verbose and not self.options.verbose:
             return  
         if isinstance(msgs, basestring):
             msgs = (msgs,)  
@@ -281,6 +279,7 @@ class Command(object):
     def run(self):        
         parser = self.get_optparse()
         options, args = parser.parse_args()
+        self.options = options
         
         if options.listopeners:
             self.list_openers()

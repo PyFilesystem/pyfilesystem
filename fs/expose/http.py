@@ -9,6 +9,7 @@ import urllib
 import posixpath
 import time
 import threading
+import socket
 
 def _datetime_to_epoch(d):
     return mktime(d.timetuple())
@@ -27,7 +28,10 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         try:
             f = self.send_head()
             if f:
-                self.copyfile(f, self.wfile)                
+                try:
+                    self.copyfile(f, self.wfile)
+                except socket.error:
+                    pass                
         finally:
             if f is not None:
                 f.close()             
@@ -44,8 +48,6 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         """
         path = self.translate_path(self.path)
-        #path = self.translate_path(self.path)
-        #print path
         f = None
         if self._fs.isdir(path):
             if not self.path.endswith('/'):
@@ -54,7 +56,7 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 self.send_header("Location", self.path + "/")
                 self.end_headers()
                 return None
-            for index in "index.html", "index.htm":
+            for index in ("index.html", "index.htm"):
                 index = pathjoin(path, index)
                 if self._fs.exists(index):
                     path = index

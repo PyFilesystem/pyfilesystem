@@ -1,3 +1,13 @@
+"""
+    fs.opener: open file systems from a FS url
+
+"""
+
+__all__ = ['OpenerError',
+           'NoOpenerError',
+           'OpenerRegistry',
+           'opener']
+
 import sys
 from fs.osfs import OSFS
 from fs.path import pathsplit, basename, join, iswildcard
@@ -11,10 +21,6 @@ class OpenerError(Exception):
 
 class NoOpenerError(OpenerError):
     pass
-
-class MissingParameterError(OpenerError):
-    pass
-
 
 def _expand_syspath(path):
     if path is None:
@@ -64,6 +70,7 @@ def _split_url_path(url):
 
 class OpenerRegistry(object):
      
+    """An opener stores a number of opener objects that are used to parse FS URLs"""
 
     re_fs_url = re.compile(r'''
 ^
@@ -95,18 +102,39 @@ class OpenerRegistry(object):
         return match        
     
     def get_opener(self, name):
+        """Retrieve an opener for the given protocol
+        
+        :param name: name of the opener to open
+        :raises NoOpenerError: if no opener has been registered of that name
+        
+        """
         if name not in self.registry:
             raise NoOpenerError("No opener for %s" % name)
         index = self.registry[name]
         return self.openers[index]        
     
     def add(self, opener):
+        """Adds an opener to the registry
+        
+        :param opener: a class derived from fs.opener.Opener
+        
+        """
+        
         index = len(self.openers)
         self.openers[index] = opener
         for name in opener.names:
             self.registry[name] = index
     
-    def parse(self, fs_url, default_fs_name=None, open_dir=True, writeable=False, create_dir=False):
+    def parse(self, fs_url, default_fs_name=None, writeable=False, create_dir=False):
+        """Parses a FS url and returns an fs object a path within that FS object
+        (if indicated in the path). A tuple of (<FS instance>, <path>) is returned.
+        
+        :param fs_url: an FS url
+        :param default_fs_name: the default FS to use if none is indicated (defaults is OSFS)
+        :param writeable: if True, a writeable FS will be returned
+        :oaram create_dir: if True, then the directory in the FS will be created
+        
+        """
                    
         orig_url = fs_url     
         match = self.split_segments(fs_url)
@@ -154,7 +182,7 @@ class OpenerRegistry(object):
             fs = fs.opendir(pathname)
             fs_path = resourcename
                                
-        return fs, fs_path        
+        return fs, fs_path or ''        
 
     def open(self, fs_url, mode='rb'):
         """Opens a file from a given FS url
@@ -173,15 +201,17 @@ class OpenerRegistry(object):
         fs, path = self.parse(fs_url, writeable=writeable)                
         file_object = fs.open(path, mode)
         
-        # If we just return the file, the fs goes out of scope and closes,
+        # If we just return the file, then fs goes out of scope and closes,
         # which may make the file unusable. To get around this, we store a
         # reference in the file object to the FS, and patch the file's
         # close method to also close the FS.    
         close = file_object.close
-        def replace_close():
-            fs.close()
-            return close()
-        file_object.close = replace_close
+        close_fs = fs        
+        def replace_close():            
+            ret = close()
+            close_fs.close()
+            return ret                            
+        file_object.close = replace_close        
                     
         return file_object
     
@@ -204,23 +234,35 @@ class OpenerRegistry(object):
             it doesn't already exist          
         
         """
-        fs, path = self.parse(fs_url, writable=writeable, create_dir=create_dir)
+        fs, path = self.parse(fs_url, writeable=writeable, create_dir=create_dir)
         if path:
             return fs.opendir(path)
         return fs
                     
 
 class Opener(object):
+    """The base class for openers
     
-    @classmethod
-    def get_param(cls, params, name, default=None):        
-        try:
-            param = params.pop(0)
-        except IndexError:
-            if default is not None:
-                return default
-            raise MissingParameterError(error_msg)
-        return param
+    Opener follow a very simple protocol. To create an opener, derive a class
+    from `Opener` and define a classmethod called `get_fs`, which should have the following signature::
+    
+        @classmethod
+        def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        
+    The parameters of `get_fs` are as follows:
+        
+     * `fs_name` the name of the opener, as extracted from the protocol part of the url,
+     * `fs_name_params` reserved for future use
+     * `fs_path` the path part of the url
+     * `writeable` if True, then `get_fs` must return an FS that can be written to
+     * `create_dir` if True then `get_fs` should attempt to silently create the directory references in path
+    
+    In addition to `get_fs` an opener class should contain 
+    two class attributes; names and desc. `names` is a list of protocols that
+    list opener will opener. `desc` is an English description of the individual opener syntax.
+    
+    """    
+    pass
 
 
 class OSFSOpener(Opener):
@@ -299,7 +341,7 @@ rpc://www.example.org (opens an RPC server on www.example.org, default port 80)"
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.rpcfs import RPCFS             
         username, password, fs_path = _parse_credentials(fs_path)
-        if not fs_path.startswith('http://'):
+        if '://' not in fs_path:
             fs_path = 'http://' + fs_path
             
         scheme, netloc, path, params, query, fragment = urlparse(fs_path)
