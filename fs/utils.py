@@ -53,6 +53,37 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_copyfile(src_syspath, dst_syspath)
         return
 
+    src_lock = getattr(src_fs, '_lock', None)
+
+    if src_lock is not None:
+        src_lock.acquire()
+        
+    try:
+        src = None        
+        try:        
+            src = src_fs.open(src_path, 'rb')
+            dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)                                    
+        finally:
+            if src is not None:
+                src.close()                
+    finally:
+        if src_lock is not None:
+            src_lock.release()
+
+def copyfile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
+    """A non atomic version of copyfile (will not block other threads using src_fs or dst_fst)
+    
+    :param src_fs: Source filesystem object
+    :param src_path: -- Source path
+    :param dst_fs: Destination filesystem object
+    :param dst_path: Destination filesystem object
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+    
+    """
+    
+    if not overwrite and dst_fs.exists(dst_path):
+        raise DestinationExistsError(dst_path)
+    
     src = None
     dst = None        
     try:        
@@ -97,24 +128,64 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         FS._shutil_movefile(src_syspath, dst_syspath)        
         return
 
+    src_lock = getattr(src_fs, '_lock', None)
+
+    if src_lock is not None:
+        src_lock.acquire()
+
+    try:
+        src = None        
+        try:
+            # Chunk copy
+            src = src_fs.open(src_path, 'rb')
+            dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
+        except:
+            raise        
+        else:
+            src_fs.remove(src_path)              
+        finally:
+            if src is not None:
+                src.close()        
+    finally:
+        if src_lock is not None:
+            src_lock.release()
+
+
+def movefile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
+    """A non atomic version of movefile (wont block other threads using src_fs or dst_fs
+
+    :param src_fs: Source filesystem object
+    :param src_path: Source path
+    :param dst_fs: Destination filesystem object
+    :param dst_path: Destination filesystem object
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+
+    """    
+
+    if not overwrite and dst_fs.exists(dst_path):
+        raise DestinationExistsError(dst_path)
+        
     src = None
     dst = None        
     try:
         # Chunk copy
         src = src_fs.open(src_path, 'rb')        
-        dst = src_fs.open(dst_path, 'wb')
+        dst = dst_fs.open(dst_path, 'wb')
         write = dst.write
         read = src.read
         chunk = read(chunk_size)
         while chunk:            
             write(chunk)
-            chunk = read(chunk_size)                    
+            chunk = read(chunk_size)
+    except:
+        raise
+    else:
+        src_fs.remove(src_path)                    
     finally:
         if src is not None:
             src.close()
         if dst is not None:
-            dst.close()
-    src_fs.remove(src_path)
+            dst.close()    
 
 
 def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):

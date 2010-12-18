@@ -845,6 +845,8 @@ class FS(object):
         :param overwrite: if True, then an existing file at the destination path
             will be silently overwritten; if False then an exception
             will be raised in this case.
+        :param overwrite: When True the destination will be overwritten (if it exists),
+            otherwise a DestinationExistsError will be thrown 
         :type overwrite: bool
         :param chunk_size: Size of chunks to use when copying, if a simple copy
             is required

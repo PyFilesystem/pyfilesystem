@@ -72,7 +72,7 @@ class S3FS(FS):
         PATH_MAX = None
         NAME_MAX = None
 
-    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_synchronize=True,key_sync_timeout=1):
+    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_synchronize=True, key_sync_timeout=1):
         """Constructor for S3FS objects.
 
         S3FS objects require the name of the S3 bucket in which to store

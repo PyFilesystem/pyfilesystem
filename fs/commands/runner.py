@@ -1,6 +1,6 @@
 import sys
 from optparse import OptionParser
-from fs.opener import opener, OpenerError
+from fs.opener import opener, OpenerError, Opener
 from fs.errors import FSError
 from fs.path import splitext, pathsplit, isdotfile, iswildcard
 import platform
@@ -117,12 +117,8 @@ class Command(object):
             return self.wrap_link(fs_url)
         return re.sub(re_fs, repl, text)
                 
-    def open_fs(self, fs_url, writeable=False, create_dir=False):
-        try:
-            fs, path = opener.parse(fs_url, writeable=writeable, create_dir=create_dir)
-        except OpenerError, e:
-            self.error(str(e), '\n')
-            sys.exit(1)
+    def open_fs(self, fs_url, writeable=False, create_dir=False): 
+        fs, path = opener.parse(fs_url, writeable=writeable, create_dir=create_dir) 
         fs.cache_hint(True)        
         return fs, path
     
@@ -238,6 +234,8 @@ class Command(object):
                             help="make output verbose", metavar="VERBOSE")
         optparse.add_option('--listopeners', dest='listopeners', action="store_true", default=False,
                             help="list all FS openers", metavar="LISTOPENERS")
+        optparse.add_option('--fs', dest='fs', action='append', type="string",
+                            help="import an FS opener e.g --fs foo.bar.MyOpener", metavar="OPENER")
         return optparse
     
     def list_openers(self):
@@ -287,6 +285,31 @@ class Command(object):
         if options.listopeners:
             self.list_openers()
             return 0
+        
+        ilocals = {}
+        if options.fs:            
+            for import_opener in options.fs:
+                module_name, opener_class = import_opener.rsplit('.', 1)                            
+                try:
+                    opener_module = __import__(module_name, globals(), ilocals, [opener_class], -1)                     
+                except ImportError:
+                    self.error("Unable to import opener %s\n" % import_opener)
+                    return 0
+                                              
+                new_opener = getattr(opener_module, opener_class)                                    
+                    
+                try:                        
+                    if not issubclass(new_opener, Opener):
+                        self.error('%s is not an fs.opener.Opener\n' % import_opener)
+                        return 0
+                except TypeError:
+                    self.error('%s is not an opener class\n' % import_opener)
+                    return 0
+                
+                if options.verbose:
+                    self.output('Imported opener %s\n' % import_opener)
+                
+                opener.add(new_opener)
         
         args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]
         self.verbose = options.verbose        

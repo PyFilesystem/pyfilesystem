@@ -106,11 +106,11 @@ class DAVFS(FS):
         #  after any redirects have been followed.
         self.url = url
         resp = self._request("/","PROPFIND","",{"Depth":"0"})
-        try:
+        try:            
             if resp.status == 404:
                 raise ResourceNotFoundError("/",msg="root url gives 404")
             if resp.status in (401,403):
-                raise PermissionDeniedError("listdir")
+                raise PermissionDeniedError("listdir (http %s)" % resp.status)
             if resp.status != 207:
                 msg = "server at %s doesn't speak WebDAV" % (self.url,)
                 raise RemoteConnectionError("",msg=msg,details=resp.read())
@@ -184,7 +184,7 @@ class DAVFS(FS):
         resp = None
         try:
             resp = self._raw_request(url,method,body,headers)
-            #  Loop to retry for redirects and authentication responses.
+            #  Loop to retry for redirects and authentication responses.                    
             while resp.status in (301,302,401,403):
                 resp.close()
                 if resp.status in (301,302,):
@@ -196,7 +196,7 @@ class DAVFS(FS):
                         raise OperationFailedError(msg="redirection seems to be looping")
                     if len(visited) > 10:
                         raise OperationFailedError("too much redirection")
-                elif resp.status in (401,403):
+                elif resp.status in (401,403):                    
                     if self.get_credentials is None:
                         break
                     else:
@@ -494,6 +494,7 @@ class DAVFS(FS):
         if response.status == 405:
             raise ResourceInvalidError(path)
         if response.status < 200 or response.status >= 300:
+            print response.read()
             raise_generic_error(response,"remove",path)
         return True
 

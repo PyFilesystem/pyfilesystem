@@ -1,7 +1,7 @@
 '''
 Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud):
 
-    from fs.tahoefs import TahoeFS, Connection
+    from fs.contrib.tahoefs import TahoeFS, Connection
     dircap = TahoeFS.createdircap(webapi='http://pubgrid.tahoe-lafs.org')
     print "Your dircap (unique key to your storage directory) is", dircap
     print "Keep it safe!"
@@ -86,13 +86,13 @@ class TahoeFS(CacheFS):
     def __init__(self, dircap, timeout=60, autorun=True, largefilesize=10*1024*1024, webapi='http://127.0.0.1:3456'):
         '''
             Creates instance of TahoeFS.
-            dircap - special hash allowing user to work with TahoeLAFS directory.
-            timeout - how long should underlying CacheFS keep information about files
+            :param dircap: special hash allowing user to work with TahoeLAFS directory.
+            :param timeout: how long should underlying CacheFS keep information about files
                 before asking TahoeLAFS node again.
-            autorun - Allow listing autorun files? Can be very dangerous on Windows!.
+            :param autorun: Allow listing autorun files? Can be very dangerous on Windows!.
                 This is temporary hack, as it should be part of Windows-specific middleware,
                 not Tahoe itself.
-            largefilesize - Create placeholder file for files larger than this tresholf.
+            :param largefilesize: - Create placeholder file for files larger than this treshold.
                 Uploading and processing of large files can last extremely long (many hours),
                 so placing this placeholder can help you to remember that upload is processing.
                 Setting this to None will skip creating placeholder files for any uploads.
@@ -384,7 +384,7 @@ class _TahoeFS(FS):
                     offset=offset, length=length)
        
     @_fix_path             
-    def setcontents(self, path, file):    
+    def setcontents(self, path, file, chunk_size=64*1024):    
         self._log(INFO, 'Uploading file %s' % path)
         path = self.tahoeutil.fixwinpath(path, False)
         size=None

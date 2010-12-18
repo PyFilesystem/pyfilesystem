@@ -31,15 +31,20 @@ def _expand_syspath(path):
     return path
 
     
-def _parse_credentials(url):        
+def _parse_credentials(url):
+    scheme = None
+    if '://' in url:
+        scheme, url = url.split('://', 1)        
     username = None
-    password = None
+    password = None    
     if '@' in url:
         credentials, url = url.split('@', 1)
         if ':' in credentials:
             username, password = credentials.split(':', 1)
         else:
             username = credentials
+    if scheme is not None:
+        url = '%s://%s' % (scheme, url)
     return username, password, url
 
 def _parse_name(fs_name):
@@ -48,6 +53,13 @@ def _parse_name(fs_name):
         return fs_name, fs_name_params
     else:
         return fs_name, None
+    
+def _split_url_path(url):
+    if '://' not in url:
+        url = 'http://' + url
+    scheme, netloc, path, params, query, fragment = urlparse(url)
+    url = '%s://%s' % (scheme, netloc)
+    return url, path
 
 
 class OpenerRegistry(object):
@@ -133,6 +145,9 @@ class OpenerRegistry(object):
             return fs, resourcename
                             
         fs_path = join(fs_path, path)
+        
+        if create_dir and fs_path:
+            fs.makedir(fs_path, allow_recreate=True)     
                 
         pathname, resourcename = pathsplit(fs_path or '')        
         if pathname and resourcename:
@@ -186,7 +201,7 @@ class OpenerRegistry(object):
         :param fs_url: an FS URL e.g. ftp://ftp.mozilla.org
         :param writeable: set to True (the default) if the FS must be writeable
         :param create_dir: create the directory references by the FS URL, if
-        it doesn't already exist          
+            it doesn't already exist          
         
         """
         fs, path = self.parse(fs_url, writable=writeable, create_dir=create_dir)
@@ -418,7 +433,7 @@ example:
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.wrapfs.debugfs import DebugFS
         if fs_path:
-            fs, path = registry.parse(fs_path, writeable=writeable, create=create_dir)
+            fs, path = registry.parse(fs_path, writeable=writeable, create_dir=create_dir)
             return DebugFS(fs, verbose=False), None     
         if fs_name_params == 'ram':
             from fs.memoryfs import MemoryFS
@@ -440,12 +455,100 @@ example:
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.tempfs import TempFS        
-        fs = TempFS(identifier=fs_name_params)
-        if create_dir and fs_path:
-            fs = fs.makeopendir(fs_path)
-            fs_path = pathsplit(fs_path)
+        fs = TempFS(identifier=fs_name_params)                
         return fs, fs_path
+
+class S3Opener(Opener):
+    names = ['s3']
+    desc = """Opens a filesystem stored on Amazon S3 storage
+    The environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY should be set"""
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        from fs.s3fs import S3FS
+        
+        bucket = fs_path
+        path =''
+        if '/' in fs_path:
+            bucket, path = fs_path.split('/', 1)
+        
+        fs = S3FS(bucket)
+                
+        if path:
+            dirpath, resourcepath = pathsplit(path)
+            if dirpath:
+                fs = fs.opendir(dirpath)
+            path = resourcepath
+            
+        return fs, path
+        
+class TahoeOpener(Opener):
+    names = ['tahoe']
+    desc = """Opens a Tahoe-LAFS filesystem
     
+    example:
+    * tahoe://http://pubgrid.tahoe-lafs.org/uri/URI:DIR2:h5bkxelehowscijdb [...]"""
+    
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        from fs.contrib.tahoefs import TahoeFS
+        
+        if '/uri/' not in fs_path:
+            raise OpenerError("""Tahoe url should be in the form <url>/uri/<dicap>""")
+        
+        url, dircap = fs_path.split('/uri/')
+        path = ''
+        if '/' in dircap:
+            dircap, path = dircap.split('/', 1)
+        
+        fs = TahoeFS(dircap, webapi=url)
+        
+        if '/' in path:
+            dirname, resourcename = pathsplit(path)
+            if createdir:
+                fs = fs.makeopendir(dirname)
+            else:
+                fs = fs.opendir(dirname)
+            path = ''
+        
+        return fs, path        
+    
+  
+class DavOpener(Opener):
+    names = ['dav']
+    desc = """Opens a WebDAV server
+    
+example:
+* dav://example.org/dav"""
+    
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        from fs.contrib.davfs import DAVFS
+        
+        url = fs_path
+        
+        if '://' not in url:
+            url = 'http://' + url
+            
+        scheme, url = url.split('://', 1)
+        
+        username, password, url = _parse_credentials(url)
+                
+        credentials = None        
+        if username or password:
+            credentials = {}        
+            if username:
+                credentials['username'] = username
+            if password:
+                credentials['password'] = password                    
+                   
+        url = '%s://%s' % (scheme, url)
+            
+        fs = DAVFS(url, credentials=credentials)
+        
+        return fs, ''
+            
+        
+        
 
 opener = OpenerRegistry([OSFSOpener,
                          ZipOpener,
@@ -455,6 +558,9 @@ opener = OpenerRegistry([OSFSOpener,
                          MemOpener,
                          DebugOpener,
                          TempOpener,
+                         S3Opener,
+                         TahoeOpener,
+                         DavOpener,
                          ])
    
 
