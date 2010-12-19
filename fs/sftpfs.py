@@ -141,7 +141,7 @@ class SFTPFS(FS):
             except paramiko.SSHException:
                 pass
         
-        if not connection.is_authenticated():
+        elif not connection.is_authenticated():
             if not username:
                 username = getuser()                
             try:                
@@ -151,23 +151,23 @@ class SFTPFS(FS):
                 if not connection.is_authenticated() and password:                        
                     connection.auth_password(username, password)                                                    
                                   
-                if agent_auth and not connection.is_authenticated():                                                        
+                if agent_auth and not connection.is_authenticated():
                     self._agent_auth(connection, username)                    
                 
                 if not connection.is_authenticated():                    
                     try:                
                         connection.auth_none(username)
                     except paramiko.BadAuthenticationType, e:
-                        connection.close()
+                        self.close()
                         allowed = ', '.join(e.allowed_types)
                         raise RemoteConnectionError(msg='no auth - server requires one of the following: %s' % allowed, details=e)                                
                 
-                if not connection.is_authenticated():                    
-                    connection.close()
+                if not connection.is_authenticated():
+                    self.close()                                                        
                     raise RemoteConnectionError(msg='no auth')
                 
-            except paramiko.SSHException, e:                
-                connection.close()
+            except paramiko.SSHException, e:
+                self.close()                                
                 raise RemoteConnectionError(msg='SSH exception (%s)' % str(e), details=e)
                 
         self._transport = connection
