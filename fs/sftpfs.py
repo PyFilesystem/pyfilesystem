@@ -143,15 +143,18 @@ class SFTPFS(FS):
         
         if not connection.is_authenticated():                
             try:                
-                if pkey:                                               
+                if pkey:                    
                     connection.auth_publickey(username, pkey)                    
                 
-                if not connection.is_authenticated() and password:                    
+                if not connection.is_authenticated() and password:                                                
                     connection.auth_password(username, password)                                                    
                                   
-                if agent_auth and not connection.is_authenticated():                                
+                if agent_auth and not connection.is_authenticated():                                            
                     self._agent_auth(connection, username)                    
-                                                
+                
+                if not connection.is_authenticated():                
+                    connection.auth_none('')                                
+                
                 if not connection.is_authenticated():                    
                     connection.close()
                     raise RemoteConnectionError('no auth')
@@ -327,7 +330,7 @@ class SFTPFS(FS):
                 raise ResourceNotFoundError(path)
             elif self.isfile(path):
                 raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
-            raise
+            raise                        
                 
         if attrs_map:
             if dirs_only:

@@ -1,3 +1,5 @@
+__all__ = ["serve_fs"]
+
 import SimpleHTTPServer
 import SocketServer
 from fs.path import pathjoin, dirname
@@ -126,7 +128,15 @@ class FSHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return path
         
 
-def serve_fs(fs, address='', port=8000):        
+def serve_fs(fs, address='', port=8000):
+    
+    """Serve an FS instance over http
+    
+    :param fs: an FS object
+    :param address: IP address to serve on
+    :param port: port number
+    
+    """
     
     def Handler(request, client_address, server):
         return FSHTTPRequestHandler(fs, request, client_address, server)

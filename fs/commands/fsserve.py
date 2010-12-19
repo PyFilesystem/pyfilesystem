@@ -57,6 +57,16 @@ Serves the contents of PATH with one of a number of methods"""
             
             elif options.type == 'sftp':            
                 from fs.expose.sftp import BaseSFTPServer
+                import logging
+                log = logging.getLogger('paramiko')
+                if options.debug:
+                    log.setLevel(logging.DEBUG)
+                elif options.verbose:
+                    log.setLevel(logging.INFO)
+                ch = logging.StreamHandler()
+                ch.setLevel(logging.DEBUG)
+                log.addHandler(ch)
+                
                 if port is None:
                     port = 22
                 server = BaseSFTPServer((options.addr, port), fs)

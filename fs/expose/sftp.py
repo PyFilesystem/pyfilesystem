@@ -37,6 +37,7 @@ from fs.path import *
 from fs.errors import *
 from fs.local_functools import wraps
 from fs.filelike import StringIO
+from fs.utils import isdir
 
 
 # Default host key used by BaseSFTPServer
@@ -52,8 +53,8 @@ def report_sftp_errors(func):
     """
     @wraps(func)
     def wrapper(*args,**kwds):
-        try:
-            return func(*args,**kwds)
+        try:            
+            return func(*args,**kwds)            
         except ResourceNotFoundError, e:
             return paramiko.SFTP_NO_SUCH_FILE
         except UnsupportedError, e:
@@ -94,23 +95,38 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
             path = path.decode(self.encoding)
         stats = []
         for entry in self.fs.listdir(path,absolute=True):
-            stats.append(self.stat(entry))
+            stat = self.stat(entry)
+            if not isinstance(stat, int):
+                stats.append(stat)        
         return stats
  
     @report_sftp_errors
     def stat(self, path):
         if not isinstance(path, unicode):
             path = path.decode(self.encoding)
+
         info = self.fs.getinfo(path)
+        get = info.get
+                
         stat = paramiko.SFTPAttributes()
-        stat.filename = basename(path).encode(self.encoding)
-        stat.st_size = info.get("size")
-        stat.st_atime = time.mktime(info.get("accessed_time").timetuple())
-        stat.st_mtime = time.mktime(info.get("modified_time").timetuple())
-        if self.fs.isdir(path):
+        stat.filename = basename(path).encode(self.encoding)                    
+        stat.st_size = info.get("size")          
+        
+        if 'st_atime' in info:
+            stat.st_atime = get('st_atime')    
+        elif 'accessed_time' in info:
+            stat.st_atime = time.mktime(get("accessed_time").timetuple())
+            
+        if 'st_mtime' in info:
+            stat.st_mtime = get('st_mtime')
+        else:
+            if 'modified_time' in info:
+                stat.st_mtime = time.mktime(get("modified_time").timetuple())
+                        
+        if isdir(self.fs, path, info):
             stat.st_mode = 0777 | statinfo.S_IFDIR
         else:
-            stat.st_mode = 0777 | statinfo.S_IFREG
+            stat.st_mode = 0777 | statinfo.S_IFREG        
         return stat
 
     def lstat(self, path):
@@ -288,11 +304,11 @@ class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def get_allowed_auths(self,username):
-        """Return list of allowed auth modes.
+        """Return string containing a comma separated list of allowed auth modes.
 
         The available modes are  "node", "password" and "publickey".
         """
-        return ("none",)
+        return "none"
 
 
 #  When called from the command-line, expose a TempFS for testing purposes
