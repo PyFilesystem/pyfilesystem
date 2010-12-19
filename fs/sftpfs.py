@@ -133,7 +133,7 @@ class SFTPFS(FS):
         connection.start_client()
         
         if not connection.is_active():
-            raise RemoteConnectionError('Unable to connect')
+            raise RemoteConnectionError(msg='Unable to connect')
         
         if no_auth:
             try:
@@ -141,27 +141,34 @@ class SFTPFS(FS):
             except paramiko.SSHException:
                 pass
         
-        if not connection.is_authenticated():                
+        if not connection.is_authenticated():
+            if not username:
+                username = getuser()                
             try:                
                 if pkey:                    
                     connection.auth_publickey(username, pkey)                    
                 
-                if not connection.is_authenticated() and password:                                                
+                if not connection.is_authenticated() and password:                        
                     connection.auth_password(username, password)                                                    
                                   
-                if agent_auth and not connection.is_authenticated():                                            
+                if agent_auth and not connection.is_authenticated():                                                        
                     self._agent_auth(connection, username)                    
                 
-                if not connection.is_authenticated():                
-                    connection.auth_none('')                                
+                if not connection.is_authenticated():                    
+                    try:                
+                        connection.auth_none(username)
+                    except paramiko.BadAuthenticationType, e:
+                        connection.close()
+                        allowed = ', '.join(e.allowed_types)
+                        raise RemoteConnectionError(msg='no auth - server requires one of the following: %s' % allowed, details=e)                                
                 
                 if not connection.is_authenticated():                    
                     connection.close()
-                    raise RemoteConnectionError('no auth')
+                    raise RemoteConnectionError(msg='no auth')
                 
             except paramiko.SSHException, e:                
                 connection.close()
-                raise RemoteConnectionError('SSH exception (%s)' % str(e), details=e)
+                raise RemoteConnectionError(msg='SSH exception (%s)' % str(e), details=e)
                 
         self._transport = connection
             
