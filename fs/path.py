@@ -37,25 +37,21 @@ def normpath(path):
     if not path:
         return path
     components = []
-    for comp in path.replace('\\','/').split("/"):
-        if not comp or comp == ".":
-            pass
-        elif comp == "..":
+    append = components.append    
+    for comp in [c for c in path.replace('\\','/').split("/") if c not in ('', '.')]:        
+        if comp == "..":
             try:
                 components.pop()
             except IndexError:
                 err = "too many backrefs in path '%s'" % (path,)
                 raise ValueError(err)
         else:
-            components.append(comp)
-    if path[0] in "\\/":
+            append(comp)
+    if path[0] in '\\/':
         if not components:
-            components = [""]
-        components.insert(0, "")
-    if isinstance(path, unicode):
-        return u"/".join(components)
-    else:
-        return '/'.join(components)
+            append("")
+        components.insert(0, "")    
+    return "/".join(components)    
 
 
 def iteratepath(path, numsplits=None):
@@ -69,9 +65,9 @@ def iteratepath(path, numsplits=None):
     if not path:
         return []
     if numsplits == None:
-        return map(None, path.split('/'))
+        return path.split('/')
     else:
-        return map(None, path.split('/', numsplits))
+        return path.split('/', numsplits)
         
 def recursepath(path, reverse=False):
     """Returns intermediate paths from the root to the given path
@@ -84,11 +80,13 @@ def recursepath(path, reverse=False):
     """
     if reverse:
         paths = []
+        append = paths.append
         path = abspath(normpath(path)).rstrip("/")
         while path:
-            paths.append(path)
+            append(path)
             path = dirname(path).rstrip("/")
-        return paths + [u"/"]
+        paths.append(u"/")
+        return paths
     else:   
         paths = [u""] + list(iteratepath(path))
         return [u"/"] + [u'/'.join(paths[:i+1]) for i in xrange(1,len(paths))]
@@ -100,8 +98,6 @@ def abspath(path):
     adds a leading '/' character if the path doesn't already have one.
 
     """
-    if not path:
-        return u'/'
     if not path.startswith('/'):
         return u'/' + path
     return path
@@ -138,7 +134,7 @@ def pathjoin(*paths):
 
     """
     absolute = False
-    relpaths = []
+    relpaths = []    
     for p in paths:
         if p:
              if p[0] in '\\/':
@@ -173,10 +169,10 @@ def pathsplit(path):
     ('/foo/bar', 'baz')
 
     """
-    split = normpath(path).rsplit('/', 1)
-    if len(split) == 1:
-        return (u'', split[0])
-    return split[0] or '/', split[1]
+    if '/' not in path:
+        return ('', path)
+    split = path.rsplit('/', 1)
+    return (split[0] or '/', split[1])
 
 # Allow pathsplit() to be used as fs.path.split()
 split = pathsplit
@@ -211,14 +207,14 @@ def isdotfile(path):
     >>> isdotfile('.baz')
     True
     
-    >>> isdotfile('foo/bar/.baz')
+    >>> isdotfile('foo/bar/baz')
     True
     
-    >>> isdotfile('foo/bar.baz')
+    >>> isdotfile('foo/bar.baz').
     False
     
     """
-    return pathsplit(path)[-1].startswith('.')
+    return basename(path).startswith('.')
 
 def dirname(path):
     """Returns the parent directory of a path.
@@ -232,8 +228,10 @@ def dirname(path):
     'foo/bar'
 
     """
-    return pathsplit(path)[0]
-
+    if '/' not in path:
+        return ''
+    return path.rsplit('/', 1)[0]
+    
 
 def basename(path):
     """Returns the basename of the resource referenced by a path.
@@ -247,7 +245,9 @@ def basename(path):
     'baz'
 
     """
-    return pathsplit(path)[1]
+    if '/' not in path:
+        return path
+    return path.rsplit('/', 1)[-1]
 
 
 def issamedir(path1, path2):
@@ -262,7 +262,7 @@ def issamedir(path1, path2):
     False
 
     """
-    return pathsplit(normpath(path1))[0] == pathsplit(normpath(path2))[0]
+    return dirname(normpath(path1)) == dirname(normpath(path2))
 
 def isbase(path1, path2):
     p1 = forcedir(abspath(path1))

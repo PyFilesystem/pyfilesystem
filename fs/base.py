@@ -785,7 +785,7 @@ class FS(object):
         if size is None:
             raise OperationFailedError("get size of resource", path)
         return size
-
+    
     def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
         """Copies a file from src to dst.
 
@@ -836,7 +836,7 @@ class FS(object):
     def _shutil_movefile(cls, src_syspath, dst_syspath):
         shutil.move(src_syspath, dst_syspath)
         
-
+    
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         """moves a file from one location to another.
 
@@ -872,7 +872,7 @@ class FS(object):
                 pass
         self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
         self.remove(src)
-
+    
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """moves a directory from one location to another.
 
@@ -931,7 +931,7 @@ class FS(object):
                 movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
             self.removedir(dirname)
-
+    
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """copies a directory from one location to another.
 

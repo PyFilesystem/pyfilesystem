@@ -32,13 +32,13 @@ class MemoryFile(object):
     def seek_and_lock(f):
         def deco(self, *args, **kwargs):
             try:
-                self.lock.acquire()
+                self._lock.acquire()
                 self.mem_file.seek(self.pos)
                 ret = f(self, *args, **kwargs)
                 self.pos = self.mem_file.tell()
                 return ret
             finally:                
-                self.lock.release()
+                self._lock.release()
         return deco
 
     def __init__(self, path, memory_fs, mem_file, mode, lock):
@@ -47,7 +47,7 @@ class MemoryFile(object):
         self.memory_fs = memory_fs
         self.mem_file = mem_file        
         self.mode = mode        
-        self.lock = lock
+        self._lock = lock
         
         self.pos = 0                
                 
@@ -59,7 +59,7 @@ class MemoryFile(object):
             finally:
                 lock.release()
         
-        if _check_mode(mode, 'w'):
+        elif _check_mode(mode, 'w'):
             lock.acquire()
             try:
                 self.mem_file.seek(0)
@@ -96,12 +96,17 @@ class MemoryFile(object):
     def readline(self, *args, **kwargs):
         return self.mem_file.readline(*args, **kwargs)
 
-
-    #@seek_and_lock
     def close(self):
-        if not self.closed and self.mem_file is not None:
-            self.memory_fs._on_close_memory_file(self, self.path)
-            self.closed = True            
+        do_close = False
+        self._lock.acquire()
+        try:
+            do_close = not self.closed and self.mem_file is not None
+            if do_close:
+                self.closed = True
+        finally:
+            self._lock.release()                
+        if do_close:
+            self.memory_fs._on_close_memory_file(self, self.path)            
 
     @seek_and_lock
     def read(self, size=None):
@@ -124,13 +129,13 @@ class MemoryFile(object):
     #@seek_and_lock
     def write(self, data):        
         self.memory_fs._on_modify_memory_file(self.path)
-        self.lock.acquire()
+        self._lock.acquire()
         try:
             self.mem_file.seek(self.pos)
             self.mem_file.write(data)
             self.pos = self.mem_file.tell()
         finally:
-            self.lock.release()
+            self._lock.release()
 
     @seek_and_lock
     def writelines(self, *args, **kwargs):        
@@ -385,6 +390,7 @@ class MemoryFS(FS):
 
     @synchronize
     def open(self, path, mode="r", **kwargs):
+        path = normpath(path)
         filepath, filename = pathsplit(path)
         parent_dir_entry = self._get_dir_entry(filepath)
 
@@ -432,13 +438,12 @@ class MemoryFS(FS):
             raise ResourceInvalidError(path,msg="That's a directory, not a file: %(path)s")
 
         pathname, dirname = pathsplit(path)
-
         parent_dir = self._get_dir_entry(pathname)
-
         del parent_dir.contents[dirname]
 
     @synchronize
     def removedir(self, path, recursive=False, force=False):
+        path = normpath(path)
         dir_entry = self._get_dir_entry(path)
 
         if dir_entry is None:
@@ -462,7 +467,9 @@ class MemoryFS(FS):
 
     @synchronize
     def rename(self, src, dst):
-        src_dir,src_name = pathsplit(src)
+        src = normpath(src)
+        dst = normpath(dst)
+        src_dir, src_name = pathsplit(src)
         src_entry = self._get_dir_entry(src)
         if src_entry is None:
             raise ResourceNotFoundError(src)
@@ -504,13 +511,15 @@ class MemoryFS(FS):
     @synchronize
     def _on_close_memory_file(self, open_file, path):
         dir_entry = self._get_dir_entry(path)
-        dir_entry.open_files.remove(open_file)        
+        if dir_entry is not None:
+            dir_entry.open_files.remove(open_file)        
                 
         
     @synchronize
     def _on_modify_memory_file(self, path):
         dir_entry = self._get_dir_entry(path)
-        dir_entry.modified_time = datetime.datetime.now()        
+        if dir_entry is not None:
+            dir_entry.modified_time = datetime.datetime.now()        
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):

@@ -102,6 +102,37 @@ class TestPathFunctions(unittest.TestCase):
         self.assertEquals(recursepath("/hello/world/",reverse=True),["/hello/world","/hello","/"])
         self.assertEquals(recursepath("hello",reverse=True),["/hello","/"])
         self.assertEquals(recursepath("",reverse=True),["/"])
+        
+    def test_isdotfile(self):
+        for path in ['.foo',
+                     '.svn',
+                     'foo/.svn',
+                     'foo/bar/.svn',
+                     '/foo/.bar']:
+            self.assert_(isdotfile(path))
+        
+        for path in ['asfoo',
+                     'df.svn',
+                     'foo/er.svn',
+                     'foo/bar/test.txt',
+                     '/foo/bar']:
+            self.assertFalse(isdotfile(path))
+            
+    def test_dirname(self):
+        tests = [('foo', ''),
+                 ('foo/bar', 'foo'),
+                 ('foo/bar/baz', 'foo/bar'),
+                 ('/', '')]
+        for path, test_dirname in tests:
+            self.assertEqual(dirname(path), test_dirname)
+            
+    def test_basename(self):
+        tests = [('foo', 'foo'),
+                 ('foo/bar', 'bar'),
+                 ('foo/bar/baz', 'baz'),
+                 ('/', '')]
+        for path, test_basename in tests:
+            self.assertEqual(basename(path), test_basename)
 
 
 class Test_PathMap(unittest.TestCase):
