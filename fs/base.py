@@ -712,23 +712,31 @@ class FS(object):
             while dirs:
                 current_path = dirs.pop()
                 paths = []
-                for filename in listdir(current_path):
-                    path = pathjoin(current_path, filename)
-                    if self.isdir(path):                        
-                        if dir_wildcard(path):
-                            dirs.append(path)                        
-                    else:                        
-                        if wildcard(filename):
-                            paths.append(filename)
-                        
+                try:
+                    for filename in listdir(current_path):
+                        path = pathjoin(current_path, filename)
+                        if self.isdir(path):                        
+                            if dir_wildcard(path):
+                                dirs.append(path)                        
+                        else:                        
+                            if wildcard(filename):
+                                paths.append(filename)
+                except ResourceNotFoundError:
+                    # Could happen if another thread / process deletes something whilst we are walking
+                    pass
+                            
                 yield (current_path, paths)
 
         elif search == "depth":
 
             def recurse(recurse_path):
-                for path in listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
-                    for p in recurse(path):
-                        yield p
+                try:
+                    for path in listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
+                        for p in recurse(path):
+                            yield p
+                except ResourceNotFoundError:
+                    # Could happen if another thread / process deletes something whilst we are walking
+                    pass
                 yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, files_only=True))
 
             for p in recurse(path):
