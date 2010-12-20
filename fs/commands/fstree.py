@@ -42,7 +42,7 @@ Recursively display the contents of PATH in an ascii tree"""
                 print_fs(fs, path or '',
                          file_out=self.output_file,
                          max_levels=options.depth,
-                         terminal_colors=self.is_terminal(),
+                         terminal_colors=self.terminal_colors,
                          hide_dotfiles=not options.all,
                          dirs_first=options.dirsfirst)        
    

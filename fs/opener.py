@@ -10,7 +10,7 @@ __all__ = ['OpenerError',
 
 import sys
 from fs.osfs import OSFS
-from fs.path import pathsplit, basename, join, iswildcard
+from fs.path import pathsplit, basename, join, iswildcard, normpath
 import os
 import os.path
 import re
@@ -24,15 +24,17 @@ class NoOpenerError(OpenerError):
 
 def _expand_syspath(path):
     if path is None:
-        return path      
-    path = os.path.expanduser(os.path.expandvars(path))    
-    path = os.path.normpath(os.path.abspath(path))    
-    if sys.platform == "win32":
-        if not path.startswith("\\\\?\\"):
-            path = u"\\\\?\\" + root_path
-        #  If it points at the root of a drive, it needs a trailing slash.
-        if len(path) == 6:
-            path = path + "\\"
+        return path
+    path = os.path.expanduser(os.path.expandvars(path))
+    path = normpath(path)
+    #path = os.path.normpath(os.path.abspath(path))
+    
+    #if sys.platform == "win32":
+    #    if not path.startswith("\\\\?\\"):
+    #        path = u"\\\\?\\" + path
+    #    #  If it points at the root of a drive, it needs a trailing slash.
+    #    if len(path) == 6:
+    #        path = path + "\\"
 
     return path
 
@@ -279,7 +281,7 @@ class OSFSOpener(Opener):
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.osfs import OSFS 
                                             
-        path = _expand_syspath(fs_path)
+        path = normpath(fs_path)
         if create_dir and not os.path.exists(path):
             from fs.osfs import _os_makedirs                    
             _os_makedirs(path)            

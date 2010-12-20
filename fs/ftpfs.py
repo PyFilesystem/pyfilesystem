@@ -549,7 +549,7 @@ class _FTPFile(object):
             self._lock = threading.RLock()        
         self.ftpfs = ftpfs
         self.ftp = ftp
-        self.path = path
+        self.path = normpath(path)
         self.mode = mode
         self.read_pos = 0
         self.write_pos = 0
@@ -559,9 +559,7 @@ class _FTPFile(object):
             self.file_size = ftpfs.getsize(path)
         self.conn = None
 
-        path = _encode(abspath(path))
-        #self._lock = ftpfs._lock
-        self._start_file(mode, path)
+        self._start_file(mode, _encode(self.path))
 
     @fileftperrors
     def _start_file(self, mode, path):
@@ -569,15 +567,15 @@ class _FTPFile(object):
         self.write_pos = 0
         if 'r' in mode:
             self.ftp.voidcmd('TYPE I')
-            self.conn = self.ftp.transfercmd('RETR '+path, None)
+            self.conn = self.ftp.transfercmd('RETR ' + path, None)
 
         else:#if 'w' in mode or 'a' in mode:
             self.ftp.voidcmd('TYPE I')
             if 'a' in mode:
                 self.write_pos = self.file_size
-                self.conn = self.ftp.transfercmd('APPE '+path)
+                self.conn = self.ftp.transfercmd('APPE ' + path)
             else:
-                self.conn = self.ftp.transfercmd('STOR '+path)
+                self.conn = self.ftp.transfercmd('STOR ' + path)
 
     @fileftperrors
     def read(self, size=None):
@@ -765,8 +763,6 @@ class _FTPFile(object):
                     yield line
                     append(c)
 
-
-
 def ftperrors(f):    
     @wraps(f)
     def deco(self, *args, **kwargs):
@@ -786,7 +782,7 @@ def ftperrors(f):
     return deco
 
 
-def _encode(s):
+def _encode(s):    
     if isinstance(s, unicode):
         return s.encode('utf-8')
     return s
@@ -883,8 +879,8 @@ class FTPFS(FS):
         self.refresh_dircache(dirname(path))
 
     @synchronize
-    def _readdir(self, path):        
-        path = normpath(path)
+    def _readdir(self, path):
+        path = abspath(normpath(path))
         if self.dircache.count:
             cached_dirlist = self.dircache.get(path)
             if cached_dirlist is not None:
@@ -893,15 +889,14 @@ class FTPFS(FS):
 
         parser = FTPListDataParser()
 
-        def on_line(line):            
+        def on_line(line):
             if not isinstance(line, unicode):
-                line = line.decode('utf-8')
+                line = line.decode('utf-8')                
             info = parser.parse_line(line)
             if info:
                 info = info.__dict__
                 if info['name'] not in ('.', '..'):
                     dirlist[info['name']] = info
-
         try:
             self.ftp.dir(_encode(path), on_line)
         except error_reply:
@@ -925,7 +920,7 @@ class FTPFS(FS):
         else:
             remove_paths = []
             dircache = self.dircache
-            paths = [normpath(path) for path in paths]
+            paths = [normpath(abspath(path)) for path in paths]
             for cached_path in dircache.keys():                
                 for path in paths:
                     if isbase(cached_path, path):
@@ -1046,6 +1041,7 @@ class FTPFS(FS):
 
     @ftperrors
     def open(self, path, mode='r'):
+        path = normpath(path)
         mode = mode.lower()        
         if self.isdir(path):
             raise ResourceInvalidError(path)        
@@ -1067,16 +1063,17 @@ class FTPFS(FS):
         self.ftp.storbinary('STOR %s' % _encode(path), data, blocksize=chunk_size)        
         
     @ftperrors
-    def getcontents(self, path):            
+    def getcontents(self, path):
+        path = normpath(path) 
         contents = StringIO()                            
-        self.ftp.retrbinary('RETR %s' % _encode(normpath(path)), contents.write, blocksize=1024*64)            
+        self.ftp.retrbinary('RETR %s' % _encode(path), contents.write, blocksize=1024*64)            
         return contents.getvalue()        
 
     @ftperrors
     def exists(self, path):
         path = normpath(path)
         if path in ('', '/'):
-            return True
+            return True        
         dirlist, fname = self._get_dirlist(path)
         return fname in dirlist
 
@@ -1141,21 +1138,23 @@ class FTPFS(FS):
 
     @ftperrors
     def makedir(self, path, recursive=False, allow_recreate=False):
+        path = normpath(path)
         if path in ('', '/'):
             return
         def checkdir(path):
-            self.clear_dircache(dirname(path))
-            try:
-                self.ftp.mkd(_encode(path))
-            except error_reply:
-                return
-            except error_perm, e:
-                if recursive or allow_recreate:
+            if not self.isdir(path):
+                self.clear_dircache(dirname(path))
+                try:
+                    self.ftp.mkd(_encode(path))
+                except error_reply:
                     return
-                if str(e).split(' ', 1)[0]=='550':
-                    raise DestinationExistsError(path)
-                else:
-                    raise
+                except error_perm, e:
+                    if recursive or allow_recreate:
+                        return
+                    if str(e).split(' ', 1)[0]=='550':
+                        raise DestinationExistsError(path)
+                    else:
+                        raise
         if recursive:
             for p in recursepath(path):
                 checkdir(p)
@@ -1182,7 +1181,7 @@ class FTPFS(FS):
 
     @ftperrors
     def removedir(self, path, recursive=False, force=False):
-        
+        path = abspath(normpath(path))
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         if self.isfile(path):
@@ -1258,6 +1257,7 @@ class FTPFS(FS):
 
     @ftperrors
     def desc(self, path):
+        path = normpath(path)
         url = self.getpathurl(path, allow_none=True)
         if url:
             return url
@@ -1268,7 +1268,6 @@ class FTPFS(FS):
 
     @ftperrors
     def move(self, src, dst, overwrite=False, chunk_size=16384):
-        
         if not overwrite and self.exists(dst):
             raise DestinationExistsError(dst)
         #self.refresh_dircache(dirname(src), dirname(dst))        
@@ -1281,8 +1280,7 @@ class FTPFS(FS):
             self.refresh_dircache(src, dirname(src), dst, dirname(dst))                    
     
     @ftperrors        
-    def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
-                                    
+    def copy(self, src, dst, overwrite=False, chunk_size=1024*64):        
         if not self.isfile(src):
             if self.isdir(src):
                 raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
@@ -1290,12 +1288,13 @@ class FTPFS(FS):
         if not overwrite and self.exists(dst):
             raise DestinationExistsError(dst)
     
+        dst = normpath(dst)
         src_file = None            
         try:
             src_file = self.open(src, "rb")
             ftp = self._open_ftp()  
             ftp.voidcmd('TYPE I')              
-            ftp.storbinary('STOR %s' % _encode((normpath(dst))), src_file, blocksize=chunk_size)                                                    
+            ftp.storbinary('STOR %s' % _encode(normpath(dst)), src_file, blocksize=chunk_size)                                                    
         finally:
             self.refresh_dircache(dirname(dst))            
             if src_file is not None:

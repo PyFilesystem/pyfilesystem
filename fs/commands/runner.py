@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import sys
 from optparse import OptionParser
 from fs.opener import opener, OpenerError, Opener

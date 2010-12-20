@@ -453,6 +453,8 @@ class SFTPFS(FS):
                     self.remove(path2)
                 except ResourceInvalidError:
                     self.removedir(path2,force=True)
+        if not self.exists(path):
+            raise ResourceNotFoundError(path)
         try:
             self.client.rmdir(npath)
         except IOError, e:
@@ -460,6 +462,7 @@ class SFTPFS(FS):
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't use removedir() on a file: %(path)s")
                 raise ResourceNotFoundError(path)
+            
             elif self.listdir(path):
                 raise DirectoryNotEmptyError(path)
             raise

@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 from fs.tests import FSTestCases, ThreadingTestCases
 
 import unittest
@@ -25,12 +25,15 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
     def setUp(self):
         global ftp_port
-        #ftp_port += 1
+        ftp_port += 1
         use_port = str(ftp_port)
         #ftp_port = 10000
         self.temp_dir = tempfile.mkdtemp(u"ftpfstests")
 
-        self.ftp_server = subprocess.Popen([sys.executable, abspath(__file__), self.temp_dir, str(use_port)])
+        file_path = __file__
+        if ':' not in file_path:
+            file_path = abspath(file_path)
+        self.ftp_server = subprocess.Popen([sys.executable, file_path, self.temp_dir, str(use_port)])
         # Need to sleep to allow ftp server to start
         time.sleep(.2)
         self.fs = ftpfs.FTPFS('127.0.0.1', 'user', '12345', dircache=True, port=use_port, timeout=5.0)
@@ -40,21 +43,22 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
     def tearDown(self):
         if sys.platform == 'win32':
             import win32api
-            win32api.TerminateProcess(int(process._handle), -1)
+            os.popen('TASKKILL /PID '+str(self.ftp_server.pid)+' /F')
         else:
             os.system('kill '+str(self.ftp_server.pid))
         shutil.rmtree(self.temp_dir)
         self.fs.close()
 
     def check(self, p):
-        return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
+        check_path = self.temp_dir.rstrip(os.sep) + os.sep + p
+        return os.path.exists(check_path.encode('utf-8'))
 
 
 if __name__ == "__main__":
 
     # Run an ftp server that exposes a given directory
     import sys
-    authorizer = ftpserver.DummyAuthorizer()
+    authorizer = ftpserver.DummyAuthorizer()    
     authorizer.add_user("user", "12345", sys.argv[1], perm="elradfmw")
     authorizer.add_anonymous(sys.argv[1])
 

@@ -697,8 +697,9 @@ class FSTestCases(object):
         def chunk_stream():
             """Generate predictable-but-randomy binary content."""
             r = random.Random(0)
+            randint = r.randint
             for i in xrange(num_chunks):
-                c = "".join(chr(r.randint(0,255)) for j in xrange(chunk_size/8))
+                c = "".join(chr(randint(0,255)) for j in xrange(chunk_size/8))
                 yield c * 8
         f = self.fs.open("bigfile","wb")
         try:

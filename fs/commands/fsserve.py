@@ -15,7 +15,7 @@ Serves the contents of PATH with one of a number of methods"""
         optparse = super(FSServe, self).get_optparse()                
         optparse.add_option('-t', '--type', dest='type', type="string", default="http",
                             help="Server type to create (http, rpc, sftp)", metavar="TYPE")
-        optparse.add_option('-a', '--addr', dest='addr', type="string", default="localhost",
+        optparse.add_option('-a', '--addr', dest='addr', type="string", default="127.0.0.1",
                             help="Server address", metavar="ADDR")
         optparse.add_option('-p', '--port', dest='port', type="int",
                             help="Port number", metavar="")        

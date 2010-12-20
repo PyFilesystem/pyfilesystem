@@ -320,23 +320,23 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def getsize(self, path):
         return self._stat(path).st_size
 
-    @convert_os_errors
-    def opendir(self, path):
-        """A specialised opendir that returns another OSFS rather than a SubDir
-        
-        This is more optimal than a SubDir because no path delegation is required.
-        
-        """
-        if path in ('', '/'):
-            return self
-        path = normpath(path)
-        if not self.exists(path):
-            raise ResourceNotFoundError(path)
-        sub_path = pathjoin(self.root_path, path)
-        return OSFS(sub_path,
-                    thread_synchronize=self.thread_synchronize,
-                    encoding=self.encoding,
-                    create=False,
-                    dir_mode=self.dir_mode)
+    #@convert_os_errors
+    #def opendir(self, path):
+    #    """A specialised opendir that returns another OSFS rather than a SubDir
+    #    
+    #    This is more optimal than a SubDir because no path delegation is required.
+    #    
+    #    """
+    #    if path in ('', '/'):
+    #        return self
+    #    path = normpath(path)
+    #    if not self.exists(path):
+    #        raise ResourceNotFoundError(path)
+    #    sub_path = pathjoin(self.root_path, path)
+    #    return OSFS(sub_path,
+    #                thread_synchronize=self.thread_synchronize,
+    #                encoding=self.encoding,
+    #                create=False,
+    #                dir_mode=self.dir_mode)
 
 

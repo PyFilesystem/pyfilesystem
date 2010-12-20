@@ -119,9 +119,7 @@ def relpath(path):
     'a/b'
 
     """
-    while path and path[0] == "/":
-        path = path[1:]
-    return path
+    return path.lstrip('/')
 
 
 def pathjoin(*paths):
@@ -148,9 +146,9 @@ def pathjoin(*paths):
                  absolute = True
              relpaths.append(p)
 
-    path = normpath("/".join(relpaths))
-    if absolute and not path.startswith("/"):
-        path = u"/" + path
+    path = normpath(u"/".join(relpaths))
+    if absolute:
+        path = abspath(path)
     return path
 
 # Allow pathjoin() to be used as fs.path.join()

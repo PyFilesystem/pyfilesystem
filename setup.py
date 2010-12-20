@@ -38,7 +38,7 @@ setup(name='fs',
       packages=['fs','fs.expose','fs.expose.fuse','fs.tests','fs.wrapfs',
                 'fs.osfs','fs.contrib','fs.contrib.bigfs','fs.contrib.davfs',
                 'fs.expose.dokan', 'fs.commands'],
-      scripts=['fs/commands/%s' % command for command in COMMANDS],
+      scripts=['fs/commands/%s.py' % command for command in COMMANDS],
       classifiers=classifiers,
       )
 

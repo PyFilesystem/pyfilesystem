@@ -14,29 +14,30 @@ import time
 from fs.tests import FSTestCases, ThreadingTestCases
 from fs.tempfs import TempFS
 from fs.osfs import OSFS
+from fs.memoryfs import MemoryFS
 from fs.path import *
 from fs.errors import *
 
 from fs import rpcfs
 from fs.expose.xmlrpc import RPCFSServer
-class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
-
+class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
+    
     def makeServer(self,fs,addr):
         return RPCFSServer(fs,addr,logRequests=False)
 
-    def startServer(self):
-        port = 8000
+    def startServer(self):        
+        port = 3000
         self.temp_fs = TempFS()
         self.server = None
         while not self.server:
             try:
-                self.server = self.makeServer(self.temp_fs,("localhost",port))
+                self.server = self.makeServer(self.temp_fs,("127.0.0.1",port))
             except socket.error, e:
                 if e.args[1] == "Address already in use":
                     port += 1
                 else:
                     raise
-        self.server_addr = ("localhost",port)
+        self.server_addr = ("127.0.0.1",port)
         self.serve_more_requests = True
         self.server_thread = threading.Thread(target=self.runServer)
         self.server_thread.daemon = True            
@@ -76,7 +77,7 @@ class TestRPCFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
             sock = None
             try:
                 sock = socket.socket(af, socktype, proto)
-                sock.settimeout(1)
+                sock.settimeout(.1)
                 sock.connect(sa)
                 sock.send("\n")
             except socket.error, e:
@@ -96,6 +97,14 @@ class TestSFTPFS(TestRPCFS):
     def setUp(self):
         self.startServer()
         self.fs = sftpfs.SFTPFS(self.server_addr, no_auth=True)
+            
+    #def runServer(self):
+    #    self.server.serve_forever()
+    #    
+    #def tearDown(self):
+    #    self.server.shutdown()
+    #    self.server_thread.join()
+    #    self.temp_fs.close()
 
     def bump(self):
         # paramiko doesn't like being bumped, just wait for it to timeout.
