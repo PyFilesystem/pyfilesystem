@@ -10,7 +10,7 @@ import time
 
 class FSMount(Command):
     
-    usage = """fsmount [SYSTEM PATH] [FS]
+    usage = """fsmount [FS] [SYSTEM PATH]
 or fsmount -u [SYSTEM PATH]
 Mounts a file system on a system path"""
 
@@ -39,16 +39,17 @@ Mounts a file system on a system path"""
             from fs.expose import fuse
             fuse.unmount(mount_path)
             return
-             
-        try:                
-            mount_path = args[0]
-        except IndexError:
-            self.error('Mount path required\n')
-            return 1
+                     
         try:
-            fs_url = args[1]
+            fs_url = args[0]
         except IndexError:
             self.error('FS required\n')
+            return 1
+        
+        try:                
+            mount_path = args[1]
+        except IndexError:
+            self.error('Mount path required\n')
             return 1                    
              
         if platform.system() == 'Windows':

@@ -6,7 +6,23 @@
 __all__ = ['OpenerError',
            'NoOpenerError',
            'OpenerRegistry',
-           'opener']
+           'opener',
+           'fsopen',
+           'fsopendir',
+           'OpenerRegistry',
+           'Opener',           
+           'OSFSOpener',
+           'ZipOpener',
+           'RPCOpener',
+           'FTPOpener',
+           'SFTPOpener',
+           'MemOpener',
+           'DebugOpener',
+           'TempOpener',
+           'S3Opener',
+           'TahoeOpener',
+           'DavOpener',
+           'HTTPOpener']
 
 import sys
 from fs.osfs import OSFS
@@ -27,17 +43,7 @@ def _expand_syspath(path):
         return path
     path = os.path.expanduser(os.path.expandvars(path))
     path = normpath(path)
-    #path = os.path.normpath(os.path.abspath(path))
-    
-    #if sys.platform == "win32":
-    #    if not path.startswith("\\\\?\\"):
-    #        path = u"\\\\?\\" + path
-    #    #  If it points at the root of a drive, it needs a trailing slash.
-    #    if len(path) == 6:
-    #        path = path + "\\"
-
     return path
-
     
 def _parse_credentials(url):
     scheme = None
@@ -589,10 +595,26 @@ example:
             
         fs = DAVFS(url, credentials=credentials)
         
-        return fs, ''
-            
+        return fs, ''        
         
-        
+class HTTPOpener(Opener):
+    names = ['http']
+    desc = """HTTP file opener. HTTP only supports reading files, and not much else. 
+    
+example:
+* http://www.example.org/index.html"""
+
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        from fs.httpfs import HTTPFS
+        if '/' in fs_path:
+            dirname, resourcename = fs_path.rsplit('/')
+        else:
+            dirname = fs_path
+            resourcename = ''
+        fs = HTTPFS('http://' + dirname)
+        return fs, resourcename
+    
 
 opener = OpenerRegistry([OSFSOpener,
                          ZipOpener,
@@ -605,17 +627,10 @@ opener = OpenerRegistry([OSFSOpener,
                          S3Opener,
                          TahoeOpener,
                          DavOpener,
+                         HTTPOpener,
                          ])
-   
 
-def main():
-    
-    #fs, path = opener.parse('zip:zip://~/zips.zip!t.zip!')
-    fs, path = opener.parse('ftp://releases.mozilla.org/welcome.msg')
-    
-    print fs, path
-    
-if __name__ == "__main__":
-       
-    main()             
+fsopen = opener.open
+fsopendir = opener.opendir
+
     

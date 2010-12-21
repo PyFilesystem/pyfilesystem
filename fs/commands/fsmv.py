@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from fs.utils import movefile, movefile_non_atomic, contains_files
 from fs.commands import fscp
 import sys

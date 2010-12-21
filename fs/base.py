@@ -371,12 +371,12 @@ class FS(object):
         for f in self.listdir():
             yield f
 
-    def listdir(self,   path="./",
-                        wildcard=None,
-                        full=False,
-                        absolute=False,
-                        dirs_only=False,
-                        files_only=False):
+    def listdir(self, path="./",
+                      wildcard=None,
+                      full=False,
+                      absolute=False,
+                      dirs_only=False,
+                      files_only=False):
         """Lists the the files and directories under a given path.
 
         The directory contents are returned as a list of unicode paths.

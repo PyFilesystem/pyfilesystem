@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from fs.opener import opener
 from fs.utils import copyfile, copyfile_non_atomic, copystructure
 from fs.path import pathjoin, iswildcard
