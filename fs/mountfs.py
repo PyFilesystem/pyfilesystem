@@ -4,7 +4,7 @@ fs.mountfs
 
 Contains MountFS class which is a virtual filesystem which can have other filesystems linked as branched directories.
 
-For example, lets say we have two filesystems containing config files and resource respectively::
+For example, lets say we have two filesystems containing config files and resources respectively::
 
    [config_fs]
    |-- config.cfg
