@@ -43,7 +43,7 @@ Mounts a file system on a system path"""
         try:
             fs_url = args[0]
         except IndexError:
-            self.error('FS required\n')
+            self.error('FS path required\n')
             return 1
         
         try:                
