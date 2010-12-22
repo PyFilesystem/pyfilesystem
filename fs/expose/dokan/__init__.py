@@ -209,7 +209,7 @@ class FSOperations(object):
 
     def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
         if libdokan is None:
-            raise OSError("dokan library is not available")
+            raise OSError("dokan library (http://dokan-dev.net/en/) is not available")
         self.fs = fs
         self.fsname = fsname
         self.volname = volname

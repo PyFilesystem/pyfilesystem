@@ -8,9 +8,16 @@ import os
 import os.path
 import time
 
+platform = platform.system()
+
 class FSMount(Command):
     
-    usage = """fsmount [FS] [SYSTEM PATH]
+    if platform == "Windows":
+        usage = """fsmount [OPTIONS]... [FS] [DRIVE LETTER]
+or fsmount -u [DRIVER LETTER]
+Mounts a filesystem on a drive letter"""
+    else:
+        usage = """fsmount [OPTIONS]... [FS] [SYSTEM PATH]
 or fsmount -u [SYSTEM PATH]
 Mounts a file system on a system path"""
 
@@ -30,16 +37,26 @@ Mounts a file system on a system path"""
     
     def do_run(self, options, args):
         
+        windows = platform == "Windows"
+                
         if options.unmount:
             try:                
-                mount_path = args[0]
+                mount_path = args[0][:1]
             except IndexError:
                 self.error('Mount path required\n')
                 return 1
-            from fs.expose import fuse
-            fuse.unmount(mount_path)
-            return
-                     
+            if windows:
+                from fs.expose import dokan
+                mount_path = mount_path[:1].upper()
+                dokan.unmount(mount_path)
+                self.output('unmounting %s:' % mount_path, True)
+                return
+            else:
+                from fs.expose import fuse
+                fuse.unmount(mount_path)
+                self.output('unmounting %s' % mount_path, True)
+                return
+        
         try:
             fs_url = args[0]
         except IndexError:
@@ -49,27 +66,51 @@ Mounts a file system on a system path"""
         try:                
             mount_path = args[1]
         except IndexError:
-            self.error('Mount path required\n')
+            if windows:
+                mount_path = mount_path[:1].upper()
+                self.error('Drive letter required')
+            else:
+                self.error('Mount path required\n')
             return 1                    
-             
-        if platform.system() == 'Windows':
-            pass
+            
+        fs, path = self.open_fs(fs_url, create_dir=True)
+        if path:
+            if not fs.isdir(path):
+                self.error('%s is not a directory on %s' % (fs_url. fs))
+                return 1
+            fs = fs.opendir(path)
+            path = '/'
+        if not options.nocache:
+            fs.cache_hint(True)
+        if windows and not os.path.exists(mount_path):
+           os.makedirs(mount_path)
+           
+        if windows:
+            from fs.expose import dokan
+            
+            if len(mount_path) > 1:
+                self.error('Driver letter should be one character')
+                return 1
+            
+            self.output("Mounting %s on %s:" % (fs, mount_path), True)
+            flags = dokan.DOKAN_OPTION_REMOVABLE
+            if options.debug:
+                flags |= dokan.DOKAN_OPTION_DEBUG | dokan.DOKAN_OPTION_STDERR
+                
+            mp = dokan.mount(fs,
+                             mount_path,
+                             numthreads=5,
+                             foreground=options.foreground,
+                             flags=flags,
+                             volname=str(fs))
+            
         else:
-            fs, path = self.open_fs(fs_url, create_dir=True)
-            if path:
-                if not fs.isdir(path):
-                    self.error('%s is not a directory on %s' % (fs_url. fs))
-                    return 1
-                fs = fs.opendir(path)
-                path = '/'
-            if not options.nocache:
-                fs.cache_hint(True)
-            if not os.path.exists(mount_path):
-               os.makedirs(mount_path)
             from fs.expose import fuse
+            self.output("Mounting %s on %s" % (fs, mount_path), True)
+            
             if options.foreground:                                            
                 fuse_process = fuse.mount(fs,
-                                          mount_path,
+                                          mount_path,                                          
                                           foreground=True)                                                    
             else:
                 if not os.fork():                
