@@ -51,7 +51,7 @@ Mounts a file system on a system path"""
                 
                 from fs.expose import dokan
                 mount_path = mount_path[:1].upper()
-                self.output('unmounting %s:\n' % mount_path, True)
+                self.output('unmounting %s:...\n' % mount_path, True)
                 dokan.unmount(mount_path)                
                 return
             
@@ -63,7 +63,7 @@ Mounts a file system on a system path"""
                     return 1                                
                 
                 from fs.expose import fuse
-                self.output('unmounting %s\n' % mount_path, True)
+                self.output('unmounting %s...\n' % mount_path, True)
                 fuse.unmount(mount_path)                
                 return
         

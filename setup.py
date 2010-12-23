@@ -53,7 +53,7 @@ setup(name='fs',
                 'fs.contrib.davfs',
                 'fs.contrib.tahoefs',                
                 'fs.commands'],
-      scripts=['fs/commands/%s.py' % command for command in COMMANDS],
+      scripts=['fs/commands/%s' % command for command in COMMANDS],
       classifiers=classifiers,
       )
 
