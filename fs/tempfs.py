@@ -7,6 +7,7 @@ Make a temporary file system that exists in a folder provided by the OS. All fil
 """
 
 import os
+import os.path
 import time
 import tempfile
 
@@ -23,7 +24,8 @@ class TempFS(OSFS):
     _meta = { 'virtual' : False,
               'read_only' : False,
               'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa', 
+              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',
+              'pickle_contents': False,
               'network' : False,
               'atomic.move' : True,
               'atomic.copy' : True,
@@ -55,7 +57,9 @@ class TempFS(OSFS):
         return u'<TempFS: %s>' % self._temp_dir
     
     def __setstate__(self, state):
-        state = super(TempFS, self).__setstate__(state)
+        """Pickle the TempFS. TempFS delted their contents when closed, so pickling
+        is not garanteed to preserve the directory contents"""
+        state = super(TempFS, self).__setstate__(state)        
         self._temp_dir = tempfile.mkdtemp(self.identifier or "TempFS", dir=self.temp_dir)  
         super(TempFS, self).__init__(self._temp_dir,
                                      dir_mode=self.dir_mode,

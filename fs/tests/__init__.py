@@ -685,11 +685,16 @@ class FSTestCases(object):
             self.assertEquals(self.fs.getcontents('f.txt'),contents)
 
     def test_pickling(self):
-        self.fs.setcontents("test1","hello world")
-        fs2 = pickle.loads(pickle.dumps(self.fs))
-        self.assert_(fs2.isfile("test1"))
-        fs3 = pickle.loads(pickle.dumps(self.fs,-1))
-        self.assert_(fs3.isfile("test1"))
+        if self.fs.getmeta('pickle_contents', True):
+            self.fs.setcontents("test1","hello world")
+            fs2 = pickle.loads(pickle.dumps(self.fs))
+            self.assert_(fs2.isfile("test1"))
+            fs3 = pickle.loads(pickle.dumps(self.fs,-1))
+            self.assert_(fs3.isfile("test1"))
+        else:
+            # Just make sure it doesn't throw an exception
+            fs2 = pickle.loads(pickle.dumps(self.fs))
+            
 
     def test_big_file(self):        
         chunk_size = 1024 * 256

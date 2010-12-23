@@ -77,20 +77,24 @@ def recursepath(path, reverse=False):
     >>> recursepath('a/b/c')
     ['/', u'/a', u'/a/b', u'/a/b/c']
     
-    """
+    """    
+    paths = [u'/']
+    append = paths.append    
+    path = u'/' + normpath(path.lstrip('/')) 
+    find = path.find            
+    pos = 1     
+    if len(path) > 1:
+        while 1:                        
+            pos = find('/', pos + 1) 
+            if pos == -1:
+                append(path)
+                break            
+            append(path[:pos])                            
+            
     if reverse:
-        paths = []
-        append = paths.append
-        path = abspath(normpath(path)).rstrip("/")
-        while path:
-            append(path)
-            path = dirname(path).rstrip("/")
-        paths.append(u"/")
-        return paths
-    else:   
-        paths = [u""] + list(iteratepath(path))
-        return [u"/"] + [u'/'.join(paths[:i+1]) for i in xrange(1,len(paths))]
-    
+        return paths[::-1]
+    return paths        
+
 def abspath(path):
     """Convert the given path to an absolute path.
 

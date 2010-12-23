@@ -103,6 +103,7 @@ class TestPathFunctions(unittest.TestCase):
         self.assertEquals(recursepath("hello",reverse=True),["/hello","/"])
         self.assertEquals(recursepath("",reverse=True),["/"])
         
+        
     def test_isdotfile(self):
         for path in ['.foo',
                      '.svn',
