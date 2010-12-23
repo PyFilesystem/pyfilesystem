@@ -10,7 +10,9 @@ optional leading slash).
 
 """
 
+import re
 
+_requires_normalization = re.compile(r'/\.\.|\./|//|\\').search
 def normpath(path):
     """Normalizes a path to be in the format expected by FS objects.
 
@@ -34,24 +36,29 @@ def normpath(path):
     ValueError: too many backrefs in path 'foo/../../bar'
 
     """
-    if not path:
+    
+    if path in ('', '/'):
         return path
+    
+    # An early out if there is no need to normalize this paath
+    if not _requires_normalization(path):        
+        return path.rstrip('/')
+                
     components = []
-    append = components.append    
-    for comp in [c for c in path.replace('\\','/').split("/") if c not in ('', '.')]:        
+    append = components.append
+    for comp in [c for c in path.replace('\\','/').split("/") if c not in ('', '.')]:
         if comp == "..":
             try:
                 components.pop()
-            except IndexError:
-                err = "too many backrefs in path '%s'" % (path,)
-                raise ValueError(err)
+            except IndexError:                
+                raise ValueError("too many backrefs in path '%s'" % path)
         else:
             append(comp)
     if path[0] in '\\/':
         if not components:
             append("")
-        components.insert(0, "")    
-    return "/".join(components)    
+        components.insert(0, "")
+    return "/".join(components)
 
 
 def iteratepath(path, numsplits=None):
@@ -77,20 +84,24 @@ def recursepath(path, reverse=False):
     >>> recursepath('a/b/c')
     ['/', u'/a', u'/a/b', u'/a/b/c']
     
-    """    
+    """        
+    
+    if path in ('', '/'):
+        return [u'/']
+        
+    path = abspath(normpath(path)) + '/'    
+   
     paths = [u'/']
-    append = paths.append    
-    path = u'/' + normpath(path.lstrip('/')) 
-    find = path.find            
-    pos = 1     
-    if len(path) > 1:
-        while 1:                        
-            pos = find('/', pos + 1) 
-            if pos == -1:
-                append(path)
-                break            
-            append(path[:pos])                            
-            
+    find = path.find
+    append = paths.append             
+    pos = 1
+    len_path = len(path)    
+    
+    while pos < len_path:                        
+        pos = find('/', pos)                     
+        append(path[:pos])
+        pos += 1                            
+        
     if reverse:
         return paths[::-1]
     return paths        
@@ -534,3 +545,6 @@ def iswildcard(path):
     assert path is not None
     base_chars = frozenset(basename(path))    
     return not base_chars.isdisjoint(_wild_chars)    
+
+if __name__ == "__main__":
+    print recursepath('a/b/c')
