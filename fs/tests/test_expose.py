@@ -121,7 +121,7 @@ else:
     class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
         def setUp(self):
-            self.temp_fs = TempFS()
+            self.temp_fs = TempFS()            
             self.temp_fs.makedir("root")
             self.temp_fs.makedir("mount")
             self.mounted_fs = self.temp_fs.opendir("root")

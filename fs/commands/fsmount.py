@@ -40,21 +40,31 @@ Mounts a file system on a system path"""
         windows = platform == "Windows"
                 
         if options.unmount:
-            try:                
-                mount_path = args[0][:1]
-            except IndexError:
-                self.error('Mount path required\n')
-                return 1
+
             if windows:
+                
+                try:                
+                    mount_path = args[0][:1]
+                except IndexError:
+                    self.error('Driver letter\n')
+                    return 1
+                
                 from fs.expose import dokan
                 mount_path = mount_path[:1].upper()
-                dokan.unmount(mount_path)
-                self.output('unmounting %s:' % mount_path, True)
+                self.output('unmounting %s:\n' % mount_path, True)
+                dokan.unmount(mount_path)                
                 return
-            else:
+            
+            else:                
+                try:                
+                    mount_path = args[0]
+                except IndexError:
+                    self.error('Mount path required\n')
+                    return 1                                
+                
                 from fs.expose import fuse
-                fuse.unmount(mount_path)
-                self.output('unmounting %s' % mount_path, True)
+                self.output('unmounting %s\n' % mount_path, True)
+                fuse.unmount(mount_path)                
                 return
         
         try:
@@ -82,9 +92,7 @@ Mounts a file system on a system path"""
             path = '/'
         if not options.nocache:
             fs.cache_hint(True)
-        if windows and not os.path.exists(mount_path):
-           os.makedirs(mount_path)
-           
+                
         if windows:
             from fs.expose import dokan
             
@@ -92,7 +100,7 @@ Mounts a file system on a system path"""
                 self.error('Driver letter should be one character')
                 return 1
             
-            self.output("Mounting %s on %s:" % (fs, mount_path), True)
+            self.output("Mounting %s on %s:\n" % (fs, mount_path), True)
             flags = dokan.DOKAN_OPTION_REMOVABLE
             if options.debug:
                 flags |= dokan.DOKAN_OPTION_DEBUG | dokan.DOKAN_OPTION_STDERR
@@ -105,8 +113,12 @@ Mounts a file system on a system path"""
                              volname=str(fs))
             
         else:
+            
+            if not os.path.exists(mount_path):
+                os.makedirs(mount_path)
+            
             from fs.expose import fuse
-            self.output("Mounting %s on %s" % (fs, mount_path), True)
+            self.output("Mounting %s on %s\n" % (fs, mount_path), True)
             
             if options.foreground:                                            
                 fuse_process = fuse.mount(fs,
