@@ -374,6 +374,9 @@ class DAVFS(FS):
             response.close()
          
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        return list(self.ilistdir(path=path,wildcard=wildcard,full=full,absolute=absolute,dirs_only=dirs_only,files_only=files_only))
+
+    def ilistdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
         response = self._request(path,"PROPFIND",pf.render(),{"Depth":"1"})
         try:
@@ -381,7 +384,6 @@ class DAVFS(FS):
                 raise ResourceNotFoundError(path)
             if response.status != 207:
                 raise_generic_error(response,"listdir",path)
-            entries = []
             msres = multistatus.parse(response.read())
             dir_ok = False
             for res in msres.responses:
@@ -393,32 +395,44 @@ class DAVFS(FS):
                           break
                 else:
                     nm = basename(self._url2path(res.href))
+                    entry_ok = False
                     if dirs_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
-                                entries.append(nm)
+                                entry_ok = True
                                 break
                     elif files_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
                                 break
                         else:
-                            entries.append(nm)
+                            entry_ok = True
                     else:
-                        entries.append(nm)
+                        entry_ok = True
+                    if not entry_ok:
+                        continue
+                    if wildcard is not None:
+                        if isinstance(wildcard,basestring):
+                            if not fnmatch.fnmatch(nm,wildcard):
+                                continue
+                        else:
+                            if not wildcard(nm):
+                                continue
+                    if full:
+                        yield relpath(pathjoin(path,nm))
+                    elif absolute:
+                        yield abspath(pathjoin(path,nm))
+                    else:
+                        yield nm
             if not dir_ok:
                 raise ResourceInvalidError(path)
-            if wildcard is not None:
-                entries = [e for e in entries if fnmatch.fnmatch(e,wildcard)]
-            if full:
-                entries = [relpath(pathjoin(path,e)) for e in entries]
-            elif absolute:
-                entries = [abspath(pathjoin(path,e)) for e in entries]
-            return entries
         finally:
             response.close()
 
     def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
+        return list(self.ilistdirinfo(path=path,wildcard=wildcard,full=full,absolute=absolute,dirs_only=dirs_only,files_only=files_only))
+
+    def ilistdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /><getcontentlength /><getlastmodified /><getetag /></prop>")
         response = self._request(path,"PROPFIND",pf.render(),{"Depth":"1"})
         try:
@@ -426,7 +440,6 @@ class DAVFS(FS):
                 raise ResourceNotFoundError(path)
             if response.status != 207:
                 raise_generic_error(response,"listdir",path)
-            entries = []
             msres = multistatus.parse(response.read())
             dir_ok = False
             for res in msres.responses:
@@ -441,28 +454,37 @@ class DAVFS(FS):
                     # appropriate type and add to entries list as required.
                     info = self._info_from_propfind(res)
                     nm = basename(self._url2path(res.href))
+                    entry_ok = False
                     if dirs_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
-                                entries.append((nm,info))
+                                entry_ok = True
                                 break
                     elif files_only:
                         for ps in res.propstats:
                             if ps.props.getElementsByTagNameNS("DAV:","collection"):
                                 break
                         else:
-                            entries.append((nm,info))
+                            entry_ok = True
                     else:
-                        entries.append((nm,info))
+                        entry_ok = True
+                    if not entry_ok:
+                        continue
+                    if wildcard is not None:
+                        if isinstance(wildcard,basestring):
+                            if not fnmatch.fnmatch(nm,wildcard):
+                                continue
+                        else:
+                            if not wildcard(nm):
+                                continue
+                    if full:
+                        yield (relpath(pathjoin(path,nm)),info)
+                    elif absolute:
+                        yield (abspath(pathjoin(path,nm)),info)
+                    else:
+                        yield (nm,info)
             if not dir_ok:
                 raise ResourceInvalidError(path)
-            if wildcard is not None:
-                entries = [(e,info) for (e,info) in entries if fnmatch.fnmatch(e,wildcard)]
-            if full:
-                entries = [(relpath(pathjoin(path,e)),info) for (e,info) in entries]
-            elif absolute:
-                entries = [(abspath(pathjoin(path,e)),info) for (e,info) in entries]
-            return entries
         finally:
             response.close()
 

@@ -48,9 +48,9 @@
       fs.wrapfs.subfs.
     * OSFSWatchMixin improvements:
         * watch_inotify:  allow more than one watcher on a single path.
+        * watch_win32:  don't create immortal reference cycles.
         * watch_win32:  report errors if the filesystem does't support
                         ReadDirectoryChangesW.
-        * watch_win32:  don't create immortal reference cycles.
     * MountFS: added support for mounting at the root directory, and for
       mounting over an existing mount.
     * Added 'getpathurl' and 'haspathurl' methods.
@@ -68,4 +68,6 @@
     * Optimized listdir and listdirinfo in SFTPFS
     * Made memoryfs work with threads
     * Added copyfile_non_atomic and movefile_non_atomic for improved performance of multi-threaded copies
+    * Added ilistdir() and ilistdirinfo() methods, which are generator-based
+      variants of listdir() and listdirinfo().
 

@@ -203,17 +203,17 @@ class FS(object):
                 self._lock = DummyLock()
 
     def getmeta(self, meta_name, default=NoDefaultMeta):
-        """Retrieve a meta value associated with an FS object. Meta values are
-        a way for an FS implementation to report potentially useful information
-        associated with the file system.
+        """Retrieve a meta value associated with an FS object.
+
+        Meta values are a way for an FS implementation to report potentially
+        useful information associated with the file system.
         
         A meta key is a lower case string with no spaces. Meta keys may also
         be grouped in namespaces in a dotted notation, e.g. 'atomic.namespaces'.                
-        
         FS implementations aren't obliged to return any meta values, but the
         following are common:
         
-         * *read_only* True if the file system can not be modified
+         * *read_only* True if the file system cannot be modified
          * *network* True if the file system requires network access
          * *unicode_paths* True if the file system supports unicode paths
          * *case_insensitive_paths* True if the file system ignores the case of paths        
@@ -407,9 +407,14 @@ class FS(object):
                           absolute=False,
                           dirs_only=False,
                           files_only=False):
+        """Retrieves a list of paths and path info under a given path.
 
-        """Retrieves an iterable of paths and path info (as returned by getinfo) under
-        a given path.
+        This method behaves like listdir() but instead of just returning
+        the name of each item in the directory, it returns a tuple of the
+        name and the info dict as returned by getinfo.
+
+        Depending on the filesystem, this may be more efficient than calling
+        getinfo() on each individual item returned by listdir().
 
         :param path: root of the path to list
         :param wildcard: filter paths that match this wildcard
@@ -473,6 +478,35 @@ class FS(object):
             entries = [abspath(pathjoin(path, p)) for p in entries]
 
         return entries
+
+    def ilistdir(self, path="./",
+                       wildcard=None,
+                       full=False,
+                       absolute=False,
+                       dirs_only=False,
+                       files_only=False):
+        """Generator yielding the files and directories under a given path.
+
+        This method behaves identically to listdir() but returns a generator
+        instead of a list.  Depending on the filesystem this may be more
+        efficient than calling listdir() and iterating over the resulting list.
+        """
+        return iter(self.listdir(path,wildcard,full,absolute,dirs_only,files_only))
+
+    def ilistdirinfo(self, path="./",
+                           wildcard=None,
+                           full=False,
+                           absolute=False,
+                           dirs_only=False,
+                           files_only=False):
+        """Generator yielding paths and path info under a given path.
+
+        This method behaves identically to listdirinfo() but returns a generator
+        instead of a list.  Depending on the filesystem this may be more
+        efficient than calling listdirinfo() and iterating over the resulting
+        list.
+        """
+        return iter(self.listdirinfo(path,wildcard,full,absolute,dirs_only,files_only))
 
     def makedir(self, path, recursive=False, allow_recreate=False):
         """Make a directory on the filesystem.
