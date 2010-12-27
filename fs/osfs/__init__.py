@@ -176,6 +176,19 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             else:
                 stat = os.statvfs(self.root_path)
                 return stat.f_bfree * stat.f_bsize
+        elif meta_name == 'total_space':
+            if platform.system() == 'Windows':
+                try:
+                    import ctypes
+                    total_bytes = ctypes.ulonglong(0)
+                    ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(self.root_path), None, ctypes.pointer(total_bytes), None)
+                    return total_bytes.value
+                except ImportError:
+                    # Fall through to call the base class
+                    pass
+            else:
+                stat = os.statvfs(self.root_path)
+                return stat.f_blocks * stat.f_bsize
         
         return super(OSFS, self).getmeta(meta_name, default)
 
