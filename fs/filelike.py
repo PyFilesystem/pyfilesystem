@@ -32,7 +32,7 @@ import tempfile as _tempfile
 try:
     from cStringIO import StringIO as _StringIO
 except ImportError:
-    from StrimgIO import StringIO as _StringIO
+    from StringIO import StringIO as _StringIO
 
 import fs
 

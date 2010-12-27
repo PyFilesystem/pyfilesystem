@@ -70,4 +70,5 @@
     * Added copyfile_non_atomic and movefile_non_atomic for improved performance of multi-threaded copies
     * Added ilistdir() and ilistdirinfo() methods, which are generator-based
       variants of listdir() and listdirinfo().
+    * Removed obsolute module fs.objectree; use fs.path.PathMap instead.
 

@@ -17,7 +17,7 @@ def normpath(path):
     """Normalizes a path to be in the format expected by FS objects.
 
     This function remove any leading or trailing slashes, collapses
-    duplicate slashes, replaces forward with backward slashes, and generally
+    duplicate slashes, replaces backward with forward slashes, and generally
     tries very hard to return a new path string the canonical FS format.
     If the path is invalid, ValueError will be raised.
     
@@ -162,8 +162,16 @@ def pathjoin(*paths):
         path = abspath(path)
     return path
 
-# Allow pathjoin() to be used as fs.path.join()
-join = pathjoin
+
+def join(*paths):
+    """Joins any number of paths together, returning a new path string.
+
+    This is a simple alias for the ``pathjoin`` function, allowing it to be
+    used as ``fs.path.join`` in direct correspondance with ``os.path.join``.
+    
+    :param paths: Paths to join are given in positional arguments
+    """
+    return pathjoin(*paths)
 
 
 def pathsplit(path):
@@ -189,8 +197,17 @@ def pathsplit(path):
     split = path.rsplit('/', 1)
     return (split[0] or '/', split[1])
 
-# Allow pathsplit() to be used as fs.path.split()
-split = pathsplit
+
+def split(path):
+    """Splits a path into (head, tail) pair.
+
+    This is a simple alias for the ``pathsplit`` function, allowing it to be
+    used as ``fs.path.split`` in direct correspondance with ``os.path.split``.
+
+    :param path: Path to split
+    """
+    return pathsplit(path)
+
 
 def splitext(path):
     """Splits the extension from the path, and returns the path (up to the last
@@ -337,9 +354,18 @@ def frombase(path1, path2):
 class PathMap(object):
     """Dict-like object with paths for keys.
 
-    A PathMap is like a dictionary where the keys are all FS paths.  It allows
-    various dictionary operations (e.g. listing values, clearing values) to
-    be performed on a subset of the keys sharing some common prefix, e.g.::
+    A PathMap is like a dictionary where the keys are all FS paths.  It has
+    two main advantages over a standard dictionary.  First, keys are normalised
+    automatically::
+
+        >>> pm = PathMap()
+        >>> pm["hello/world"] = 42
+        >>> print pm["/hello/there/../world"]
+        42
+
+    Second, various dictionary operations (e.g. listing or clearing values)
+    can be efficiently performed on a subset of keys sharing some common
+    prefix::
 
         # list all values in the map
         pm.values()

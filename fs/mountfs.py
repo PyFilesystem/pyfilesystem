@@ -218,6 +218,49 @@ class MountFS(FS):
             return paths
 
     @synchronize
+    def ilistdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+        fs, mount_path, delegate_path = self._delegate(path)
+
+        if fs is None:
+            raise ResourceNotFoundError(path)
+
+        if fs is self:
+            paths = self.mount_tree.names(path)
+            for path in self._listdir_helper(path,wildcard,full,absolute,dirs_only,files_only):
+                yield path
+        else:
+            paths = fs.ilistdir(delegate_path,
+                                wildcard=wildcard,
+                                full=False,
+                                absolute=False,
+                                dirs_only=dirs_only)
+            extra_paths = set(self.mount_tree.names(path))
+            if full:
+                pathhead = relpath(normpath(path))
+                def mkpath(p):
+                    return pathjoin(pathhead,p)
+            elif absolute:
+                pathhead = abspath(normpath(path))
+                def mkpath(p):
+                    return pathjoin(pathhead,p)
+            else:
+                def mkpath(p):
+                    return p
+            for p in paths:
+                if p not in extra_paths:
+                    yield mkpath(p)
+            for p in extra_paths:
+                if dirs_only:
+                    if self.isdir(pathjoin(path,p)):
+                        yield mkpath(p)
+                elif files_only:
+                    if self.isfile(pathjoin(path,nm)):
+                        yield mkpath(p)
+                else:
+                    yield mkpath(p)
+
+
+    @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
         fs, mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:

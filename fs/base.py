@@ -224,6 +224,7 @@ class FS(object):
         The following are less common:
         
          * *free_space* The free space (in bytes) available on the file system   
+         * *total_space* The total space (in bytes) available on the file system   
         
         FS implementations may expose non-generic meta data through a self-named namespace. e.g. 'somefs.some_meta'
         
