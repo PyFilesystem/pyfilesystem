@@ -21,6 +21,7 @@ Guide
    filesystems.rst
    contrib.rst
    expose.rst
+   utilities.rst
    
 Code Documentation
 ------------------

@@ -1,5 +1,4 @@
 """
-
 fs.remote
 =========
 
@@ -16,8 +15,8 @@ FS subclasses interfacing with a remote filesystem.  These include:
                           of a remote FS, and allows client code to wait for
                           a connection to be re-established.
 
-   * CacheFS:  a WrapFS subclass that caches file and directory meta-data in
-               memory, to speed access to a remote FS.
+  * CacheFS:  a WrapFS subclass that caches file and directory meta-data in
+              memory, to speed access to a remote FS.
 
 """
 

@@ -1,4 +1,8 @@
 '''
+fs.contrib.tahoefs
+==================
+
+
 Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud):
 
     from fs.contrib.tahoefs import TahoeFS, Connection

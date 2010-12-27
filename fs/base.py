@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-
-  fs.base:  base class defining the FS abstraction.
+fs.base
+=======
 
 This module defines the most basic filesystem abstraction, the FS class.
 Instances of FS represent a filesystem containing files and directories
@@ -139,7 +139,6 @@ class FS(object):
 
     An instance of a class derived from FS is an abstraction on some kind
     of filesytem, such as the OS filesystem or a zip file.
-
     """
     
     _meta = {}
