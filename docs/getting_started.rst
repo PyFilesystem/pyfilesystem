@@ -29,7 +29,7 @@ You should now have the `fs` module on your path:
 Prerequisites
 -------------
 
-PyFilesystem requires at least **Python 2.4**. There are a few other dependencies if you want to use some of the more advanced filesystem interfaces, but for basic use all that is needed is the Python standard library.
+PyFilesystem requires at least **Python 2.5**. There are a few other dependencies if you want to use some of the more advanced filesystem interfaces, but for basic use all that is needed is the Python standard library.
 
     * wxPython (required for fs.browsewin) http://www.wxpython.org/
     * Boto (required for fs.s3fs) http://code.google.com/p/boto/
