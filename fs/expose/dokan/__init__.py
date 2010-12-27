@@ -596,12 +596,13 @@ class FSOperations(object):
 
     @handle_fs_errors
     def GetDiskFreeSpaceEx(self, nBytesAvail, nBytesTotal, nBytesFree, info):
-        #  This returns a stupidly large number by default.
+        #  This returns a stupidly large number if not info is available.
         #  It's better to pretend an operation is possible and have it fail
         #  than to pretend an operation will fail when it's actually possible.
-        nBytesAvail[0] = 100 * 1024*1024*1024
-        nBytesFree[0] = 100 * 1024*1024*1024
-        nBytesTotal[0] = 200 * 1024*1024*1024
+        large_amount = 100 * 1024*1024*1024
+        nBytesFree[0] = self.fs.getmeta("free_space",large_amount)
+        nBytesTotal[0] = self.fs.getmeta("total_space",2*large_amount)
+        nBytesAvail[0] = nBytesFree[0]
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
