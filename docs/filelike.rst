@@ -1,0 +1,2 @@
+.. automodule:: fs.filelike
+    :members:
