@@ -8,6 +8,7 @@ class from the :mod:`fs.expose.xmlrpc` module.
 
 """
 
+import sys
 import xmlrpclib
 import socket
 
@@ -24,8 +25,6 @@ def re_raise_faults(func):
         try:
             return func(*args,**kwds)
         except xmlrpclib.Fault, f:
-            #import traceback
-            #traceback.print_exc()           
             # Make sure it's in a form we can handle
             bits = f.faultString.split(" ")            
             if bits[0] not in ["<type","<class"]:
@@ -38,7 +37,10 @@ def re_raise_faults(func):
             cls = _object_by_name(cls)
             # Re-raise using the remainder of the fault code as message
             if cls:                            
-                raise cls('', msg=msg)
+                if issubclass(cls,FSError):
+                    raise cls('', msg=msg)
+                else:
+                    raise cls(msg)
             raise f
         except socket.error, e:
             raise RemoteConnectionError(str(e), details=e)
