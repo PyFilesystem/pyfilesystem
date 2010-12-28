@@ -206,6 +206,10 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             raise
 
     @convert_os_errors
+    def setcontents(self, path, contents, chunk_size=64*1024):
+        return super(OSFS,self).setcontents(path, contents, chunk_size)
+
+    @convert_os_errors
     def exists(self, path):
         path = self.getsyspath(path)
         return os.path.exists(path)
