@@ -50,6 +50,15 @@ directories::
         |-- base.html
         `-- theme.html
 
+A MultiFS is generally read-only, and any operation that may modify data
+(including opening files for writing) will fail. However, you can set a 
+writeable fs with the `setwritefs` method -- which does not have to be
+one of the FS objects set with `addfs`.
+
+The reason that only one FS object is ever considered for write access is
+that otherwise it would be ambiguous as to which filesystem you would want
+to modify. If you need to be able to modify more than one FS in the MultiFS,
+you can always access them directly. 
 
 """
 
@@ -80,6 +89,7 @@ class MultiFS(FS):
 
         self.fs_sequence = []
         self.fs_lookup =  {}
+        self.write_fs = None
 
     @synchronize
     def __str__(self):
@@ -93,11 +103,13 @@ class MultiFS(FS):
 
 
     @synchronize
-    def addfs(self, name, fs):
+    def addfs(self, name, fs, write=False):
         """Adds a filesystem to the MultiFS.
 
-        :param name: A unique name to refer to the filesystem being added
+        :param name: A unique name to refer to the filesystem being added.
+            The filesystem can later be retrieved by using this name as an index to the MultiFS, i.e. multifs['myfs']
         :param fs: The filesystem to add
+        :param write: If this value is True, then the `fs` will be used as the writeable FS
 
         """
         if name in self.fs_lookup:
@@ -105,6 +117,24 @@ class MultiFS(FS):
 
         self.fs_sequence.append(fs)
         self.fs_lookup[name] = fs
+        if write:
+            self.setwritefs(fs)
+
+    @synchronize
+    def setwritefs(self, fs):
+        """Sets the filesystem to use when write access is required. Without a writeable FS,
+        any operations that could modify data (including opening files for writing / appending)
+        will fail.
+    
+        :param fs: An FS object that will be used to open writeable files
+    
+        """
+        self.writefs = fs    
+    
+    @synchronize    
+    def clearwritefs(self):
+        """Clears the writeable filesystem (operations that modify the multifs will fail)"""
+        self.writefs = None           
 
     @synchronize
     def removefs(self, name):
@@ -134,13 +164,15 @@ class MultiFS(FS):
         return None
 
     @synchronize
-    def which(self, path):
+    def which(self, path, mode='r'):
         """Retrieves the filesystem that a given path would delegate to.
         Returns a tuple of the filesystem's name and the filesystem object itself.
 
         :param path: A path in MultiFS
 
         """
+        if 'w' in mode or '+' in mode or 'a' in mode:            
+            return self.writefs
         for fs in self:
             if fs.exists(path):
                 for fs_name, fs_object in self.fs_lookup.iteritems():
@@ -166,7 +198,11 @@ class MultiFS(FS):
         return "%s, on %s (%s)" % (fs.desc(path), name, fs)
 
     @synchronize
-    def open(self, path, mode="r", **kwargs):
+    def open(self, path, mode="r", **kwargs):        
+        if 'w' in mode or '+' in mode or 'a' in mode:
+            if self.writefs is None:
+                raise OperationFailedError('open', path=path, msg="No writeable FS set")
+            return self.writefs.open(path, mode)        
         for fs in self:
             if fs.exists(path):
                 fs_file = fs.open(path, mode, **kwargs)
@@ -200,38 +236,33 @@ class MultiFS(FS):
                 paths += fs.listdir(path, *args, **kwargs)
             except FSError, e:
                 pass
-
         return list(set(paths))
 
     @synchronize
     def remove(self, path):
-        for fs in self:
-            if fs.exists(path):
-                fs.remove(path)
-                return
+        if self.writefs is None:
+            raise OperationFailedError('remove', path=path, msg="No writeable FS set")        
+        self.writefs.remove(path)             
         raise ResourceNotFoundError(path)
 
     @synchronize
     def removedir(self, path, recursive=False, force=False):
-        for fs in self:
-            if fs.isdir(path):
-                fs.removedir(path, recursive=recursive, force=force)
-                return
-        raise ResourceNotFoundError(path)
+        if self.writefs is None:
+            raise OperationFailedError('removedir', path=path, msg="No writeable FS set")        
+        self.writefs.removedir(path, recursive=recursive, force=force)                
 
     @synchronize
     def rename(self, src, dst):
-        for fs in self:
-            if fs.exists(src):
-                fs.rename(src, dst)
-                return
+        if self.writefs is None:
+            raise OperationFailedError('rename', path=path, msg="No writeable FS set")
+        self.writefs.rename(src, dst)                
         raise ResourceNotFoundError(path)
 
     @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
-        for fs in self:
-            if fs.exists(path):
-                return fs.settimes(path, accessed_time, modified_time)
+        if self.writefs is None:
+            raise OperationFailedError('settimes', path=path, msg="No writeable FS set")
+        self.writefs.settimes(path, accessed_time, modified_time)
         raise ResourceNotFoundError(path)
 
     @synchronize
