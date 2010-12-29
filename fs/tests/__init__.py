@@ -128,6 +128,27 @@ class FSTestCases(object):
         #  ...and a file-like object
         self.fs.setcontents("hello",StringIO("to you, good sir!"))
         self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
+        #  setcontents() should accept both a string...
+        self.fs.setcontents("hello","world", chunk_size=2)
+        self.assertEquals(self.fs.getcontents("hello"),"world")
+        #  ...and a file-like object
+        self.fs.setcontents("hello",StringIO("to you, good sir!"), chunk_size=2)
+        self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
+
+
+
+    def test_setcontents_async(self):
+        #  setcontents() should accept both a string...
+        self.fs.setcontents_async("hello", "world").wait()
+        self.assertEquals(self.fs.getcontents("hello"), "world")
+        #  ...and a file-like object
+        self.fs.setcontents_async("hello",StringIO("to you, good sir!")).wait()
+        self.assertEquals(self.fs.getcontents("hello"), "to you, good sir!")
+        self.fs.setcontents_async("hello", "world", chunk_size=2).wait()
+        self.assertEquals(self.fs.getcontents("hello"), "world")
+        #  ...and a file-like object
+        self.fs.setcontents_async("hello", StringIO("to you, good sir!"), chunk_size=2).wait()
+        self.assertEquals(self.fs.getcontents("hello"), "to you, good sir!")        
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))

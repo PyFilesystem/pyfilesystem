@@ -71,5 +71,6 @@
     * Added a concept of a writeable FS to MultiFS
     * Added ilistdir() and ilistdirinfo() methods, which are generator-based
       variants of listdir() and listdirinfo().
-    * Removed obsolute module fs.objectree; use fs.path.PathMap instead.
+    * Removed obsolete module fs.objectree; use fs.path.PathMap instead.
+    * Added setcontents_async method to base
 

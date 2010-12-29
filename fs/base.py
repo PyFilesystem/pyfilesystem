@@ -641,6 +641,7 @@ class FS(object):
         :param path: a path of the file to create
         :param data: a string or a file-like object containing the contents for the new file
         :param chunk_size: Number of bytes to read in a chunk, if the implementation has to resort to a read / copy loop
+        
         """
         
         if not data:
@@ -663,6 +664,75 @@ class FS(object):
             finally:
                 if f is not None:
                     f.close()
+                    
+    def setcontents_async(self,
+                          path,
+                          data,
+                          chunk_size=1024*64,
+                          progress_callback=None,
+                          finished_callback=None,
+                          error_callback=None):
+        """Create a new file from a string or file-like object asynchronously
+        
+        This method returns a threading.Event object. Call the `wait` on the event
+        to block until all data has been written, or simply ignore it.        
+        
+        :param path: a path of the file to create
+        :param data: a string or a file-like object containing the contents for the new file
+        :param chunk_size: Number of bytes to read and write in a chunk
+        :param progress_callback: A function that is called periodically
+            with the number of bytes written.
+        :param finished_callback: A fuction that is called when all data has been written
+        :param error_callback: A function that is called with an exception
+            object if any error occurrs during the copy process.
+        :returns: An event object that is set when the copy is complete, call
+            the `wait` method of this object to block until the data is written
+            
+        """                
+        
+        if progress_callback is None:
+            progress_callback = lambda bytes_written:None                        
+        
+        def do_setcontents():        
+            try:        
+                f = None
+                try:
+                    f = self.open(path, 'wb')
+                    progress_callback(0)                    
+                    
+                    if hasattr(data, "read"):
+                        bytes_written = 0
+                        read = data.read
+                        write = f.write
+                        chunk = read(chunk_size)
+                        while chunk:
+                            write(chunk)
+                            bytes_written += len(chunk)
+                            progress_callback(bytes_written)
+                            chunk = read(chunk_size)                        
+                    else:
+                        progress_callback(0)
+                        f.write(data)                                    
+                        progress_callback(len(data))
+                        
+                    if finished_callback is not None:
+                        finished_callback()
+                    
+                finally:
+                    if f is not None:
+                        f.close()
+                        
+            except Exeption, e:
+                if error_callback is not None:
+                    error_callback(e)
+            
+            finally:
+                finished_event.set()
+        
+        finished_event = threading.Event()        
+        threading.Thread(target=do_setcontents).start()
+        return finished_event
+                    
         
     def createfile(self, path, wipe=False):
         """Creates an empty file if it doesn't exist
