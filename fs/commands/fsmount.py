@@ -46,7 +46,7 @@ Mounts a file system on a system path"""
                 try:                
                     mount_path = args[0][:1]
                 except IndexError:
-                    self.error('Driver letter\n')
+                    self.error('Driver letter required\n')
                     return 1
                 
                 from fs.expose import dokan
@@ -59,7 +59,7 @@ Mounts a file system on a system path"""
                 try:                
                     mount_path = args[0]
                 except IndexError:
-                    self.error('Mount path required\n')
+                    self.error(self.usage + '\n')
                     return 1                                
                 
                 from fs.expose import fuse
@@ -70,7 +70,7 @@ Mounts a file system on a system path"""
         try:
             fs_url = args[0]
         except IndexError:
-            self.error('FS path required\n')
+            self.error(self.usage + '\n')
             return 1
         
         try:                
@@ -78,9 +78,9 @@ Mounts a file system on a system path"""
         except IndexError:
             if windows:
                 mount_path = mount_path[:1].upper()
-                self.error('Drive letter required')
+                self.error(self.usage + '\n')
             else:
-                self.error('Mount path required\n')
+                self.error(self.usage + '\n')
             return 1                    
             
         fs, path = self.open_fs(fs_url, create_dir=True)
@@ -112,25 +112,27 @@ Mounts a file system on a system path"""
                              flags=flags,
                              volname=str(fs))
             
-        else:
-            
+        else:            
             if not os.path.exists(mount_path):
-                os.makedirs(mount_path)
+                try:
+                    os.makedirs(mount_path)
+                except:
+                    pass
             
             from fs.expose import fuse
             self.output("Mounting %s on %s\n" % (fs, mount_path), True)
             
-            if options.foreground:                                            
+            if options.foreground:
                 fuse_process = fuse.mount(fs,
                                           mount_path,                                          
                                           foreground=True)                                                    
             else:
-                if not os.fork():                
+                if not os.fork():
                     mp = fuse.mount(fs,
                                     mount_path,
                                     foreground=True)
-                
-
+                else:
+                    fs.close = lambda:None
     
 def run():
     return FSMount().run()
