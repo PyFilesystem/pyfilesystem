@@ -442,7 +442,7 @@ examples:
             if not sftpfs._transport.is_authenticated():
                 sftpfs.close()
                 raise OpenerError('SFTP requires authentication')
-            sftpfs = sfspfs.makeopendir(fs_path)
+            sftpfs = sftpfs.makeopendir(fs_path)
             return sftpfs, None
                 
         sftpfs = SFTPFS(host, root_path=fs_path, **credentials)
