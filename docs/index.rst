@@ -38,6 +38,7 @@ Code Documentation
    mountfs.rst
    multifs.rst
    osfs.rst
+   opener.rst
    path.rst
    remote.rst
    rpcfs.rst

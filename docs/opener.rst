@@ -1,0 +1,3 @@
+
+.. automodule:: fs.opener
+    :members:
