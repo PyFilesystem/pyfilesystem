@@ -7,7 +7,7 @@ fs.httpfs
 
 from fs.base import FS
 from fs.path import normpath
-from fs.errors import ResourceNotFoundError
+from fs.errors import ResourceNotFoundError, UnsupportedError
 from urlparse import urlparse
 from urllib2 import urlopen, URLError
 
@@ -27,7 +27,7 @@ class HTTPFS(FS):
     def open(self, path, mode="r"):
         
         if '+' in mode or 'w' in mode or 'a' in mode:
-            raise UnsuportedError('write access')
+            raise UnsupportedError('write')
         
         url = self._make_url(path)
         try:
