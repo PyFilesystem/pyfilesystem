@@ -13,7 +13,7 @@ sys.meta_path, you will be able to import modules from the exposed filesystem::
 
     >>> from fs.memoryfs import MemoryFS
     >>> m = MemoryFS()
-    >>> m.setcontents("helloworld.py","print 'hello world!")
+    >>> m.setcontents("helloworld.py","print 'hello world!'")
     >>>
     >>> import sys
     >>> from fs.expose.importhook import FSImportHook
