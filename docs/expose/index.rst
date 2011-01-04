@@ -10,4 +10,5 @@ The ``fs.expose`` module contains a number of options for making an FS implement
    dokan.rst
    sftp.rst
    xmlrpc.rst
+   importhook.rst
    django_storage.rst

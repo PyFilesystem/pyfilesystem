@@ -538,7 +538,8 @@ example:
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.tempfs import TempFS        
-        fs = TempFS(identifier=fs_name_params)                
+        from fs.wrapfs.lazyfs import LazyFS
+        fs = LazyFS((TempFS,(),{"identifier":fs_name_params}))                
         return fs, fs_path
 
 class S3Opener(Opener):

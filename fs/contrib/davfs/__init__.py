@@ -254,7 +254,7 @@ class DAVFS(FS):
                 resp = con.getresponse()
                 self._cookiejar.extract_cookies(FakeResp(resp),FakeReq(con,url.scheme,url.path))
             except Exception, e:
-                #logger.debug("DAVFS <ERR %s %s/%s",resp.status,method,url.hostname,url.path)
+                #logger.debug("DAVFS <ERR %s %s/%s",e,method,url.hostname,url.path)
                 self._del_connection(con)
                 raise
             else:

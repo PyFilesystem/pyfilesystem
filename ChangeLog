@@ -39,6 +39,7 @@
         * TahoeFS:  access files stored in a Tahoe-LAFS grid
     * New fs.expose implementations:
         * dokan:   mount an FS object as a drive using Dokan (win32-only)
+        * importhook:  import modules from files in an FS object
     * Modified listdir and walk methods to accept callables as well as strings
       for wildcards.
     * Added listdirinfo method, which yields both the entry names and the
