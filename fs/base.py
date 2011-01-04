@@ -710,8 +710,7 @@ class FS(object):
                             bytes_written += len(chunk)
                             progress_callback(bytes_written)
                             chunk = read(chunk_size)                        
-                    else:
-                        progress_callback(0)
+                    else:                        
                         f.write(data)                                    
                         progress_callback(len(data))
                         
@@ -757,6 +756,7 @@ class FS(object):
 
         :param path: path to directory to open
         :rtype: An FS object
+        
         """
         
         if path in ('', '/'):
