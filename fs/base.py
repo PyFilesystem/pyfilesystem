@@ -491,7 +491,12 @@ class FS(object):
         instead of a list.  Depending on the filesystem this may be more
         efficient than calling listdir() and iterating over the resulting list.
         """
-        return iter(self.listdir(path,wildcard,full,absolute,dirs_only,files_only))
+        return iter(self.listdir(path,
+                                 wildcard=wildcard,
+                                 full=full,
+                                 absolute=absolute,
+                                 dirs_only=dirs_only,
+                                 files_only=files_only))
 
     def ilistdirinfo(self, path="./",
                            wildcard=None,

@@ -93,11 +93,14 @@ class TestHideDotFilesFS(unittest.TestCase):
 
     def test_hidden(self):
         self.assertEquals(len(self.fs.listdir(hidden=False)), 2)
+        self.assertEquals(len(list(self.fs.ilistdir(hidden=False))), 2)
 
     def test_nonhidden(self):
         self.assertEquals(len(self.fs.listdir(hidden=True)), 4)
+        self.assertEquals(len(list(self.fs.ilistdir(hidden=True))), 4)
 
     def test_default(self):
         self.assertEquals(len(self.fs.listdir()), 2)
+        self.assertEquals(len(list(self.fs.ilistdir())), 2)
 
 

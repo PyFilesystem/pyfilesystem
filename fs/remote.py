@@ -493,12 +493,12 @@ class CacheFS(WrapFS):
         return super(CacheFS,self).isfile(path)
 
     @_cached_method
-    def listdir(self,path="",**kwds):
-        return super(CacheFS,self).listdir(path,**kwds)
+    def listdir(self,path="",*args,**kwds):
+        return super(CacheFS,self).listdir(path,*args,**kwds)
 
     @_cached_method
-    def listdirinfo(self,path="",**kwds):
-        return super(CacheFS,self).listdirinfo(path,**kwds)
+    def listdirinfo(self,path="",*args,**kwds):
+        return super(CacheFS,self).listdirinfo(path,*args,**kwds)
 
     @_cached_method
     def getinfo(self,path):

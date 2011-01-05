@@ -224,7 +224,12 @@ class WrapFS(FS):
             yield e
 
     @rewrite_errors
-    def listdirinfo(self, path="", **kwds):
+    def listdirinfo(self, path="", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+        kwds = dict(wildcard=wildcard,
+                    full=full,
+                    absolute=absolute,
+                    dirs_only=dirs_only,
+                    files_only=files_only)        
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
         wildcard = kwds.pop("wildcard",None)
@@ -247,7 +252,12 @@ class WrapFS(FS):
         return entries
 
     @rewrite_errors
-    def ilistdirinfo(self, path="", **kwds):
+    def ilistdirinfo(self, path="", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+        kwds = dict(wildcard=wildcard,
+                    full=full,
+                    absolute=absolute,
+                    dirs_only=dirs_only,
+                    files_only=files_only)
         full = kwds.pop("full",False)
         absolute = kwds.pop("absolute",False)
         wildcard = kwds.pop("wildcard",None)

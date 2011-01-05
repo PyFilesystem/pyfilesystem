@@ -28,12 +28,26 @@ class HideDotFilesFS(WrapFS):
     def _decode(self, path):
         return path
 
-    def listdir(self, path="", **kwds):
-        hidden = kwds.pop("hidden",False)
+    def listdir(self, path="", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False, hidden=False):
+        kwds = dict(wildcard=wildcard,
+                    full=full,
+                    absolute=absolute,
+                    dirs_only=dirs_only,
+                    files_only=files_only)
         entries = self.wrapped_fs.listdir(path,**kwds)
         if not hidden:
             entries = [e for e in entries if not self.is_hidden(e)]
         return entries
+
+    def ilistdir(self, path="", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False, hidden=False):
+        kwds = dict(wildcard=wildcard,
+                    full=full,
+                    absolute=absolute,
+                    dirs_only=dirs_only,
+                    files_only=files_only)
+        for e in self.wrapped_fs.ilistdir(path,**kwds):
+            if hidden or not self.is_hidden(e):
+                yield e
 
     def walk(self, path="/", wildcard=None, dir_wildcard=None, search="breadth",hidden=False):
         if search == "breadth":
