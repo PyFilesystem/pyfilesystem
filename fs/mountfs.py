@@ -226,7 +226,7 @@ class MountFS(FS):
 
         if fs is self:
             paths = self.mount_tree.names(path)
-            for path in self._listdir_helper(path,wildcard,full,absolute,dirs_only,files_only):
+            for path in self._listdir_helper(path,paths,wildcard,full,absolute,dirs_only,files_only):
                 yield path
         else:
             paths = fs.ilistdir(delegate_path,

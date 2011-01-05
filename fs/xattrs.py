@@ -149,6 +149,12 @@ class SimulateXAttr(WrapFS):
         entries = self.wrapped_fs.listdir(path,**kwds)
         return [e for e in entries if not self._is_attr_path(e)]
 
+    def ilistdir(self,path="",**kwds):
+        """Prevent .xattr from appearing in listings."""
+        for e in self.wrapped_fs.ilistdir(path,**kwds):
+            if not self._is_attr_path(e):
+                yield e
+
     def remove(self,path):
         """Remove .xattr when removing a file."""
         attr_file = self._get_attr_path(path,isdir=False)

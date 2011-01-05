@@ -438,7 +438,7 @@ class FS(object):
                 return {}
 
         return [(p, getinfo(p))
-                    for p in self.listdir(path,                                          
+                    for p in self.listdir(path,
                                           wildcard=wildcard,
                                           full=full,
                                           absolute=absolute,

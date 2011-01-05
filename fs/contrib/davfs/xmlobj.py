@@ -4,7 +4,7 @@
 
   fs.contrib.davfs.xmlobj:  dexml model definitions for WebDAV
 
-This module defines the various XML elemen structures for WebDAV as a set
+This module defines the various XML element structures for WebDAV as a set
 of dexml.Model subclasses.
 
 """
