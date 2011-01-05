@@ -175,9 +175,9 @@ class activelock(_davbase):
     lockscope = fields.Model("lockscope")
     locktype = fields.Model("locktype")
     depth = fields.String(tagname="depth")
-    owner = fields.XmlNode(tagname="owner",encoding="UTF-8")
-    timeout = TimeoutField()
-    locktoken = fields.Model("locktoken")
+    owner = fields.XmlNode(tagname="owner",encoding="UTF-8",required=False)
+    timeout = TimeoutField(required=False)
+    locktoken = fields.Model("locktoken",required=False)
 
 class lockscope(_davbase):
     """XML model for a lockscope response message."""
