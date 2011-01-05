@@ -8,7 +8,7 @@
         * SFTPFS:  access remote files on a SFTP server
         * WrapFS:  filesystem that wraps an FS object and transparently
                    modifies its contents (think encryption, compression, ...)
-        * LazyFS:  lazily instaniate an FS object the first time it is used
+        * LazyFS:  lazily instantiate an FS object the first time it is used
         * ReadOnlyFS:   a WrapFS that makes an fs read-only
     * Ability to expose FS objects to the outside world:
         * expose.fuse:    expose an FS object using FUSE
