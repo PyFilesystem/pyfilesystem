@@ -39,6 +39,7 @@ from fs.path import *
 from fs.errors import *
 from fs.wrapfs import WrapFS
 from fs.base import FS
+from fs.filelike import FileWrapper
 
 
 class EVENT(object):
@@ -241,51 +242,40 @@ class WatchableFSMixin(FS):
 
 
 
-class WatchedFile(object):
+class WatchedFile(FileWrapper):
     """File wrapper for use with WatchableFS.
 
     This file wrapper provides access to a file opened from a WatchableFS
     instance, and fires MODIFIED events when the file is modified.
     """
 
-    def __init__(self,file,fs,path,mode):
-        self.file = file
+    def __init__(self,file,fs,path,mode=None):
+        super(WatchedFile,self).__init__(file,mode)
         self.fs = fs
         self.path = path
-        self.mode = mode
+        self.was_modified = False
 
-    def __del__(self):
-        #  Don't bother if python if being torn down
-        if Watcher is not None:
-            self.close()
+    def _write(self,string,flushing=False):
+        self.was_modified = True
+        return super(WatchedFile,self)._write(string,flushing=flushing)
 
-    def __getattr__(self,name):
-        file = self.__dict__['file']
-        a = getattr(file, name)
-        if callable(a):
-            setattr(self,name,a)
-        return a
-
-    def __enter__(self):
-        self.file.__enter__()
-        return self
-
-    def __exit__(self,exc_type,exc_value,traceback):
-        self.close()
-        return False
-
-    def __iter__(self):
-        return iter(self.file)
+    def _truncate(self,size):
+        self.was_modified = True
+        return super(WatchedFile,self)._truncate(size)
 
     def flush(self):
-        self.file.flush()
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            self.fs.notify_watchers(MODIFIED,self.path,True)
+        super(WatchedFile,self).flush()
+        #  Don't bother if python if being torn down
+        if Watcher is not None:
+            if self.was_modified:
+                self.fs.notify_watchers(MODIFIED,self.path,True)
 
     def close(self):
-        self.file.close()
-        if "w" in self.mode or "a" in self.mode or "+" in self.mode:
-            self.fs.notify_watchers(MODIFIED,self.path,True)
+        super(WatchedFile,self).close()
+        #  Don't bother if python if being torn down
+        if Watcher is not None:
+            if self.was_modified:
+                self.fs.notify_watchers(MODIFIED,self.path,True)
 
 
 class WatchableFS(WatchableFSMixin,WrapFS):
