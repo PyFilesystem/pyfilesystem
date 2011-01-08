@@ -84,7 +84,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
               'atomic.setcontents' : False,
              }
 
-    def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700):
+    def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700, use_long_paths=True):
         """
         Creates an FS object that represents the OS Filesystem under a given root path
 
@@ -99,14 +99,18 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         super(OSFS, self).__init__(thread_synchronize=thread_synchronize)
         self.encoding = encoding or sys.getfilesystemencoding()
         self.dir_mode = dir_mode
+        self.use_long_paths = use_long_paths
         root_path = os.path.expanduser(os.path.expandvars(root_path))
         root_path = os.path.normpath(os.path.abspath(root_path))
         #  Enable long pathnames on win32
         if sys.platform == "win32":
-            if not root_path.startswith("\\\\?\\"):
-                root_path = u"\\\\?\\" + root_path
+            if use_long_paths and not root_path.startswith("\\\\?\\"):
+                if not root_path.startswith("\\"):
+                   root_path = u"\\\\?\\" + root_path
+                else:
+                   root_path = u"\\\\?" + root_path
             #  If it points at the root of a drive, it needs a trailing slash.
-            if len(root_path) == 6:
+            if len(root_path) == 6 and not root_path.endswith("\\"):
                 root_path = root_path + "\\"
 
         if create:
