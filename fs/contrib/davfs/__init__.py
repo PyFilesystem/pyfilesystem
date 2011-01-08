@@ -545,7 +545,7 @@ class DAVFS(FS):
         finally:
             response.close()
 
-    def _do_propfind(self,path,props,incremental=True):
+    def _do_propfind(self,path,props):
         """Incremental PROPFIND parsing, for use with ilistdir/ilistdirinfo.
 
         This generator method incrementally parses the results returned by
