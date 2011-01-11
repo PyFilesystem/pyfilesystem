@@ -216,17 +216,50 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         self.assertEquals(f.read(), contents[:10] + contents2)
         f.close()
         
+
 class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
     """Test simple operation of CacheFS"""
 
     def setUp(self):
         self._check_interval = sys.getcheckinterval()
         sys.setcheckinterval(10)
-        self.fs = CacheFS(TempFS())
+        self.wrapped_fs = TempFS()
+        self.fs = CacheFS(self.wrapped_fs,cache_timeout=0.01)
 
     def tearDown(self):
         self.fs.close()
         sys.setcheckinterval(self._check_interval)
+
+    def test_values_are_used_from_cache(self):
+        old_timeout = self.fs.cache_timeout
+        self.fs.cache_timeout = None
+        try:
+            self.assertFalse(self.fs.isfile("hello"))
+            self.wrapped_fs.setcontents("hello","world")
+            self.assertTrue(self.fs.isfile("hello"))
+            self.wrapped_fs.remove("hello")
+            self.assertTrue(self.fs.isfile("hello"))
+            self.fs.clear_cache()
+            self.assertFalse(self.fs.isfile("hello"))
+        finally:
+            self.fs.cache_timeout = old_timeout
+
+    def test_values_are_updated_in_cache(self):
+        old_timeout = self.fs.cache_timeout
+        self.fs.cache_timeout = None
+        try:
+            self.assertFalse(self.fs.isfile("hello"))
+            self.wrapped_fs.setcontents("hello","world")
+            self.assertTrue(self.fs.isfile("hello"))
+            self.wrapped_fs.remove("hello")
+            self.assertTrue(self.fs.isfile("hello"))
+            self.wrapped_fs.setcontents("hello","world")
+            self.assertTrue(self.fs.isfile("hello"))
+            self.fs.remove("hello")
+            self.assertFalse(self.fs.isfile("hello"))
+        finally:
+            self.fs.cache_timeout = old_timeout
+         
 
 
 class TestConnectionManagerFS(unittest.TestCase,FSTestCases):#,ThreadingTestCases):

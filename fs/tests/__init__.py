@@ -98,6 +98,7 @@ class FSTestCases(object):
         except ResourceInvalidError:
             pass
         except Exception:
+            raise
             ecls = sys.exc_info()[0]
             assert False, "%s raised instead of ResourceInvalidError" % (ecls,)
         else:

@@ -26,8 +26,10 @@ import sys
 import os
 import time
 import copy
+import stat as statinfo
 from errno import EINVAL
 
+import fs.utils
 from fs.base import FS, threading
 from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.wrapfs.lazyfs import LazyFS
@@ -36,6 +38,9 @@ from fs.errors import *
 from fs.local_functools import wraps
 from fs.filelike import StringIO, SpooledTemporaryFile, FileWrapper
 from fs import SEEK_SET, SEEK_CUR, SEEK_END
+
+
+_SENTINAL = object()
 
 
 class RemoteFileBuffer(FileWrapper):
@@ -110,7 +115,10 @@ class RemoteFileBuffer(FileWrapper):
         #  Don't try to close a partially-constructed file
         if "_lock" in self.__dict__:
             if not self.closed:
-                self.close()
+                try:
+                    self.close()
+                except FSError:
+                    pass
 
     def _write(self,data,flushing=False):
         with self._lock:
@@ -392,185 +400,320 @@ def _ConnectionManagerFS_method_wrapper(func):
 wrap_fs_methods(_ConnectionManagerFS_method_wrapper,ConnectionManagerFS)
 
 
-def _cached_method(func):
-    """Method decorator that caches results for CacheFS."""
-    @wraps(func)
-    def wrapper(self,path="",*args,**kwds):
+class CachedInfo(object):
+    """Info objects stored in cache for CacheFS."""
+    __slots__ = ("timestamp","info","has_full_info","has_full_children")
+    def __init__(self,info={},has_full_info=True,has_full_children=False):
+        self.timestamp = time.time()
+        self.info = info
+        self.has_full_info = has_full_info
+        self.has_full_children = has_full_children
+    def clone(self):
+        new_ci = self.__class__()
+        new_ci.update_from(self)
+        return new_ci
+    def update_from(self,other):
+        self.timestamp = other.timestamp
+        self.info = other.info
+        self.has_full_info = other.has_full_info
+        self.has_full_children = other.has_full_children
+    @classmethod
+    def new_file_stub(cls):
+        info = {"info" : 0700 | statinfo.S_IFREG}
+        return cls(info,has_full_info=False)
+    @classmethod
+    def new_dir_stub(cls):
+        info = {"info" : 0700 | statinfo.S_IFDIR}
+        return cls(info,has_full_info=False)
+
+
+class CacheFSMixin(WrapFS):
+    """Simple FS mixin to cache meta-data of a remote filesystems.
+
+    This FS mixin implements a simplistic cache that can help speed up
+    access to a remote filesystem.  File and directory meta-data is cached
+    but the actual file contents are not.
+
+    If you want to add caching to an exising FS object, use the CacheFS
+    class instead; it's an easy-to-use wrapper rather than a mixin.
+    This mixin class is provided for FS implementors who want to use
+    caching internally in their own classes.
+
+    FYI, the implementation of CacheFS is this:
+
+        class CacheFS(CacheFSMixin,WrapFS):
+            pass
+
+    """
+
+    def __init__(self,*args,**kwds):
+        """CacheFSMixin constructor.
+
+        The optional keyword argument 'cache_timeout' specifies the cache
+        timeout in seconds.  The default timeout is 1 second.  To prevent
+        cache entries from ever timing out, set it to None.
+
+        The optional keyword argument 'max_cache_size' specifies the maximum
+        number of entries to keep in the cache.  To allow the cache to grow
+        unboundedly, set it to None.  The default is 1000.
+        """
+        self.cache_timeout = kwds.pop("cache_timeout",1)
+        self.max_cache_size = kwds.pop("max_cache_size",1000)
+        self.__cache = PathMap()
+        self.__cache_size = 0
+        self.__cache_lock = threading.RLock()
+        super(CacheFSMixin,self).__init__(*args,**kwds)
+
+    def clear_cache(self,path=""):
+        with self.__cache_lock:
+            self.__cache.clear(path)
         try:
-            (success,result) = self._cache_get(path,func.__name__,args,kwds)
-        except KeyError:
-            try:
-                res = func(self,path,*args,**kwds)
-            except Exception, e:
-                self._cache_set(path,func.__name__,args,kwds,(False,e))
-                raise
-            else:
-                self._cache_set(path,func.__name__,args,kwds,(True,res))
-                return copy.copy(res)
+            scc = super(CacheFSMixin,self).clear_cache
+        except AttributeError:
+            pass
         else:
-            if not success:
-                raise result
+            scc()
+
+    def __getstate__(self):
+        state = super(CacheFSMixin,self).__getstate__()
+        state.pop("_CacheFSMixin__cache_lock",None)
+        return state
+
+    def __setstate__(self,state):
+        super(CacheFSMixin,self).__setstate__(state)
+        self.__cache_lock = threading.RLock()
+
+    def __get_cached_info(self,path,default=_SENTINAL):
+        try:
+            info = self.__cache[path]
+            if self.cache_timeout is not None:
+                now = time.time()
+                if info.timestamp < (now - self.cache_timeout):
+                    with self.__cache_lock:
+                        self.__expire_from_cache(path)
+                        raise KeyError
+            return info
+        except KeyError:
+            if default is not _SENTINAL:
+                return default
+            raise
+
+    def __set_cached_info(self,path,new_ci,old_ci=None):
+        was_room = True
+        with self.__cache_lock:
+            #  Free up some room in the cache
+            if self.max_cache_size is not None and old_ci is None:
+                while self.__cache_size >= self.max_cache_size:
+                    try:
+                        to_del = iter(self.__cache).next()
+                    except StopIteration:
+                        break
+                    else:
+                        was_room = False
+                        self.__expire_from_cache(to_del)
+            #  Atomically add to the cache.
+            #  If there's a race, newest information wins
+            ci = self.__cache.setdefault(path,new_ci)
+            if ci is new_ci:
+                self.__cache_size += 1
             else:
-                return copy.copy(result)
-    return wrapper
+                if old_ci is None or ci is old_ci:
+                    if ci.timestamp < new_ci.timestamp:
+                        ci.update_from(new_ci)
+        return was_room
+
+    def __expire_from_cache(self,path):
+        del self.__cache[path]
+        self.__cache_size -= 1
+        for ancestor in recursepath(path):
+            try:
+                self.__cache[ancestor].has_full_children = False
+            except KeyError:
+                pass
+
+    def open(self,path,mode="r",**kwds):
+        #  Try to validate the entry using the cached info
+        try:
+            ci = self.__get_cached_info(path)
+        except KeyError:
+            if path in ("","/"):
+                raise ResourceInvalidError(path)
+            try:
+                pci = self.__get_cached_info(dirname(path))
+            except KeyError:
+                pass
+            else:
+                if not fs.utils.isdir(super(CacheFSMixin,self),path,pci.info):
+                    raise ResourceInvalidError(path)
+                if pci.has_full_children:
+                    raise ResourceNotFoundError(path)
+        else:
+            if not fs.utils.isfile(super(CacheFSMixin,self),path,ci.info):
+                raise ResourceInvalidError(path)
+        return super(CacheFSMixin,self).open(path,mode,**kwds)
+
+    def exists(self,path):
+        try:
+            self.getinfo(path)
+        except ResourceNotFoundError:
+            return False
+        else:
+            return True
+
+    def isdir(self,path):
+        try:
+            self.__cache.iternames(path).next()
+            return True
+        except StopIteration:
+            pass
+        try:
+            info = self.getinfo(path)
+        except ResourceNotFoundError:
+            return False
+        else:
+            return fs.utils.isdir(super(CacheFSMixin,self),path,info)
+
+    def isfile(self,path):
+        try:
+            self.__cache.iternames(path).next()
+            return False
+        except StopIteration:
+            pass
+        try:
+            info = self.getinfo(path)
+        except ResourceNotFoundError:
+            return False
+        else:
+            return fs.utils.isfile(super(CacheFSMixin,self),path,info)
+
+    def getinfo(self,path):
+        try:
+            ci = self.__get_cached_info(path)
+            if not ci.has_full_info:
+                raise KeyError
+            info = ci.info
+        except KeyError:
+            info = super(CacheFSMixin,self).getinfo(path)
+            self.__set_cached_info(path,CachedInfo(info))
+        return info
+
+    def listdir(self,path="",*args,**kwds):
+        return list(nm for (nm,info) in self.listdirinfo(path,*args,**kwds))
+
+    def ilistdir(self,path="",*args,**kwds):
+        for (nm,info) in self.ilistdirinfo(path,*args,**kwds):
+            yield nm
+
+    def listdirinfo(self,path="",*args,**kwds):
+        items = super(CacheFSMixin,self).listdirinfo(path,*args,**kwds)
+        with self.__cache_lock:
+            names = set()
+            for (nm,info) in items:
+                names.add(basename(nm))
+                cpath = pathjoin(path,basename(nm))
+                ci = CachedInfo(info)
+                self.__set_cached_info(cpath,ci)
+            to_del = []
+            for nm in self.__cache.iternames(path):
+                if nm not in names:
+                    to_del.append(nm)
+            for nm in to_del:
+                self.__cache.clear(pathjoin(path,nm))
+            #try:
+            #    pci = self.__cache[path]
+            #except KeyError:
+            #    pci = CachedInfo.new_dir_stub()
+            #    self.__cache[path] = pci
+            #pci.has_full_children = True
+        return items
+
+    def ilistdirinfo(self,path="",*args,**kwds):
+        items = super(CacheFSMixin,self).ilistdirinfo(path,*args,**kwds)
+        for (nm,info) in items:
+            cpath = pathjoin(path,basename(nm))
+            ci = CachedInfo(info)
+            self.__set_cached_info(cpath,ci)
+            yield (nm,info)
+
+    def getsize(self,path):
+        return self.getinfo(path)["size"]
+
+    def setcontents(self, path, contents="", chunk_size=64*1024):
+        supsc =  super(CacheFSMixin,self).setcontents
+        res = supsc(path, contents, chunk_size=chunk_size)
+        with self.__cache_lock:
+            self.__cache.clear(path)
+            self.__cache[path] = CachedInfo.new_file_stub()
+        return res
+
+    def createfile(self, path):
+        super(CacheFSMixin,self).createfile(path)
+        with self.__cache_lock:
+            self.__cache.clear(path)
+            self.__cache[path] = CachedInfo.new_file_stub()
+
+    def makedir(self,path,*args,**kwds):
+        super(CacheFSMixin,self).makedir(path,*args,**kwds)
+        with self.__cache_lock:
+            self.__cache.clear(path)
+            self.__cache[path] = CachedInfo.new_dir_stub()
+
+    def remove(self,path):
+        super(CacheFSMixin,self).remove(path)
+        with self.__cache_lock:
+            self.__cache.clear(path)
+
+    def removedir(self,path,**kwds):
+        super(CacheFSMixin,self).removedir(path,**kwds)
+        with self.__cache_lock:
+            self.__cache.clear(path)
+
+    def rename(self,src,dst):
+        super(CacheFSMixin,self).rename(src,dst)
+        with self.__cache_lock:
+            for (subpath,ci) in self.__cache.iteritems(src):
+                self.__cache[pathjoin(dst,subpath)] = ci.clone()
+            self.__cache.clear(src)
+
+    def copy(self,src,dst,**kwds):
+        super(CacheFSMixin,self).copy(src,dst,**kwds)
+        with self.__cache_lock:
+            for (subpath,ci) in self.__cache.iteritems(src):
+                self.__cache[pathjoin(dst,subpath)] = ci.clone()
+
+    def copydir(self,src,dst,**kwds):
+        super(CacheFSMixin,self).copydir(src,dst,**kwds)
+        with self.__cache_lock:
+            for (subpath,ci) in self.__cache.iteritems(src):
+                self.__cache[pathjoin(dst,subpath)] = ci.clone()
+
+    def move(self,src,dst,**kwds):
+        super(CacheFSMixin,self).move(src,dst,**kwds)
+        with self.__cache_lock:
+            for (subpath,ci) in self.__cache.iteritems(src):
+                self.__cache[pathjoin(dst,subpath)] = ci.clone()
+            self.__cache.clear(src)
+
+    def movedir(self,src,dst,**kwds):
+        super(CacheFSMixin,self).movedir(src,dst,**kwds)
+        with self.__cache_lock:
+            for (subpath,ci) in self.__cache.iteritems(src):
+                self.__cache[pathjoin(dst,subpath)] = ci.clone()
+            self.__cache.clear(src)
+
+    def settimes(self,path,*args,**kwds):
+        super(CacheFSMixin,self).settimes(path,*args,**kwds)
+        with self.__cache_lock:
+            self.__cache.pop(path,None)
 
 
-class CacheFS(WrapFS):
-    """Simple wrapper to cache meta-data of a remote filesystems.
+class CacheFS(CacheFSMixin,WrapFS):
+    """Simple FS wraper to cache meta-data of a remote filesystems.
 
-    This FS wrapper implements a simplistic cache that can help speed up
+    This FS mixin implements a simplistic cache that can help speed up
     access to a remote filesystem.  File and directory meta-data is cached
     but the actual file contents are not.
     """
+    pass
 
-    def __init__(self,fs,timeout=1):
-        """CacheFS constructor.
-
-        The optional argument 'timeout' specifies the cache timeout in
-        seconds.  The default timeout is 1 second.  To prevent cache
-        entries from ever timing out, set it to None.
-        """
-        self.timeout = timeout
-        self._cache = {"":{}}
-        super(CacheFS,self).__init__(fs)
-
-    def _path_cache(self,path):
-        cache = self._cache
-        for name in iteratepath(path):
-            cache = cache.setdefault(name,{"":{}})
-        return cache
-
-    def _cache_get(self,path,func,args,kwds):
-        now = time.time()
-        cache = self._path_cache(path)
-        key = (tuple(args),tuple(sorted(kwds.iteritems())))
-        (t,v) = cache[""][func][key]
-        if self.timeout is not None:
-            if t < now - self.timeout:
-                raise KeyError
-        return v
-
-    def _cache_set(self,path,func,args,kwds,v):
-        t = time.time()
-        cache = self._path_cache(path)
-        key = (tuple(args),tuple(sorted(kwds.iteritems())))
-        cache[""].setdefault(func,{})[key] = (t,v)
-
-    def _uncache(self,path,added=False,removed=False,unmoved=False):
-        cache = self._cache
-        names = list(iteratepath(path))
-        # If it's not the root dir, also clear some items for ancestors
-        if names:
-            # Clear cached 'getinfo' and 'getsize' for all ancestors 
-            for name in names[:-1]:
-                cache[""].pop("getinfo",None)
-                cache[""].pop("getsize",None)
-                cache = cache.get(name,None)
-                if cache is None:
-                    return 
-            # Adjust cached 'listdir' for parent directory.
-            # TODO: account for whether it was added, removed, or unmoved
-            cache[""].pop("getinfo",None)
-            cache[""].pop("getsize",None)
-            cache[""].pop("listdir",None)
-            cache[""].pop("listdirinfo",None)
-        # Clear all cached info for the path itself.
-        if names:
-            cache[names[-1]] = {"":{}}
-        else:
-            cache[""] = {}
-
-    @_cached_method
-    def exists(self,path):
-        return super(CacheFS,self).exists(path)
-
-    @_cached_method
-    def isdir(self,path):
-        return super(CacheFS,self).isdir(path)
-
-    @_cached_method
-    def isfile(self,path):
-        return super(CacheFS,self).isfile(path)
-
-    @_cached_method
-    def listdir(self,path="",*args,**kwds):
-        return super(CacheFS,self).listdir(path,*args,**kwds)
-
-    @_cached_method
-    def listdirinfo(self,path="",*args,**kwds):
-        return super(CacheFS,self).listdirinfo(path,*args,**kwds)
-
-    @_cached_method
-    def getinfo(self,path):
-        return super(CacheFS,self).getinfo(path)
-
-    @_cached_method
-    def getsize(self,path):
-        return super(CacheFS,self).getsize(path)
-
-    @_cached_method
-    def getxattr(self,path,name,default=None):
-        return super(CacheFS,self).getxattr(path,name,default)
-
-    @_cached_method
-    def listxattrs(self,path):
-        return super(CacheFS,self).listxattrs(path)
-
-    def open(self,path,mode="r"):
-        f = super(CacheFS,self).open(path,mode)
-        self._uncache(path,unmoved=True)
-        return f
-
-    def setcontents(self, path, contents='', chunk_size=64*1024):
-        res = super(CacheFS,self).setcontents(path, contents, chunk_size=chunk_size)
-        self._uncache(path,unmoved=True)
-        return res
-
-    def getcontents(self,path):
-        res = super(CacheFS,self).getcontents(path)
-        self._uncache(path,unmoved=True)
-        return res
-
-    def makedir(self,path,**kwds):
-        super(CacheFS,self).makedir(path,**kwds)
-        self._uncache(path,added=True)
-
-    def remove(self,path):
-        super(CacheFS,self).remove(path)
-        self._uncache(path,removed=True)
-
-    def removedir(self,path,**kwds):
-        super(CacheFS,self).removedir(path,**kwds)
-        self._uncache(path,removed=True)
-
-    def rename(self,src,dst):
-        super(CacheFS,self).rename(src,dst)
-        self._uncache(src,removed=True)
-        self._uncache(dst,added=True)
-
-    def copy(self,src,dst,**kwds):
-        super(CacheFS,self).copy(src,dst,**kwds)
-        self._uncache(dst,added=True)
-
-    def copydir(self,src,dst,**kwds):
-        super(CacheFS,self).copydir(src,dst,**kwds)
-        self._uncache(dst,added=True)
-
-    def move(self,src,dst,**kwds):
-        super(CacheFS,self).move(src,dst,**kwds)
-        self._uncache(src,removed=True)
-        self._uncache(dst,added=True)
-
-    def movedir(self,src,dst,**kwds):
-        super(CacheFS,self).movedir(src,dst,**kwds)
-        self._uncache(src,removed=True)
-        self._uncache(dst,added=True)
-
-    def setxattr(self,path,name,value):
-        self._uncache(path,unmoved=True)
-        return super(CacheFS,self).setxattr(path,name,value)
-
-    def delxattr(self,path,name):
-        self._uncache(path,unmoved=True)
-        return super(CacheFS,self).delxattr(path,name)
 

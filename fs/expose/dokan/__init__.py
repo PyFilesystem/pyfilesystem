@@ -40,6 +40,12 @@ to subprocess.Popen::
     >>> mp = dokan.MountProcess(fs,"Q",stderr=PIPE)
     >>> dokan_errors = mp.communicate()[1]
 
+
+If you are exposing an untrusted filesystem, you may like to apply the
+wrapper class Win32SafetyFS before passing it into dokan.  This will take
+a number of steps to avoid suspicious operations on windows, such as 
+hiding autorun files.
+
 The binding to Dokan is created via ctypes.  Due to the very stable ABI of
 win32, this should work without further configuration on just about all
 systems with Dokan installed.
@@ -64,6 +70,7 @@ from fs.base import threading
 from fs.errors import *
 from fs.path import *
 from fs.local_functools import wraps
+from fs.wrapfs import WrapFS
 
 try:
     import libdokan
@@ -879,6 +886,39 @@ class MountProcess(subprocess.Popen):
         if nowait:
             opts["ready_callback"] = False
         mount(fs,drive,**opts)
+
+
+
+class Win32SafetyFS(WrapFS):
+    """FS wrapper for extra safety when mounting on win32.
+
+    This wrapper class provides some safety features when mounting untrusted
+    filesystems on win32.  Specifically:
+
+        * hiding autorun files
+        * removing colons from paths
+
+    """
+
+    def __init__(self,wrapped_fs,allow_autorun=False):
+        self.allow_autorun = allow_autorun
+        super(Win32SafetyFS,self).__init__(wrapped_fs)
+
+    def _encode(self,path):
+        path = relpath(normpath(path))
+        path = path.replace(":","__colon__")
+        if not self.allow_autorun:
+            if path.lower().startswith("/_autorun."):
+                path = "/" + path[2:]
+        return path
+
+    def _decode(self,path):
+        path = relpath(normpath(path))
+        path = path.replace("__colon__",":")
+        if not self.allow_autorun:
+            if path.lower().startswith("/autorun."):
+                path = "/_" + path[1:]
+        return path
 
 
 if __name__ == "__main__":

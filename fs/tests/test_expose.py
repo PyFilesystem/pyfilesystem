@@ -179,6 +179,17 @@ if dokan.is_available:
             #  out.  Disabling the test for now.
             pass
 
+        def test_safety_wrapper(self):
+            rawfs = MemoryFS()
+            safefs = dokan.Win32SafetyFS(rawfs)
+            rawfs.setcontents("autoRun.inf","evilcodeevilcode")
+            self.assertFalse(safefs.exists("autoRun.inf"))
+            self.assertTrue(safefs.exists("_autoRun.inf"))
+            self.assertTrue("autoRun.inf" not in safefs.listdir("/"))
+            rawfs.setcontents("file:stream","test")
+            self.assertFalse(safefs.exists("file:stream"))
+            self.assertTrue(safefs.exists("file__colon__stream"))
+
     class TestDokan(unittest.TestCase,DokanTestCases,ThreadingTestCases):
 
         def setUp(self):

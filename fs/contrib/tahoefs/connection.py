@@ -62,7 +62,6 @@ class Connection:
         
     def _urlopen(self, req):
         try:
-            #print req.get_full_url()
             return urlopen(req)
         except Exception, e:
             if not getattr(e, 'getcode', None):
