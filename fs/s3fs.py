@@ -575,9 +575,10 @@ class S3FS(FS):
         self.copy(src,dst,overwrite=overwrite)
         self._s3bukt.delete_key(self._s3path(src))
 
-    def get_total_size(self):
+    def get_total_size(self,path=""):
         """Get total size of all files in this FS."""
-        return sum(k.size for k in self._s3bukt.list(prefix=self._prefix))
+        prefix = self._s3path(path)
+        return sum(k.size for k in self._s3bukt.list(prefix=prefix))
 
 
 def _eq_utf8(name1,name2):
