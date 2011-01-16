@@ -15,6 +15,8 @@ class TestPathFunctions(unittest.TestCase):
 
     def test_normpath(self):
         tests = [   ("\\a\\b\\c", "/a/b/c"),
+                    (".", ""),
+                    ("./", ""),
                     ("", ""),
                     ("/a/b/c", "/a/b/c"),
                     ("a/b/c", "a/b/c"),

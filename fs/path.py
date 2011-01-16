@@ -12,7 +12,7 @@ optional leading slash).
 
 import re
 
-_requires_normalization = re.compile(r'/\.\.|\./|//|\\').search
+_requires_normalization = re.compile(r'/\.\.|\./|\.|//|\\').search
 def normpath(path):
     """Normalizes a path to be in the format expected by FS objects.
 
@@ -40,7 +40,7 @@ def normpath(path):
     if path in ('', '/'):
         return path
     
-    # An early out if there is no need to normalize this paath
+    # An early out if there is no need to normalize this path
     if not _requires_normalization(path):        
         return path.rstrip('/')
                 
