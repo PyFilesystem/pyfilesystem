@@ -119,15 +119,14 @@ class OpenerRegistry(object):
 :\/\/
 
 (?:
+(?:(.*?)@(.*?))
 |(.*?)
-|(?:(.*?)!)
 )
 
 (?:
 !(.*?)$
 )*$
-''', re.VERBOSE)
-        
+''', re.VERBOSE)    
     
      
     def __init__(self, openers=[]):
@@ -180,8 +179,12 @@ class OpenerRegistry(object):
         orig_url = fs_url     
         match = self.split_segments(fs_url)
         
-        if match:
-            fs_name, fs_url, _, path = match.groups()
+        if match:            
+            fs_name, credentials, url1, url2, path = match.groups()
+            if credentials:
+                fs_url = '%s@%s' % (credentials, url1)
+            else:
+                fs_url = url2
             path = path or ''
             fs_url = fs_url or ''
             if ':' in fs_name:
