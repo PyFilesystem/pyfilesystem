@@ -726,7 +726,7 @@ class FS(object):
                     if f is not None:
                         f.close()
                         
-            except Exeption, e:
+            except Exception, e:
                 if error_callback is not None:
                     error_callback(e)
             
