@@ -278,6 +278,64 @@ class WrapFS(FS):
             yield (nm,info)
 
     @rewrite_errors
+    def walk(self,path="/",wildcard=None,dir_wildcard=None,search="breadth",ignore_errors=False):
+        if dir_wildcard is not None:
+            #  If there is a dir_wildcard, fall back to the default impl
+            #  that uses listdir().  Otherwise we run the risk of enumerating
+            #  lots of directories that will just be thrown away.
+            for item in super(WrapFS,self).walk(path,wildcard,dir_wildcard,search,ignore_errors):
+                yield item
+        #  Otherwise, the wrapped FS may provide a more efficient impl
+        #  which we can use directly.
+        else:
+            if wildcard is not None and not callable(wildcard):
+                wildcard_re = re.compile(fnmatch.translate(wildcard))
+                wildcard = lambda fn:bool (wildcard_re.match(fn))         
+            for (dirpath,filepaths) in self.wrapped_fs.walk(self._encode(path),search=search,ignore_errors=ignore_errors):
+                filepaths = [basename(self._decode(pathjoin(dirpath,p)))
+                                 for p in filepaths]
+                dirpath = abspath(self._decode(dirpath))
+                if wildcard is not None:
+                    filepaths = [p for p in filepaths if wildcard(p)]
+                yield (dirpath,filepaths)
+
+    @rewrite_errors
+    def walkfiles(self,path="/",wildcard=None,dir_wildcard=None,search="breadth",ignore_errors=False):
+        if dir_wildcard is not None:
+            #  If there is a dir_wildcard, fall back to the default impl
+            #  that uses listdir().  Otherwise we run the risk of enumerating
+            #  lots of directories that will just be thrown away.
+            for item in super(WrapFS,self).walkfiles(path,wildcard,dir_wildcard,search,ignore_errors):
+                yield item
+        #  Otherwise, the wrapped FS may provide a more efficient impl
+        #  which we can use directly.
+        else:
+            if wildcard is not None and not callable(wildcard):
+                wildcard_re = re.compile(fnmatch.translate(wildcard))
+                wildcard = lambda fn:bool (wildcard_re.match(fn))         
+            for filepath in self.wrapped_fs.walkfiles(self._encode(path),search=search,ignore_errors=ignore_errors):
+                filepath = abspath(self._decode(filepath))
+                if wildcard is not None:
+                    if not wildcard(basename(filepath)):
+                        continue
+                yield filepath
+
+    @rewrite_errors
+    def walkdirs(self,path="/",wildcard=None,search="breadth",ignore_errors=False):
+        if wildcard is not None:
+            #  If there is a wildcard, fall back to the default impl
+            #  that uses listdir().  Otherwise we run the risk of enumerating
+            #  lots of directories that will just be thrown away.
+            for item in super(WrapFS,self).walkdirs(path,wildcard,search,ignore_errors):
+                yield item
+        #  Otherwise, the wrapped FS may provide a more efficient impl
+        #  which we can use directly.
+        else:
+            for dirpath in self.wrapped_fs.walkdirs(self._encode(path),search=search,ignore_errors=ignore_errors):
+                yield abspath(self._decode(dirpath))
+
+
+    @rewrite_errors
     def makedir(self, path, *args, **kwds):
         return self.wrapped_fs.makedir(self._encode(path),*args,**kwds)
 

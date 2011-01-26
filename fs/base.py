@@ -887,8 +887,9 @@ class FS(object):
         :param search: same as the walk method
         :param ignore_errors: ignore any errors reading the directory
         """
-        for p, files in self.walk(path, wildcard=wildcard, search=search, ignore_errors=ignore_errors):
+        for p, files in self.walk(path, dir_wildcard=wildcard, search=search, ignore_errors=ignore_errors):
             yield p
+
 
     def getsize(self, path):
         """Returns the size (in bytes) of a resource.
