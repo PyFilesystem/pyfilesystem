@@ -137,7 +137,6 @@ class FSTestCases(object):
         self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
 
 
-
     def test_setcontents_async(self):
         #  setcontents() should accept both a string...
         self.fs.setcontents_async("hello", "world").wait()
@@ -292,6 +291,65 @@ class FSTestCases(object):
         # Test that appropriate errors are raised
         self.assertRaises(ResourceNotFoundError,self.fs.listdirinfo,"zebra")
         self.assertRaises(ResourceInvalidError,self.fs.listdirinfo,"foo")
+
+    def test_walk(self):
+        self.fs.setcontents('a.txt', 'hello')
+        self.fs.setcontents('b.txt', 'world')
+        self.fs.makeopendir('foo').setcontents('c', '123')
+        sorted_walk = sorted([(d,sorted(fs)) for (d,fs) in self.fs.walk()])
+        self.assertEquals(sorted_walk,
+                          [("/",["a.txt","b.txt"]),
+                           ("/foo",["c"])])
+        #  When searching breadth-first, shallow entries come first
+        found_a = False
+        for _,files in self.fs.walk(search="breadth"):
+            if "a.txt" in files:
+                found_a = True
+            if "c" in files:
+                break
+        assert found_a, "breadth search order was wrong"
+        #  When searching deth-first, deep entries come first
+        found_c = False
+        for _,files in self.fs.walk(search="depth"):
+            if "c" in files:
+                found_c = True
+            if "a.txt" in files:
+                break
+        assert found_c, "depth search order was wrong"
+
+    def test_walk_wildcard(self):
+        self.fs.setcontents('a.txt', 'hello')
+        self.fs.setcontents('b.txt', 'world')
+        self.fs.makeopendir('foo').setcontents('c', '123')
+        self.fs.makeopendir('.svn').setcontents('ignored', '')
+        for dir_path, paths in self.fs.walk(wildcard='*.txt'):
+            for path in paths:
+                self.assert_(path.endswith('.txt'))
+        for dir_path, paths in self.fs.walk(wildcard=lambda fn:fn.endswith('.txt')):
+            for path in paths:
+                self.assert_(path.endswith('.txt'))
+
+    def test_walk_dir_wildcard(self):
+        self.fs.setcontents('a.txt', 'hello')
+        self.fs.setcontents('b.txt', 'world')
+        self.fs.makeopendir('foo').setcontents('c', '123')
+        self.fs.makeopendir('.svn').setcontents('ignored', '')
+        for dir_path, paths in self.fs.walk(dir_wildcard=lambda fn:not fn.endswith('.svn')):
+            for path in paths:
+                self.assert_('.svn' not in path)
+
+    def test_walkfiles(self):
+        self.fs.makeopendir('bar').setcontents('a.txt', '123')
+        self.fs.makeopendir('foo').setcontents('b', '123')
+        self.assertEquals(sorted(self.fs.walkfiles()),["/bar/a.txt","/foo/b"])
+        self.assertEquals(sorted(self.fs.walkfiles(dir_wildcard="*foo*")),["/foo/b"])
+        self.assertEquals(sorted(self.fs.walkfiles(wildcard="*.txt")),["/bar/a.txt"])
+
+    def test_walkdirs(self):
+        self.fs.makeopendir('bar').setcontents('a.txt', '123')
+        self.fs.makeopendir('foo').makeopendir("baz").setcontents('b', '123')
+        self.assertEquals(sorted(self.fs.walkdirs()),["/","/bar","/foo","/foo/baz"])
+        self.assertEquals(sorted(self.fs.walkdirs(wildcard="*foo*")),["/","/foo","/foo/baz"])
 
     def test_unicode(self):
         alpha = u"\N{GREEK SMALL LETTER ALPHA}"
