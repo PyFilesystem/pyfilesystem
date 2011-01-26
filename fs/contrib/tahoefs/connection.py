@@ -72,7 +72,7 @@ class Connection:
                 raise errors.StorageSpaceError(e.fp.read())
             elif code in (400, 404, 410):
                 # Standard not found
-                 raise errors.ResourceNotFoundError(e.fp.read())
+                raise errors.ResourceNotFoundError(e.fp.read())
             raise errors.ResourceInvalidError(e.fp.read())
         
     def post(self, path, data={}, params={}):

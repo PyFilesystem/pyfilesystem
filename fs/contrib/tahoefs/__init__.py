@@ -83,9 +83,10 @@ def _fixpath(path):
 class _TahoeFS(FS):
     """FS providing raw access to a Tahoe Filesystem.
 
-    This class implements all the details of interacting with a Tahoe-backed filesystem, but you
-    probably don't want to use it in practise.  Use the TahoeFS class instead, which has some internal
-    caching to improve performance.
+    This class implements all the details of interacting with a Tahoe-backed
+    filesystem, but you probably don't want to use it in practice.  Use the
+    TahoeFS class instead, which has some internal caching to improve
+    performance.
     """
     
     _meta = { 'virtual' : False,
