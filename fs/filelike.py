@@ -278,7 +278,7 @@ class FileLikeBase(object):
         """
         #  Errors in subclass constructors can cause this to be called without
         #  having called FileLikeBase.__init__().  Since we need the attrs it
-        #  initialises in cleanup, ensure we call it here.
+        #  initializes in cleanup, ensure we call it here.
         if not hasattr(self,"closed"):
             FileLikeBase.__init__(self)
         if not self.closed:

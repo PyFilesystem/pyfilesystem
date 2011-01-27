@@ -156,7 +156,6 @@ class RPCFS(FS):
             return self.proxy.getmeta(meta_name)
         else:
             return self.proxy.getmeta_default(meta_name, default)                     
-    
     def hasmeta(self, meta_name):        
         return self.proxy.hasmeta(meta_name)
 

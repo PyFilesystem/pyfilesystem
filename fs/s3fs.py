@@ -12,6 +12,7 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 import os
 import time
 import datetime
+import hashlib
 import tempfile
 from fnmatch import fnmatch
 import stat as statinfo
@@ -77,7 +78,7 @@ class S3FS(FS):
 
         S3FS objects require the name of the S3 bucket in which to store
         files, and can optionally be given a prefix under which the files
-        shoud be stored.  The AWS public and private keys may be specified
+        should be stored.  The AWS public and private keys may be specified
         as additional arguments; if they are not specified they will be
         read from the two environment variables AWS_ACCESS_KEY_ID and
         AWS_SECRET_ACCESS_KEY.
@@ -575,10 +576,60 @@ class S3FS(FS):
         self.copy(src,dst,overwrite=overwrite)
         self._s3bukt.delete_key(self._s3path(src))
 
-    def get_total_size(self,path=""):
-        """Get total size of all files in this FS."""
-        prefix = self._s3path(path)
-        return sum(k.size for k in self._s3bukt.list(prefix=prefix))
+    def walkfiles(self,
+              path="/",
+              wildcard=None,
+              dir_wildcard=None,
+              search="breadth",
+              ignore_errors=False ):
+        if search != "breadth" or dir_wildcard is not None:
+            for item in super(S3FS,self).walkfiles(path,wildcard,dir_wildcard,search,ignore_errors):
+                yield item
+        else:
+            prefix = self._s3path(path)
+            prefix_len = len(prefix)
+            for k in self._s3bukt.list(prefix=prefix): 
+                name = k.name[prefix_len:]
+                if name != "":
+                    if not isinstance(name,unicode):
+                        name = name.decode("utf8")
+                    if not name.endswith(self._separator):
+                        if wildcard is not None:
+                            if callable(wildcard):
+                                if not wildcard(name):
+                                    continue
+                            else:
+                                if not fnmatch(name,wildcard):
+                                    continue
+                        yield abspath(name)
+
+    def walkfilesinfo(self,
+              path="/",
+              wildcard=None,
+              dir_wildcard=None,
+              search="breadth",
+              ignore_errors=False ):
+        if search != "breadth" or dir_wildcard is not None:
+            for item in super(S3FS,self).walkfiles(path,wildcard,dir_wildcard,search,ignore_errors):
+                yield (item,self.getinfo(item))
+        else:
+            prefix = self._s3path(path)
+            prefix_len = len(prefix)
+            for k in self._s3bukt.list(prefix=prefix): 
+                name = k.name[prefix_len:]
+                if name != "":
+                    if not isinstance(name,unicode):
+                        name = name.decode("utf8")
+                    if not name.endswith(self._separator):
+                        if wildcard is not None:
+                            if callable(wildcard):
+                                if not wildcard(name):
+                                    continue
+                            else:
+                                if not fnmatch(name,wildcard):
+                                    continue
+                        yield (abspath(name),self._get_key_info(k))
+
 
 
 def _eq_utf8(name1,name2):

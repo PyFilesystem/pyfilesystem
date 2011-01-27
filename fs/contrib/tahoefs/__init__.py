@@ -2,8 +2,7 @@
 fs.contrib.tahoefs
 ==================
 
-
-Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud):
+Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud)::
 
     from fs.contrib.tahoefs import TahoeFS, Connection
     dircap = TahoeFS.createdircap(webapi='http://pubgrid.tahoe-lafs.org')
@@ -15,7 +14,7 @@ Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud):
     f.close()
     print "Now visit %s and enjoy :-)" % fs.getpathurl('foo.txt')
 
-When any problem occurred, you can turn on internal debugging messages:
+When any problem occurred, you can turn on internal debugging messages::
 
     import logging    
     l = logging.getLogger()
@@ -25,26 +24,28 @@ When any problem occurred, you can turn on internal debugging messages:
     ... your Python code using TahoeFS ...
     
 TODO:
-   x unicode support
-   x try network errors / bad happiness
-   x exceptions
-   x tests    
-   x sanitize all path types (., /)
-   x support for extra large file uploads (poster module)
-   x Possibility to block write until upload done (Tahoe mailing list)
-   x Report something sane when Tahoe crashed/unavailable
-   x solve failed unit tests (makedir_winner, ...)
-   filetimes
-   docs & author
-   python3 support
-   remove creating blank files (depends on FileUploadManager)
+
+   * unicode support
+   * try network errors / bad happiness
+   * exceptions
+   * tests    
+   * sanitize all path types (., /)
+   * support for extra large file uploads (poster module)
+   * Possibility to block write until upload done (Tahoe mailing list)
+   * Report something sane when Tahoe crashed/unavailable
+   * solve failed unit tests (makedir_winner, ...)
+   * file times
+   * docs & author
+   * python3 support
+   * remove creating blank files (depends on FileUploadManager)
    
 TODO (Not TahoeFS specific tasks):
-   x RemoteFileBuffer on the fly buffering support
-   x RemoteFileBuffer unit tests
-   x RemoteFileBuffer submit to trunk
-   Implement FileUploadManager + faking isfile/exists of just processing file
-   pyfilesystem docs is outdated (rename, movedir, ...)  
+   * RemoteFileBuffer on the fly buffering support
+   * RemoteFileBuffer unit tests
+   * RemoteFileBuffer submit to trunk
+   * Implement FileUploadManager + faking isfile/exists of just processing file
+   * pyfilesystem docs is outdated (rename, movedir, ...)  
+
 '''
 
 

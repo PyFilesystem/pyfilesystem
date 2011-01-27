@@ -2,10 +2,10 @@
 fs.wrapfs.lazyfs
 ================
 
-A class for lazy initialisation of an FS object.
+A class for lazy initialization of an FS object.
 
 This module provides the class LazyFS, an FS wrapper class that can lazily
-initialise its underlying FS object.
+initialize its underlying FS object.
 
 """
 

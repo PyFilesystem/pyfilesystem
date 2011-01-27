@@ -290,7 +290,7 @@ class ConnectionManagerFS(LazyFS):
     operating-system integration may be added.
 
     Since some remote FS classes can raise RemoteConnectionError during
-    initialisation, this class makes use of lazy initialization. The
+    initialization, this class makes use of lazy initialization. The
     remote FS can be specified as an FS instance, an FS subclass, or a
     (class,args) or (class,args,kwds) tuple. For example::
 

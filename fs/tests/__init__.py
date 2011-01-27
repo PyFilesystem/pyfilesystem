@@ -315,7 +315,7 @@ class FSTestCases(object):
                 found_c = True
             if "a.txt" in files:
                 break
-        assert found_c, "depth search order was wrong"
+        assert found_c, "depth search order was wrong: " + str(list(self.fs.walk(search="depth")))
 
     def test_walk_wildcard(self):
         self.fs.setcontents('a.txt', 'hello')

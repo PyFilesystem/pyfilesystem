@@ -14,7 +14,7 @@ class HideDotFilesFS(WrapFS):
     """FS wrapper class that hides dot-files in directory listings.
 
     The listdir() function takes an extra keyword argument 'hidden'
-    indicating whether hidden dotfiles shoud be included in the output.
+    indicating whether hidden dot-files shoud be included in the output.
     It is False by default.
     """
 

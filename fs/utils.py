@@ -414,7 +414,9 @@ def find_duplicates(fs,
 
 
 def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hide_dotfiles=False, dirs_first=False):
-    """Prints a filesystem listing to stdout (including sub dirs). Useful as a debugging aid.
+    """Prints a filesystem listing to stdout (including sub directories).
+
+    This mostly useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
     
@@ -432,7 +434,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
     :param file_out: File object to write output to (defaults to sys.stdout)
     :param terminal_colors: If True, terminal color codes will be written, set to False for non-console output.
         The default (None) will select an appropriate setting for the platform.
-    :param hide_dotfiles: if True, files or directories begining with '.' will be removed
+    :param hide_dotfiles: if True, files or directories beginning with '.' will be removed
 
     """
 

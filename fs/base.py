@@ -387,7 +387,7 @@ class FS(object):
         :type wildcard: string containing a wildcard, or a callable that accepts a path and returns a boolean
         :param full: returns full paths (relative to the root)
         :type full: bool
-        :param absolute: returns absolute paths (paths begining with /)
+        :param absolute: returns absolute paths (paths beginning with /)
         :type absolute: bool
         :param dirs_only: if True, only return directories
         :type dirs_only: bool
