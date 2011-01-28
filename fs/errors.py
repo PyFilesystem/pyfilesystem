@@ -260,6 +260,8 @@ def convert_os_errors(func):
                 raise RemoteConnectionError(opname,path=path,details=e),None,tb
             if e.errno == errno.ENETDOWN:
                 raise RemoteConnectionError(opname,path=path,details=e),None,tb
+            if e.errno == errno.ECONNRESET:
+                raise RemoteConnectionError(opname,path=path,details=e),None,tb
             if e.errno == errno.EACCES:
                 if sys.platform == "win32":
                     if e.args[0] and e.args[0] == 32:
