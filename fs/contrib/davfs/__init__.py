@@ -107,7 +107,8 @@ class DAVFS(FS):
         #  Check that the server speaks WebDAV, and normalize the URL
         #  after any redirects have been followed.
         self.url = url
-        resp = self._request("/","PROPFIND","",{"Depth":"0"})
+        pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
+        resp = self._request("/","PROPFIND",pf.render(),{"Depth":"0"})
         try:            
             if resp.status == 404:
                 raise ResourceNotFoundError("/",msg="root url gives 404")
@@ -329,7 +330,8 @@ class DAVFS(FS):
         return RemoteFileBuffer(self,path,mode,contents)
 
     def exists(self,path):
-        response = self._request(path,"PROPFIND","",{"Depth":"0"})
+        pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
+        response = self._request(path,"PROPFIND",pf.render(),{"Depth":"0"})
         response.close()
         if response.status == 207:
             return True
