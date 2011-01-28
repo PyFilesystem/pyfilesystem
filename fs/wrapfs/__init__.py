@@ -117,6 +117,13 @@ class WrapFS(FS):
         """
         return (mode,mode)
 
+    def __unicode__(self):
+        return u"<%s: %s>" % (self.__class__.__name__,self.wrapped_fs,)
+
+    def __str__(self):
+        return unicode(self).encode(sys.getdefaultencoding(),"replace")
+
+
     @rewrite_errors
     def getmeta(self, meta_name, default=NoDefaultMeta):
         return self.wrapped_fs.getmeta(meta_name, default)

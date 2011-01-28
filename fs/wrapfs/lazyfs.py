@@ -36,12 +36,9 @@ class LazyFS(WrapFS):
         try:
             wrapped_fs = self.__dict__["wrapped_fs"]
         except KeyError:
-            return u"<LazyFS wrapping %s>" % (self._fsclass,)
+            return u"<LazyFS: %s>" % (self._fsclass,)
         else:
-            return u"<LazyFS wrapping %s>" % (wrapped_fs,)
-
-    def __str__(self):
-        return unicode(self).encode(sys.getdefaultencoding(),"replace")
+            return u"<LazyFS: %s>" % (wrapped_fs,)
 
     def __getstate__(self):
         state = super(LazyFS,self).__getstate__()

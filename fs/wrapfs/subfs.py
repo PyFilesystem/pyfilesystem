@@ -31,10 +31,10 @@ class SubFS(WrapFS):
 
     def __str__(self):
         #return self.wrapped_fs.desc(self.sub_dir)
-        return '<SubFS: %s%s>' % (self.wrapped_fs, self.sub_dir)
+        return '<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir)
 
     def __unicode__(self):
-        return u'<SubFS: %s%s>' % (self.wrapped_fs, self.sub_dir)        
+        return u'<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir)        
 
     def __repr__(self):
         return str(self)
