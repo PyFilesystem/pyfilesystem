@@ -504,7 +504,6 @@ class DAVFS(FS):
         if response.status == 405:
             raise ResourceInvalidError(path)
         if response.status < 200 or response.status >= 300:
-            print response.read()
             raise_generic_error(response,"remove",path)
         return True
 
@@ -749,7 +748,7 @@ class DAVFS(FS):
                        if node.nodeType != node.ELEMENT_NODE:
                            continue
                        if node.namespaceURI:
-                           if node.namespaceURI == "DAV:":
+                           if node.namespaceURI in ("DAV:","PYFS:",):
                                continue
                            propname = node.namespaceURI + node.localName
                        else:
