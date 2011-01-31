@@ -54,6 +54,7 @@ import stat as statinfo
 import logging
 from logging import DEBUG, INFO, ERROR, CRITICAL
 
+import fs
 import fs.errors as errors
 from fs.path import abspath, relpath, normpath, dirname, pathjoin
 from fs import FS, NullFile, _thread_synchronize_default, SEEK_END
@@ -63,7 +64,7 @@ from fs.base import fnmatch, NoDefaultMeta
 from util import TahoeUtil
 from connection import Connection   
 
-logger = logging.getLogger('fs.tahoefs')
+logger = fs.getLogger('fs.tahoefs')
 
 def _fix_path(func):
     """Method decorator for automatically normalising paths."""

@@ -496,6 +496,9 @@ class PathMap(object):
                 for subk in self.iterkeys(k,subm):
                     yield subk
 
+    def __iter__(self):
+        return self.iterkeys()
+
     def keys(self,root="/"):
         return list(self.iterkeys(root))
 
@@ -557,6 +560,7 @@ class PathMap(object):
 
     def names(self,root="/"):
         return list(self.iternames(root))
+
 
 _wild_chars = frozenset('*?[]!{}')
 def iswildcard(path):

@@ -39,9 +39,6 @@ from fs.local_functools import wraps
 from fs.filelike import StringIO, SpooledTemporaryFile, FileWrapper
 from fs import SEEK_SET, SEEK_CUR, SEEK_END
 
-import logging
-logger = logging.getLogger("fs.remote")
-
 
 _SENTINAL = object()
 
@@ -595,9 +592,7 @@ class CacheFSMixin(WrapFS):
             if not ci.has_full_info:
                 raise KeyError
             info = ci.info
-            logger.debug("GOT INFO FROM CACHE: %r",path)
         except KeyError:
-            logger.debug("INFO WASN'T IN CACHE: %r",path)
             info = super(CacheFSMixin,self).getinfo(path)
             self.__set_cached_info(path,CachedInfo(info))
         return info

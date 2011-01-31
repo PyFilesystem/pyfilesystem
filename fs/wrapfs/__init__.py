@@ -466,6 +466,7 @@ def wrap_fs_methods(decorator, cls=None, exclude=[]):
 wrap_fs_methods.method_names = ["open","exists","isdir","isfile","listdir",
     "makedir","remove","setcontents","removedir","rename","getinfo","copy",
     "move","copydir","movedir","close","getxattr","setxattr","delxattr",
-    "listxattrs","getsyspath","createfile", "hasmeta", "getmeta"]
+    "listxattrs","getsyspath","createfile", "hasmeta", "getmeta","listdirinfo",
+    "ilistdir","ilistdirinfo"]
 
 

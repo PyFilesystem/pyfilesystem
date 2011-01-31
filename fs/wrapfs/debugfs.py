@@ -38,9 +38,10 @@ import logging
 from logging import DEBUG, INFO, ERROR, CRITICAL
 import sys
 
+import fs
 from fs.errors import FSError
 
-logger = logging.getLogger('fs.debugfs')
+logger = fs.getLogger('fs.debugfs')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 

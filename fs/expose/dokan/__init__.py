@@ -83,6 +83,10 @@ else:
     from ctypes.wintypes import LPCWSTR, WCHAR
     kernel32 = ctypes.windll.kernel32
 
+import logging
+logger = logging.getLogger("fs.expose.dokan")
+
+
 #  Options controlling the behaiour of the Dokan filesystem
 DOKAN_OPTION_DEBUG = 1
 DOKAN_OPTION_STDERR = 2
@@ -139,6 +143,7 @@ FILETIME_UNIX_EPOCH = 116444736000000000
 
 def _debug(*args):
     #print >>sys.stderr, args; sys.stderr.flush()
+    #logger.debug(map(str,args))
     pass
 
 

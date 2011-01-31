@@ -54,7 +54,10 @@ class DirMount(object):
         self.fs = fs
 
     def __str__(self):
-        return "Mount point: %s"%self.path
+        return "Mount point: <%s,%s>" % (self.path,self.fs,)
+    __repr__ = __str__
+    def __unicode__(self):
+        return unicode(str(self))
 
 
 class FileMount(object):
@@ -83,7 +86,7 @@ class MountFS(FS):
         self.mount_tree = PathMap()
 
     def __str__(self):
-        return "<MountFS>"
+        return "<%s [%s]>" % (self.__class__.__name__,self.mount_tree.items(),)
 
     __repr__ = __str__
 

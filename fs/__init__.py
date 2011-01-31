@@ -45,3 +45,16 @@ import os
 SEEK_CUR = os.SEEK_CUR
 SEEK_END = os.SEEK_END
 SEEK_SET = os.SEEK_SET
+
+
+# Allow clean use of logging throughout the lib
+import logging as _logging
+class _NullHandler(_logging.Handler):
+    def emit(self,record):
+        pass
+_logging.getLogger("fs").addHandler(_NullHandler())
+def getLogger(name):
+    """Get a logger object for use within the pyfilesystem library."""
+    assert name.startswith("fs.")
+    return _logging.getLogger(name)
+
