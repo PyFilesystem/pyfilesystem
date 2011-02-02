@@ -120,16 +120,22 @@ class S3FS(FS):
 
     def _s3conn(self):
         try:
-            return self._tlocal.s3conn
+            (c,ctime) = self._tlocal.s3conn
+            if time.time() - ctime > 60:
+                raise AttributeError
+            return c
         except AttributeError:
             c = boto.s3.connection.S3Connection(*self._access_keys)
-            self._tlocal.s3conn = c
+            self._tlocal.s3conn = (c,time.time())
             return c
     _s3conn = property(_s3conn)
 
     def _s3bukt(self):
         try:
-            return self._tlocal.s3bukt
+            (b,ctime) = self._tlocal.s3bukt
+            if time.time() - ctime > 60:
+                raise AttributeError
+            return b
         except AttributeError:
             try:
                 b = self._s3conn.get_bucket(self._bucket_name, validate=True)
@@ -137,7 +143,7 @@ class S3FS(FS):
                 if "404 Not Found" not in str(e):
                     raise
                 b = self._s3conn.create_bucket(self._bucket_name)
-            self._tlocal.s3bukt = b
+            self._tlocal.s3bukt = (b,time.time())
             return b
     _s3bukt = property(_s3bukt)
 
