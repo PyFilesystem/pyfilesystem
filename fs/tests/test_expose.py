@@ -163,13 +163,8 @@ if dokan.is_available:
             #  This appears to be a bug in Dokan - DeleteFile will happily
             #  delete an empty directory.
             #self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
-            print >> sys.stderr, "\n\n===============HERE================\n\n"
             self.fs.createfile("/dir1/a.txt")
-            print >> sys.stderr, "\n\n===============cREATED================\n\n"
-            try:
-                self.assertTrue(self.check("dir1/a.txt"))
-            finally:
-                print >> sys.stderr, "\n\n===============CHECKED================\n\n"
+            self.assertTrue(self.check("dir1/a.txt"))
             self.fs.remove("dir1/a.txt")
             self.assertFalse(self.check("/dir1/a.txt"))
 
