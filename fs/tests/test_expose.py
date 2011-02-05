@@ -163,8 +163,13 @@ if dokan.is_available:
             #  This appears to be a bug in Dokan - DeleteFile will happily
             #  delete an empty directory.
             #self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
+            print >> sys.stderr, "\n\n===============HERE================\n\n"
             self.fs.createfile("/dir1/a.txt")
-            self.assertTrue(self.check("dir1/a.txt"))
+            print >> sys.stderr, "\n\n===============cREATED================\n\n"
+            try:
+                self.assertTrue(self.check("dir1/a.txt"))
+            finally:
+                print >> sys.stderr, "\n\n===============CHECKED================\n\n"
             self.fs.remove("dir1/a.txt")
             self.assertFalse(self.check("/dir1/a.txt"))
 
@@ -183,12 +188,12 @@ if dokan.is_available:
             rawfs = MemoryFS()
             safefs = dokan.Win32SafetyFS(rawfs)
             rawfs.setcontents("autoRun.inf","evilcodeevilcode")
-            self.assertFalse(safefs.exists("autoRun.inf"))
             self.assertTrue(safefs.exists("_autoRun.inf"))
             self.assertTrue("autoRun.inf" not in safefs.listdir("/"))
-            rawfs.setcontents("file:stream","test")
-            self.assertFalse(safefs.exists("file:stream"))
-            self.assertTrue(safefs.exists("file__colon__stream"))
+            safefs.setcontents("file:stream","test")
+            self.assertFalse(rawfs.exists("file:stream"))
+            self.assertTrue(rawfs.exists("file__colon__stream"))
+            self.assertTrue("file:stream" in safefs.listdir("/"))
 
     class TestDokan(unittest.TestCase,DokanTestCases,ThreadingTestCases):
 
