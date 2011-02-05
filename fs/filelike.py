@@ -618,11 +618,11 @@ class FileWrapper(FileLikeBase):
         #  Close the wrapper and the underlying file independently, so the
         #  latter is still closed on cleanup even if the former errors out.
         try:
-            super(FileWrapper,self).close()
-        except Exception:
+            if FileWrapper is not None:
+                super(FileWrapper,self).close()
+        finally:
             if hasattr(getattr(self,"wrapped_file",None),"close"):
                 self.wrapped_file.close()
-            raise
 
     def close(self):
         """Close the object for reading/writing."""
@@ -631,10 +631,11 @@ class FileWrapper(FileLikeBase):
         #  close() on it, which will call its flush() again!  To avoid
         #  this inefficiency, our flush() will not flush the wrapped
         #  file when we're closing.
-        self.__closing = True
-        super(FileWrapper,self).close()
-        if hasattr(self.wrapped_file,"close"):
-            self.wrapped_file.close()
+        if not self.closed:
+            self.__closing = True
+            super(FileWrapper,self).close()
+            if hasattr(self.wrapped_file,"close"):
+                self.wrapped_file.close()
 
     def flush(self):
         """Flush the write buffers of the file."""
