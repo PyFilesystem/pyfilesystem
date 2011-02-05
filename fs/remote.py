@@ -550,7 +550,29 @@ class CacheFSMixin(WrapFS):
         else:
             if not fs.utils.isfile(super(CacheFSMixin,self),path,ci.info):
                 raise ResourceInvalidError(path)
-        return super(CacheFSMixin,self).open(path,mode,**kwds)
+        f = super(CacheFSMixin,self).open(path,mode,**kwds)
+        if "w" in mode or "a" in mode or "+" in mode:
+            with self.__cache_lock:
+                self.__cache.clear(path)
+            f = self._CacheInvalidatingFile(self,path,f,mode)
+        return f
+
+    class _CacheInvalidatingFile(FileWrapper):
+        def __init__(self,owner,path,wrapped_file,mode=None):
+            self.path = path
+            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
+            sup.__init__(wrapped_file,mode)
+            self.owner = owner
+        def _write(self,string,flushing=False):
+            with self.owner._CacheFSMixin__cache_lock:
+                self.owner._CacheFSMixin__cache.clear(self.path)
+            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
+            return sup._write(string,flushing=flushing)
+        def _truncate(self,size):
+            with self.owner._CacheFSMixin__cache_lock:
+                self.owner._CacheFSMixin__cache.clear(self.path)
+            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
+            return sup._truncate(size)
 
     def exists(self,path):
         try:
