@@ -539,11 +539,12 @@ class CacheFSMixin(WrapFS):
             if path in ("","/"):
                 raise ResourceInvalidError(path)
             try:
-                pci = self.__get_cached_info(dirname(path))
+                ppath = dirname(path)
+                pci = self.__get_cached_info(ppath)
             except KeyError:
                 pass
             else:
-                if not fs.utils.isdir(super(CacheFSMixin,self),path,pci.info):
+                if not fs.utils.isdir(super(CacheFSMixin,self),ppath,pci.info):
                     raise ResourceInvalidError(path)
                 if pci.has_full_children:
                     raise ResourceNotFoundError(path)
