@@ -913,16 +913,16 @@ class Win32SafetyFS(WrapFS):
         path = relpath(normpath(path))
         path = path.replace(":","__colon__")
         if not self.allow_autorun:
-            if path.lower().startswith("/_autorun."):
-                path = "/" + path[2:]
+            if path.lower().startswith("_autorun."):
+                path = path[1:]
         return path
 
     def _decode(self,path):
         path = relpath(normpath(path))
         path = path.replace("__colon__",":")
         if not self.allow_autorun:
-            if path.lower().startswith("/autorun."):
-                path = "/_" + path[1:]
+            if path.lower().startswith("autorun."):
+                path = "_" + path
         return path
 
 
