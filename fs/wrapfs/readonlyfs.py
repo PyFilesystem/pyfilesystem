@@ -24,12 +24,12 @@ class ReadOnlyFS(WrapFS):
     def getmeta(self, meta_name, default=NoDefaultMeta):
         if meta_name == 'read_only':
             return True
-        return self.wrapped_fs(meta_name, default)
+        return self.wrapped_fs.getmeta(meta_name, default)
         
     def hasmeta(self, meta_name):
         if meta_name == 'read_only':
             return True
-        return self.wrapped_fs(meta_name)
+        return self.wrapped_fs.hasmeta(meta_name)
         
     def getsyspath(self, path, allow_none=False):
         """ Doesn't technically modify the filesystem but could be used to work
