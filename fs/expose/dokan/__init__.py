@@ -242,6 +242,8 @@ class FSOperations(object):
             try:
                 setattr(struct,nm,typ(getattr(self,nm)))
             except AttributeError:
+                #  TODO: leaving these null makes funny things happen...
+                raise
                 #  This bizarre syntax creates a NULL function pointer.
                 setattr(struct,nm,typ())
         return struct
@@ -306,55 +308,34 @@ class FSOperations(object):
             elif not self.fs.exists(path):
                 raise ResourceNotFoundError(path)
             return
-        # Convert the various access rights into an appropriate mode string.
-        # TODO: I'm sure this misses some important semantics.
+        #  This is where we'd convert the access mask into an appropriate
+        #  mode string.  Unfortunately, I can't seem to work out all the
+        #  details.  I swear MS Word is trying to write to files that it
+        #  opens without asking for write permission.
+        #  For now, just set the mode based on disposition flag.
         retcode = 0
-        if access & REQ_GENERIC_READ:
-            if access & REQ_GENERIC_WRITE:
-                if disposition == CREATE_ALWAYS:
-                    if self.fs.exists(path):
-                        retcode = 183
-                    mode = "w+b"
-                elif disposition == OPEN_EXISTING:
-                    mode = "r+b"
-                elif disposition == TRUNCATE_EXISTING:
-                    if not self.fs.exists(path):
-                        raise ResourceNotFoundError(path)
-                    mode = "w+b"
-                elif disposition == CREATE_NEW:
-                    if self.fs.exists(path):
-                        return -183
-                    mode = "w+b"
-                else:
-                    mode = "r+b"
-            else:
-                mode = "rb"
-        elif access & REQ_GENERIC_WRITE:
-            if disposition == CREATE_ALWAYS:
-                if self.fs.exists(path):
-                    retcode = 183
-                mode = "wb"
-            elif disposition == OPEN_EXISTING:
-                if self.fs.exists(path):
-                    retcode = 183
-                mode = "r+b"
-            elif disposition == TRUNCATE_EXISTING:
-                if not self.fs.exists(path):
-                    raise ResourceNotFoundError(path)
-                mode = "w+b"
-            elif disposition == CREATE_NEW:
-                if self.fs.exists(path):
-                    return -183
+        if disposition == CREATE_ALWAYS:
+            if self.fs.exists(path):
+                retcode = ERROR_ALREADY_EXISTS
+            mode = "w+b"
+        elif disposition == OPEN_ALWAYS:
+            if not self.fs.exists(path):
                 mode = "w+b"
             else:
+                retcode = ERROR_ALREADY_EXISTS
                 mode = "r+b"
-        else:
-            #  Unknown access mode, just query the metadata.
-            if self.fs.isdir(path):
-                info.contents.IsDirectory = True
-            elif not self.fs.exists(path):
+        elif disposition == OPEN_EXISTING:
+            mode = "r+b"
+        elif disposition == TRUNCATE_EXISTING:
+            if not self.fs.exists(path):
                 raise ResourceNotFoundError(path)
-            return
+            mode = "w+b"
+        elif disposition == CREATE_NEW:
+            if self.fs.exists(path):
+                return -1 * ERROR_ALREADY_EXISTS
+            mode = "w+b"
+        else:
+            mode = "r+b"
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
         try:
@@ -506,6 +487,7 @@ class FSOperations(object):
             if written_size > reported_size:
                 data.nFileSizeHigh = written_size >> 32
                 data.nFileSizeLow = written_size & 0xffffffff
+        data.nNumberOfLinks = 1
 
     @timeout_protect
     @handle_fs_errors
@@ -521,6 +503,7 @@ class FSOperations(object):
     @timeout_protect
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
+        print "FIND FILES WITH PATTERN", path, pattern
         path = normpath(path)
         infolist = []
         for (nm,finfo) in self.fs.listdirinfo(path):
@@ -631,6 +614,27 @@ class FSOperations(object):
         sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(fnmBuf,nm,sz)
 
+    @handle_fs_errors
+    def SetAllocationSize(self, path, length, info):
+        #  I think this is supposed to reserve space for the file
+        #  but *not* actually move the end-of-file marker.
+        #  No way to do that in pyfs.
+        pass
+
+    @handle_fs_errors
+    def LockFile(self, path, byteOffset, length, info):
+        # TODO:  implement this using in-memory locking
+        pass
+
+    @handle_fs_errors
+    def UnlockFile(self, path, byteOffset, length, info):
+        # TODO:  implement this using in-memory locking
+        pass
+
+    @handle_fs_errors
+    def Unmount(self, info):
+        pass
+
     def _info2attrmask(self,path,info,hinfo=None):
         """Convert a file/directory info dict to a win32 file attribute mask."""
         attrs = 0
@@ -708,6 +712,7 @@ ERROR_FILE_EXISTS = 80
 ERROR_DIR_NOT_EMPTY = 145
 ERROR_NOT_SUPPORTED = 50
 ERROR_ACCESS_DENIED = 5
+ERROR_ALREADY_EXISTS = 183
 
 def _errno2syserrcode(eno):
     """Convert an errno into a win32 system error code."""
