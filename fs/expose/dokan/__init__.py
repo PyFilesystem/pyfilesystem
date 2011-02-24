@@ -64,7 +64,7 @@ import errno
 import time
 import stat as statinfo
 import subprocess
-import pickle
+import cPickle
 import datetime
 import ctypes
 import Queue
@@ -156,11 +156,6 @@ DATETIME_STARTUP = datetime.datetime.utcnow()
 FILETIME_UNIX_EPOCH = 116444736000000000
 
 
-def _debug(*args):
-    #print >>sys.stderr, args; sys.stderr.flush()
-    #logger.debug(map(str,args))
-    pass
-
 
 def handle_fs_errors(func):
     """Method decorator to report FS errors in the appropriate way.
@@ -174,24 +169,18 @@ def handle_fs_errors(func):
     func = convert_fs_errors(func)
     @wraps(func)
     def wrapper(*args,**kwds):        
-        _debug("CALL",name,args[1:-1])
         try:
             res = func(*args,**kwds)
         except OSError, e:
-            _debug("ERR",name,e)
             if e.errno:
                 res = -1 * _errno2syserrcode(e.errno)
             else:
                 res = -1
         except Exception, e:
-            _debug("ERR",name,e)
             raise
         else:
-            _debug("OK",name)
             if res is None:
                 res = 0
-        if res != 0:
-            _debug("RES",name,res)
         return res
     return wrapper
  
@@ -366,11 +355,11 @@ class FSOperations(object):
                 except KeyError:
                     return 0
         for (lh,lstart,lend) in locks:
-            if info is not None and info.contents.Context == lf:
+            if info is not None and info.contents.Context == lh:
                 continue
             if lstart >= offset + length:
                 continue
-            if lend < offset:
+            if lend <= offset:
                 continue
             return -ERROR_LOCKED
         return 0
@@ -549,7 +538,7 @@ class FSOperations(object):
 
     @timeout_protect
     @handle_fs_errors
-    def FlushFileBuffers(self, path, offset, info):
+    def FlushFileBuffers(self, path, info):
         path = normpath(path)
         (file,_,lock) = self._get_file(info.contents.Context)
         lock.acquire()
@@ -616,7 +605,11 @@ class FSOperations(object):
             atime = _filetime2datetime(atime.contents)
         if mtime is  not None:
             mtime = _filetime2datetime(mtime.contents)
-        self.fs.settimes(path, atime, mtime)
+        #  some programs demand this succeed; fake it
+        try:
+            self.fs.settimes(path, atime, mtime)
+        except UnsupportedError:
+            pass
 
     @timeout_protect
     @handle_fs_errors
@@ -700,13 +693,15 @@ class FSOperations(object):
         sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(fnmBuf,nm,sz)
 
+    @timeout_protect
     @handle_fs_errors
     def SetAllocationSize(self, path, length, info):
         #  I think this is supposed to reserve space for the file
         #  but *not* actually move the end-of-file marker.
         #  No way to do that in pyfs.
-        pass
+        return 0
 
+    @timeout_protect
     @handle_fs_errors
     def LockFile(self, path, offset, length, info):
         end = offset + length
@@ -722,8 +717,9 @@ class FSOperations(object):
             locks.append((info.contents.Context,offset,end))
             return 0
 
+    @timeout_protect
     @handle_fs_errors
-    def UnlockFile(self, path, byteOffset, length, info):
+    def UnlockFile(self, path, offset, length, info):
         end = offset + length
         with self._files_lock:
             try:
@@ -968,9 +964,11 @@ class MountProcess(subprocess.Popen):
             raise OSError("the dokan library is not available")
         self.drive = _normalise_drive_string(drive)
         self.path = self.drive + ":\\"
-        cmd = 'from fs.expose.dokan import MountProcess; '
-        cmd = cmd + 'MountProcess._do_mount(%s)'
-        cmd = cmd % (repr(pickle.dumps((fs,drive,dokan_opts,nowait),-1)),)
+        cmd = "import cPickle; "
+        cmd = cmd + "data = cPickle.loads(%s); "
+        cmd = cmd + "from fs.expose.dokan import MountProcess; "
+        cmd = cmd + "MountProcess._do_mount(data)"
+        cmd = cmd % (repr(cPickle.dumps((fs,drive,dokan_opts,nowait),-1)),)
         cmd = [sys.executable,"-c",cmd]
         super(MountProcess,self).__init__(cmd,**kwds)
 
@@ -993,7 +991,7 @@ class MountProcess(subprocess.Popen):
     @staticmethod
     def _do_mount(data):
         """Perform the specified mount."""
-        (fs,drive,opts,nowait) = pickle.loads(data)
+        (fs,drive,opts,nowait) = data
         opts["foreground"] = True
         def unmount_callback():
             fs.close()
