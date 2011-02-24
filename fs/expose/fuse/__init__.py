@@ -56,7 +56,10 @@ import errno
 import time
 import stat as statinfo
 import subprocess
-import pickle
+import cPickle
+
+import logging
+logger = logging.getLogger("fs.expose.fuse")
 
 from fs.base import flags_to_mode, threading
 from fs.errors import *
@@ -92,9 +95,16 @@ def handle_fs_errors(func):
     func = convert_fs_errors(func)
     @wraps(func)
     def wrapper(*args,**kwds):        
-        res = func(*args,**kwds)
-        if res is None:
-            return 0
+        #logger.debug("CALL %r %s",name,repr(args))
+        try:
+            res = func(*args,**kwds)
+        except Exception:
+            #logger.exception("ERR %r %s",name,repr(args))
+            raise
+        else:
+            #logger.exception("OK %r %s %r",name,repr(args),res)
+            if res is None:
+                return 0
         return res
     return wrapper
  
@@ -515,16 +525,20 @@ class MountProcess(subprocess.Popen):
     def __init__(self, fs, path, fuse_opts={}, nowait=False, **kwds):
         self.path = path
         if nowait or kwds.get("close_fds",False):
-            cmd = 'from fs.expose.fuse import MountProcess; '
-            cmd = cmd + 'MountProcess._do_mount_nowait(%s)'
-            cmd = cmd % (repr(pickle.dumps((fs,path,fuse_opts),-1)),)
+            cmd = 'import cPickle; '
+            cmd = cmd + 'data = cPickle.loads(%s); '
+            cmd = cmd + 'from fs.expose.fuse import MountProcess; '
+            cmd = cmd + 'MountProcess._do_mount_nowait(data)'
+            cmd = cmd % (repr(cPickle.dumps((fs,path,fuse_opts),-1)),)
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
         else:
             (r,w) = os.pipe()
-            cmd = 'from fs.expose.fuse import MountProcess; '
-            cmd = cmd + 'MountProcess._do_mount_wait(%s)'
-            cmd = cmd % (repr(pickle.dumps((fs,path,fuse_opts,r,w),-1)),)
+            cmd = 'import cPickle; '
+            cmd = cmd + 'data = cPickle.loads(%s); '
+            cmd = cmd + 'from fs.expose.fuse import MountProcess; '
+            cmd = cmd + 'MountProcess._do_mount_wait(data)'
+            cmd = cmd % (repr(cPickle.dumps((fs,path,fuse_opts,r,w),-1)),)
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
@@ -560,7 +574,7 @@ class MountProcess(subprocess.Popen):
     @staticmethod
     def _do_mount_nowait(data):
         """Perform the specified mount, return without waiting."""
-        (fs,path,opts) = pickle.loads(data)
+        (fs,path,opts) = data
         opts["foreground"] = True
         def unmount_callback():
             fs.close()
@@ -570,7 +584,7 @@ class MountProcess(subprocess.Popen):
     @staticmethod
     def _do_mount_wait(data):
         """Perform the specified mount, signalling when ready."""
-        (fs,path,opts,r,w) = pickle.loads(data)
+        (fs,path,opts,r,w) = data
         os.close(r)
         opts["foreground"] = True
         successful = []
