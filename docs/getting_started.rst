@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-PyFilesystem is a Python-only module and can be installed with easy_install or by source. PyFilesystem is know to work on Linux, Mac and OSX.
+PyFilesystem is a Python-only module and can be installed with easy_install or by source. PyFilesystem is known to work on Linux, Mac and OSX.
 
 Installing
 ----------
@@ -24,7 +24,7 @@ You should now have the `fs` module on your path:
 
     >>> import fs
     >>> fs.__version__
-    '0.3.0'
+    '0.4.0'
 
 Prerequisites
 -------------
