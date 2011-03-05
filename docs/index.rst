@@ -35,6 +35,7 @@ Code Documentation
    browsewin.rst
    errors.rst
    expose/index.rst
+   filelike.rst
    ftpfs.rst
    memoryfs.rst
    mountfs.rst

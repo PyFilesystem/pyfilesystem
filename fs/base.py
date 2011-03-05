@@ -498,9 +498,9 @@ class FS(object):
                        absolute=False,
                        dirs_only=False,
                        files_only=False):
-        """Iterator yielding the files and directories under a given path.
+        """Generator yielding the files and directories under a given path.
 
-        This method behaves identically to :py:meth:`fs.base.FS.listdir` but returns an iterator
+        This method behaves identically to :py:meth:`fs.base.FS.listdir` but returns an generator
         instead of a list.  Depending on the filesystem this may be more
         efficient than calling :py:meth:`fs.base.FS.listdir` and iterating over the resulting list.
         
@@ -518,9 +518,9 @@ class FS(object):
                            absolute=False,
                            dirs_only=False,
                            files_only=False):
-        """Iterator yielding paths and path info under a given path.
+        """Generator yielding paths and path info under a given path.
 
-        This method behaves identically to :py:meth:`~fs.base.listdirinfo` but returns an iterator
+        This method behaves identically to :py:meth:`~fs.base.listdirinfo` but returns an generator
         instead of a list.  Depending on the filesystem this may be more
         efficient than calling :py:meth:`~fs.base.listdirinfo` and iterating over the resulting
         list.
