@@ -405,8 +405,8 @@ class FS(object):
         :type files_only: bool        
         :rtype: iterable of paths
 
-        :raises :py:class:`fs.errors.ResourceNotFoundError`: if the path is not found
-        :raises :py:class:`fs.errror.ResourceInvalidError`: if the path exists, but is not a directory
+        :raises `fs.errors.ResourceNotFoundError`: if the path is not found
+        :raises `fs.errror.ResourceInvalidError`: if the path exists, but is not a directory
 
         """
         raise UnsupportedError("list directory")
@@ -434,8 +434,8 @@ class FS(object):
         :param files_only: only retrieve files
         :type files_only: bool
 
-        :raises :py:class:`fs.errors.ResourceNotFoundError`: If the path is not found
-        :raises :py:class:`ResourceInvalidError`: If the path exists, but is not a directory
+        :raises `fs.errors.ResourceNotFoundError`: If the path is not found
+        :raises `fs.errors.ResourceInvalidError`: If the path exists, but is not a directory
 
         """
         path = normpath(path)
@@ -542,9 +542,9 @@ class FS(object):
         :param allow_recreate: if True, re-creating a directory wont be an error
         :type allow_create: bool
         
-        :raises :py:class:`fs.errors.DestinationExistsError`: if the path is already a directory, and allow_recreate is False
-        :raises :py:class:`fs.errors.ParentDirectoryMissingError`: if a containing directory is missing and recursive is False
-        :raises :py:class:`fs.errors.ResourceInvalidError`: if a path is an existing file
+        :raises `fs.errors.DestinationExistsError`: if the path is already a directory, and allow_recreate is False
+        :raises `fs.errors.ParentDirectoryMissingError`: if a containing directory is missing and recursive is False
+        :raises `fs.errors.ResourceInvalidError`: if a path is an existing file
 
         """
         raise UnsupportedError("make directory")
@@ -554,8 +554,8 @@ class FS(object):
 
         :param path: Path of the resource to remove
 
-        :raises :py:class:`fs.errors.ResourceNotFoundError`: if the path does not exist
-        :raises :py:class:`fs.errors.ResourceInvalidError`: if the path is a directory
+        :raises `fs.errors.ResourceNotFoundError`: if the path does not exist
+        :raises `fs.errors.ResourceInvalidError`: if the path is a directory
 
         """
         raise UnsupportedError("remove resource")
@@ -569,10 +569,10 @@ class FS(object):
         :param force: if True, any directory contents will be removed
         :type force: bool
 
-        :raises :py:class:`fs.errors.ResourceNotFoundError`: if the path does not exist
-        :raises :py:class:`fs.errors.ResourceInvalidError`: if the path is not a directory
-        :raises :py:class:`fs.errors.DirectoryNotEmptyError:` if the directory is not empty and force is False
-
+        :raises `fs.errors.ResourceNotFoundError`: if the path does not exist
+        :raises `fs.errors.ResourceInvalidError`: if the path is not a directory
+        :raises `fs.errors.DirectoryNotEmptyError`: if the directory is not empty and force is False
+        
         """
         raise UnsupportedError("remove directory")
 

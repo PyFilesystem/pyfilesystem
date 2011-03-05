@@ -84,13 +84,13 @@ class ZipFS(FS):
         """Create a FS that maps on to a zip file.
 
         :param zip_file: a (system) path, or a file-like object
-        :param mode: mode to open zip file: 'r' for reading, 'w' for writing or 'a' for appending
+        :param mode: mode to open zip file, 'r' for reading, 'w' for writing or 'a' for appending
         :param compression: can be 'deflated' (default) to compress data or 'stored' to just store date
         :param allow_zip_64: set to True to use zip files greater than 2 GB, default is False
         :param encoding: the encoding to use for unicode filenames
         :param thread_synchronize: set to True (default) to enable thread-safety
-        :raises :py:class:`fs.errrors.ZipOpenError`: thrown when the zip file could not be opened
-        :raises :py:class:`fs.errors.ZipNotFoundError`: thrown when the zip file does not exist (derived from ZipOpenError)
+        :raises `fs.errors.ZipOpenError`: thrown if the zip file could not be opened
+        :raises `fs.errors.ZipNotFoundError`: thrown if the zip file does not exist (derived from ZipOpenError)
 
         """
         super(ZipFS, self).__init__(thread_synchronize=thread_synchronize)
