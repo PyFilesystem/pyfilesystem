@@ -17,11 +17,13 @@ Guide
    introduction.rst
    getting_started.rst
    concepts.rst
+   opening.rst
    interface.rst
    filesystems.rst
    contrib.rst
    expose.rst
    utilities.rst
+   commands.rst
    
 Code Documentation
 ------------------

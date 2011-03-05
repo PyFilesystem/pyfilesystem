@@ -3,11 +3,11 @@ Filesystem Interface
 
 It requires a relatively small number of methods to implement a working FS object.
 
-If you are looking to implement a working FS object, derive a class from fs.base.FS and implement the essential methods (below). Be sure to convert all exceptions to instances of :class:`fs.errors.FSError`.
+If you are looking to implement a working FS object, derive a class from :py:class:`fs.base.FS` and implement the essential methods (below). Be sure to convert all exceptions to instances of :class:`fs.errors.FSError`.
 
-It may also be worthwhile implementing some of the non-essential methods, as the default implementations may not be optimal. For example, the method :meth:`fs.base.FS.move` is implemeneted as a file copy followed by a delete, but many filesystems can move a file without copying data.
+It may also be worthwhile implementing some of the non-essential methods, as the default implementations may not be optimal. For example, the method :meth:`fs.base.FS.move` is implemented as a file copy followed by a delete, but many filesystems can move a file without copying data.
 
-If the filesystem you are implementing maps paths to the native filesystem, be sure to implement `getsyspath`. Doing so will improve performance, especialy when copying / moving files between FS objects.
+If the filesystem you are implementing maps paths to the native filesystem, be sure to implement :py:meth:`~fs.base.FS.getsyspath`. Doing so will improve performance, especially when copying / moving files between FS objects.
 
 Essential Methods
 -----------------
@@ -28,7 +28,7 @@ The following methods are required for a minimal Filesystem interface:
 Non - Essential Methods
 -----------------------
 
-The following methods have default implementations in fs.base.FS and aren't required for a functional FS interface. They may be overriden if an alternative implementation can be supplied:
+The following methods have default implementations in :py:class:`fs.base.FS` and aren't required for a functional FS interface. They may be overriden if an alternative implementation can be supplied:
 
     * :meth:`~fs.base.FS.copy` Copy a file to a new location
     * :meth:`~fs.base.FS.copydir` Recursively copy a directory to a new location
@@ -53,7 +53,7 @@ The following methods have default implementations in fs.base.FS and aren't requ
 Utility Methods
 ---------------
 
-The following members have implementations in fs.base.FS and will probably never require a non-default implementation, although there is nothing to prevent a derived class from implementing these:
+The following members have implementations in :py:class:`fs.base.FS` and will probably never require a non-default implementation, although there is nothing to prevent a derived class from implementing these:
 
     * :meth:`~fs.base.FS.createfile` Create a file with data
     * :meth:`~fs.base.FS.getcontents` Returns the contents of a file as a string

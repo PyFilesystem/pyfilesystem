@@ -1,5 +1,5 @@
 fs.contrib
-=========
+==========
 
 The ``fs.contrib`` module contains a number of filesystem implementations provided by third parties.
 

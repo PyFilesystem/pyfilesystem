@@ -5,14 +5,14 @@ fs.opener
 Open filesystems via a URI.
 
 There are occasions when you want to specify a filesytem from the command line or in a config file.
-This module enables that functionality, and can return a FS object given a URI like syntax (http://commons.apache.org/vfs/filesystems.html).
+This module enables that functionality, and can return an FS object given a URI like syntax (http://commons.apache.org/vfs/filesystems.html).
 
 The `OpenerRegistry` class maps the protocol (file, ftp etc.) on to an Opener object, which returns an appropriate filesystem object and path.
 You can create a custom opener registry that opens just the filesystems you require, or use the opener registry defined here (also called `opener`) that can open any supported filesystem.
 The `parse` method of an `OpenerRegsitry` object returns a tuple of an FS object a path. Here's an example of how to use the default opener registry:: 
 
     >>> from fs.opener import opener
-    >>> opener.parse('ftp://ftp.mozilla.org')
+    >>> opener.parse('ftp://ftp.mozilla.org/pub')
     (<fs.ftpfs.FTPFS object at 0x96e66ec>, u'pub')
     
 You can use use the `opendir` method, which just returns an FS object. In the example above, `opendir` will return a FS object for the directory `pub`::
@@ -26,10 +26,9 @@ If you are just interested in a single file, use the `open` method of a registry
     <fs.ftpfs._FTPFile object at 0x973764c>
 
 The `opendir` and `open` methods can also be imported from the top-level of this module for sake of convenience.
-To avoid shadowing the builtin `open` methd, they are named `fsopendir` and `fsopen`. Here's how you might import them::
+To avoid shadowing the builtin `open` method, they are named `fsopendir` and `fsopen`. Here's how you might import them::
 
     from fs.opener import fsopendir, fsopen
- 
 
 
 """
@@ -55,10 +54,7 @@ __all__ = ['OpenerError',
            'DavOpener',
            'HTTPOpener']
 
-import sys
-from fs.osfs import OSFS
-from fs.path import pathsplit, basename, join, iswildcard, normpath
-import os
+from fs.path import pathsplit, join, iswildcard, normpath
 import os.path
 import re
 from urlparse import urlparse
@@ -104,7 +100,7 @@ def _parse_name(fs_name):
 def _split_url_path(url):
     if '://' not in url:
         url = 'http://' + url
-    scheme, netloc, path, params, query, fragment = urlparse(url)
+    scheme, netloc, path, _params, _query, _fragment = urlparse(url)
     url = '%s://%s' % (scheme, netloc)
     return url, path
 
@@ -172,7 +168,7 @@ class OpenerRegistry(object):
         :param fs_url: an FS url
         :param default_fs_name: the default FS to use if none is indicated (defaults is OSFS)
         :param writeable: if True, a writeable FS will be returned
-        :oaram create_dir: if True, then the directory in the FS will be created
+        :param create_dir: if True, then the directory in the FS will be created
         
         """
                    
@@ -341,9 +337,7 @@ class ZipOpener(Opener):
     * zip:ftp://ftp.example.org/myzip.zip (open a zip file stored on a ftp server)"""
     
     @classmethod
-    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
-                                
-        append_zip = fs_name_params == 'add'     
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):                                           
                 
         zip_fs, zip_path = registry.parse(fs_path)
         if zip_path is None:
@@ -357,7 +351,7 @@ class ZipOpener(Opener):
             open_mode = 'w+'
         zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
                         
-        username, password, fs_path = _parse_credentials(fs_path)
+        _username, _password, fs_path = _parse_credentials(fs_path)
         
         from fs.zipfs import ZipFS
         if zip_file is None:            
@@ -384,11 +378,11 @@ rpc://www.example.org (opens an RPC server on www.example.org, default port 80)"
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.rpcfs import RPCFS             
-        username, password, fs_path = _parse_credentials(fs_path)
+        _username, _password, fs_path = _parse_credentials(fs_path)
         if '://' not in fs_path:
             fs_path = 'http://' + fs_path
             
-        scheme, netloc, path, params, query, fragment = urlparse(fs_path)
+        scheme, netloc, path, _params, _query, _fragment = urlparse(fs_path)
 
         rpcfs = RPCFS('%s://%s' % (scheme, netloc))
         
@@ -411,10 +405,10 @@ examples:
         from fs.ftpfs import FTPFS
         username, password, fs_path = _parse_credentials(fs_path)
                                         
-        scheme, netloc, path, params, query, fragment = urlparse(fs_path)
+        scheme, _netloc, _path, _params, _query, _fragment = urlparse(fs_path)
         if not scheme:
             fs_path = 'ftp://' + fs_path
-        scheme, netloc, path, params, query, fragment = urlparse(fs_path)
+        scheme, netloc, path, _params, _query, _fragment = urlparse(fs_path)
                  
         dirpath, resourcepath = pathsplit(path)        
         url = netloc
@@ -519,7 +513,7 @@ example:
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path,  writeable, create_dir):
         from fs.wrapfs.debugfs import DebugFS
         if fs_path:
-            fs, path = registry.parse(fs_path, writeable=writeable, create_dir=create_dir)
+            fs, _path = registry.parse(fs_path, writeable=writeable, create_dir=create_dir)
             return DebugFS(fs, verbose=False), None     
         if fs_name_params == 'ram':
             from fs.memoryfs import MemoryFS
@@ -590,8 +584,8 @@ class TahoeOpener(Opener):
         fs = TahoeFS(dircap, webapi=url)
         
         if '/' in path:
-            dirname, resourcename = pathsplit(path)
-            if createdir:
+            dirname, _resourcename = pathsplit(path)
+            if create_dir:
                 fs = fs.makeopendir(dirname)
             else:
                 fs = fs.opendir(dirname)
