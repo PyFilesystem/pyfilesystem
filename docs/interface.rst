@@ -9,6 +9,8 @@ It may also be worthwhile implementing some of the non-essential methods, as the
 
 If the filesystem you are implementing maps paths to the native filesystem, be sure to implement :py:meth:`~fs.base.FS.getsyspath`. Doing so will improve performance, especially when copying / moving files between FS objects.
 
+.. _essential-methods:
+
 Essential Methods
 -----------------
 
@@ -24,6 +26,8 @@ The following methods are required for a minimal Filesystem interface:
     * :meth:`~fs.base.FS.rename` Atomically rename a file or directory
     * :meth:`~fs.base.FS.getinfo` Return information about the path e.g. size, mtime
     
+
+.. _non-essential-methods:
 
 Non - Essential Methods
 -----------------------
@@ -46,9 +50,11 @@ The following methods have default implementations in :py:class:`fs.base.FS` and
     * :meth:`~fs.base.FS.move` Move a file to a new location        
     * :meth:`~fs.base.FS.movedir` Recursively move a directory to a new location
     * :meth:`~fs.base.FS.opendir` Opens a directory and returns an FS object that represents it
-    * :meth:`~fs.base.FS.safeopen` Like :meth:`~fs.base.open` but returns a NullFile if the file could not be opened
+    * :meth:`~fs.base.FS.safeopen` Like :meth:`~fs.base.FS.open` but returns a :class:`~fs.base.NullFile` if the file could not be opened
     * :meth:`~fs.base.FS.settimes` Sets the accessed and modified times of a path
 
+
+.. _utility-methods:
 
 Utility Methods
 ---------------

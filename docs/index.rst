@@ -24,6 +24,7 @@ Guide
    expose.rst
    utilities.rst
    commands.rst
+   implementersguide.rst
    
 Code Documentation
 ------------------
