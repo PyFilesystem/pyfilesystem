@@ -160,8 +160,14 @@ class FS(object):
     def __del__(self):
         if not getattr(self, 'closed', True):
             self.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, type, value, traceback):        
+        self.close()
 
-    def cache_hint(self, enabled):
+    def cachehint(self, enabled):
         """Recommends the use of caching. Implementations are free to use or
             ignore this value.
 
@@ -172,6 +178,8 @@ class FS(object):
 
         """
         pass
+    # Depricating cache_hint in favour of no underscore version, for consistency
+    cache_hint = cachehint 
 
     def close(self):
         """Close the filesystem. This will perform any shutdown related
@@ -783,8 +791,8 @@ class FS(object):
         
         """
         
-        if path in ('', '/'):
-            return self
+        #if path in ('', '/'):
+        #    return self
         from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
