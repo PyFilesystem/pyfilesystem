@@ -6,9 +6,9 @@ It is generally quite easy to get in to the mind-set of using PyFilesystem inter
 Sandboxing
 ----------
 
-FS objects are not permitted to work with any files / directories outside of the Filesystem they represent. If you attempt to open a file or directory outside the root of the FS (e.g. by using "../" in the path) you will get a ValueError.
+FS objects are not permitted to work with any files / directories outside of the Filesystem they represent. If you attempt to open a file or directory outside the root of the FS (e.g. by using "../" in the path) you will get a ``ValueError``.
 
-There is no concept of a current working directory in PyFilesystem, since it is a common source of bugs and not all filesytems even have such a notion. If you want to work with a sub-directory of a FS object, you can use the `opendir` method which returns another FS object representing the sub-directory.
+There is no concept of a current working directory in PyFilesystem, since it is a common source of bugs and not all filesytems even have such a notion. If you want to work with a sub-directory of a FS object, you can use the :meth:`~fs.base.FS.opendir` method which returns another FS object representing the sub-directory.
 
 For example, consider the following directory structure. The directory `foo` contains two sub-directories; `bar` and `baz`::
 
@@ -25,7 +25,7 @@ We can open the `foo` directory with the following code::
 	from fs.osfs import OSFS
 	foo_fs = OSFS('foo')
 
-The `foo_fs` object can work with any of the contents of `bar` and `baz`, which may not be desirable, especially if we are passing `foo_fs` to an untrusted function or one that could potentially delete files. Fortunately we can isolate a single sub-directory with then `opendir` method::
+The `foo_fs` object can work with any of the contents of `bar` and `baz`, which may not be desirable, especially if we are passing `foo_fs` to an untrusted function or one that could potentially delete files. Fortunately we can isolate a single sub-directory with then :meth:`~fs.base.FS.opendir` method::
 
 	bar_fs = foo_fs.opendir('bar')
 
@@ -53,14 +53,15 @@ When working with paths in FS objects, keep in mind the following:
  * A single dot means 'current directory'
  * A double dot means 'previous directory'
  
-Note that paths used by the FS interface will use this format, but the constructor or additional methods may not. Notably the ``osfs.OSFS`` constructor which requires an OS path -- the format of which can be platform-dependant.
+Note that paths used by the FS interface will use this format, but the constructor or additional methods may not.
+Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which can be platform-dependant.
 
 There are many helpful functions for working with paths in the :mod:`fs.path` module.
 
 System Paths
 ++++++++++++
 
-Not all Python modules can use file-like objects, especially those which interface with C libraries. For these situations you will need to retrieve the `system path` from an FS object you are working with. You can do this with the `getsyspath` method which converts a valid path in the context of the FS object to an absolute path on the system, if one exists.
+Not all Python modules can use file-like objects, especially those which interface with C libraries. For these situations you will need to retrieve the `system path` from an FS object you are working with. You can do this with the :meth:`~fs.base.FS.getsyspath` method which converts a valid path in the context of the FS object to an absolute path on the system, should one exist.
 
 For example::
 
@@ -69,12 +70,13 @@ For example::
 	>>> home_fs.getsyspath('test.txt')
 	u'/home/will/test.txt'
 
-Not all FS implementation will map to a valid system path (e.g. the FTP FS object). If you call `getsyspath` on such FS objects you will either get a `NoSysPathError` exception or a return value of None, if you call `getsyspath` with `allow_none=True`.
+Not all FS implementation will map to a valid system path (e.g. the FTP FS object).
+If you call :meth:`~fs.base.FS.getsyspath` on such FS objects you will either get a :class:`~fs.errors.NoSysPathError` exception or a return value of ``None``, if you call ``getsyspath`` with `allow_none=True`.
 
 Errors
 ------
 
-PyFilesystem converts all exceptions to a common type, so that you need only write your exception handling code once. For example, if you try to open a file that doesn't exist, PyFilesystem will throw a ``fs.errors.ResourceNotFoundError`` regardless of whether the filesystem is local, on a ftp server or in a zip file::
+PyFilesystem converts all exceptions to a common type, so that you need only write your exception handling code once. For example, if you try to open a file that doesn't exist, PyFilesystem will throw a :class:`fs.errors.ResourceNotFoundError` regardless of whether the filesystem is local, on a ftp server or in a zip file::
 
 	>>> from fs.osfs import OSFS
 	>>> root_fs = OSFS('/')

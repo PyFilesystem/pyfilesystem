@@ -50,6 +50,7 @@ Code Documentation
    sftpfs.rst
    tempfs.rst
    utils.rst
+   watch.rst
    wrapfs/index.rst
    zipfs.rst
    contrib/index.rst
