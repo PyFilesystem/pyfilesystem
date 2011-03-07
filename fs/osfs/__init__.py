@@ -107,13 +107,13 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         if sys.platform == "win32":
             if use_long_paths and not root_path.startswith("\\\\?\\"):
                 if not root_path.startswith("\\"):
-                   root_path = u"\\\\?\\" + root_path
+                    root_path = u"\\\\?\\" + root_path
                 else:
-                   # Explicitly mark UNC paths, seems to work better.
-                   if root_path.startswith("\\\\"):
-                       root_path = u"\\\\?\\UNC\\" + root_path[2:]
-                   else:
-                       root_path = u"\\\\?" + root_path 
+                    # Explicitly mark UNC paths, seems to work better.
+                    if root_path.startswith("\\\\"):
+                        root_path = u"\\\\?\\UNC\\" + root_path[2:]
+                    else:
+                        root_path = u"\\\\?" + root_path 
             #  If it points at the root of a drive, it needs a trailing slash.
             if len(root_path) == 6 and not root_path.endswith("\\"):
                 root_path = root_path + "\\"
