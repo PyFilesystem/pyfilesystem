@@ -235,16 +235,17 @@ class MemoryFS(FS):
 
     """
     
-    _meta = { 'network' : False,
-              'virtual': False,
-              'read_only' : False,
-              'unicode_paths' : True,
-              'case_insensitive_paths' : False,
-              'atomic.move' : False,
-              'atomic.copy' : False,
-              'atomic.makedir' : True,
-              'atomic.rename' : True,
-              'atomic.setcontents' : False,              
+    _meta = {'thread_safe' : True,            
+             'network' : False,
+             'virtual': False,
+             'read_only' : False,
+             'unicode_paths' : True,
+             'case_insensitive_paths' : False,
+             'atomic.move' : False,
+             'atomic.copy' : False,
+             'atomic.makedir' : True,
+             'atomic.rename' : True,
+             'atomic.setcontents' : False,              
               }
 
     def _make_dir_entry(self, *args, **kwargs):

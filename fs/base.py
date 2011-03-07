@@ -178,7 +178,7 @@ class FS(object):
 
         """
         pass
-    # Depricating cache_hint in favour of no underscore version, for consistency
+    # Deprecating cache_hint in favour of no underscore version, for consistency
     cache_hint = cachehint 
 
     def close(self):
@@ -225,6 +225,7 @@ class FS(object):
         following are common:
         
          * *read_only* True if the file system cannot be modified
+         * *thread_safe* True if the implementation is thread safe
          * *network* True if the file system requires network access
          * *unicode_paths* True if the file system supports unicode paths
          * *case_insensitive_paths* True if the file system ignores the case of paths        

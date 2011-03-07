@@ -72,7 +72,8 @@ class ZipFS(FS):
 
     """A FileSystem that represents a zip file."""
     
-    _meta = { 'virtual' : False,
+    _meta = { 'thread_safe' : True,
+              'virtual' : False,
               'read_only' : False,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,

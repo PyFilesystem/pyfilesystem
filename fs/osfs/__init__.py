@@ -74,7 +74,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     methods in the os and os.path modules.
     """
     
-    _meta = { 'network' : False,
+    _meta = { 'thread_safe' : True,
+              'network' : False,
               'virtual' : False,
               'read_only' : False,
               'unicode_paths' : os.path.supports_unicode_filenames,

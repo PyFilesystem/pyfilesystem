@@ -802,7 +802,8 @@ class _DirCache(dict):
 
 class FTPFS(FS):    
     
-    _meta = { 'network' : True,
+    _meta = { 'thread_safe' : True,
+              'network' : True,
               'virtual': False,
               'read_only' : False,
               'unicode_paths' : True,

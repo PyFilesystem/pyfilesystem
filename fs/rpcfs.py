@@ -8,7 +8,6 @@ class from the :mod:`fs.expose.xmlrpc` module.
 
 """
 
-import sys
 import xmlrpclib
 import socket
 
@@ -92,8 +91,9 @@ class RPCFS(FS):
 
     """
 
-    _meta = { 'virtual': False,                                          
-              'network' : True,              
+    _meta = {'thread_safe' : True,               
+             'virtual': False,                                          
+             'network' : True,              
               }
 
     def __init__(self, uri, transport=None):
