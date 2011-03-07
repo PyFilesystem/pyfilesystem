@@ -453,8 +453,8 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         
     def wrap_prefix(prefix):
         if not terminal_colors:
-            return prefix           
-        return '\x1b[34m%s\x1b[0m' % prefix           
+            return prefix
+        return '\x1b[2m%s\x1b[0m' % prefix                   
    
     def wrap_dirname(dirname):
         if not terminal_colors:
