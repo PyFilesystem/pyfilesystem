@@ -22,15 +22,12 @@ FS subclasses interfacing with a remote filesystem.  These include:
 
 from __future__ import with_statement
 
-import sys
-import os
 import time
-import copy
 import stat as statinfo
 from errno import EINVAL
 
 import fs.utils
-from fs.base import FS, threading
+from fs.base import threading
 from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.wrapfs.lazyfs import LazyFS
 from fs.path import *
@@ -621,10 +618,10 @@ class CacheFSMixin(WrapFS):
         return info
 
     def listdir(self,path="",*args,**kwds):
-        return list(nm for (nm,info) in self.listdirinfo(path,*args,**kwds))
+        return list(nm for (nm, _info) in self.listdirinfo(path,*args,**kwds))
 
     def ilistdir(self,path="",*args,**kwds):
-        for (nm,info) in self.ilistdirinfo(path,*args,**kwds):
+        for (nm, _info) in self.ilistdirinfo(path,*args,**kwds):
             yield nm
 
     def listdirinfo(self,path="",*args,**kwds):

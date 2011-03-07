@@ -8,6 +8,8 @@ Instances of FS represent a filesystem containing files and directories
 that can be queried and manipulated.  To implement a new kind of filesystem,
 start by sublcassing the base FS class.
 
+For more information regarding implementing a working PyFilesystem interface, see :ref:`implementers`.
+
 """
 
 __all__ = ['DummyLock',
@@ -58,7 +60,7 @@ class DummyLock(object):
 
 
 def silence_fserrors(f, *args, **kwargs):
-    """Perform a function call and return None if FSError is thrown
+    """Perform a function call and return ``None`` if an :class:`fs.errors.FSError` is thrown
 
     :param f: Function to call
     :param args: Parameters to f
@@ -79,7 +81,7 @@ class NoDefaultMeta(object):
 class NullFile(object):
     """A NullFile is a file object that has no functionality.
 
-    Null files are returned by the 'safeopen' method in FS objects when the
+    Null files are returned by the :meth:`fs.base.FS.safeopen` method in FS objects when the
     file doesn't exist. This can simplify code by negating the need to check
     if a file exists, or handling exceptions.
 
@@ -172,9 +174,9 @@ class FS(object):
             ignore this value.
 
         :param enabled: If True the implementation is permitted to aggressively cache directory
-            structure / file information. Caching such information speeds up most operations,
+            structure / file information. Caching such information can speed up many operations,
             particularly for network based filesystems. The downside of caching is that
-            changes made to directories or files outside of this interface may not be picked up.
+            changes made to directories or files outside of this interface may not be picked up immediately.
 
         """
         pass
@@ -231,21 +233,18 @@ class FS(object):
          * *case_insensitive_paths* True if the file system ignores the case of paths        
          * *atomic.makedir* True if making a directory is an atomic operation
          * *atomic.rename* True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
-         * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)
-         
-        The following are less common:
-        
+         * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)        
          * *free_space* The free space (in bytes) available on the file system   
          * *total_space* The total space (in bytes) available on the file system   
         
-        FS implementations may expose non-generic meta data through a self-named namespace. e.g. 'somefs.some_meta'
+        FS implementations may expose non-generic meta data through a self-named namespace. e.g. ``somefs.some_meta``
         
         Since no meta value is guaranteed to exist, it is advisable to always supply a
-        default value to `getmeta`.   
+        default value to ``getmeta``.   
         
         :param meta_name: The name of the meta value to retrieve
         :param default: An option default to return, if the meta value isn't present
-        :raises NoMetaError: If specified meta value is not present, and there is no default        
+        :raises `fs.errors.NoMetaError`: If specified meta value is not present, and there is no default        
         
         """         
         if meta_name not in self._meta:
@@ -278,7 +277,7 @@ class FS(object):
         :param allow_none: if True, this method will return None when there is no system path,
             rather than raising NoSysPathError
         :type allow_none: bool
-        :raises NoSysPathError: if the path does not map on to a system path, and allow_none is set to False (default)
+        :raises `fs.errors.NoSysPathError`: if the path does not map on to a system path, and allow_none is set to False (default)
         :rtype: unicode
         
         """
@@ -300,14 +299,14 @@ class FS(object):
         """Returns a url that corresponds to the given path, if one exists.
         
         If the path does not have an equivalent URL form (and allow_none is False)
-        then a NoPathURLError exception is thrown. Otherwise the URL will be
+        then a :class:`~fs.errors.NoPathURLError` exception is thrown. Otherwise the URL will be
         returns as an unicode string.
         
         :param path: a path within the filesystem
         :param allow_none: if true, this method can return None if there is no
             URL form of the given path
         :type allow_none: bool
-        :raises NoPathURLError: If no URL form exists, and allow_none is False (the default)
+        :raises `fs.errors.NoPathURLError`: If no URL form exists, and allow_none is False (the default)
         :rtype: unicode 
         
         """
@@ -341,7 +340,7 @@ class FS(object):
     def safeopen(self, path, mode="r", **kwargs):
         """Like :py:meth:`~fs.base.FS.open`, but returns a :py:class:`~fs.base.NullFile` if the file could not be opened.
 
-        A NullFile is a dummy file which has all the methods of a file-like object,
+        A ``NullFile`` is a dummy file which has all the methods of a file-like object,
         but contains no data.
 
         :param path: a path to file that should be opened
@@ -415,7 +414,7 @@ class FS(object):
         :rtype: iterable of paths
 
         :raises `fs.errors.ResourceNotFoundError`: if the path is not found
-        :raises `fs.errror.ResourceInvalidError`: if the path exists, but is not a directory
+        :raises `fs.errors.ResourceInvalidError`: if the path exists, but is not a directory
 
         """
         raise UnsupportedError("list directory")
@@ -707,7 +706,7 @@ class FS(object):
                           error_callback=None):
         """Create a new file from a string or file-like object asynchronously
         
-        This method returns a `threading.Event` object. Call the `wait` method on the event object
+        This method returns a ``threading.Event`` object. Call the ``wait`` method on the event object
         to block until all data has been written, or simply ignore it.        
         
         :param path: a path of the file to create
@@ -770,7 +769,7 @@ class FS(object):
         """Creates an empty file if it doesn't exist
         
         :param path: path to the file to create
-        :param wipe: If True, the contents of the file will be erased 
+        :param wipe: if True, the contents of the file will be erased 
         
         """
         if not wipe and self.isfile(path):
@@ -788,12 +787,10 @@ class FS(object):
         """Opens a directory and returns a FS object representing its contents.
 
         :param path: path to directory to open
-        :rtype: An FS object
+        :rtype: an FS object
         
         """
-        
-        #if path in ('', '/'):
-        #    return self
+                
         from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
@@ -816,8 +813,8 @@ class FS(object):
         :type dir_wildcard: a string containing a wildcard (e.g. `*.txt`) or a callable that takes the directory name and returns a boolean
         :param search: a string dentifying the method used to walk the directories. There are two such methods:
         
-             * "breadth" yields paths in the top directories first
-             * "depth" yields the deepest paths first
+             * ``"breadth"`` yields paths in the top directories first
+             * ``"depth"`` yields the deepest paths first
                           
         :param ignore_errors: ignore any errors reading the directory
 
@@ -1184,7 +1181,7 @@ class FS(object):
         :param path: A path on this filesystem
         :param read_only: If True, the mmap may not be modified
         :param copy: If False then changes wont be written back to the file
-        :raises NoMMapError: Only paths that have a syspath can be opened as a mmap 
+        :raises `fs.errors.NoMMapError`: Only paths that have a syspath can be opened as a mmap 
          
         """        
         syspath = self.getsyspath(path, allow_none=True)

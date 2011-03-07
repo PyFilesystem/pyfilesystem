@@ -152,10 +152,10 @@ def pathjoin(*paths):
     relpaths = []    
     for p in paths:
         if p:
-             if p[0] in '\\/':
-                 del relpaths[:]
-                 absolute = True
-             relpaths.append(p)
+            if p[0] in '\\/':
+                del relpaths[:]
+                absolute = True
+            relpaths.append(p)
 
     path = normpath(u"/".join(relpaths))
     if absolute:

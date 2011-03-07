@@ -122,7 +122,7 @@ class MountFS(FS):
             return self, "/", path
 
     def getsyspath(self, path, allow_none=False):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             if allow_none:
                 return None
@@ -131,7 +131,7 @@ class MountFS(FS):
         return fs.getsyspath(delegate_path, allow_none=allow_none)
  
     def getpathurl(self, path, allow_none=False):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             if allow_none:
                 return None
@@ -141,7 +141,7 @@ class MountFS(FS):
 
     @synchronize
     def desc(self, path):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self:
             if fs.isdir(path):
                 return "Mount dir"
@@ -151,7 +151,7 @@ class MountFS(FS):
 
     @synchronize
     def isdir(self, path):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             return False
         if fs is self:
@@ -161,7 +161,7 @@ class MountFS(FS):
 
     @synchronize
     def isfile(self, path):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             return False
         if fs is self:
@@ -171,7 +171,7 @@ class MountFS(FS):
 
     @synchronize
     def exists(self, path):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             return False
         if fs is self:
@@ -180,7 +180,7 @@ class MountFS(FS):
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
@@ -222,7 +222,7 @@ class MountFS(FS):
 
     @synchronize
     def ilistdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
@@ -257,7 +257,7 @@ class MountFS(FS):
                     if self.isdir(pathjoin(path,p)):
                         yield mkpath(p)
                 elif files_only:
-                    if self.isfile(pathjoin(path,nm)):
+                    if self.isfile(pathjoin(path,p)):
                         yield mkpath(p)
                 else:
                     yield mkpath(p)
@@ -265,7 +265,7 @@ class MountFS(FS):
 
     @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise UnsupportedError("make directory", msg="Can only makedir for mounted paths" )
         if not delegate_path:
@@ -282,7 +282,7 @@ class MountFS(FS):
             callable = object.open_callable
             return callable(path, mode, **kwargs)
 
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is self or fs is None:
             raise ResourceNotFoundError(path)
@@ -294,24 +294,24 @@ class MountFS(FS):
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
             return super(MountFS,self).setcontents(path, data, chunk_size=chunk_size)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
         return fs.setcontents(delegate_path, data, chunk_size)
 
     @synchronize
-    def createfile(self, path):
+    def createfile(self, path, wipe=False):
         object = self.mount_tree.get(path, None)
         if type(object) is MountFS.FileMount:
-            return super(MountFS,self).setcontents(path, contents, chunk_size=chunk_size)
-        fs, mount_path, delegate_path = self._delegate(path)
+            return super(MountFS,self).createfile(path, wipe=wipe)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
-        return fs.createfile(delegate_path)
+        return fs.createfile(delegate_path, wipe=wipe)
 
     @synchronize
     def remove(self, path):
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise UnsupportedError("remove file", msg="Can only remove paths within a mounted dir")
         return fs.remove(delegate_path)
@@ -319,15 +319,15 @@ class MountFS(FS):
     @synchronize
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ResourceInvalidError(path, msg="Can not removedir for an un-mounted path")
         return fs.removedir(delegate_path, recursive, force)
 
     @synchronize
     def rename(self, src, dst):
-        fs1, mount_path1, delegate_path1 = self._delegate(src)
-        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst)
 
         if fs1 is not fs2:
             raise OperationFailedError("rename resource", path=src)
@@ -335,10 +335,10 @@ class MountFS(FS):
         if fs1 is not self:
             return fs1.rename(delegate_path1, delegate_path2)
 
-        object = self.mount_tree.get(path_src, None)
-        object2 = self.mount_tree.get(path_dst, None)
+        object = self.mount_tree.get(src, None)
+        _object2 = self.mount_tree.get(dst, None)
 
-        if object1 is None:
+        if object is None:
             raise ResourceNotFoundError(src)
 
         # TODO!
@@ -346,8 +346,8 @@ class MountFS(FS):
 
     @synchronize
     def move(self,src,dst,**kwds):
-        fs1, mount_path1, delegate_path1 = self._delegate(src)
-        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst)
         if fs1 is fs2 and fs1 is not self:
             fs1.move(delegate_path1,delegate_path2,**kwds)
         else:
@@ -355,8 +355,8 @@ class MountFS(FS):
 
     @synchronize
     def movedir(self,src,dst,**kwds):
-        fs1, mount_path1, delegate_path1 = self._delegate(src)
-        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst)
         if fs1 is fs2 and fs1 is not self:
             fs1.movedir(delegate_path1,delegate_path2,**kwds)
         else:
@@ -364,8 +364,8 @@ class MountFS(FS):
 
     @synchronize
     def copy(self,src,dst,**kwds):
-        fs1, mount_path1, delegate_path1 = self._delegate(src)
-        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst)
         if fs1 is fs2 and fs1 is not self:
             fs1.copy(delegate_path1,delegate_path2,**kwds)
         else:
@@ -373,8 +373,8 @@ class MountFS(FS):
 
     @synchronize
     def copydir(self,src,dst,**kwds):
-        fs1, mount_path1, delegate_path1 = self._delegate(src)
-        fs2, mount_path2, delegate_path2 = self._delegate(dst)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst)
         if fs1 is fs2 and fs1 is not self:
             fs1.copydir(delegate_path1,delegate_path2,**kwds)
         else:
@@ -414,7 +414,7 @@ class MountFS(FS):
     @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
@@ -427,7 +427,7 @@ class MountFS(FS):
     def getinfo(self, path):
         path = normpath(path)
 
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
@@ -441,7 +441,7 @@ class MountFS(FS):
     @synchronize
     def getsize(self, path):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
             raise ResourceNotFoundError(path)
@@ -462,7 +462,7 @@ class MountFS(FS):
     @synchronize
     def getxattr(self,path,name,default=None):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             raise ResourceNotFoundError(path)
         if fs is self:
@@ -472,7 +472,7 @@ class MountFS(FS):
     @synchronize
     def setxattr(self,path,name,value):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             raise ResourceNotFoundError(path)
         if fs is self:
@@ -482,17 +482,17 @@ class MountFS(FS):
     @synchronize
     def delxattr(self,path,name):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             raise ResourceNotFoundError(path)
         if fs is self:
             return True
-        return fs.delxattr(delegate_path,name)
+        return fs.delxattr(delegate_path, name)
 
     @synchronize
     def listxattrs(self,path):
         path = normpath(path)
-        fs, mount_path, delegate_path = self._delegate(path)
+        fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             raise ResourceNotFoundError(path)
         if fs is self:

@@ -9,10 +9,7 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 
 """
 
-import os
-import time
 import datetime
-import hashlib
 import tempfile
 from fnmatch import fnmatch
 import stat as statinfo
@@ -322,7 +319,7 @@ class S3FS(FS):
             return False
         k = self._s3bukt.get_key(s3path)
         if k is not None:
-          return True
+            return True
         return False
 
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):

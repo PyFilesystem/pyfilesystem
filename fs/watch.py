@@ -318,7 +318,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
         if not existed:
             self.notify_watchers(CREATED,path)
         self.notify_watchers(ACCESSED,path)
-        return retq
+        return ret
 
     def makedir(self,path,recursive=False,allow_recreate=False):
         existed = self.wrapped_fs.isdir(path)
@@ -441,7 +441,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
         self.notify_watchers(MODIFIED,path,False)
 
     def delxattr(self,path,name):
-        super(WatchableFS,self).delxattr(path,name,value)
+        super(WatchableFS,self).delxattr(path,name)
         self.notify_watchers(MODIFIED,path,False)
 
 

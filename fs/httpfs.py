@@ -8,7 +8,6 @@ fs.httpfs
 from fs.base import FS
 from fs.path import normpath
 from fs.errors import ResourceNotFoundError, UnsupportedError
-from urlparse import urlparse
 from urllib2 import urlopen, URLError
 
 class HTTPFS(FS):
@@ -33,9 +32,9 @@ class HTTPFS(FS):
         try:
             f = urlopen(url)
         except URLError, e:
-            raise ResourceNotFoundError(path)
+            raise ResourceNotFoundError(path, details=e)
         except OSError, e:
-            raise ResourceNotFoundError(path)
+            raise ResourceNotFoundError(path, details=e)
         
         return f
     

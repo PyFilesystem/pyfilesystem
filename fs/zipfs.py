@@ -151,7 +151,7 @@ class ZipFS(FS):
             if path:
                 self._path_fs.makedir(path, recursive=True, allow_recreate=True)
         else:
-            dirpath, filename = pathsplit(path)
+            dirpath, _filename = pathsplit(path)
             if dirpath:
                 self._path_fs.makedir(dirpath, recursive=True, allow_recreate=True)
             f = self._path_fs.open(path, 'w')
@@ -191,7 +191,7 @@ class ZipFS(FS):
                 raise OperationFailedError("open file",
                                            path=path,
                                            msg="2 Zip file must be opened for writing ('w') or appending ('a')")
-            dirname, filename = pathsplit(path)
+            dirname, _filename = pathsplit(path)
             if dirname:
                 self.temp_fs.makedir(dirname, recursive=True, allow_recreate=True)
 

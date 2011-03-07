@@ -12,7 +12,6 @@ import fs
 from fs.base import *
 from fs.errors import *
 from fs.path import pathsplit, abspath, dirname, recursepath, normpath, pathjoin, isbase
-from fs.remote import RemoteFileBuffer
 
 from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
 
@@ -22,9 +21,8 @@ except ImportError:
     _GLOBAL_DEFAULT_TIMEOUT = object()    
 
 import threading
-from time import sleep
 import datetime
-import re
+
 from socket import error as socket_error
 from fs.local_functools import wraps
 
@@ -34,7 +32,6 @@ except ImportError:
     from StringIO import StringIO
 
 import time
-import sys
 
 
 # -----------------------------------------------
@@ -918,8 +915,7 @@ class FTPFS(FS):
 
         if not paths:
             self.dircache.clear()
-        else:
-            remove_paths = []
+        else:            
             dircache = self.dircache
             paths = [normpath(abspath(path)) for path in paths]
             for cached_path in dircache.keys():                
@@ -1189,7 +1185,7 @@ class FTPFS(FS):
             raise ResourceInvalidError(path)
 
         if not force:
-            for checkpath in self.listdir(path):
+            for _checkpath in self.listdir(path):
                 raise DirectoryNotEmptyError(path)
         try:
             if force:
