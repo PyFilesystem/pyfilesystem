@@ -34,6 +34,7 @@ Code Documentation
    
    base.rst
    browsewin.rst
+   contrib/index.rst
    errors.rst
    expose/index.rst
    filelike.rst
@@ -53,8 +54,7 @@ Code Documentation
    utils.rst
    watch.rst
    wrapfs/index.rst
-   zipfs.rst
-   contrib/index.rst
+   zipfs.rst   
    
 
 Indices and tables
