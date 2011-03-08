@@ -829,20 +829,20 @@ class FS(object):
                     return []
             else:
                 return self.listdir(path, *args, **kwargs)
+            
+        if wildcard is None:
+            wildcard = lambda f:True
+        elif not callable(wildcard):
+            wildcard_re = re.compile(fnmatch.translate(wildcard))
+            wildcard = lambda fn:bool (wildcard_re.match(fn))
+            
+        if dir_wildcard is None:
+            dir_wildcard = lambda f:True
+        elif not callable(dir_wildcard):
+            dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
+            dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))              
         
         if search == "breadth":
-            
-            if wildcard is None:
-                wildcard = lambda f:True
-            elif not callable(wildcard):
-                wildcard_re = re.compile(fnmatch.translate(wildcard))
-                wildcard = lambda fn:bool (wildcard_re.match(fn))
-                
-            if dir_wildcard is None:
-                dir_wildcard = lambda f:True
-            elif not callable(dir_wildcard):
-                dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
-                dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))              
             
             dirs = [path]
             while dirs:

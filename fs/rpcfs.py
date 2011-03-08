@@ -210,9 +210,21 @@ class RPCFS(FS):
         return self.proxy.isfile(path)
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
-        path = self.encode_path(path)
-        entries =  self.proxy.listdir(path,wildcard,full,absolute,dirs_only,files_only)
-        return [self.decode_path(e) for e in entries]
+        enc_path = self.encode_path(path)
+        if not callable(wildcard):
+            entries =  self.proxy.listdir(enc_path,wildcard,full,absolute,
+                                          dirs_only,files_only)
+            entries = [self.decode_path(e) for e in entries]
+        else:
+            entries =  self.proxy.listdir(enc_path,None,False,False,
+                                          dirs_only,files_only)
+            entries = [self.decode_path(e) for e in entries]
+            entries = [e for e in entries if wildcard(e)]
+            if full:
+                entries = [relpath(pathjoin(path,e)) for e in entries]
+            elif absolute:
+                entries = [abspath(pathjoin(path,e)) for e in entries]
+        return entries
 
     def makedir(self, path, recursive=False, allow_recreate=False):
         path = self.encode_path(path)
