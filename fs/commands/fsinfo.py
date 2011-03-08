@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from fs.errors import ResourceNotFoundError
-from fs.opener import opener
 from fs.commands.runner import Command
 import sys
 from datetime import datetime

@@ -646,6 +646,83 @@ example:
         fs = HTTPFS('http://' + dirname)
         return fs, resourcename
     
+class UserDataOpener(Opener):
+    names = ['appuserdata']
+    desc = """Opens a filesystem for a per-user application directory.
+    
+The 'domain' should be in the form <author name>:<application name>.<version> (the author name and version are optional).  
+    
+example:
+* appuserdata://myapplication
+* appuserdata://examplesoft:myapplication
+* appuserdata://anotherapp.1.1
+* appuserdata://examplesoft:anotherapp.1.3"""    
+
+    FSClass = 'UserDataFS'
+
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        import fs.appdirfs
+        fs_class = getattr(fs.appdirfs, cls.FSClass)
+        if ':' in fs_path:
+            appauthor, appname = fs_path.split(':', 1)
+        else:
+            appauthor = None
+            appname = fs_path
+        
+        if '.' in appname:
+            appname, appversion = appname.split('.', 1)
+        else:
+            appversion = None
+        
+        fs = fs_class(appname, appauthor=appauthor, version=appversion, create=create_dir)
+        return fs, ''
+    
+class SiteDataOpener(UserDataOpener):
+    names = ['appsitedata']
+
+    desc = """Opens a filesystem for an application site data directory.
+    
+The 'domain' should be in the form <author name>:<application name>.<version> (the author name and version are optional).  
+    
+example:
+* appsitedata://myapplication
+* appsitedata://examplesoft:myapplication
+* appsitedata://anotherapp.1.1
+* appsitedata://examplesoft:anotherapp.1.3"""
+
+    FSClass = 'SiteDataFS'
+    
+class UserCacheOpener(UserDataOpener):
+    names = ['appusercache']
+
+    desc = """Opens a filesystem for an per-user application cache directory.
+    
+The 'domain' should be in the form <author name>:<application name>.<version> (the author name and version are optional).  
+    
+example:
+* appusercache://myapplication
+* appusercache://examplesoft:myapplication
+* appusercache://anotherapp.1.1
+* appusercache://examplesoft:anotherapp.1.3"""
+
+    FSClass = 'UserCacheFS'
+    
+    
+class UserLogOpener(UserDataOpener):
+    names = ['appuserlog']
+
+    desc = """Opens a filesystem for an application site data directory.
+    
+The 'domain' should be in the form <author name>:<application name>.<version> (the author name and version are optional).  
+    
+example:
+* appuserlog://myapplication
+* appuserlog://examplesoft:myapplication
+* appuserlog://anotherapp.1.1
+* appuserlog://examplesoft:anotherapp.1.3"""
+
+    FSClass = 'UserLogFS'
 
 opener = OpenerRegistry([OSFSOpener,
                          ZipOpener,
@@ -659,6 +736,10 @@ opener = OpenerRegistry([OSFSOpener,
                          TahoeOpener,
                          DavOpener,
                          HTTPOpener,
+                         UserDataOpener,
+                         SiteDataOpener,
+                         UserCacheOpener,
+                         UserLogOpener
                          ])
 
 fsopen = opener.open

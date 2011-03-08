@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-from fs.opener import opener
 from fs.commands.runner import Command
 import sys
 

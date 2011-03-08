@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-from fs.opener import opener
 from fs.commands.runner import Command
 import sys
 
@@ -14,7 +12,7 @@ Make a directory"""
     def do_run(self, options, args):
                 
         for fs_url in args:                    
-            fs, path = self.open_fs(fs_url, create_dir=True)                        
+            self.open_fs(fs_url, create_dir=True)                        
     
 def run():
     return FSMkdir().run()

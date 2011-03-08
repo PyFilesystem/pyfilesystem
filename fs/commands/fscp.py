@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-
-from fs.opener import opener
-from fs.utils import copyfile, copyfile_non_atomic, copystructure
+from fs.utils import copyfile, copyfile_non_atomic
 from fs.path import pathjoin, iswildcard
-from fs.errors import FSError
 from fs.commands.runner import Command
 import sys
 import Queue as queue
@@ -184,7 +181,7 @@ Copy SOURCE to DESTINATION"""
             for thread in threads:
                 thread.join()
             complete = True
-            if not any_error():
+            if not self.any_error():
                 self.post_actions()
                                    
         dst_fs.close()
@@ -254,4 +251,3 @@ def run():
 
 if __name__ == "__main__":
     sys.exit(run())
-     

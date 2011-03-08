@@ -308,13 +308,13 @@ class FSTestCases(object):
             if "c" in files:
                 break
         assert found_a, "breadth search order was wrong"
-        #  When searching deth-first, deep entries come first
+        #  When searching depth-first, deep entries come first
         found_c = False
         for _,files in self.fs.walk(search="depth"):
             if "c" in files:
                 found_c = True
             if "a.txt" in files:
-                break
+                break        
         assert found_c, "depth search order was wrong: " + str(list(self.fs.walk(search="depth")))
 
     def test_walk_wildcard(self):

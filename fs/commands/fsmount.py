@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-
-from fs.opener import opener
 from fs.commands.runner import Command
 import sys
 import platform
 import os
 import os.path
-import time
+
 
 platform = platform.system()
 
