@@ -3,7 +3,7 @@
 A Guide For Filesystem Implementers 
 ===================================
 
-PyFilesystems objects are designed to be as generic as possible and still expose the full filesystem functionality.
+PyFilesystem objects are designed to be as generic as possible and still expose the full filesystem functionality.
 With a little care, you can write a wrapper for your filesystem that allows it to work interchangeably with any of the built-in FS classes and tools. 
 
 To create a working PyFilesystem interface, derive a class from :py:class:`fs.base.FS` and implement the 9 :ref:`essential-methods`.
@@ -11,7 +11,7 @@ The base class uses these essential methods as a starting point for providing a 
 but in some cases the default implementation may not be the most efficient.
 For example, most filesystems have an atomic way of moving a file from one location to another without having to copy data,
 whereas the default implementation of :meth:`~fs.base.FS.move` method must copy all the bytes in the source file to the destination file.
-Any of the :ref:`non-essential-methods` may be overriden, but efficient custom versions of the following methods will have the greatest impact on performance:     
+Any of the :ref:`non-essential-methods` may be overridden, but efficient custom versions of the following methods will have the greatest impact on performance:     
 
 	* :meth:`~fs.base.FS.copy` copy a file
 	* :meth:`~fs.base.FS.copydir` copy a directory
@@ -37,7 +37,7 @@ but there is nothing preventing you from implementing them -- just be careful to
 Filesystem Errors
 -----------------
 
-With the exception of the constuctor, FS methods should throw :class:`fs.errors.FSError` exceptions in preference to any implementation-specific exception classes,
+With the exception of the constructor, FS methods should throw :class:`fs.errors.FSError` exceptions in preference to any implementation-specific exception classes,
 so that generic exception handling can be written.
 The constructor *may* throw a non-FSError exception, if no appropriate FSError exists.
 The rationale for this is that creating an FS interface may require specific knowledge,
@@ -59,7 +59,7 @@ Any code written to catch the generic error, can also retrieve the original exce
 Thread Safety
 -------------
 
-All PyFilesystems methods, other than the constructor, should be thread-safe where-ever possible.
+All PyFilesystem methods, other than the constructor, should be thread-safe where-ever possible.
 One way to do this is to pass ``threads_synchronize=True`` to the base constructor and use the :func:`~fs.base.synchronize` decorator to lock the FS object when a method is called.
 
 If the implementation can not be made thread-safe for technical reasons, ensure that ``getmeta("thread_safe")`` returns ``False``.
@@ -86,8 +86,8 @@ Essential Methods
 The following methods are required for a minimal Filesystem interface:
 
     * :meth:`~fs.base.FS.open` Opens a file for read/writing
-    * :meth:`~fs.base.FS.isfile` Check wether the path exists and is a file
-    * :meth:`~fs.base.FS.isdir` Check wether a path exists and is a directory
+    * :meth:`~fs.base.FS.isfile` Check whether the path exists and is a file
+    * :meth:`~fs.base.FS.isdir` Check whether a path exists and is a directory
     * :meth:`~fs.base.FS.listdir` List the contents of a directory
     * :meth:`~fs.base.FS.makedir` Create a new directory
     * :meth:`~fs.base.FS.remove` Remove an existing file
@@ -101,11 +101,11 @@ The following methods are required for a minimal Filesystem interface:
 Non - Essential Methods
 -----------------------
 
-The following methods have default implementations in :py:class:`fs.base.FS` and aren't required for a functional FS interface. They may be overriden if an alternative implementation can be supplied:
+The following methods have default implementations in :py:class:`fs.base.FS` and aren't required for a functional FS interface. They may be overridden if an alternative implementation can be supplied:
 
     * :meth:`~fs.base.FS.copy` Copy a file to a new location
     * :meth:`~fs.base.FS.copydir` Recursively copy a directory to a new location
-    * :meth:`~fs.base.FS.desc` Return a short destriptive text regarding a path
+    * :meth:`~fs.base.FS.desc` Return a short descriptive text regarding a path
     * :meth:`~fs.base.FS.exists` Check whether a path exists as file or directory    
     * :meth:`~fs.base.FS.listdirinfo` Get a directory listing along with the info dict for each entry
     * :meth:`~fs.base.FS.ilistdir` Generator version of the listdir method
@@ -114,7 +114,7 @@ The following methods have default implementations in :py:class:`fs.base.FS` and
     * :meth:`~fs.base.FS.getsyspath` Get a file's name in the local filesystem, if possible
     * :meth:`~fs.base.FS.getmeta` Get the value of a filesystem meta value, if it exists
     * :meth:`~fs.base.FS.getmmap` Gets an mmap object for the given resource, if supported
-    * :meth:`~fs.base.FS.hassyspath` Check if a path maps to a system path (recognised by the OS)    
+    * :meth:`~fs.base.FS.hassyspath` Check if a path maps to a system path (recognized by the OS)    
     * :meth:`~fs.base.FS.haspathurl` Check if a path maps to an external URL    
     * :meth:`~fs.base.FS.hasmeta` Check if a filesystem meta value exists
     * :meth:`~fs.base.FS.move` Move a file to a new location        

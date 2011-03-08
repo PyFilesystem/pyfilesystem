@@ -137,7 +137,7 @@ def synchronize(func):
 
 class FS(object):
     """The base class for Filesystem abstraction objects.
-    An instance of a class derived from FS is an abstraction on some kind of filesytem, such as the OS filesystem or a zip file.
+    An instance of a class derived from FS is an abstraction on some kind of filesystem, such as the OS filesystem or a zip file.
 
     """
     
@@ -268,7 +268,7 @@ class FS(object):
         return True        
 
     def getsyspath(self, path, allow_none=False):
-        """Returns the system path (a path recognised by the OS) if one is present.
+        """Returns the system path (a path recognized by the OS) if one is present.
 
         If the path does not map to a system path (and `allow_none` is False)
         then a NoSysPathError exception is thrown.  Otherwise, the system
@@ -287,7 +287,7 @@ class FS(object):
         return None
 
     def hassyspath(self, path):
-        """Check if the path maps to a system path (a path recognised by the OS).
+        """Check if the path maps to a system path (a path recognized by the OS).
 
         :param path: path to check
         :returns: True if `path` maps to a system path
@@ -361,7 +361,7 @@ class FS(object):
     def exists(self, path):
         """Check if a path references a valid resource.
 
-        :param path: A path in the filessystem
+        :param path: A path in the filesystem
         :rtype: bool
         
         """
@@ -370,7 +370,7 @@ class FS(object):
     def isdir(self, path):
         """Check if a path references a directory.
 
-        :param path: a path in the filessystem
+        :param path: a path in the filesystem
         :rtype: bool
 
         """
@@ -379,7 +379,7 @@ class FS(object):
     def isfile(self, path):
         """Check if a path references a file.
 
-        :param path: a path in the filessystem
+        :param path: a path in the filesystem
         :rtype: bool
 
         """
@@ -433,12 +433,12 @@ class FS(object):
         name and the info dict as returned by getinfo.
 
         This method may be more efficient than calling
-        :py:meth:`~fs.base.FS.getinfo` on each individual item returned by :py:meth:`~fs.base.FS.listdir`, particularily
+        :py:meth:`~fs.base.FS.getinfo` on each individual item returned by :py:meth:`~fs.base.FS.listdir`, particularly
         for network based filesystems.
 
         :param path: root of the path to list
         :param wildcard: filter paths that match this wildcard
-        :param dirs_only: only retrive directories
+        :param dirs_only: only retrieve directories
         :type dirs_only: bool
         :param files_only: only retrieve files
         :type files_only: bool
@@ -715,9 +715,9 @@ class FS(object):
         :param chunk_size: Number of bytes to read and write in a chunk
         :param progress_callback: A function that is called periodically
             with the number of bytes written.
-        :param finished_callback: A fuction that is called when all data has been written
+        :param finished_callback: A function that is called when all data has been written
         :param error_callback: A function that is called with an exception
-            object if any error occurrs during the copy process.
+            object if any error occurs during the copy process.
         :returns: An event object that is set when the copy is complete, call
             the `wait` method of this object to block until the data is written
             
@@ -812,7 +812,7 @@ class FS(object):
         :type wildcard: a string containing a wildcard (e.g. `*.txt`) or a callable that takes the file path and returns a boolean
         :param dir_wildcard: if given, only walk directories that match the wildcard
         :type dir_wildcard: a string containing a wildcard (e.g. `*.txt`) or a callable that takes the directory name and returns a boolean
-        :param search: a string dentifying the method used to walk the directories. There are two such methods:
+        :param search: a string identifying the method used to walk the directories. There are two such methods:
         
              * ``"breadth"`` yields paths in the top directories first
              * ``"depth"`` yields the deepest paths first
@@ -910,7 +910,7 @@ class FS(object):
         """Like the 'walk' method but yields directories.
 
         :param path: root path to start walking
-        :param wildcard: if given, only return dictories that match this wildcard
+        :param wildcard: if given, only return directories that match this wildcard
         :type wildcard: A string containing a wildcard (e.g. `*.txt`) or a callable that takes the directory name and returns a boolean
         :param search: same as the walk method
         :param ignore_errors: ignore any errors reading the directory
@@ -1170,7 +1170,7 @@ class FS(object):
     tree = printtree
     
     def browse(self):
-        """Displays the FS tree in a graphical window (requires wxWidgets)"""
+        """Displays the FS tree in a graphical window (requires wxPython)"""
         from fs.browsewin import browse
         browse(self)
 

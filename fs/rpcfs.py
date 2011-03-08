@@ -99,7 +99,7 @@ class RPCFS(FS):
     def __init__(self, uri, transport=None):
         """Constructor for RPCFS objects.
 
-        The only required argument is the uri of the server to connect
+        The only required argument is the URI of the server to connect
         to.  This will be passed to the underlying XML-RPC server proxy
         object, along with the 'transport' argument if it is provided.
         

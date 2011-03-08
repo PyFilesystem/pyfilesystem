@@ -1,7 +1,7 @@
 fs.expose
 =========
 
-The ``fs.expose`` module contains a number of options for making an FS implementation available over the internet, or to other applications.
+The ``fs.expose`` module contains a number of options for making an FS implementation available over the Internet, or to other applications.
 
 .. toctree::
    :maxdepth: 3

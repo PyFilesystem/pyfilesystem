@@ -5,8 +5,8 @@ fs.path
 Useful functions for FS path manipulation.
 
 This is broadly similar to the standard ``os.path`` module but works with
-paths in the canonical format expected by all FS objects (forwardslash-separated,
-optional leading slash).
+paths in the canonical format expected by all FS objects (that is, separated
+by forward slashes and with an optional leading slash).
 
 """
 
@@ -167,7 +167,7 @@ def join(*paths):
     """Joins any number of paths together, returning a new path string.
 
     This is a simple alias for the ``pathjoin`` function, allowing it to be
-    used as ``fs.path.join`` in direct correspondance with ``os.path.join``.
+    used as ``fs.path.join`` in direct correspondence with ``os.path.join``.
     
     :param paths: Paths to join are given in positional arguments
     """
@@ -178,7 +178,7 @@ def pathsplit(path):
     """Splits a path into (head, tail) pair.
 
     This function splits a path into a pair (head, tail) where 'tail' is the
-    last pathname component and 'head' is all preceeding components.
+    last pathname component and 'head' is all preceding components.
     
     :param path: Path to split
 
@@ -202,7 +202,7 @@ def split(path):
     """Splits a path into (head, tail) pair.
 
     This is a simple alias for the ``pathsplit`` function, allowing it to be
-    used as ``fs.path.split`` in direct correspondance with ``os.path.split``.
+    used as ``fs.path.split`` in direct correspondence with ``os.path.split``.
 
     :param path: Path to split
     """
@@ -355,7 +355,7 @@ class PathMap(object):
     """Dict-like object with paths for keys.
 
     A PathMap is like a dictionary where the keys are all FS paths.  It has
-    two main advantages over a standard dictionary.  First, keys are normalised
+    two main advantages over a standard dictionary.  First, keys are normalized
     automatically::
 
         >>> pm = PathMap()

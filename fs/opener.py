@@ -4,29 +4,41 @@ fs.opener
 
 Open filesystems via a URI.
 
-There are occasions when you want to specify a filesytem from the command line or in a config file.
-This module enables that functionality, and can return an FS object given a URI like syntax (http://commons.apache.org/vfs/filesystems.html).
+There are occasions when you want to specify a filesystem from the command line
+or in a config file. This module enables that functionality, and can return an
+FS object given a filesystem specification in a URI-like syntax (inspired by
+the syntax of http://commons.apache.org/vfs/filesystems.html).
 
-The `OpenerRegistry` class maps the protocol (file, ftp etc.) on to an Opener object, which returns an appropriate filesystem object and path.
-You can create a custom opener registry that opens just the filesystems you require, or use the opener registry defined here (also called `opener`) that can open any supported filesystem.
-The `parse` method of an `OpenerRegsitry` object returns a tuple of an FS object a path. Here's an example of how to use the default opener registry:: 
+The `OpenerRegistry` class maps the protocol (file, ftp etc.) on to an Opener
+object, which returns an appropriate filesystem object and path.  You can
+create a custom opener registry that opens just the filesystems you require, or 
+use the opener registry defined here (also called `opener`) that can open any
+supported filesystem.
+
+The `parse` method of an `OpenerRegsitry` object returns a tuple of an FS
+object a path. Here's an example of how to use the default opener registry:: 
 
     >>> from fs.opener import opener
     >>> opener.parse('ftp://ftp.mozilla.org/pub')
     (<fs.ftpfs.FTPFS object at 0x96e66ec>, u'pub')
     
-You can use use the `opendir` method, which just returns an FS object. In the example above, `opendir` will return a FS object for the directory `pub`::
+You can use use the `opendir` method, which just returns an FS object. In the 
+example above, `opendir` will return a FS object for the directory `pub`::
 
     >>> opener.opendir('ftp://ftp.mozilla.org/pub')
     <SubFS: <FTPFS ftp.mozilla.org>/pub>
     
-If you are just interested in a single file, use the `open` method of a registry which returns a file-like object, and has the same signature as FS objects and the `open` builtin::
+If you are just interested in a single file, use the `open` method of a registry
+which returns a file-like object, and has the same signature as FS objects and
+the `open` builtin::
 
     >>> opener.open('ftp://ftp.mozilla.org/pub/README')
     <fs.ftpfs._FTPFile object at 0x973764c>
 
-The `opendir` and `open` methods can also be imported from the top-level of this module for sake of convenience.
-To avoid shadowing the builtin `open` method, they are named `fsopendir` and `fsopen`. Here's how you might import them::
+The `opendir` and `open` methods can also be imported from the top-level of
+this module for sake of convenience.  To avoid shadowing the builtin `open`
+method, they are named `fsopendir` and `fsopen`. Here's how you might import
+them::
 
     from fs.opener import fsopendir, fsopen
 
@@ -298,7 +310,7 @@ class Opener(object):
      * `create_dir` if True then `get_fs` should attempt to silently create the directory references in path
     
     In addition to `get_fs` an opener class should contain 
-    two class attributes; names and desc. `names` is a list of protocols that
+    two class attributes: names and desc. `names` is a list of protocols that
     list opener will opener. `desc` is an English description of the individual opener syntax.
     
     """    

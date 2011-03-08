@@ -50,7 +50,7 @@ Creates a temporary filesystem in an OS provided location. See :mod:`fs.tempfs`
 
 Wrap
 ----
-A collection of wrappers that add new behaviour / features to existing FS instances. See :mod:`fs.wrapfs`
+A collection of wrappers that add new behavior / features to existing FS instances. See :mod:`fs.wrapfs`
 
 
 Zip

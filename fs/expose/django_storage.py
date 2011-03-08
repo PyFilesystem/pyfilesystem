@@ -6,7 +6,7 @@ Use an FS object for Django File Storage
 
 This module exposes the class "FSStorage", a simple adapter for using FS
 objects as Django storage objects.  Simply include the following lines
-in your setttings.py::
+in your settings.py::
 
     DEFAULT_FILE_STORAGE = fs.expose.django_storage.FSStorage
     DEFAULT_FILE_STORAGE_FS = OSFS('foo/bar')  # Or whatever FS

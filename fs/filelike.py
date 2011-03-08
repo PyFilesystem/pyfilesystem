@@ -57,10 +57,10 @@ class FileLikeBase(object):
     behave.
     
     Subclasses then need only implement some subset of these methods for
-    rich file-like interface compatability.  They may of course override
+    rich file-like interface compatibility.  They may of course override
     other methods as desired.
 
-    The class is missing the following attributes and methods, which dont
+    The class is missing the following attributes and methods, which don't
     really make sense for anything but real files:
         
         * fileno()
@@ -663,10 +663,10 @@ class FileWrapper(FileLikeBase):
 
 
 class StringIO(FileWrapper):
-    """StringIO wrapper that more closely matches standard file behaviour.
+    """StringIO wrapper that more closely matches standard file behavior.
 
-    This is a simple compatability wrapper around the native StringIO class
-    which fixes some corner-cases of its behaviour.  Specifically:
+    This is a simple compatibility wrapper around the native StringIO class
+    which fixes some corner-cases of its behavior.  Specifically:
 
         * adding __enter__ and __exit__ methods
         * having truncate(size) zero-fill when growing the file
@@ -696,10 +696,10 @@ class StringIO(FileWrapper):
 
 
 class SpooledTemporaryFile(FileWrapper):
-    """SpooledTemporaryFile wrapper with some compatability fixes.
+    """SpooledTemporaryFile wrapper with some compatibility fixes.
 
-    This is a simple compatability wrapper around the native SpooledTempFile
-    class which fixes some corner-cases of its behaviour.  Specifically:
+    This is a simple compatibility wrapper around the native class of the
+    same name, fixing some corner-cases of its behavior.  Specifically:
 
         * have truncate() accept a size argument
         * roll to disk is seeking past the max in-memory size

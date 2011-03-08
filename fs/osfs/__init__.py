@@ -70,7 +70,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     """Expose the underlying operating-system filesystem as an FS object.
 
     This is the most basic of filesystems, which simply shadows the underlaying
-    filesytem of the OS.  Most of its methods simply defer to the corresponding
+    filesystem of the OS.  Most of its methods simply defer to the matching
     methods in the os and os.path modules.
     """
     

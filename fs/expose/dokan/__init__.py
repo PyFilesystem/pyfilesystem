@@ -90,7 +90,7 @@ import logging
 logger = logging.getLogger("fs.expose.dokan")
 
 
-#  Options controlling the behaviour of the Dokan filesystem
+#  Options controlling the behavior of the Dokan filesystem
 DOKAN_OPTION_DEBUG = 1
 DOKAN_OPTION_STDERR = 2
 DOKAN_OPTION_ALT_STREAM = 4
@@ -249,7 +249,7 @@ def timeout_protect(func):
 MIN_FH = 100
 
 class FSOperations(object):
-    """Object delegating all DOKAN_OPERTAIONS pointers to an FS object."""
+    """Object delegating all DOKAN_OPERATIONS pointers to an FS object."""
 
     def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
         if libdokan is None:
@@ -854,7 +854,7 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
 
     If the keyword argument 'ready_callback' is provided, it will be called
     when the filesystem has been mounted and is ready for use.  Any additional
-    keyword arguments control the behaviour of the final dokan mount point.
+    keyword arguments control the behavior of the final dokan mount point.
     Some interesting options include:
 
         * numthreads:  number of threads to use for handling Dokan requests
@@ -944,7 +944,7 @@ class MountProcess(subprocess.Popen):
 
     In order to be passed successfully to the new process, the FS object
     must be pickleable. Since win32 has no fork() this restriction is not
-    likely to be lifted (see also the "multiprcessing" module)
+    likely to be lifted (see also the "multiprocessing" module)
 
     This class has an extra attribute 'drive' giving the drive of the mounted
     filesystem, and an extra method 'unmount' that will cleanly unmount it

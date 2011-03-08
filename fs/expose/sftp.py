@@ -5,7 +5,7 @@ fs.expose.sftp
 Expose an FS object over SFTP (via paramiko).
 
 This module provides the necessary interfaces to expose an FS object over
-SFTP, plugging into the infratructure provided by the 'paramiko' module.
+SFTP, plugging into the infrastructure provided by the 'paramiko' module.
 
 For simple usage, the class 'BaseSFTPServer' provides an all-in-one server
 class based on the standard SocketServer module.  Use it like so::
@@ -65,7 +65,7 @@ def report_sftp_errors(func):
 
 
 class SFTPServerInterface(paramiko.SFTPServerInterface):
-    """SFTPServerInferface implementation that exposes an FS object.
+    """SFTPServerInterface implementation that exposes an FS object.
 
     This SFTPServerInterface subclass expects a single additional argument,
     the fs object to be exposed.  Use it to set up a transport subsystem
@@ -226,12 +226,12 @@ class SFTPHandle(paramiko.SFTPHandle):
 
 
 class SFTPRequestHandler(sockserv.StreamRequestHandler):
-    """SockerServer RequestHandler subclass for BaseSFTPServer.
+    """SocketServer RequestHandler subclass for BaseSFTPServer.
 
     This RequestHandler subclass creates a paramiko Transport, sets up the
-    sftp subsystem, and hands off the the transport's own request handling
+    sftp subsystem, and hands off to the transport's own request handling
     thread.  Note that paramiko.Transport uses a separate thread by default,
-    so there is no need to use TreadingMixIn.
+    so there is no need to use ThreadingMixin.
     """
 
     def handle(self):

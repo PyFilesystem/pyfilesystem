@@ -8,7 +8,7 @@ Sandboxing
 
 FS objects are not permitted to work with any files / directories outside of the Filesystem they represent. If you attempt to open a file or directory outside the root of the FS (e.g. by using "../" in the path) you will get a ``ValueError``.
 
-There is no concept of a current working directory in PyFilesystem, since it is a common source of bugs and not all filesytems even have such a notion. If you want to work with a sub-directory of a FS object, you can use the :meth:`~fs.base.FS.opendir` method which returns another FS object representing the sub-directory.
+There is no concept of a current working directory in PyFilesystem, since it is a common source of bugs and not all filesystems even have such a notion. If you want to work with a sub-directory of a FS object, you can use the :meth:`~fs.base.FS.opendir` method which returns another FS object representing the sub-directory.
 
 For example, consider the following directory structure. The directory `foo` contains two sub-directories; `bar` and `baz`::
 
@@ -29,7 +29,7 @@ The `foo_fs` object can work with any of the contents of `bar` and `baz`, which 
 
 	bar_fs = foo_fs.opendir('bar')
 
-This creates a completely new FS object that represents everything in the `foo/bar` directory. The root directory of `bar_fs` has been re-position, so that from `bar_fs`'s point of view, the readment.txt and photo.jpg files are in the root::
+This creates a completely new FS object that represents everything in the `foo/bar` directory. The root directory of `bar_fs` has been re-position, so that from `bar_fs`'s point of view, the readme.txt and photo.jpg files are in the root::
 
 	--bar
 	  |--readme.txt
@@ -54,7 +54,7 @@ When working with paths in FS objects, keep in mind the following:
  * A double dot means 'previous directory'
  
 Note that paths used by the FS interface will use this format, but the constructor or additional methods may not.
-Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which can be platform-dependant.
+Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which can be platform-dependent.
 
 There are many helpful functions for working with paths in the :mod:`fs.path` module.
 

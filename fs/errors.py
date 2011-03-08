@@ -184,7 +184,7 @@ class NoMMapError(ResourceError):
 
 
 def convert_fs_errors(func):
-    """Function wrapper to convert FSError instances into OSErrors."""
+    """Function wrapper to convert FSError instances into OSError."""
     @wraps(func)
     def wrapper(*args,**kwds):
         try:
@@ -221,7 +221,7 @@ def convert_fs_errors(func):
 
 
 def convert_os_errors(func):
-    """Function wrapper to convert OSError/IOError instances into FSErrors."""
+    """Function wrapper to convert OSError/IOError instances into FSError."""
     opname = func.__name__
     @wraps(func)
     def wrapper(self,*args,**kwds):

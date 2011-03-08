@@ -18,7 +18,7 @@ from fs import _thread_synchronize_default
 
 class TempFS(OSFS):
 
-    """Create a Filesystem in a tempory directory (with tempfile.mkdtemp),
+    """Create a Filesystem in a temporary directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
     
     _meta = { 'thread_safe' : True,

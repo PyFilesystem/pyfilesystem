@@ -70,7 +70,7 @@ class SFTPFS(FS):
         """SFTPFS constructor.
 
         The only required argument is 'connection', which must be something
-        from which we can construct a paramiko.SFTPClient object.  Possibile
+        from which we can construct a paramiko.SFTPClient object.  Possible
         values include:
 
             * a hostname string
@@ -78,8 +78,8 @@ class SFTPFS(FS):
             * a paramiko.Transport instance
             * a paramiko.Channel instance in "sftp" mode
 
-        The kwd argument 'root_path' specifies the root directory on the remote
-        machine - access to files outside this root wil be prevented. 
+        The keyword argument 'root_path' specifies the root directory on the
+        remote machine - access to files outside this root will be prevented. 
         
         :param connection: a connection string
         :param root_path: The root path to open
@@ -88,8 +88,8 @@ class SFTPFS(FS):
         :param username: Name of SFTP user
         :param password: Password for SFTP user
         :param pkey: Public key
-        :param agent_auth: attempt to authorise with the user's public keys
-        :param no_auth: attempt to log in without any kind of authorisation
+        :param agent_auth: attempt to authorize with the user's public keys
+        :param no_auth: attempt to log in without any kind of authorization
         
         """
         

@@ -2,14 +2,14 @@
 fs.multifs
 ==========
 
-A MultiFS is a filesytem composed of a sequence of other filesystems, where
+A MultiFS is a filesystem composed of a sequence of other filesystems, where
 the directory structure of each filesystem is overlaid over the previous
 filesystem. When you attempt to access a file from the MultiFS it will try
 each 'child' FS in order, until it either finds a path that exists or raises a
 ResourceNotFoundError.
 
 One use for such a filesystem would be to selectively override a set of files,
-to customize behaviour. For example, to create a filesystem that could be used
+to customize behavior. For example, to create a filesystem that could be used
 to *theme* a web application. We start with the following directories::
 
 

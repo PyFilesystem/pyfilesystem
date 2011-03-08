@@ -276,7 +276,7 @@ class ConnectionManagerFS(LazyFS):
     and provide some convenience methods for dealing with its remote
     connection state.
 
-    The boolean attribute 'connected' indicates whether the remote fileystem
+    The boolean attribute 'connected' indicates whether the remote filesystem
     has an active connection, and is initially True.  If any of the remote
     filesystem methods raises a RemoteConnectionError, 'connected' will
     switch to False and remain so until a successful remote method call.
@@ -431,7 +431,7 @@ class CacheFSMixin(FS):
     access to a remote filesystem.  File and directory meta-data is cached
     but the actual file contents are not.
 
-    If you want to add caching to an exising FS object, use the CacheFS
+    If you want to add caching to an existing FS object, use the CacheFS
     class instead; it's an easy-to-use wrapper rather than a mixin.
     This mixin class is provided for FS implementors who want to use
     caching internally in their own classes.
@@ -452,7 +452,7 @@ class CacheFSMixin(FS):
 
         The optional keyword argument 'max_cache_size' specifies the maximum
         number of entries to keep in the cache.  To allow the cache to grow
-        unboundedly, set it to None.  The default is 1000.
+        without bound, set it to None.  The default is 1000.
         """
         self.cache_timeout = kwds.pop("cache_timeout",1)
         self.max_cache_size = kwds.pop("max_cache_size",1000)
@@ -732,7 +732,7 @@ class CacheFSMixin(FS):
 
 
 class CacheFS(CacheFSMixin,WrapFS):
-    """Simple FS wraper to cache meta-data of a remote filesystems.
+    """Simple FS wrapper to cache meta-data of a remote filesystems.
 
     This FS mixin implements a simplistic cache that can help speed up
     access to a remote filesystem.  File and directory meta-data is cached

@@ -21,7 +21,7 @@ The following methods are available in all PyFilesystem implementation:
 	* :meth:`~fs.base.FS.getsyspath` Get a file's name in the local filesystem, if possible
 	* :meth:`~fs.base.FS.hasmeta` Check if a filesystem meta value exists
 	* :meth:`~fs.base.FS.haspathurl` Check if a path maps to an external URL
-	* :meth:`~fs.base.FS.hassyspath` Check if a path maps to a system path (recognised by the OS)
+	* :meth:`~fs.base.FS.hassyspath` Check if a path maps to a system path (recognized by the OS)
 	* :meth:`~fs.base.FS.ilistdir` Generator version of the :meth:`~fs.base.FS.listdir` method
 	* :meth:`~fs.base.FS.ilistdirinfo` Generator version of the :meth:`~fs.base.FS.listdirinfo` method
 	* :meth:`~fs.base.FS.isdir` Check whether a path exists and is a directory

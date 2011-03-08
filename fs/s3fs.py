@@ -396,7 +396,7 @@ class S3FS(FS):
     def makedir(self,path,recursive=False,allow_recreate=False):
         """Create a directory at the given path.
 
-        The 'mode' argument is accepted for compatability with the standard
+        The 'mode' argument is accepted for compatibility with the standard
         FS interface, but is currently ignored.
         """
         s3path = self._s3path(path)

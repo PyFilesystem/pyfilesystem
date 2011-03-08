@@ -449,7 +449,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
 class PollingWatchableFS(WatchableFS):
     """FS wrapper simulating watcher callbacks by periodic polling.
 
-    This FS wrapper augments the funcionality of WatchableFS by periodically
+    This FS wrapper augments the functionality of WatchableFS by periodically
     polling the underlying FS for changes.  It is thus capable of detecting
     changes made to the underlying FS via other interfaces, albeit with a
     (configurable) delay to account for the polling interval.
