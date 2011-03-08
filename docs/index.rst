@@ -32,6 +32,7 @@ Code Documentation
 .. toctree::
    :maxdepth: 3
    
+   appdirfs.rst
    base.rst
    browsewin.rst
    contrib/index.rst
