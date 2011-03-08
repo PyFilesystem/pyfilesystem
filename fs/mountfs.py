@@ -396,7 +396,7 @@ class MountFS(FS):
         """Mounts a single file path.
         
         :param path: A path within the MountFS
-        :param open_Callable: A callable that returns a file-like object
+        :param open_callable: A callable that returns a file-like object
         :param info_callable: A callable that returns a dictionary with information regarding the file-like object
         
         """

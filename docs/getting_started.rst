@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-PyFilesystem is a Python-only module and can be installed with easy_install or by source. PyFilesystem is known to work on Linux, Mac and OSX.
+PyFilesystem is a Python-only module and can be installed with easy_install or from source. PyFilesystem is known to work on Linux, Mac and OSX.
 
 Installing
 ----------
@@ -30,10 +30,10 @@ Prerequisites
 -------------
 
 PyFilesystem requires at least **Python 2.5**. There are a few other dependencies if you want to use some of the more advanced filesystem interfaces, but for basic use all that is needed is the Python standard library.
-
-    * wxPython (required for fs.browsewin) http://www.wxpython.org/
-    * Boto (required for fs.s3fs) http://code.google.com/p/boto/
-    * Paramikio (required for fs.ftpfs) http://www.lag.net/paramiko/    
+    
+    * Boto (required for :mod:`fs.s3fs`) http://code.google.com/p/boto/
+    * Paramikio (required for :mod:`fs.ftpfs`) http://www.lag.net/paramiko/
+    * wxPython (required for :mod:`fs.browsewin`) http://www.wxpython.org/    
 
 
 Quick Examples

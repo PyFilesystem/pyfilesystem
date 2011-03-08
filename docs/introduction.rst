@@ -28,4 +28,3 @@ Discussion Group
 
 There is also a discussion group for PyFilesystem: http://groups.google.com/group/pyfilesystem-discussion
 
-

@@ -18,17 +18,19 @@ For example, the following uses a custom opener to list the contents of a direct
 
 	fsls --fs mypackage.mymodule.myfs.MyFSOpener myfs://127.0.0.1
 	
+	
 Listing Supported Filesystems
 -----------------------------
 
-All of the command line applications support the `--listopeners` switch, which lists all available installed openers::
+All of the command line applications support the ``--listopeners`` switch, which lists all available installed openers::
 
 	fsls --listopeners
+
 
 fsls
 ----
 
-Lists the contents of a directory, similar to the `ls` command, e.g.::
+Lists the contents of a directory, similar to the ``ls`` command, e.g.::
 
 	fsls	
 	fsls ../

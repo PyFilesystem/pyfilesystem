@@ -813,10 +813,8 @@ class FTPFS(FS):
               'file.read_and_write' : False,
               }
 
-    def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT,
-                 port=21,
-                 dircache=True):
-        """ Connect to a FTP server.
+    def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT, port=21, dircache=True):
+        """Connect to a FTP server.
         
         :param host: Host to connect to
         :param user: Username, or a blank string for anonymous
@@ -825,10 +823,9 @@ class FTPFS(FS):
         :param timeout: Timeout in seconds
         :param port: Port to connection (default is 21)
         :param dircache: If True then directory information will be cached,
-        which will speed up operations such as getinfo, isdir, isfile, but
-        changes to the ftp file structure will not be visible until
-        `~fs.ftpfs.FTPFS.clear_dircache` is called        
-        :param dircache: If True directory information will be cached for fast access        
+            speeding up operations such as `getinfo`, `isdir`, `isfile`, but
+            changes to the ftp file structure will not be visible until
+            :meth:`~fs.ftpfs.FTPFS.clear_dircache` is called                
 
         """
 

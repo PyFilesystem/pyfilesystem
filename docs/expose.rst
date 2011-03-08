@@ -1,7 +1,7 @@
 Exposing FS objects
 ===================
 
-The ``fs.expose`` module offers a number of ways of making an FS implementation available over an internet connection, or to other processes on the system. 
+The ``fs.expose`` module offers a number of ways of making an FS implementation available over an Internet connection, or to other processes on the system. 
 
 
 FUSE

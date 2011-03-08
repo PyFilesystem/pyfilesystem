@@ -235,9 +235,10 @@ class FS(object):
          * *atomic.rename* True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
          * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)        
          * *free_space* The free space (in bytes) available on the file system   
-         * *total_space* The total space (in bytes) available on the file system   
+         * *total_space* The total space (in bytes) available on the file system
+         * *virtual* True if the filesystem defers to other filesystems
         
-        FS implementations may expose non-generic meta data through a self-named namespace. e.g. ``somefs.some_meta``
+        FS implementations may expose non-generic meta data through a self-named namespace. e.g. ``"somefs.some_meta"``
         
         Since no meta value is guaranteed to exist, it is advisable to always supply a
         default value to ``getmeta``.   

@@ -18,7 +18,7 @@ import os
 import sys
 import stat
 from fs.mountfs import MountFS
-from fs.path import pathjoin, pathsplit
+from fs.path import pathjoin
 from fs.errors import DestinationExistsError
 from fs.base import FS
 
@@ -32,7 +32,7 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     :param src_path: -- Source path
     :param dst_fs: Destination filesystem object
     :param dst_path: Destination filesystem object
-    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
     
@@ -76,7 +76,7 @@ def copyfile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chun
     :param src_path: -- Source path
     :param dst_fs: Destination filesystem object
     :param dst_path: Destination filesystem object
-    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
     
     """
     
@@ -109,7 +109,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     :param src_path: Source path
     :param dst_fs: Destination filesystem object
     :param dst_path: Destination filesystem object
-    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
     src_syspath = src_fs.getsyspath(src_path, allow_none=True)
@@ -151,13 +151,13 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
 
 
 def movefile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
-    """A non atomic version of movefile (wont block other threads using src_fs or dst_fs
+    """A non atomic version of movefile (wont block other threads using src_fs or dst_fs)
 
     :param src_fs: Source filesystem object
     :param src_path: Source path
     :param dst_fs: Destination filesystem object
     :param dst_path: Destination filesystem object
-    :param chunk_size: Size of chunks to move if system copyfile is not available (default 16K)
+    :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """    
 

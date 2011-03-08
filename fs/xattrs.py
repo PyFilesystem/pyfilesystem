@@ -11,10 +11,10 @@ extended attributes on top of an ordinary FS.
 FS instances offering extended attribute support must provide the following
 methods:
 
-  * getxattr(path,name) Get the named attribute for the given path, or None if it does not exist
-  * setxattr(path,name,value) Set the named attribute for the given path to the given value
-  * delxattr(path,name) Delete the named attribute for the given path, raising KeyError if it does not exist
-  * listxattrs(path) Iterate over all stored attribute names for the given path
+  * ``getxattr(path,name)`` Get the named attribute for the given path, or None if it does not exist
+  * ``setxattr(path,name,value)`` Set the named attribute for the given path to the given value
+  * ``delxattr(path,name)`` Delete the named attribute for the given path, raising KeyError if it does not exist
+  * ``listxattrs(path)`` Iterate over all stored attribute names for the given path
 
 If extended attributes are required by FS-consuming code, it should use the
 function 'ensure_xattrs'. This will interrogate an FS object to determine

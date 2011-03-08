@@ -71,7 +71,7 @@ For example::
 	u'/home/will/test.txt'
 
 Not all FS implementation will map to a valid system path (e.g. the FTP FS object).
-If you call :meth:`~fs.base.FS.getsyspath` on such FS objects you will either get a :class:`~fs.errors.NoSysPathError` exception or a return value of ``None``, if you call ``getsyspath`` with `allow_none=True`.
+If you call :meth:`~fs.base.FS.getsyspath` on such FS objects you will either get a :class:`~fs.errors.NoSysPathError` exception or a return value of ``None``, if you call ``getsyspath`` with ``allow_none=True``.
 
 Errors
 ------
@@ -89,4 +89,4 @@ PyFilesystem converts all exceptions to a common type, so that you need only wri
 	    return open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
 	fs.errors.ResourceNotFoundError: Resource not found: doesnotexist.txt
 
-All PyFilesystem exceptions are derived from :class:`fs.errors.FSError`, so you may use that if you want to catch all possible exceptions.
+All PyFilesystem exceptions are derived from :class:`fs.errors.FSError`, so you may use that if you want to catch all possible filesystem related exceptions.

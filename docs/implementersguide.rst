@@ -9,9 +9,9 @@ With a little care, you can write a wrapper for your filesystem that allows it t
 To create a working PyFilesystem interface, derive a class from :py:class:`fs.base.FS` and implement the 9 :ref:`essential-methods`.
 The base class uses these essential methods as a starting point for providing a lot of extra functionality,
 but in some cases the default implementation may not be the most efficient.
-For example, most filesystems have some atomic way of moving a file without having to copy data,
-whereas the default implementation of :meth:`~fs.base.FS.move` method must copy all the bytes in the file.
-Although any of the :ref:`non-essential-methods` may be overriden, efficient versions of the following methods will have the greatest impact on performance:     
+For example, most filesystems have an atomic way of moving a file from one location to another without having to copy data,
+whereas the default implementation of :meth:`~fs.base.FS.move` method must copy all the bytes in the source file to the destination file.
+Any of the :ref:`non-essential-methods` may be overriden, but efficient custom versions of the following methods will have the greatest impact on performance:     
 
 	* :meth:`~fs.base.FS.copy` copy a file
 	* :meth:`~fs.base.FS.copydir` copy a directory
@@ -20,7 +20,7 @@ Although any of the :ref:`non-essential-methods` may be overriden, efficient ver
 	* :meth:`~fs.base.FS.move` move a file
 	* :meth:`~fs.base.FS.movedir` move a directory
 
-For network based filesystems (i.e. where the physical data is pulled from a network),
+For network based filesystems (i.e. where the physical data is pulled over a network),
 there are a few methods which can reduce the number of round trips to the server,
 if an efficient implementation is provided:
 	
@@ -46,7 +46,7 @@ but this shouldn't prevent it from working with more generic code.
 If specific exceptions need to be translated in to an equivalent FSError,
 pass the original exception class to the FSError constructor with the 'details' keyword argument.
 
-For example, the following translates some ficticious exception in to an FS exception,
+For example, the following translates some fictitious exception in to an FSError exception,
 and passes the original exception as an argument.::
 
     try:
@@ -75,7 +75,7 @@ Implementations are also free to reserve a dotted namespace notation for themsel
 If you do this, please avoid generic terms as they may conflict with existing or future implementations.
 For example ``"bobs_ftpfs.author"``, rather than ``"ftpfs.author"``.
 
-If your meta values are static, i.e. they never change, then create a dictionary class attribute called ``_meta`` in your implementation that contains all the meta keys, values. 
+If your meta values are static, i.e. they never change, then create a dictionary class attribute called ``_meta`` in your implementation that contains all the meta keys and values. 
 The default ``getmeta`` implementation will pull the meta values from this dictionary.
 
 .. _essential-methods:
