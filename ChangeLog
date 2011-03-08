@@ -36,7 +36,7 @@
     * New FS implementations (under fs.contrib):
         * BigFS:    read contents of a BIG file (C&C game file format)
         * DAVFS:    access remote files stored on a WebDAV server
-        * TahoeFS:  access files stored in a Tahoe-LAFS grid
+        * TahoeLAFS:  access files stored in a Tahoe-LAFS grid
     * New fs.expose implementations:
         * dokan:   mount an FS object as a drive using Dokan (win32-only)
         * importhook:  import modules from files in an FS object

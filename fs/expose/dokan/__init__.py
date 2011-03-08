@@ -201,7 +201,7 @@ _TIMEOUT_PROTECT_QUEUE = Queue.Queue()
 _TIMEOUT_PROTECT_WAIT_TIME = 4 * 60
 _TIMEOUT_PROTECT_RESET_TIME = 5 * 60 * 1000
 
-def start_timeout_protect_thread():
+def _start_timeout_protect_thread():
     """Start the background thread used to protect dokan from timeouts.
  
     This function starts the background thread that monitors calls into the
@@ -235,7 +235,7 @@ def timeout_protect(func):
     @wraps(func)
     def wrapper(self,*args):
         if _TIMEOUT_PROTECT_THREAD is None:
-            start_timeout_protect_thread()
+            _start_timeout_protect_thread()
         info = args[-1]
         finished = []
         try:

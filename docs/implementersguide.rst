@@ -37,10 +37,10 @@ but there is nothing preventing you from implementing them -- just be careful to
 Filesystem Errors
 -----------------
 
-With the exception of the constuctor, FS methods should throw :class:`fs.errors.FSError` exceptions in preference to any specific exception classes,
+With the exception of the constuctor, FS methods should throw :class:`fs.errors.FSError` exceptions in preference to any implementation-specific exception classes,
 so that generic exception handling can be written.
 The constructor *may* throw a non-FSError exception, if no appropriate FSError exists.
-The rational for this is that creating an FS interface may require specific knowledge,
+The rationale for this is that creating an FS interface may require specific knowledge,
 but this shouldn't prevent it from working with more generic code.
 
 If specific exceptions need to be translated in to an equivalent FSError,

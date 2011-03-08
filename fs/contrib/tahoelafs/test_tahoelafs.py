@@ -17,16 +17,19 @@ from fs.contrib.tahoelafs import TahoeLAFS, Connection
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger('fs.tahoelafs').addHandler(logging.StreamHandler(sys.stdout))
 
-WEBAPI = 'http://pubgrid.tahoe-lafs.org'
+WEBAPI = 'http://insecure.tahoe-lafs.org'
 
-class TestTahoeLAFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
+
+#  The public grid is too slow for threading testcases, disabling for now...
+class TestTahoeLAFS(unittest.TestCase,FSTestCases):#,ThreadingTestCases):
 
     #  Disabled by default because it takes a *really* long time.
-    #__test__ = False
+    __test__ = False
 
     def setUp(self):
         self.dircap = TahoeLAFS.createdircap(WEBAPI)
-        self.fs = TahoeLAFS(self.dircap, timeout=0, webapi=WEBAPI)
+        print TahoeLAFS.__mro__
+        self.fs = TahoeLAFS(self.dircap, cache_timeout=0, webapi=WEBAPI)
              
     def tearDown(self):
         self.fs.close()

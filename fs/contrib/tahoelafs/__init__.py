@@ -2,13 +2,21 @@
 fs.contrib.tahoelafs
 ====================
 
-Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud)::
+This modules provides a PyFilesystem interface to the Tahoe Least Authority
+File System. Tahoe-LAFS is a distributed, encrypted, fault-tolerant storage
+system:
+
+    http://tahoe-lafs.org/
+
+You will need access to a Tahoe-LAFS "web api" service.
+
+Example (it will use publicly available (but slow) Tahoe-LAFS cloud)::
 
     from fs.contrib.tahoelafs import TahoeLAFS, Connection
-    dircap = TahoeLAFS.createdircap(webapi='http://pubgrid.tahoe-lafs.org')
+    dircap = TahoeLAFS.createdircap(webapi='http://insecure.tahoe-lafs.org')
     print "Your dircap (unique key to your storage directory) is", dircap
     print "Keep it safe!"
-    fs = TahoeLAFS(dircap, autorun=False, timeout=300, webapi='http://pubgrid.tahoe-lafs.org')
+    fs = TahoeLAFS(dircap, autorun=False, webapi='http://insecure.tahoe-lafs.org')
     f = fs.open("foo.txt", "a")
     f.write('bar!')
     f.close()
@@ -296,7 +304,7 @@ class _TahoeLAFS(FS):
         self.tahoeutil.mkdir(self.dircap, path)
         
     def movedir(self, src, dst, overwrite=False):
-        self.move(src, dst, overwrite)
+        self.move(src, dst, overwrite=overwrite)
     
     def move(self, src, dst, overwrite=False):
         self._log(INFO, "Moving file from %s to %s" % (src, dst))

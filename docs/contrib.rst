@@ -12,7 +12,7 @@ An interface to WebDAV file servers. See :mod:`fs.contrib.davfs`
 
 Tahoe LAFS
 ----------
-An interface to Tahoe Least-Authority File System.  See :mod:`fs.contrib.tahoefs`
+An interface to Tahoe Least-Authority File System.  See :mod:`fs.contrib.tahoelafs`
 
 
 BIG (BIG Archive File Format)

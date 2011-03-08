@@ -27,7 +27,7 @@ import stat as statinfo
 from errno import EINVAL
 
 import fs.utils
-from fs.base import threading
+from fs.base import threading, FS
 from fs.wrapfs import WrapFS, wrap_fs_methods
 from fs.wrapfs.lazyfs import LazyFS
 from fs.path import *
@@ -424,7 +424,7 @@ class CachedInfo(object):
         return cls(info,has_full_info=False)
 
 
-class CacheFSMixin(WrapFS):
+class CacheFSMixin(FS):
     """Simple FS mixin to cache meta-data of a remote filesystems.
 
     This FS mixin implements a simplistic cache that can help speed up
@@ -473,11 +473,15 @@ class CacheFSMixin(WrapFS):
 
     def __getstate__(self):
         state = super(CacheFSMixin,self).__getstate__()
+        state.pop("_CacheFSMixin__cache",None)
+        state.pop("_CacheFSMixin__cache_size",None)
         state.pop("_CacheFSMixin__cache_lock",None)
         return state
 
     def __setstate__(self,state):
         super(CacheFSMixin,self).__setstate__(state)
+        self.__cache = PathMap()
+        self.__cache_size = 0
         self.__cache_lock = threading.RLock()
 
     def __get_cached_info(self,path,default=_SENTINAL):
