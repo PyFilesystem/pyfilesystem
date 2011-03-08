@@ -2,7 +2,7 @@ Opening Filesystems
 ===================
 
 Generally, when you want to work with the files and directories of any of the supported filesytems,
-you create an instance of the appropriate class. For example, the following opens the directory /foo/bar::
+you create an instance of the appropriate class. For example, the following opens the directory ``/foo/bar``::
 
 	from fs.osfs import OSFS
 	my_fs = OSFS('/foo/bar')
@@ -12,14 +12,14 @@ However, there are occasions where the location of the files may change at runti
 
 In these situations you can use an *opener*, which is a generic way of specifying a filesystem. For example, the following is equivalent to the code above::
 	
-	from fs.opener import fsopen
-	my_fs = fsopen('/foo/bar')
+	from fs.opener import fsopendir
+	my_fs = fsopendir('/foo/bar')
 
-The `fsopen` method takes a string that identifies the filesystem with a URI syntax, but if called with a regular path will return an OSFS instance.
+The ``fsopendir`` callable takes a string that identifies the filesystem with a URI syntax, but if called with a regular path will return an :class:`~fs.osfs.OSFS` instance.
 To open a different kind of filesystem, precede the path with the required protocol.
 For example, the following code opens an FTP filesystem rather than a directory on your harddrive::
 
-	from fs.opener import fsopen
-	my_fs = fsopen('ftp://example.org/foo/bar')
+	from fs.opener import fsopendir
+	my_fs = fsopendir('ftp://example.org/foo/bar')
 
 For further information regarding filesystem openers see :doc:`opener`.
