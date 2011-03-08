@@ -791,7 +791,7 @@ class FS(object):
         :rtype: an FS object
         
         """
-                
+        
         from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
@@ -819,19 +819,7 @@ class FS(object):
                           
         :param ignore_errors: ignore any errors reading the directory
 
-        """        
-        
-        if wildcard is None:
-            wildcard = lambda f:True
-        elif not callable(wildcard):
-            wildcard_re = re.compile(fnmatch.translate(wildcard))
-            wildcard = lambda fn:bool (wildcard_re.match(fn))
-            
-        if dir_wildcard is None:
-            dir_wildcard = lambda f:True
-        elif not callable(dir_wildcard):
-            dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
-            dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))                    
+        """                  
         
         def listdir(path, *args, **kwargs):
             if ignore_errors:
@@ -843,6 +831,18 @@ class FS(object):
                 return self.listdir(path, *args, **kwargs)
         
         if search == "breadth":
+            
+            if wildcard is None:
+                wildcard = lambda f:True
+            elif not callable(wildcard):
+                wildcard_re = re.compile(fnmatch.translate(wildcard))
+                wildcard = lambda fn:bool (wildcard_re.match(fn))
+                
+            if dir_wildcard is None:
+                dir_wildcard = lambda f:True
+            elif not callable(dir_wildcard):
+                dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
+                dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))              
             
             dirs = [path]
             while dirs:
@@ -873,7 +873,7 @@ class FS(object):
                 except ResourceNotFoundError:
                     # Could happen if another thread / process deletes something whilst we are walking
                     pass
-                yield (recurse_path, self.listdir(recurse_path, wildcard=wildcard, files_only=True))
+                yield (recurse_path, listdir(recurse_path, wildcard=wildcard, files_only=True))
 
             for p in recurse(path):
                 yield p
@@ -1230,3 +1230,5 @@ def flags_to_mode(flags):
     if flags & os.O_EXCL:
         mode += "x"
     return mode
+
+    
