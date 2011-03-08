@@ -4,7 +4,7 @@
     
     DebugFS is a wrapper around filesystems to help developers
     debug their work. I wrote this class mainly for debugging
-    TahoeFS and for fine tuning TahoeFS over Dokan with higher-level
+    TahoeLAFS and for fine tuning TahoeLAFS over Dokan with higher-level
     aplications like Total Comander, Winamp etc. Did you know
     that Total Commander need to open file before it delete them? :-)
     

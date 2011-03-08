@@ -1,14 +1,14 @@
 '''
-fs.contrib.tahoefs
-==================
+fs.contrib.tahoelafs
+====================
 
 Example (it will use publicly available, but slow-as-hell Tahoe-LAFS cloud)::
 
-    from fs.contrib.tahoefs import TahoeFS, Connection
-    dircap = TahoeFS.createdircap(webapi='http://pubgrid.tahoe-lafs.org')
+    from fs.contrib.tahoelafs import TahoeLAFS, Connection
+    dircap = TahoeLAFS.createdircap(webapi='http://pubgrid.tahoe-lafs.org')
     print "Your dircap (unique key to your storage directory) is", dircap
     print "Keep it safe!"
-    fs = TahoeFS(dircap, autorun=False, timeout=300, webapi='http://pubgrid.tahoe-lafs.org')
+    fs = TahoeLAFS(dircap, autorun=False, timeout=300, webapi='http://pubgrid.tahoe-lafs.org')
     f = fs.open("foo.txt", "a")
     f.write('bar!')
     f.close()
@@ -21,7 +21,7 @@ When any problem occurred, you can turn on internal debugging messages::
     l.setLevel(logging.DEBUG)
     l.addHandler(logging.StreamHandler(sys.stdout))
 
-    ... your Python code using TahoeFS ...
+    ... your Python code using TahoeLAFS ...
     
 TODO:
 
@@ -39,7 +39,7 @@ TODO:
    * python3 support
    * remove creating blank files (depends on FileUploadManager)
    
-TODO (Not TahoeFS specific tasks):
+TODO (Not TahoeLAFS specific tasks):
    * RemoteFileBuffer on the fly buffering support
    * RemoteFileBuffer unit tests
    * RemoteFileBuffer submit to trunk
@@ -64,7 +64,7 @@ from fs.base import fnmatch, NoDefaultMeta
 from util import TahoeUtil
 from connection import Connection   
 
-logger = fs.getLogger('fs.tahoefs')
+logger = fs.getLogger('fs.tahoelafs')
 
 def _fix_path(func):
     """Method decorator for automatically normalising paths."""
@@ -82,12 +82,12 @@ def _fixpath(path):
     
      
 
-class _TahoeFS(FS):
-    """FS providing raw access to a Tahoe Filesystem.
+class _TahoeLAFS(FS):
+    """FS providing raw access to a Tahoe-LAFS Filesystem.
 
     This class implements all the details of interacting with a Tahoe-backed
     filesystem, but you probably don't want to use it in practice.  Use the
-    TahoeFS class instead, which has some internal caching to improve
+    TahoeLAFS class instead, which has some internal caching to improve
     performance.
     """
     
@@ -100,7 +100,7 @@ class _TahoeFS(FS):
         
 
     def __init__(self, dircap, largefilesize=10*1024*1024, webapi='http://127.0.0.1:3456'):
-        '''Creates instance of TahoeFS.
+        '''Creates instance of TahoeLAFS.
             
             :param dircap: special hash allowing user to work with TahoeLAFS directory.
             :param largefilesize: - Create placeholder file for files larger than this treshold.
@@ -112,10 +112,10 @@ class _TahoeFS(FS):
         self.largefilesize = largefilesize
         self.connection = Connection(webapi)
         self.tahoeutil = TahoeUtil(webapi)
-        super(_TahoeFS, self).__init__(thread_synchronize=_thread_synchronize_default)       
+        super(_TahoeLAFS, self).__init__(thread_synchronize=_thread_synchronize_default)       
         
     def __str__(self):
-        return "<TahoeFS: %s>" % self.dircap 
+        return "<TahoeLAFS: %s>" % self.dircap 
     
     @classmethod
     def createdircap(cls, webapi='http://127.0.0.1:3456'):
@@ -124,7 +124,7 @@ class _TahoeFS(FS):
     def getmeta(self,meta_name,default=NoDefaultMeta):
         if meta_name == "read_only":
             return self.dircap.startswith('URI:DIR2-RO')
-        return super(_TahoeFS,self).getmeta(meta_name,default)
+        return super(_TahoeLAFS,self).getmeta(meta_name,default)
     
     @_fix_path
     def open(self, path, mode='r', **kwargs):
@@ -317,14 +317,14 @@ class _TahoeFS(FS):
         if self.getmeta("read_only"):
             raise errors.UnsupportedError('read only filesystem')
         # FIXME: this is out of date; how to do native tahoe copy?
-        # FIXME: Workaround because isfile() not exists on _TahoeFS
+        # FIXME: Workaround because isfile() not exists on _TahoeLAFS
         FS.copy(self, src, dst, overwrite, chunk_size)
         
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         if self.getmeta("read_only"):
             raise errors.UnsupportedError('read only filesystem')
         # FIXME: this is out of date; how to do native tahoe copy?
-        # FIXME: Workaround because isfile() not exists on _TahoeFS
+        # FIXME: Workaround because isfile() not exists on _TahoeLAFS
         FS.copydir(self, src, dst, overwrite, ignore_errors, chunk_size)
        
     
@@ -369,7 +369,7 @@ class _TahoeFS(FS):
 
             if size > self.largefilesize:
                 self.connection.put(u'/uri/%s%s' % (self.dircap, path),
-                    "PyFilesystem.TahoeFS: Upload started, final size %d" % size)
+                    "PyFilesystem.TahoeLAFS: Upload started, final size %d" % size)
 
         self.connection.put(u'/uri/%s%s' % (self.dircap, path), file, size=size)
 
@@ -389,7 +389,7 @@ class _TahoeFS(FS):
 
 
 
-class TahoeFS(CacheFSMixin,_TahoeFS):
+class TahoeLAFS(CacheFSMixin,_TahoeLAFS):
     """FS providing cached access to a Tahoe Filesystem.
 
     This class is the preferred means to access a Tahoe filesystem.  It
@@ -399,6 +399,6 @@ class TahoeFS(CacheFSMixin,_TahoeFS):
 
     def __init__(self, *args, **kwds):
         kwds.setdefault("cache_timeout",60)
-        super(TahoeFS,self).__init__(*args,**kwds)
+        super(TahoeLAFS,self).__init__(*args,**kwds)
 
 
