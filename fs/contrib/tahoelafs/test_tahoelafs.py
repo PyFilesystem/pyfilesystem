@@ -12,17 +12,17 @@ import unittest
 from fs.base import FS
 import fs.errors as errors
 from fs.tests import FSTestCases, ThreadingTestCases
-from fs.contrib.tahoefs import TahoeLAFS, Connection
+from fs.contrib.tahoelafs import TahoeLAFS, Connection
 
 logging.getLogger().setLevel(logging.DEBUG)
-logging.getLogger('fs.tahoefs').addHandler(logging.StreamHandler(sys.stdout))
+logging.getLogger('fs.tahoelafs').addHandler(logging.StreamHandler(sys.stdout))
 
 WEBAPI = 'http://pubgrid.tahoe-lafs.org'
 
 class TestTahoeLAFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     #  Disabled by default because it takes a *really* long time.
-    __test__ = False
+    #__test__ = False
 
     def setUp(self):
         self.dircap = TahoeLAFS.createdircap(WEBAPI)

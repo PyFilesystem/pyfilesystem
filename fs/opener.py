@@ -571,7 +571,7 @@ class TahoeOpener(Opener):
     
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
-        from fs.contrib.tahoefs import TahoeLAFS
+        from fs.contrib.tahoelafs import TahoeLAFS
         
         if '/uri/' not in fs_path:
             raise OpenerError("""Tahoe-LAFS url should be in the form <url>/uri/<dicap>""")
