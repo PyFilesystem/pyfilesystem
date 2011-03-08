@@ -6,7 +6,7 @@ This page lists the builtin filesystems.
 
 FTP (File Transfer Protocol)
 ----------------------------
-An interface to FTP servers. See :mod:`fs.ftpfs`
+An interface to FTP servers. See :class:`fs.ftpfs.FTPFS`
 
 Memory
 ------
