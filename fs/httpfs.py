@@ -12,10 +12,20 @@ from urllib2 import urlopen, URLError
 
 class HTTPFS(FS):
     
-    """Can barely be called a filesystem, but this enables the opener system
-    to open http files"""
+    """Can barely be called a filesystem, because HTTP servers generally don't support 
+    typical filesystem functionality. This class exists to allow the :doc:`opener` system
+    to read files over HTTP. 
     
-    def __init__(self, url):        
+    If you do need filesystem like functionality over HTTP, see :mod:`fs.contrib.davfs`.
+     
+    """
+    
+    def __init__(self, url):
+        """
+        
+        :param url: The base URL
+        
+        """
         self.root_url = url
         
     def _make_url(self, path):

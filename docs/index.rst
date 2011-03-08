@@ -38,6 +38,7 @@ Code Documentation
    expose/index.rst
    filelike.rst
    ftpfs.rst
+   httpfs.rst
    memoryfs.rst
    mountfs.rst
    multifs.rst
