@@ -8,7 +8,6 @@ FTP (File Transfer Protocol)
 ----------------------------
 An interface to FTP servers. See :mod:`fs.ftpfs`
 
-
 Memory
 ------
 A filesystem that exists entirely in memory. See :mod:`fs.memoryfs`
@@ -31,10 +30,10 @@ An interface to the OS Filesystem. See :mod:`fs.osfs`
 
 RPCFS (Remote Procedure Call)
 -----------------------------
-An interface to a file-system serverd over XML RPC, See :mod:`fs.rpcfs` and :mod:`fs.expose.xmlrpc` 
+An interface to a file-system served over XML RPC, See :mod:`fs.rpcfs` and :mod:`fs.expose.xmlrpc` 
 
 
-Secure FTP (Secure FTP)
+SFTP (Secure FTP)
 -----------------------
 A secure FTP filesystem. See :mod:`fs.sftpfs`
 
