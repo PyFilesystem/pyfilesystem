@@ -67,6 +67,7 @@ __all__ = ['OpenerError',
            'HTTPOpener']
 
 from fs.path import pathsplit, join, iswildcard, normpath
+from os import getcwd
 import os.path
 import re
 from urlparse import urlparse
@@ -83,6 +84,9 @@ def _expand_syspath(path):
     if path is None:
         return path
     path = os.path.expanduser(os.path.expandvars(path))
+    path = path.replace('\\', '/')
+    if not path.startswith('/'):
+        path = os.path.join(getcwd(), path)        
     path = normpath(path)
     return path
     
