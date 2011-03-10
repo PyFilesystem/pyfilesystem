@@ -28,7 +28,6 @@ class TestTahoeLAFS(unittest.TestCase,FSTestCases):#,ThreadingTestCases):
 
     def setUp(self):
         self.dircap = TahoeLAFS.createdircap(WEBAPI)
-        print TahoeLAFS.__mro__
         self.fs = TahoeLAFS(self.dircap, cache_timeout=0, webapi=WEBAPI)
              
     def tearDown(self):

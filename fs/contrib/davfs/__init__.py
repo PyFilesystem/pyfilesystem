@@ -41,8 +41,6 @@ from fs.contrib.davfs.util import *
 from fs.contrib.davfs import xmlobj
 from fs.contrib.davfs.xmlobj import *
 
-logger = fs.getLogger("fs.contrib.davfs")
-
 import errno
 _RETRYABLE_ERRORS = [errno.EADDRINUSE]
 try:
@@ -236,7 +234,6 @@ class DAVFS(FS):
             except KeyError:
                 msg = "unsupported protocol: '%s'" % (url.scheme,)
                 raise RemoteConnectionError(msg=msg)
-            logger.debug("DAVFS >REQ %s %s/%s",method,url.hostname,url.path)
             con = ConClass(url.hostname,url.port,timeout=self.timeout)
             self._add_connection(con)
             try:
@@ -257,11 +254,9 @@ class DAVFS(FS):
                 resp = con.getresponse()
                 self._cookiejar.extract_cookies(FakeResp(resp),FakeReq(con,url.scheme,url.path))
             except Exception, e:
-                logger.exception("DAVFS <ERR %s %s/%s",method,url.hostname,url.path)
                 self._del_connection(con)
                 raise
             else:
-                logger.debug("DAVFS <RESP %s %s %s/%s",resp.status,method,url.hostname,url.path)
                 old_close = resp.close
                 def new_close():
                     old_close()
