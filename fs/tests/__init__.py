@@ -826,7 +826,7 @@ class FSTestCases(object):
             self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
 
-class ThreadingTestCases:
+class ThreadingTestCases(object):
     """Testcases for thread-safety of FS implementations."""
 
     #  These are either too slow to be worth repeating,
@@ -939,6 +939,7 @@ class ThreadingTestCases:
                     self.fs.makedir(subdir)
                     self._yield()
                     getattr(this,meth)()
+                super(this.__class__, this)
             @property
             def fs(this):
                 return self.fs.opendir(this.subdir)

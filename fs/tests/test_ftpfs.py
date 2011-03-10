@@ -66,12 +66,11 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
 
     def tearDown(self):
-        self.ftp_server.terminate()        
-        #if sys.platform == 'win32':
-        #    import win32api
-        #    os.popen('TASKKILL /PID '+str(self.ftp_server.pid)+' /F')
-        #else:
-        #    os.system('kill '+str(self.ftp_server.pid))
+        #self.ftp_server.terminate()        
+        if sys.platform == 'win32':        
+            os.popen('TASKKILL /PID '+str(self.ftp_server.pid)+' /F')
+        else:
+            os.system('kill '+str(self.ftp_server.pid))
         shutil.rmtree(self.temp_dir)
         self.fs.close()
 
