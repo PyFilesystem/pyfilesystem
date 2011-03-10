@@ -10,6 +10,7 @@ import tempfile
 import subprocess
 import time
 from os.path import abspath
+import urllib
 
 try:
     from pyftpdlib import ftpserver
@@ -33,19 +34,44 @@ class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
         file_path = __file__
         if ':' not in file_path:
             file_path = abspath(file_path)
-        self.ftp_server = subprocess.Popen([sys.executable, file_path, self.temp_dir, str(use_port)])
-        # Need to sleep to allow ftp server to start
-        time.sleep(.2)
+        # Apparently Windows requires values from default environment, so copy the exisiting os.environ
+        env = os.environ.copy()
+        env['PYTHONPATH'] = os.getcwd() + os.pathsep + env.get('PYTHONPATH', '')
+        self.ftp_server = subprocess.Popen([sys.executable,
+                                            file_path,
+                                            self.temp_dir,
+                                            use_port],
+                                           stdout=subprocess.PIPE, 
+                                           env=env)
+        # Block until the server writes a line to stdout
+        self.ftp_server.stdout.readline()
+        
+        # Poll until a connection can be made
+        start_time = time.time()
+        while time.time() - start_time < 5:
+            try:
+                ftpurl = urllib.urlopen('ftp://127.0.0.1:%s' % use_port)
+            except IOError:
+                time.sleep(0)
+            else:
+                ftpurl.read()
+                ftpurl.close()
+                break
+        else:
+            # Avoid a possible infinite loop
+            raise Exception("Unable to connect to ftp server")
+        
         self.fs = ftpfs.FTPFS('127.0.0.1', 'user', '12345', dircache=True, port=use_port, timeout=5.0)
         self.fs.cache_hint(True)
 
 
     def tearDown(self):
-        if sys.platform == 'win32':
-            import win32api
-            os.popen('TASKKILL /PID '+str(self.ftp_server.pid)+' /F')
-        else:
-            os.system('kill '+str(self.ftp_server.pid))
+        self.ftp_server.terminate()        
+        #if sys.platform == 'win32':
+        #    import win32api
+        #    os.popen('TASKKILL /PID '+str(self.ftp_server.pid)+' /F')
+        #else:
+        #    os.system('kill '+str(self.ftp_server.pid))
         shutil.rmtree(self.temp_dir)
         self.fs.close()
 
@@ -74,4 +100,6 @@ if __name__ == "__main__":
 
     ftpd = ftpserver.FTPServer(address, handler)
 
+    sys.stdout.write('serving\n')
+    sys.stdout.flush()
     ftpd.serve_forever()
