@@ -1,4 +1,4 @@
-import json
+
 import urlparse
 import mimetypes
 

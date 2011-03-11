@@ -573,8 +573,8 @@ def iswildcard(path):
     
     """
     assert path is not None
-    base_chars = frozenset(basename(path))    
-    return not base_chars.isdisjoint(_wild_chars)    
+    base_chars = frozenset(basename(path))
+    return bool(base_chars.intersection(_wild_chars))
 
 if __name__ == "__main__":
     print recursepath('a/b/c')

@@ -957,7 +957,7 @@ class FTPFS(FS):
     def _open_ftp(self):
         try:
             ftp = FTP()            
-            if self.default_timeout:
+            if self.default_timeout or sys.version_info < (2,6,):
                 ftp.connect(self.host, self.port)
             else:                
                 ftp.connect(self.host, self.port, self.timeout)

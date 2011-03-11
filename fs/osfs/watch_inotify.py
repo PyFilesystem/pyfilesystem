@@ -24,6 +24,10 @@ except Exception, e:
     if isinstance(e,ImportError):
         raise
     raise ImportError("could not import pyinotify")
+try:
+    pyinotify.WatchManager.get_fd
+except AttributeError:
+    raise ImportError("pyinotify version is too old")
 
 
 class OSFSWatchMixin(WatchableFSMixin):

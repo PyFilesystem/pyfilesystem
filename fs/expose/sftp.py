@@ -24,6 +24,8 @@ is, you probably don't want to use it.
 
 """
 
+from __future__ import with_statement
+
 import os
 import stat as statinfo
 import time

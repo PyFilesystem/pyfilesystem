@@ -36,7 +36,15 @@ class LazyFS(WrapFS):
         try:
             wrapped_fs = self.__dict__["wrapped_fs"]
         except KeyError:
-            return u"<LazyFS: %s>" % (self._fsclass,)
+            #  It appears that python2.5 has trouble printing out
+            #  classes that define a __unicode__ method.
+            try:
+                return u"<LazyFS: %s>" % (self._fsclass,)
+            except TypeError:
+                try:
+                    return u"<LazyFS: %s>" % (self._fsclass.__name__,)
+                except AttributeError:
+                    return u"<LazyFS: <unprintable>>"
         else:
             return u"<LazyFS: %s>" % (wrapped_fs,)
 
