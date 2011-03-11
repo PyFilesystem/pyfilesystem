@@ -921,9 +921,10 @@ class ThreadingTestCases(object):
             pass
 
     def test_cases_in_separate_dirs(self):
-        class TestCases_in_subdir(self.__class__):
+        class TestCases_in_subdir(self.__class__,unittest.TestCase):
             """Run all testcases against a subdir of self.fs"""
             def __init__(this,subdir):
+                super(TestCases_in_subdir, this).__init__("test_listdir")
                 this.subdir = subdir
                 for meth in dir(this):
                     if not meth.startswith("test_"):
@@ -939,7 +940,6 @@ class ThreadingTestCases(object):
                     self.fs.makedir(subdir)
                     self._yield()
                     getattr(this,meth)()
-                super(this.__class__, this)
             @property
             def fs(this):
                 return self.fs.opendir(this.subdir)
