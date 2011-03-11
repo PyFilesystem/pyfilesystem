@@ -166,7 +166,10 @@ class DAVFS(FS):
         """Convert a server-side URL into a client-side path."""
         path = urlunquote(urlparse(url).path)
         root = self._url_p.path
-        return path[len(root)-1:].decode("utf8")
+        path = path[len(root)-1:].decode("utf8")
+        while path.endswith("/"):
+            path = path[:-1]
+        return path
 
     def _isurl(self,path,url):
         """Check whether the given URL corresponds to the given local path."""
@@ -187,7 +190,7 @@ class DAVFS(FS):
             resp = self._raw_request(url,method,body,headers)
             #  Loop to retry for redirects and authentication responses.                    
             while resp.status in (301,302,401,403):
-                resp.close()
+                #resp.close()
                 if resp.status in (301,302,):
                     visited.append(url)
                     url = resp.getheader("Location",None)
@@ -549,7 +552,7 @@ class DAVFS(FS):
         If the server is able to send responses in chunked encoding, then
         this can substantially speed up iterating over the results.
         """
-        pf = propfind(prop="<prop xmlns:D='DAV:'>" + props + "</prop>")
+        pf = propfind(prop="<D:prop xmlns:D='DAV:'>"+props+"</D:prop>")
         response = self._request(path,"PROPFIND",pf.render(),{"Depth":"1"})
         try:
             if response.status == 404:
@@ -670,9 +673,9 @@ class DAVFS(FS):
         (namespaceURI,localName) = self._split_xattr(name)
         # TODO: encode xml character entities in the namespace
         if namespaceURI:
-            pf = propfind(prop="<prop xmlns='"+namespaceURI+"'><"+localName+" /></prop>")
+            pf = propfind(prop="<D:prop xmlns:D='DAV:' xmlns='"+namespaceURI+"'><"+localName+" /></D:prop>")
         else:
-            pf = propfind(prop="<prop><"+localName+" /></prop>")
+            pf = propfind(prop="<D:prop xmlns:D='DAV:'><"+localName+" /></D:prop>")
         response = self._request(path,"PROPFIND",pf.render(),{"Depth":"0"})
         try:
             if response.status != 207:
@@ -706,7 +709,7 @@ class DAVFS(FS):
         else:
             p = "<%s>%s</%s>" % (localName,value,localName)
         pu = propertyupdate()
-        pu.commands.append(set(props="<prop>"+p+"</prop>"))
+        pu.commands.append(set(props="<D:prop xmlns:D='DAV:'>"+p+"</D:prop>"))
         response = self._request(path,"PROPPATCH",pu.render(),{"Depth":"0"})
         response.close()
         if response.status < 200 or response.status >= 300:
@@ -720,7 +723,7 @@ class DAVFS(FS):
         else:
             p = "<%s />" % (localName,)
         pu = propertyupdate()
-        pu.commands.append(remove(props="<prop>"+p+"</prop>"))
+        pu.commands.append(remove(props="<D:prop xmlns:D='DAV:'>"+p+"</D:prop>"))
         response = self._request(path,"PROPPATCH",pu.render(),{"Depth":"0"})
         response.close()
         if response.status < 200 or response.status >= 300:

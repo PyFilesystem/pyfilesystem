@@ -215,8 +215,9 @@ class S3FS(FS):
                     tf.write(data)
                     data = contents.read(524288)
                 tf.seek(0)
-                contents = tf
-            key.set_contents_from_file(contents)
+                key.set_contents_from_file(tf)
+            else:
+                key.set_contents_from_file(contents)
         return self._sync_key(key)
 
     def makepublic(self, path):
