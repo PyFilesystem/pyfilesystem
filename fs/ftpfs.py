@@ -8,6 +8,8 @@ FTPFS is a filesystem for accessing an FTP server (uses ftplib in standard libra
 
 __all__ = ['FTPFS']
 
+import sys 
+
 import fs
 from fs.base import *
 from fs.errors import *
