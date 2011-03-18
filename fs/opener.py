@@ -257,17 +257,21 @@ class OpenerRegistry(object):
         fs, path = self.parse(fs_url, writeable=writeable)                
         file_object = fs.open(path, mode)
         
+        from fs.filelike import FileWrapper
+        file_object = FileWrapper(file_object, mode)
+        
         # If we just return the file, then fs goes out of scope and closes,
         # which may make the file unusable. To get around this, we store a
         # reference in the file object to the FS, and patch the file's
-        # close method to also close the FS.    
+        # close method to also close the FS.
+        
         close = file_object.close
         close_fs = fs        
         def replace_close():            
             ret = close()
             close_fs.close()
             return ret                            
-        file_object.close = replace_close        
+        file_object.close = replace_close
                     
         return file_object
     
@@ -663,7 +667,7 @@ example:
         return fs, resourcename
     
 class UserDataOpener(Opener):
-    names = ['appuserdata']
+    names = ['appuserdata', 'appuser']
     desc = """Opens a filesystem for a per-user application directory.
     
 The 'domain' should be in the form <author name>:<application name>.<version> (the author name and version are optional).  
@@ -685,17 +689,30 @@ example:
         else:
             appauthor = None
             appname = fs_path
-        
+            
+        if '/' in appname:
+            appname, path = appname.split('/', 1)
+        else:
+            path = ''
+            
         if '.' in appname:
             appname, appversion = appname.split('.', 1)
         else:
             appversion = None
         
         fs = fs_class(appname, appauthor=appauthor, version=appversion, create=create_dir)
-        return fs, ''
+        
+        if '/' in path:
+            subdir, path = path.rsplit('/', 1)
+            if create_dir:
+                fs = fs.makeopendir(subdir, recursive=True)
+            else:
+                fs = fs.opendir(subdir)
+        
+        return fs, path
     
 class SiteDataOpener(UserDataOpener):
-    names = ['appsitedata']
+    names = ['appsitedata', 'appsite']
 
     desc = """Opens a filesystem for an application site data directory.
     
@@ -710,7 +727,7 @@ example:
     FSClass = 'SiteDataFS'
     
 class UserCacheOpener(UserDataOpener):
-    names = ['appusercache']
+    names = ['appusercache', 'appcache']
 
     desc = """Opens a filesystem for an per-user application cache directory.
     
@@ -726,7 +743,7 @@ example:
     
     
 class UserLogOpener(UserDataOpener):
-    names = ['appuserlog']
+    names = ['appuserlog', 'applog']
 
     desc = """Opens a filesystem for an application site data directory.
     
@@ -739,6 +756,85 @@ example:
 * appuserlog://examplesoft:anotherapp.1.3"""
 
     FSClass = 'UserLogFS'
+
+
+class MountOpener(Opener):
+    names = ['mount']
+    desc = """Mounts other filesystems on a 'virtual' filesystem
+    
+The path portion of the FS URL should be a path to an ini file, where the keys are the mount point, and the values are FS URLs to mount.
+
+The following is an example of such an ini file:
+
+    [fs]
+    resources=appuser://myapp/resources
+    foo=~/foo
+    foo/bar=mem://
+
+    [fs2]
+    bar=~/bar
+
+example:
+* mount://fs.ini
+* mount://fs.ini!resources
+* mount://fs.ini:fs2"""
+    
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        
+        from fs.mountfs import MountFS
+        from ConfigParser import ConfigParser
+        cfg = ConfigParser()
+        
+        if '#' in fs_path:
+            path, section = fs_path.split('#', 1) 
+        else:
+            path = fs_path
+            section = 'fs'
+            
+        cfg.readfp(registry.open(path))
+        
+        mount_fs = MountFS()
+        for mount_point, mount_path in cfg.items(section):                                  
+            mount_fs.mount(mount_point, registry.opendir(mount_path))
+        return mount_fs, ''
+
+
+class MultiOpener(Opener):
+    names = ['multi']
+    desc = """Combines other filesystems in to a single filesystem.
+    
+The path portion of the FS URL should be a path to an ini file, where the keys are the mount point, and the values are FS URLs to mount.
+
+The following is an example of such an ini file:
+
+    [templates]
+    dir1=templates/foo
+    dir2=templates/bar
+
+example:
+* multi://fs.ini"""
+    
+    @classmethod
+    def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
+        
+        from fs.multifs import MultiFS
+        from ConfigParser import ConfigParser
+        cfg = ConfigParser()
+        
+        if '#' in fs_path:
+            path, section = fs_path.split('#', 1) 
+        else:
+            path = fs_path
+            section = 'fs'
+            
+        cfg.readfp(registry.open(path))
+        
+        multi_fs = MultiFS()
+        for name, fs_url in cfg.items(section):                                  
+            multi_fs.addfs(name, registry.opendir(fs_url))
+        return multi_fs, ''
+
 
 opener = OpenerRegistry([OSFSOpener,
                          ZipOpener,
@@ -755,7 +851,9 @@ opener = OpenerRegistry([OSFSOpener,
                          UserDataOpener,
                          SiteDataOpener,
                          UserCacheOpener,
-                         UserLogOpener
+                         UserLogOpener,
+                         MountOpener,
+                         MultiOpener
                          ])
 
 fsopen = opener.open
