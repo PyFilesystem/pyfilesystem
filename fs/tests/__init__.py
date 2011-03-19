@@ -741,6 +741,15 @@ class FSTestCases(object):
                 f.seek(25)
                 self.assertEquals(f.read(),"123456")
 
+    def test_write_past_end_of_file(self):
+        if self.fs.getmeta('file.read_and_write', True):
+            with self.fs.open("write_at_end","w") as f:
+                f.seek(25)
+                f.write("EOF")
+            with self.fs.open("write_at_end","r") as f:
+                self.assertEquals(f.read(),"\x00"*25 + "EOF")
+
+
     def test_with_statement(self):
         #  This is a little tricky since 'with' is actually new syntax.
         #  We use eval() to make this method safe for old python versions.
