@@ -62,11 +62,10 @@ you can always access them directly.
 
 """
 
-from fs.base import FS, FSError, synchronize
+from fs.base import FS, synchronize
 from fs.path import *
 from fs.errors import *
 from fs import _thread_synchronize_default
-from fs.errors import ResourceNotFoundError
 
 
 class MultiFS(FS):
@@ -234,7 +233,7 @@ class MultiFS(FS):
         for fs in self:
             try:
                 paths += fs.listdir(path, *args, **kwargs)
-            except FSError, e:
+            except FSError:
                 pass
         return list(set(paths))
 
@@ -254,16 +253,14 @@ class MultiFS(FS):
     @synchronize
     def rename(self, src, dst):
         if self.writefs is None:
-            raise OperationFailedError('rename', path=path, msg="No writeable FS set")
-        self.writefs.rename(src, dst)                
-        raise ResourceNotFoundError(path)
+            raise OperationFailedError('rename', path=src, msg="No writeable FS set")
+        self.writefs.rename(src, dst)        
 
     @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
         if self.writefs is None:
             raise OperationFailedError('settimes', path=path, msg="No writeable FS set")
-        self.writefs.settimes(path, accessed_time, modified_time)
-        raise ResourceNotFoundError(path)
+        self.writefs.settimes(path, accessed_time, modified_time)        
 
     @synchronize
     def getinfo(self, path):

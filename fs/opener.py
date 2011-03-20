@@ -231,7 +231,8 @@ class OpenerRegistry(object):
         fs_path = join(fs_path, path)
         
         if create_dir and fs_path:
-            fs.makedir(fs_path, allow_recreate=True)     
+            if not fs.getmeta('read_only', False):
+                fs.makedir(fs_path, allow_recreate=True)     
                 
         pathname, resourcename = pathsplit(fs_path or '')        
         if pathname and resourcename:
@@ -659,7 +660,7 @@ example:
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.httpfs import HTTPFS
         if '/' in fs_path:
-            dirname, resourcename = fs_path.rsplit('/')
+            dirname, resourcename = fs_path.rsplit('/', 1)
         else:
             dirname = fs_path
             resourcename = ''
@@ -796,7 +797,7 @@ example:
         
         mount_fs = MountFS()
         for mount_point, mount_path in cfg.items(section):                                  
-            mount_fs.mount(mount_point, registry.opendir(mount_path))
+            mount_fs.mount(mount_point, registry.opendir(mount_path, create_dir=create_dir))
         return mount_fs, ''
 
 
@@ -832,7 +833,7 @@ example:
         
         multi_fs = MultiFS()
         for name, fs_url in cfg.items(section):                                  
-            multi_fs.addfs(name, registry.opendir(fs_url))
+            multi_fs.addfs(name, registry.opendir(fs_url, create_dir=create_dir))
         return multi_fs, ''
 
 

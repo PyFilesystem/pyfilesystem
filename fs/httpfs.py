@@ -9,6 +9,7 @@ from fs.base import FS
 from fs.path import normpath
 from fs.errors import ResourceNotFoundError, UnsupportedError
 from urllib2 import urlopen, URLError
+from fs.filelike import FileWrapper
 
 class HTTPFS(FS):
     
@@ -19,6 +20,9 @@ class HTTPFS(FS):
     If you do need filesystem like functionality over HTTP, see :mod:`fs.contrib.davfs`.
      
     """
+    
+    _meta = {'read_only':True,
+             'network':True,}
     
     def __init__(self, url):
         """
@@ -46,7 +50,7 @@ class HTTPFS(FS):
         except OSError, e:
             raise ResourceNotFoundError(path, details=e)
         
-        return f
+        return FileWrapper(f)
     
     def exists(self, path):
         return self.isfile(path)
