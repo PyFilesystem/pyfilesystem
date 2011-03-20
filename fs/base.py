@@ -89,11 +89,17 @@ class NullFile(object):
     def __init__(self):
         self.closed = False
 
-    def flush(self):
-        pass
-
     def __iter__(self):
         return self
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.closed = True
+
+    def flush(self):
+        pass
 
     def next(self):
         raise StopIteration
