@@ -40,25 +40,27 @@ def normpath(path):
     if path in ('', '/'):
         return path
     
+    path = path.replace('\\', '/')
+    
     # An early out if there is no need to normalize this path
-    if not _requires_normalization(path):        
+    if not _requires_normalization(path):
         return path.rstrip('/')
                 
     components = []
     append = components.append
-    for comp in [c for c in path.replace('\\','/').split("/") if c not in ('', '.')]:
-        if comp == "..":
-            try:
-                components.pop()
-            except IndexError:                
-                raise ValueError("too many backrefs in path '%s'" % path)
-        else:
-            append(comp)
-    if path[0] in '\\/':
-        if not components:
-            append("")
-        components.insert(0, "")
-    return "/".join(components)
+    special = ('', '.', '..').__contains__  
+    try:
+        for component in path.split('/'):
+            if special(component):
+                if component == '..':                    
+                    components.pop()
+            else:
+                append(component)
+    except IndexError:
+        raise ValueError("too many backrefs in path '%s'" % path)
+    if path[0] == '/':
+        return '/%s' % '/'.join(components)
+    return '/'.join(components)
 
 
 def iteratepath(path, numsplits=None):
