@@ -39,6 +39,8 @@ class FSTestCases(object):
     To apply the tests to your own FS implementation, simply use FSTestCase
     as a mixin for your own unittest.TestCase subclass and have the setUp
     method set self.fs to an instance of your FS implementation.
+    
+    NB. The Filesystem being tested must have a capacity of at least 3MB.
 
     This class is designed as a mixin so that it's not detected by test
     loading tools such as nose.
