@@ -9,6 +9,7 @@ interface for objects stored in Amazon Simple Storage Service (S3).
 
 """
 
+import os
 import datetime
 import tempfile
 from fnmatch import fnmatch

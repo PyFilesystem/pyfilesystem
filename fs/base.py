@@ -20,6 +20,7 @@ __all__ = ['DummyLock',
            'flags_to_mode',
            'NoDefaultMeta']
 
+import os
 import os.path
 import shutil
 import fnmatch
