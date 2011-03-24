@@ -211,7 +211,7 @@ def split(path):
 
 def splitext(path):
     """Splits the extension from the path, and returns the path (up to the last
-    '.' and the extension
+    '.' and the extension).
     
     :param path: A path to split
     
@@ -268,13 +268,19 @@ def dirname(path):
 def basename(path):
     """Returns the basename of the resource referenced by a path.
 
-    This is always equivalent to the 'head' component of the value returned
+    This is always equivalent to the 'tail' component of the value returned
     by pathsplit(path).
     
     :param path: A FS path
 
     >>> basename('foo/bar/baz')
     'baz'
+    
+    >>> basename('foo/bar')
+    'bar'
+    
+    >>> basename('foo/bar/')
+    ''
 
     """
     if '/' not in path:
