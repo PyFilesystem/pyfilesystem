@@ -23,6 +23,10 @@ Other useful classes include:
                              class, patched to more closely preserve the 
                              semantics of a standard file.
 
+    * LimitBytesFile:  a filelike wrapper that limits the total bytes read
+                       from a file; useful for turning a socket into a file
+                       without reading past end-of-data.
+
 """ 
 # Copyright (C) 2006-2009, Ryan Kelly
 # All rights reserved; available under the terms of the MIT License.
@@ -741,5 +745,24 @@ class SpooledTemporaryFile(FileWrapper):
 
     def fileno(self):
         return self.wrapped_file.fileno()
+
+
+class LimitBytesFile(FileWrapper):
+    """Filelike wrapper to limit bytes read from a stream."""
+
+    def __init__(self,size,fileobj,*args,**kwds):
+        self.size = size
+        self.__remaining = size
+        super(LimitBytesFile,self).__init__(fileobj,*args,**kwds)
+
+    def _read(self,sizehint=-1):
+        if self.__remaining <= 0:
+            return None
+        if sizehint is None or sizehint < 0 or sizehint > self.__remaining:
+            sizehint = self.__remaining
+        data = super(LimitBytesFile,self)._read(sizehint)
+        if data is not None:
+            self.__remaining -= len(data)
+        return data
 
 
