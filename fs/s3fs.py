@@ -638,7 +638,7 @@ class S3FS(FS):
                 if name != "":
                     if not isinstance(name,unicode):
                         name = name.decode("utf8")
-                    if not name.endswith(self._separator):
+                    if not k.name.endswith(self._separator):
                         if wildcard is not None:
                             if callable(wildcard):
                                 if not wildcard(name):
@@ -665,7 +665,7 @@ class S3FS(FS):
                 if name != "":
                     if not isinstance(name,unicode):
                         name = name.decode("utf8")
-                    if not name.endswith(self._separator):
+                    if not k.name.endswith(self._separator):
                         if wildcard is not None:
                             if callable(wildcard):
                                 if not wildcard(name):
