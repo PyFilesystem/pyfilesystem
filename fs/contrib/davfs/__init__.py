@@ -190,7 +190,7 @@ class DAVFS(FS):
             resp = self._raw_request(url,method,body,headers)
             #  Loop to retry for redirects and authentication responses.                    
             while resp.status in (301,302,401,403):
-                #resp.close()
+                resp.close()
                 if resp.status in (301,302,):
                     visited.append(url)
                     url = resp.getheader("Location",None)
