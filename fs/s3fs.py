@@ -633,20 +633,20 @@ class S3FS(FS):
                 yield item
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix): 
-                name = self._uns3path(k.name,prefix)
+            for k in self._s3bukt.list(prefix=prefix):
+                name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
                         name = name.decode("utf8")
                     if not k.name.endswith(self._separator):
                         if wildcard is not None:
                             if callable(wildcard):
-                                if not wildcard(name):
+                                if not wildcard(basename(name)):
                                     continue
                             else:
-                                if not fnmatch(name,wildcard):
+                                if not fnmatch(basename(name),wildcard):
                                     continue
-                        yield abspath(name)
+                        yield pathjoin(path,name)
 
     def walkfilesinfo(self,
               path="/",
@@ -660,20 +660,20 @@ class S3FS(FS):
                 yield (item,self.getinfo(item))
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix): 
-                name = self._uns3path(k.name,prefix)
+            for k in self._s3bukt.list(prefix=prefix):
+                name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
                         name = name.decode("utf8")
                     if not k.name.endswith(self._separator):
                         if wildcard is not None:
                             if callable(wildcard):
-                                if not wildcard(name):
+                                if not wildcard(basename(name)):
                                     continue
                             else:
-                                if not fnmatch(name,wildcard):
+                                if not fnmatch(basename(name),wildcard):
                                     continue
-                        yield (abspath(name),self._get_key_info(k,name))
+                        yield (pathjoin(path,name),self._get_key_info(k,name))
 
 
 
