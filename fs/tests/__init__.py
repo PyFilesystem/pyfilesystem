@@ -788,7 +788,7 @@ class FSTestCases(object):
             
 
     def test_big_file(self):
-        """Test big files (1MB)"""      
+        """Test handling of a big file (1MB)"""      
         chunk_size = 1024 * 256
         num_chunks = 4
         def chunk_stream():

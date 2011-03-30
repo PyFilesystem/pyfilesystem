@@ -971,6 +971,9 @@ class FS(object):
             try:
                 src_file = self.open(src, "rb")                
                 self.setcontents(dst, src_file, chunk_size=chunk_size)                
+            except ResourceNotFoundError:
+                if self.exists(src) and not self.exists(dirname(dst)):
+                    raise ParentDirectoryMissingError(dst)
             finally:
                 if src_file is not None:
                     src_file.close()                
