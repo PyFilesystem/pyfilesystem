@@ -54,7 +54,7 @@ class LazyFS(WrapFS):
         return state
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        super(LazyFS,self).__setstate__(state)
         self._lazy_creation_lock = Lock()
 
     def _get_wrapped_fs(self):

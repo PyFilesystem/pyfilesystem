@@ -395,6 +395,13 @@ class S3FS(FS):
                     raise ResourceInvalidError(path,msg=msg)
                 raise ResourceNotFoundError(path)
 
+    def _key_is_dir(self, k):
+        if isinstance(k,Prefix):
+            return True
+        if k.name.endswith(self._separator):
+            return True
+        return False
+
     def _filter_keys(self,path,keys,wildcard,full,absolute,
                                dirs_only,files_only):
         """Filter out keys not matching the given criteria.
@@ -406,9 +413,9 @@ class S3FS(FS):
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
         if dirs_only:
-            keys = ((nm,k) for (nm,k) in keys if k.name.endswith(sep))
+            keys = ((nm,k) for (nm,k) in keys if self._key_is_dir(k))
         elif files_only:
-            keys = ((nm,k) for (nm,k) in keys if not k.name.endswith(sep))
+            keys = ((nm,k) for (nm,k) in keys if not self._key_is_dir(k))
         if wildcard is not None:
             if callable(wildcard):
                 keys = ((nm,k) for (nm,k) in keys if wildcard(nm))
@@ -546,7 +553,7 @@ class S3FS(FS):
             info["name"] = basename(name)
         else:
             info["name"] = basename(self._uns3key(k.name))
-        if isinstance(key,Prefix):
+        if self._key_is_dir(key):
             info["st_mode"] = 0700 | statinfo.S_IFDIR
         else:
             info["st_mode"] =  0700 | statinfo.S_IFREG
@@ -554,6 +561,8 @@ class S3FS(FS):
             info['size'] = int(key.size)
         etag = getattr(key,"etag",None)
         if etag is not None:
+            if isinstance(etag,unicode):
+               etag = etag.encode("utf8")
             info['etag'] = etag.strip('"').strip("'")
         if hasattr(key,"last_modified"):
             # TODO: does S3 use any other formats?
@@ -633,7 +642,7 @@ class S3FS(FS):
                 yield item
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix):
+            for k in self._s3bukt.list(prefix=prefix): 
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
@@ -648,6 +657,34 @@ class S3FS(FS):
                                     continue
                         yield pathjoin(path,name)
 
+
+    def walkinfo(self,
+              path="/",
+              wildcard=None,
+              dir_wildcard=None,
+              search="breadth",
+              ignore_errors=False ):
+        if search != "breadth" or dir_wildcard is not None:
+            args = (wildcard,dir_wildcard,search,ignore_errors)
+            for item in super(S3FS,self).walkfiles(path,*args):
+                yield (item,self.getinfo(item))
+        else:
+            prefix = self._s3path(path)
+            for k in self._s3bukt.list(prefix=prefix): 
+                name = relpath(self._uns3path(k.name,prefix))
+                if name != "":
+                    if not isinstance(name,unicode):
+                        name = name.decode("utf8")
+                    if wildcard is not None:
+                        if callable(wildcard):
+                            if not wildcard(basename(name)):
+                                continue
+                        else:
+                            if not fnmatch(basename(name),wildcard):
+                                continue
+                    yield (pathjoin(path,name),self._get_key_info(k,name))
+
+
     def walkfilesinfo(self,
               path="/",
               wildcard=None,
@@ -660,7 +697,7 @@ class S3FS(FS):
                 yield (item,self.getinfo(item))
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix):
+            for k in self._s3bukt.list(prefix=prefix): 
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
