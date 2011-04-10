@@ -70,7 +70,6 @@ class LimitSizeFS(WrapFS):
                 self._set_file_size(path,None,1)
             else:
                 self.cur_size -= size
-                print "OPEN, SIZE NOW", self.cur_size
                 size = 0
                 self._set_file_size(path,0,1)
             return LimitSizeFile(f,mode,size,self,path)
@@ -115,27 +114,21 @@ class LimitSizeFS(WrapFS):
         with self._size_lock:
             try:
                 (cur_size,_) = self._file_sizes[path]
-                print "...LOADED", cur_size
             except KeyError:
-                print "...NOT LOADED"
                 try:
                     cur_size = self.getsize(path)
                 except ResourceNotFoundError:
                     cur_size = 0
                 self._set_file_size(path,cur_size,1)
-            print "WRITING", path, size, cur_size
             diff = size - cur_size
             if diff > 0:
                 if self.cur_size + diff > self.max_size:
                     raise StorageSpaceError("write")
                 self.cur_size += diff
-                print "WRITE, CUR SIZE NOW", self.cur_size
                 self._set_file_size(path,size)
-                print self._file_sizes[path]
                 return size
             elif diff < 0 and shrink:
                 self.cur_size += diff
-                print "WRITE, CUR SIZE NOW", self.cur_size
                 self._set_file_size(path,size)
                 return size
             else:
@@ -164,7 +157,6 @@ class LimitSizeFS(WrapFS):
                 size = self.getsize(path)
             super(LimitSizeFS,self).remove(path)
             self.cur_size -= size
-            print "REMOVE, SIZE NOW", self.cur_size
             self._file_sizes.pop(path,None)
 
     def removedir(self, path, recursive=False, force=False):

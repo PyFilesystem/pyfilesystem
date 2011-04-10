@@ -168,7 +168,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             prefix += os.path.sep
         if not os.path.normcase(path).startswith(prefix):
             raise ValueError("path not within this FS: %s (%s)" % (os.path.normcase(path),prefix))
-        return path[len(self.root_path):]
+        return normpath(path[len(self.root_path):])
 
     def getmeta(self, meta_name, default=NoDefaultMeta):
         
