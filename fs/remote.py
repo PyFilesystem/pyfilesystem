@@ -328,9 +328,11 @@ class ConnectionManagerFS(LazyFS):
         self._connection_cond = threading.Condition()
         self._poll_sleeper = threading.Event()
         
-    def wait_for_connection(self,timeout=None):
+    def wait_for_connection(self,timeout=None,force_wait=False):
         self._connection_cond.acquire()
         try:
+            if force_wait:
+                self.connected = False
             if not self.connected:
                 if not self._poll_thread:
                     target = self._poll_connection
@@ -344,7 +346,7 @@ class ConnectionManagerFS(LazyFS):
     def _poll_connection(self):
         while not self.connected and not self.closed:
             try:
-                self.wrapped_fs.isdir("")
+                self.wrapped_fs.getinfo("/")
             except RemoteConnectionError:
                 self._poll_sleeper.wait(self.poll_interval)
                 self._poll_sleeper.clear()
