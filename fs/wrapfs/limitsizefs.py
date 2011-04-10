@@ -48,8 +48,8 @@ class LimitSizeFS(WrapFS):
         self._file_sizes = PathMap()
         self.cur_size = self._get_cur_size()
 
-    def _get_cur_size(self):
-        return sum(self.getsize(f) for f in self.walkfiles())
+    def _get_cur_size(self,path="/"):
+        return sum(self.getsize(f) for f in self.walkfiles(path))
 
     def getsyspath(self, path, allow_none=False):
         #  If people could grab syspaths, they could route around our
@@ -144,10 +144,43 @@ class LimitSizeFS(WrapFS):
         FS.copydir(self,src,dst,**kwds)
 
     def move(self, src, dst, **kwds):
+        if self.getmeta("atomic.rename",False):
+            if kwds.get("overwrite",False) or not self.exists(dst):
+                try:
+                    self.rename(src,dst)
+                    return
+                except FSError:
+                    pass
+        raise OperationFailedError
         FS.move(self, src, dst, **kwds)
 
     def movedir(self, src, dst, **kwds):
+        overwrite = kwds.get("overwrite",False)
+        if self.getmeta("atomic.rename",False):
+            if kwds.get("overwrite",False) or not self.exists(dst):
+                try:
+                    self.rename(src,dst)
+                    return
+                except FSError:
+                    pass
+        raise OperationFailedError
         FS.movedir(self,src,dst,**kwds)
+
+    def rename(self, src, dst):
+        if self.getmeta("atomic.rename",False):
+            try:
+                dst_size = self._get_cur_size(dst)
+            except ResourceNotFoundError:
+                dst_size = 0
+            super(LimitSizeFS,self).rename(src,dst)
+            with self._size_lock:
+                self.cur_size -= dst_size
+                self._file_sizes.pop(src,None)
+        else:
+            if self.isdir(src):
+                self.movedir(src,dst)
+            else:
+                self.move(src,dst)
 
     def remove(self, path):
         with self._size_lock:
@@ -174,17 +207,6 @@ class LimitSizeFS(WrapFS):
             except ResourceNotFoundError:
                 pass
         super(LimitSizeFS,self).removedir(path,recursive=recursive)
-
-    def rename(self, src, dst):
-        if self.getmeta("atomic.rename",False):
-            super(LimitSizeFS,self).rename(src,dst)
-            with self._size_lock:
-                self._file_sizes.pop(src,None)
-        else:
-            if self.isdir(src):
-                self.movedir(src,dst)
-            else:
-                self.move(src,dst)
 
     def getinfo(self, path):
         info = super(LimitSizeFS,self).getinfo(path)
