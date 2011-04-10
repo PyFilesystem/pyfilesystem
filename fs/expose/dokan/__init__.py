@@ -602,9 +602,15 @@ class FSOperations(object):
         path = normpath(path)
         # setting ctime is not supported
         if atime is not None:
-            atime = _filetime2datetime(atime.contents)
+            try:
+                atime = _filetime2datetime(atime.contents)
+            except ValueError:
+                atime = None
         if mtime is  not None:
-            mtime = _filetime2datetime(mtime.contents)
+            try:
+                mtime = _filetime2datetime(mtime.contents)
+            except ValueError:
+                mtime = None
         #  some programs demand this succeed; fake it
         try:
             self.fs.settimes(path, atime, mtime)
