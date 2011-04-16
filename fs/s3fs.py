@@ -156,7 +156,8 @@ class S3FS(FS):
         self._tlocal = thread_local()
 
     def __str__(self):
-        return '<S3FS: %s:%s>' % (self._bucket_name,self._prefix)
+        args = (self.__class__.__name__,self._bucket_name,self._prefix)
+        return '<%s: %s:%s>' % args
 
     __repr__ = __str__
 
