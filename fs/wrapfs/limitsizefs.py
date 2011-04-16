@@ -151,7 +151,6 @@ class LimitSizeFS(WrapFS):
                     return
                 except FSError:
                     pass
-        raise OperationFailedError
         FS.move(self, src, dst, **kwds)
 
     def movedir(self, src, dst, **kwds):
@@ -163,7 +162,6 @@ class LimitSizeFS(WrapFS):
                     return
                 except FSError:
                     pass
-        raise OperationFailedError
         FS.movedir(self,src,dst,**kwds)
 
     def rename(self, src, dst):
