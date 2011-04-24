@@ -65,7 +65,8 @@ from logging import DEBUG, INFO, ERROR, CRITICAL
 import fs
 import fs.errors as errors
 from fs.path import abspath, relpath, normpath, dirname, pathjoin
-from fs import FS, NullFile, _thread_synchronize_default, SEEK_END
+from fs.base import FS, NullFile
+from fs import _thread_synchronize_default, SEEK_END
 from fs.remote import CacheFSMixin, RemoteFileBuffer
 from fs.base import fnmatch, NoDefaultMeta
 

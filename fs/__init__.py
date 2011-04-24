@@ -15,12 +15,11 @@ implementations of this interface such as:
 
 """
 
-__version__ = "0.4.0b3"
+__version__ = "0.4.0rc"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
-#  'base' imports * from 'path' and 'errors', so their
-#  contents will be available here as well.
-from base import *
+# No longer necessary - WM
+#from base import *
 
 #  provide these by default so people can use 'fs.path.basename' etc.
 import errors

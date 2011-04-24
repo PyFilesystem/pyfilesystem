@@ -48,7 +48,7 @@ def normpath(path):
                 
     components = []
     append = components.append
-    special = ('', '.', '..').__contains__  
+    special = ('..', '.', '').__contains__  
     try:
         for component in path.split('/'):
             if special(component):

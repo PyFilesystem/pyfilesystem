@@ -45,7 +45,7 @@ class DummyLock(object):
     
     """
 
-    def acquire(self,blocking=1):
+    def acquire(self, blocking=1):
         """Acquiring a DummyLock always succeeds."""
         return 1
 
