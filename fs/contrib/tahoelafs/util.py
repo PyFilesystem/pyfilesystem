@@ -16,7 +16,11 @@ try:
     # is not in standard CPython >=2.6 library.
     import simplejson as json
 except ImportError:
-    import json
+    try:
+        import json
+    except ImportError:
+        print "simplejson (http://pypi.python.org/pypi/simplejson/) required"
+        raise
     
 from .connection import Connection
 
