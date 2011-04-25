@@ -10,6 +10,7 @@ class from the :mod:`fs.expose.xmlrpc` module.
 
 import xmlrpclib
 import socket
+import threading
 
 from fs.base import *
 from fs.errors import *
@@ -106,14 +107,15 @@ class RPCFS(FS):
         :param uri: address of the server        
         
         """
+        super(RPCFS, self).__init__(thread_synchronize=True)
         self.uri = uri
         self._transport = transport
-        self.proxy = self._make_proxy()
-        FS.__init__(self,thread_synchronize=False)
+        self.proxy = self._make_proxy()        
         self.isdir('/')
 
+    @synchronize
     def _make_proxy(self):
-        kwds = dict(allow_none=True)
+        kwds = dict(allow_none=True, use_datetime=True)
         
         if self._transport is not None:
             proxy = xmlrpclib.ServerProxy(self.uri,self._transport,**kwds)
@@ -125,6 +127,7 @@ class RPCFS(FS):
     def __str__(self):
         return '<RPCFS: %s>' % (self.uri,)
 
+    @synchronize
     def __getstate__(self):
         state = super(RPCFS,self).__getstate__()
         try:
@@ -132,11 +135,12 @@ class RPCFS(FS):
         except KeyError:
             pass
         return state
-
+    
     def __setstate__(self, state):
         for (k,v) in state.iteritems():
             self.__dict__[k] = v
-        self.proxy = self._make_proxy()
+        self._lock = threading.RLock()         
+        self.proxy = self._make_proxy()        
 
     def encode_path(self, path):
         """Encode a filesystem path for sending over the wire.
@@ -151,14 +155,18 @@ class RPCFS(FS):
         """Decode paths arriving over the wire."""
         return path.decode("base64").decode("utf8")
     
+    @synchronize
     def getmeta(self, meta_name, default=NoDefaultMeta):
         if default is NoDefaultMeta:                
             return self.proxy.getmeta(meta_name)
         else:
-            return self.proxy.getmeta_default(meta_name, default)                     
+            return self.proxy.getmeta_default(meta_name, default)    
+    
+    @synchronize                     
     def hasmeta(self, meta_name):        
         return self.proxy.hasmeta(meta_name)
 
+    @synchronize
     def open(self, path, mode="r"):
         # TODO: chunked transport of large files
         path = self.encode_path(path)
@@ -182,33 +190,50 @@ class RPCFS(FS):
             f.seek(0,2)
         oldflush = f.flush
         oldclose = f.close
-        oldtruncate = f.truncate
+        oldtruncate = f.truncate        
         def newflush():
-            oldflush()
-            self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
+            self._lock.acquire()
+            try:
+                oldflush()
+                self.proxy.set_contents(path,xmlrpclib.Binary(f.getvalue()))
+            finally:
+                self._lock.release()
         def newclose():
-            f.flush()
-            oldclose()
+            self._lock.acquire()
+            try:
+                f.flush()
+                oldclose()
+            finally:
+                self._lock.release()
         def newtruncate(size=None):
-            oldtruncate(size)
-            f.flush()
+            self._lock.acquire()
+            try:
+                oldtruncate(size)
+                f.flush()
+            finally:
+                self._lock.release()
+                
         f.flush = newflush
         f.close = newclose
         f.truncate = newtruncate
         return f
 
+    @synchronize
     def exists(self, path):
         path = self.encode_path(path)
         return self.proxy.exists(path)
 
+    @synchronize
     def isdir(self, path):
         path = self.encode_path(path)
         return self.proxy.isdir(path)
 
+    @synchronize
     def isfile(self, path):
         path = self.encode_path(path)
         return self.proxy.isfile(path)
 
+    @synchronize
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
         enc_path = self.encode_path(path)
         if not callable(wildcard):
@@ -226,69 +251,84 @@ class RPCFS(FS):
                 entries = [abspath(pathjoin(path,e)) for e in entries]
         return entries
 
+    @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
         path = self.encode_path(path)
         return self.proxy.makedir(path,recursive,allow_recreate)
 
+    @synchronize
     def remove(self, path):
         path = self.encode_path(path)
         return self.proxy.remove(path)
 
+    @synchronize
     def removedir(self, path, recursive=False, force=False):
         path = self.encode_path(path)
         return self.proxy.removedir(path,recursive,force)
         
+    @synchronize
     def rename(self, src, dst):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.rename(src,dst)
 
+    @synchronize
     def settimes(self, path, accessed_time, modified_time):
         path = self.encode_path(path)
         return self.proxy.settimes(path, accessed_time, modified_time)
 
+    @synchronize
     def getinfo(self, path):
         path = self.encode_path(path)
         return self.proxy.getinfo(path)
 
+    @synchronize
     def desc(self, path):
         path = self.encode_path(path)
         return self.proxy.desc(path)
 
+    @synchronize
     def getxattr(self, path, attr, default=None):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.getxattr(path,attr,default)
 
+    @synchronize
     def setxattr(self, path, attr, value):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.setxattr(path,attr,value)
 
+    @synchronize
     def delxattr(self, path, attr):
         path = self.encode_path(path)
         attr = self.encode_path(attr)
         return self.fs.delxattr(path,attr)
 
+    @synchronize
     def listxattrs(self, path):
         path = self.encode_path(path)
         return [self.decode_path(a) for a in self.fs.listxattrs(path)]
 
+    @synchronize
     def copy(self, src, dst, overwrite=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.copy(src,dst,overwrite,chunk_size)
 
+    @synchronize
     def move(self, src, dst, overwrite=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.move(src,dst,overwrite,chunk_size)
 
+    @synchronize
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)
         return self.proxy.movedir(src, dst, overwrite, ignore_errors, chunk_size)
 
+    @synchronize
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         src = self.encode_path(src)
         dst = self.encode_path(dst)

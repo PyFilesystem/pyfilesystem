@@ -17,7 +17,7 @@ an FS object, which can then be exposed using whatever server you choose
 
 import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-
+from datetime import datetime
 
 class RPCFSInterface(object):
     """Wrapper to expose an FS via a XML-RPC compatible interface.
@@ -27,6 +27,7 @@ class RPCFSInterface(object):
     """
 
     def __init__(self, fs):
+        super(RPCFSInterface, self).__init__()
         self.fs = fs
 
     def encode_path(self, path):
@@ -98,6 +99,10 @@ class RPCFSInterface(object):
 
     def settimes(self, path, accessed_time, modified_time):
         path = self.decode_path(path)
+        if isinstance(accessed_time, xmlrpclib.DateTime):
+            accessed_time = datetime.strptime(accessed_time.value, "%Y%m%dT%H:%M:%S")
+        if isinstance(modified_time, xmlrpclib.DateTime):
+            modified_time = datetime.strptime(modified_time.value, "%Y%m%dT%H:%M:%S")            
         return self.fs.settimes(path, accessed_time, modified_time)
 
     def getinfo(self, path):

@@ -198,16 +198,18 @@ class SFTPFS(FS):
     def __del__(self):
         self.close()
 
+    @synchronize
     def __getstate__(self):
         state = super(SFTPFS,self).__getstate__()
         del state["_tlocal"]
         if self._owns_transport:
             state['_transport'] = self._transport.getpeername()
         return state
-
+   
     def __setstate__(self,state):
         for (k,v) in state.iteritems():
             self.__dict__[k] = v
+        self._lock = threading.RLock()
         self._tlocal = thread_local()
         if self._owns_transport:
             self._transport = paramiko.Transport(self._transport)
@@ -218,12 +220,13 @@ class SFTPFS(FS):
         try:
             return self._tlocal.client
         except AttributeError:
-            if self._transport is None:
-                return self._client
+            #if self._transport is None:
+            #    return self._client
             client = paramiko.SFTPClient.from_transport(self._transport)
             self._tlocal.client = client
             return client
 
+    @synchronize
     def close(self):
         """Close the connection to the remote server."""
         if not self.closed:
@@ -256,6 +259,7 @@ class SFTPFS(FS):
             url = 'sftp://%s%s' % (self.hostname.rstrip('/'), abspath(path))                    
         return url      
 
+    @synchronize
     @convert_os_errors
     def open(self,path,mode="rb",bufsize=-1):
         npath = self._normpath(path)
@@ -275,6 +279,7 @@ class SFTPFS(FS):
         f.truncate = new_truncate
         return f
 
+    @synchronize
     def desc(self, path):
         npath = self._normpath(path)
         if self.hostname:
@@ -283,6 +288,7 @@ class SFTPFS(FS):
             addr, port = self._transport.getpeername()
             return u'sftp://%s:%i%s' % (addr, port, self.client.normalize(npath))
 
+    @synchronize
     @convert_os_errors
     def exists(self,path):
         if path in ('', '/'):
@@ -296,6 +302,7 @@ class SFTPFS(FS):
             raise
         return True
 
+    @synchronize
     @convert_os_errors
     def isdir(self,path):
         if path in ('', '/'):
@@ -309,6 +316,7 @@ class SFTPFS(FS):
             raise
         return statinfo.S_ISDIR(stat.st_mode)
 
+    @synchronize
     @convert_os_errors
     def isfile(self,path):
         npath = self._normpath(path)
@@ -320,6 +328,7 @@ class SFTPFS(FS):
             raise
         return statinfo.S_ISREG(stat.st_mode)
 
+    @synchronize
     @convert_os_errors
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         npath = self._normpath(path)
@@ -360,7 +369,7 @@ class SFTPFS(FS):
                 
         return self._listdir_helper(path, paths, wildcard, full, absolute, False, False)
 
-
+    @synchronize
     @convert_os_errors
     def listdirinfo(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         npath = self._normpath(path)
@@ -404,12 +413,13 @@ class SFTPFS(FS):
         return [(p, getinfo(p)) for p in 
                     self._listdir_helper(path, paths, wildcard, full, absolute, False, False)]
 
+    @synchronize
     @convert_os_errors
     def makedir(self,path,recursive=False,allow_recreate=False):
         npath = self._normpath(path)
         try:
             self.client.mkdir(npath)
-        except IOError, e:
+        except IOError, _e:
             # Error code is unreliable, try to figure out what went wrong
             try:
                 stat = self.client.stat(npath)
@@ -431,6 +441,7 @@ class SFTPFS(FS):
                 else:
                     raise ResourceInvalidError(path,msg="Can't create directory, there's already a file of that name: %(path)s")
 
+    @synchronize
     @convert_os_errors
     def remove(self,path):
         npath = self._normpath(path)
@@ -443,6 +454,7 @@ class SFTPFS(FS):
                 raise ResourceInvalidError(path,msg="Cannot use remove() on a directory: %(path)s")
             raise
 
+    @synchronize
     @convert_os_errors
     def removedir(self,path,recursive=False,force=False):
         npath = self._normpath(path)
@@ -473,6 +485,7 @@ class SFTPFS(FS):
             except DirectoryNotEmptyError:
                 pass
 
+    @synchronize
     @convert_os_errors
     def rename(self,src,dst):
         nsrc = self._normpath(src)
@@ -486,6 +499,7 @@ class SFTPFS(FS):
                 raise ParentDirectoryMissingError(dst)
             raise
 
+    @synchronize
     @convert_os_errors
     def move(self,src,dst,overwrite=False,chunk_size=16384):
         nsrc = self._normpath(src)
@@ -503,6 +517,7 @@ class SFTPFS(FS):
                 raise ParentDirectoryMissingError(dst,msg="Destination directory does not exist: %(path)s")
             raise
 
+    @synchronize
     @convert_os_errors
     def movedir(self,src,dst,overwrite=False,ignore_errors=False,chunk_size=16384):
         nsrc = self._normpath(src)
@@ -537,6 +552,7 @@ class SFTPFS(FS):
             info['modified_time'] = fromtimestamp(mt)
         return info
 
+    @synchronize
     @convert_os_errors
     def getinfo(self, path):        
         npath = self._normpath(path)
@@ -554,6 +570,7 @@ class SFTPFS(FS):
             info['modified_time'] = datetime.datetime.fromtimestamp(mt)
         return info
 
+    @synchronize
     @convert_os_errors
     def getsize(self, path):
         npath = self._normpath(path)
