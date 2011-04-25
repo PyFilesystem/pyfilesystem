@@ -25,6 +25,9 @@ class WrongHostKeyError(RemoteConnectionError):
 # SFTPClient appears to not be thread-safe, so we use an instance per thread
 if hasattr(threading, "local"):
     thread_local = threading.local
+    #class TL(object):
+    #    pass
+    #thread_local = TL
 else:
     class thread_local(object):
         def __init__(self):
@@ -207,24 +210,33 @@ class SFTPFS(FS):
         return state
    
     def __setstate__(self,state):
-        for (k,v) in state.iteritems():
-            self.__dict__[k] = v
-        self._lock = threading.RLock()
+        super(SFTPFS, self).__setstate__(state) 
+        #for (k,v) in state.iteritems():
+        #    self.__dict__[k] = v
+        #self._lock = threading.RLock()
         self._tlocal = thread_local()
         if self._owns_transport:
             self._transport = paramiko.Transport(self._transport)
             self._transport.connect(**self._credentials)
 
     @property
+    @synchronize
     def client(self):
-        try:
-            return self._tlocal.client
-        except AttributeError:
-            #if self._transport is None:
-            #    return self._client
+        client = getattr(self._tlocal, 'client', None)
+        if client is None:
+            if self._transport is None:
+                return self._client
             client = paramiko.SFTPClient.from_transport(self._transport)
             self._tlocal.client = client
-            return client
+        return client
+#        try:
+#            return self._tlocal.client
+#        except AttributeError:
+#            #if self._transport is None:
+#            #    return self._client
+#            client = paramiko.SFTPClient.from_transport(self._transport)
+#            self._tlocal.client = client
+#            return client
 
     @synchronize
     def close(self):

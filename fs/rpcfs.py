@@ -137,9 +137,7 @@ class RPCFS(FS):
         return state
     
     def __setstate__(self, state):
-        for (k,v) in state.iteritems():
-            self.__dict__[k] = v
-        self._lock = threading.RLock()         
+        super(RPCFS, self).__setstate__(state)       
         self.proxy = self._make_proxy()        
 
     def encode_path(self, path):
