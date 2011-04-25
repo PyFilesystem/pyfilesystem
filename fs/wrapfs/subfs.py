@@ -31,15 +31,17 @@ class SubFS(WrapFS):
 
     def __str__(self):
         #return self.wrapped_fs.desc(self.sub_dir)
-        return '<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir)
+        return '<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir.lstrip('/'))
 
     def __unicode__(self):
-        return u'<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir)        
+        return u'<SubFS: %s/%s>' % (self.wrapped_fs, self.sub_dir.lstrip('/'))        
 
     def __repr__(self):
         return str(self)
 
-    def desc(self, path):
+    def desc(self, path):      
+        if path in ('', '/'):
+            return self.wrapped_fs.desc(self.sub_dir)
         return '%s!%s' % (self.wrapped_fs.desc(self.sub_dir), path)
         
     def setcontents(self, path, data, chunk_size=64*1024):
