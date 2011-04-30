@@ -51,7 +51,7 @@ from fs import _thread_synchronize_default
 class DirMount(object):
     def __init__(self, path, fs):
         self.path = path
-        self.fs = fs
+        self.fs = fs        
 
     def __str__(self):
         return "Mount point: <%s,%s>" % (self.path,self.fs,)
@@ -71,7 +71,6 @@ class FileMount(object):
 class MountFS(FS):
     """A filesystem that delegates to other filesystems."""
 
-
     _meta = { 'virtual': True,
               'read_only' : False,
               'unicode_paths' : True,
@@ -81,9 +80,10 @@ class MountFS(FS):
     DirMount = DirMount
     FileMount = FileMount
 
-    def __init__(self, thread_synchronize=_thread_synchronize_default):
+    def __init__(self, auto_close=True, thread_synchronize=_thread_synchronize_default):
+        self.auto_close = auto_close
         super(MountFS, self).__init__(thread_synchronize=thread_synchronize)
-        self.mount_tree = PathMap()
+        self.mount_tree = PathMap()        
 
     def __str__(self):
         return "<%s [%s]>" % (self.__class__.__name__,self.mount_tree.items(),)
@@ -120,6 +120,16 @@ class MountFS(FS):
             return None, None, None
         else:
             return self, "/", path
+
+    @synchronize
+    def close(self):
+        # Explicitly closes children if requested
+        if self.auto_close:
+            for mount in self.mount_tree.itervalues():            
+                mount.fs.close()
+        # Free references (which may incidently call the close method of the child filesystems)
+        self.mount_tree.clear()        
+        super(MountFS, self).close()            
 
     def getsyspath(self, path, allow_none=False):
         fs, _mount_path, delegate_path = self._delegate(path)
@@ -341,7 +351,6 @@ class MountFS(FS):
         if object is None:
             raise ResourceNotFoundError(src)
 
-        # TODO!
         raise UnsupportedError("rename resource", path=src)
 
     @synchronize
@@ -385,7 +394,7 @@ class MountFS(FS):
         """Mounts a host FS object on a given path.
         
         :param path: A path within the MountFS
-        :param fs: A filesystem object to mount
+        :param fs: A filesystem object to mount        
 
         """
         self.mount_tree[path] = MountFS.DirMount(path, fs)

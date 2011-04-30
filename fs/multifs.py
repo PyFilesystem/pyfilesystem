@@ -83,12 +83,18 @@ class MultiFS(FS):
               'case_insensitive_paths' : False
               }
 
-    def __init__(self):
+    def __init__(self, auto_close=True):
+        """
+        
+        :param auto_close: If True the child filesystems will be closed when the MultiFS is closed 
+        
+        """
         super(MultiFS, self).__init__(thread_synchronize=_thread_synchronize_default)
 
+        self.auto_close = auto_close
         self.fs_sequence = []
         self.fs_lookup =  {}
-        self.write_fs = None
+        self.write_fs = None        
 
     @synchronize
     def __str__(self):
@@ -100,7 +106,20 @@ class MultiFS(FS):
     def __unicode__(self):
         return u"<MultiFS: %s>" % ", ".join(unicode(fs) for fs in self.fs_sequence)
 
-
+    @synchronize
+    def close(self):
+        # Explicitly close if requested
+        if self.auto_close:
+            for fs in self.fs_sequence:
+                fs.close()
+            if self.write_fs is not None:
+                self.write_fs.close()            
+        # Discard any references
+        del self.fs_sequence[:]
+        self.fs_lookup.clear()
+        self.write_fs = None
+        super(MultiFS, self).close()
+        
     @synchronize
     def addfs(self, name, fs, write=False):
         """Adds a filesystem to the MultiFS.
