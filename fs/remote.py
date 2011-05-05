@@ -592,6 +592,8 @@ class CacheFSMixin(FS):
             return True
         except StopIteration:
             pass
+        except RuntimeError:
+            pass
         try:
             info = self.getinfo(path)
         except ResourceNotFoundError:
@@ -604,6 +606,8 @@ class CacheFSMixin(FS):
             self.__cache.iternames(path).next()
             return False
         except StopIteration:
+            pass
+        except RuntimeError:
             pass
         try:
             info = self.getinfo(path)
@@ -640,7 +644,7 @@ class CacheFSMixin(FS):
                 ci = CachedInfo(info)
                 self.__set_cached_info(cpath,ci)
             to_del = []
-            for nm in self.__cache.iternames(path):
+            for nm in self.__cache.names(path):
                 if nm not in names:
                     to_del.append(nm)
             for nm in to_del:
@@ -697,33 +701,33 @@ class CacheFSMixin(FS):
     def rename(self,src,dst):
         super(CacheFSMixin,self).rename(src,dst)
         with self.__cache_lock:
-            for (subpath,ci) in self.__cache.iteritems(src):
+            for (subpath,ci) in self.__cache.items(src):
                 self.__cache[pathjoin(dst,subpath)] = ci.clone()
             self.__cache.clear(src)
 
     def copy(self,src,dst,**kwds):
         super(CacheFSMixin,self).copy(src,dst,**kwds)
         with self.__cache_lock:
-            for (subpath,ci) in self.__cache.iteritems(src):
+            for (subpath,ci) in self.__cache.items(src):
                 self.__cache[pathjoin(dst,subpath)] = ci.clone()
 
     def copydir(self,src,dst,**kwds):
         super(CacheFSMixin,self).copydir(src,dst,**kwds)
         with self.__cache_lock:
-            for (subpath,ci) in self.__cache.iteritems(src):
+            for (subpath,ci) in self.__cache.items(src):
                 self.__cache[pathjoin(dst,subpath)] = ci.clone()
 
     def move(self,src,dst,**kwds):
         super(CacheFSMixin,self).move(src,dst,**kwds)
         with self.__cache_lock:
-            for (subpath,ci) in self.__cache.iteritems(src):
+            for (subpath,ci) in self.__cache.items(src):
                 self.__cache[pathjoin(dst,subpath)] = ci.clone()
             self.__cache.clear(src)
 
     def movedir(self,src,dst,**kwds):
         super(CacheFSMixin,self).movedir(src,dst,**kwds)
         with self.__cache_lock:
-            for (subpath,ci) in self.__cache.iteritems(src):
+            for (subpath,ci) in self.__cache.items(src):
                 self.__cache[pathjoin(dst,subpath)] = ci.clone()
             self.__cache.clear(src)
 

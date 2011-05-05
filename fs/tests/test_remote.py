@@ -77,6 +77,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
     def tearDown(self):        
         self.fs.close()
+        self.fakeOff()
 
     def fake_setcontents(self, path, content='', chunk_size=16*1024):
         ''' Fake replacement for RemoteTempFS setcontents() '''
@@ -139,6 +140,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         f.flush()
         # We are on the end of file (and buffer not serve anything anymore)
         self.assertEquals(f.read(), '')
+        f.close()
         
         self.fakeOn()
         
@@ -147,6 +149,8 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         f = self.fs.open('test.txt', 'rb')
         self.assertEquals(f.read(), contents[:-5] + u'1234567890')
         f.close()
+
+        self.fakeOff()
     
     def test_writeonflush(self):
         '''
@@ -161,6 +165,9 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         self.assertRaises(self.FakeException, f.flush)
         f.write('Second sample text')
         self.assertRaises(self.FakeException, f.close)
+        self.fakeOff()
+        f.close()
+        self.fakeOn()
         
         f = self.fs.open('test.txt', 'wb', write_on_flush=False)
         f.write('Sample text')
@@ -168,6 +175,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         f.flush()
         f.write('Second sample text')
         self.assertRaises(self.FakeException, f.close)
+        self.fakeOff()
         
     def test_flush_and_continue(self):
         '''
