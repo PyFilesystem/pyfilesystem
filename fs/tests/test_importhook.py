@@ -71,6 +71,7 @@ class TestFSImportHook(unittest.TestCase):
             m = ih.load_module("fsih_hello")
             self.assertEquals(m.message,"hello world!")
             self.assertRaises(ImportError,ih.load_module,"fsih_helo")
+            ih.load_module("fsih_pkg")
             m = ih.load_module("fsih_pkg.sub1")
             self.assertEquals(m.message,"hello world!")
             self.assertEquals(m.a,42)
