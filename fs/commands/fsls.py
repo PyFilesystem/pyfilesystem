@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from fs.errors import FSError
 from fs.opener import opener
 from fs.path import pathsplit, abspath, isdotfile, iswildcard
 from fs.commands.runner import Command
