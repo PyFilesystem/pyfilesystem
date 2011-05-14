@@ -134,9 +134,9 @@ class response(_davbase):
     """XML model for an individual response in a multi-status message."""
     href = HrefField()
     # TODO: ensure only one of hrefs/propstats
-    hrefs = fields.List(HrefField(),minlength=1,required=False)
+    hrefs = fields.List(HrefField(),required=False)
     status = StatusField(required=False)
-    propstats = fields.List("propstat",minlenth=1,required=False)
+    propstats = fields.List("propstat",required=False)
     description = fields.String(tagname="responsedescription",required=False)
 
 
