@@ -57,7 +57,7 @@ Display information regarding an FS resource"""
             for k, v in info.items():
                 if k.startswith('_'):
                     del info[k]
-                elif not isinstance(v, (basestring, int, float, bool, datetime)):
+                elif not isinstance(v, (basestring, int, long, float, bool, datetime)):
                     del info[k]                
                         
             if keys:            
