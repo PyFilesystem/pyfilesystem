@@ -350,7 +350,7 @@ class OSFSOpener(Opener):
         
 class ZipOpener(Opener):
     names = ['zip', 'zip64']    
-    desc = """Opens zip files. Use zip64 for > 2 megabyte zip files, if you have a 64 bit processor.
+    desc = """Opens zip files. Use zip64 for > 2 gigabyte zip files, if you have a 64 bit processor.
     
     examples:
     * zip://myzip.zip (open a local zip file)
@@ -370,7 +370,10 @@ class ZipOpener(Opener):
                 open_mode = 'rb'
         else:
             open_mode = 'w+'
-        zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
+        if zip_fs.hassyspath(zip_path):
+            zip_file = zip_fs.getsyspath(zip_path)
+        else:
+            zip_file = zip_fs.open(zip_path, mode=open_mode)                                            
                         
         _username, _password, fs_path = _parse_credentials(fs_path)
         
