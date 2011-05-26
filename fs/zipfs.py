@@ -111,6 +111,9 @@ class ZipFS(FS):
         if isinstance(zip_file, basestring):
             zip_file = os.path.expanduser(os.path.expandvars(zip_file))
             zip_file = os.path.normpath(os.path.abspath(zip_file))
+            self._zip_file_string = True
+        else:
+            self._zip_file_string = False
         
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allow_zip_64)
@@ -181,7 +184,10 @@ class ZipFS(FS):
                                            path=path,
                                            msg="1 Zip file must be opened for reading ('r') or appending ('a')")
             try:
-                contents = self.zf.read(path.encode(self.encoding))
+                if hasattr(self.zf, 'open') and self._zip_file_string:
+                    return self.zf.open(path.encode(self.encoding))
+                else:
+                    contents = self.zf.read(path.encode(self.encoding))
             except KeyError:
                 raise ResourceNotFoundError(path)
             return StringIO(contents)
