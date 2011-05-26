@@ -1179,10 +1179,14 @@ class FS(object):
         print_fs(self, max_levels=max_levels)
     tree = printtree
     
-    def browse(self):
-        """Displays the FS tree in a graphical window (requires wxPython)"""
+    def browse(self, hide_dotfiles=False):
+        """Displays the FS tree in a graphical window (requires wxPython)
+        
+        :param hide_dotfiles: If True, files and folders that begin with a dot will be hidden
+        
+        """
         from fs.browsewin import browse
-        browse(self)
+        browse(self, hide_dotfiles)
 
     def getmmap(self, path, read_only=False, copy=False):
         """Returns a mmap object for this path.

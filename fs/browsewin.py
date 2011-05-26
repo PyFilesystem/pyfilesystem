@@ -183,12 +183,12 @@ def browse(fs, hide_dotfiles=False):
     object. Double-click a file/folder to display extra info.
 
     :param fs: A filesystem object
-    :param hide_fotfiles: If True, files and folders that begin with a dot will be hidden
+    :param hide_dotfiles: If True, files and folders that begin with a dot will be hidden
 
     """
 
     app = wx.PySimpleApp()
-    frame = BrowseFrame(fs, hide_dotfiles=True)
+    frame = BrowseFrame(fs, hide_dotfiles=hide_dotfiles)
     frame.Show()
     app.MainLoop()
 
@@ -196,4 +196,4 @@ def browse(fs, hide_dotfiles=False):
 if __name__ == "__main__":
     from osfs import OSFS
     home_fs = OSFS("~/")
-    browse(home_fs)
+    browse(home_fs, True)
