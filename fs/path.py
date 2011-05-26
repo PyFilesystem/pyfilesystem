@@ -108,6 +108,11 @@ def recursepath(path, reverse=False):
         return paths[::-1]
     return paths        
 
+
+def isabs(path):
+    """Return True if path is an absolute path."""
+    return path.startswith('/')
+
 def abspath(path):
     """Convert the given path to an absolute path.
 
