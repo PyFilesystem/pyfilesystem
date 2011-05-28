@@ -9,6 +9,7 @@ from fs.base import FS
 from fs.path import normpath
 from fs.errors import ResourceNotFoundError, UnsupportedError
 from urllib2 import urlopen, URLError
+from datetime import datetime
 from fs.filelike import FileWrapper
 
 class HTTPFS(FS):
@@ -79,3 +80,13 @@ class HTTPFS(FS):
                       dirs_only=False,
                       files_only=False):
         return []
+
+    def getinfo(self, path):
+        url = self._make_url(path)
+        info = urlopen(url).info().dict
+        if 'content-length' in info:
+            info['size'] = info['content-length']
+        if 'last-modified' in info:
+            info['modified_time'] = datetime.strptime(info['last-modified'],
+                                                      "%a, %d %b %Y %H:%M:%S %Z")
+        return info
