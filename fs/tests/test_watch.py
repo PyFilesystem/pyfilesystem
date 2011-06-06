@@ -53,14 +53,16 @@ class WatcherTestCases:
         else:
             time.sleep(2)#0.5)
 
-    def assertEventOccurred(self,cls,path=None,**attrs):
-        if not self.checkEventOccurred(cls,path,**attrs):
+    def assertEventOccurred(self,cls,path=None,event_list=None,**attrs):
+        if not self.checkEventOccurred(cls,path,event_list,**attrs):
             args = (cls.__name__,path,attrs)
             assert False, "Event did not occur: %s(%s,%s)" % args
 
-    def checkEventOccurred(self,cls,path=None,**attrs):
+    def checkEventOccurred(self,cls,path=None,event_list=None,**attrs):
+        if event_list is None:
+            event_list = self._captured_events
         self.waitForEvents()
-        for event in self._captured_events:
+        for event in event_list:
             if isinstance(event,cls):
                 if path is None or event.path == path:
                     for (k,v) in attrs.iteritems():
@@ -82,7 +84,7 @@ class WatcherTestCases:
         self.watchfs.add_watcher(events2.append)
         self.fs.makedir("test1")
         self.assertEventOccurred(CREATED,"/test1")
-        self.assertTrue(isinstance(events2[0],CREATED))
+        self.assertEventOccurred(CREATED,"/test1",event_list=events2)
 
     def test_watch_readfile(self):
         self.setupWatchers()
