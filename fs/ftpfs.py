@@ -651,7 +651,7 @@ class _FTPFile(object):
             return ''
 
         chunks = []
-        if size is None:
+        if size is None or size < 0:
             while 1:
                 data = self.conn.recv(self.blocksize)
                 if not data:
