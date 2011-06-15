@@ -32,6 +32,7 @@ an SFTP server::
 
 """
 
+import os
 import sys
 import imp
 import marshal
@@ -58,11 +59,13 @@ class FSImportHook(object):
         #  If given a string, try to open it as an FS url.
         #  Don't open things on the local filesystem though.
         if isinstance(fs_or_url,basestring):
-            if ":" not in fs_or_url:
+            if ":/" not in fs_or_url:
                 raise ImportError
             try:
                 self.fs = fsopendir(fs_or_url)
             except OpenerError:
+                raise ImportError
+            except (CreateFailedError,ResourceNotFoundError,):
                 raise ImportError
             self.path = fs_or_url
         #  Otherwise, it must be an FS object of some sort.

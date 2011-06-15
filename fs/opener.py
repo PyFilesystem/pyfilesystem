@@ -84,10 +84,7 @@ def _expand_syspath(path):
     if path is None:
         return path
     path = os.path.expanduser(os.path.expandvars(path))
-    path = path.replace('\\', '/')
-    if not path.startswith('/'):
-        path = os.path.join(getcwd(), path)        
-    path = normpath(path)
+    path = os.path.normpath(os.path.abspath(path))
     return path
     
 def _parse_credentials(url):
@@ -207,8 +204,7 @@ class OpenerRegistry(object):
                 path = paths.pop()
                 fs_url = '%s!%s' % (fs_url, '!'.join(paths))
             
-            fs_name = fs_name or self.default_opener                                                                    
-                
+            fs_name = fs_name or self.default_opener
         else:
             fs_name = default_fs_name or self.default_opener
             fs_url = _expand_syspath(fs_url) 
@@ -219,7 +215,7 @@ class OpenerRegistry(object):
         
         if fs_url is None:
             raise OpenerError("Unable to parse '%s'" % orig_url)        
-        
+
         fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create_dir)
         
         if fs_path and iswildcard(fs_path):
@@ -340,11 +336,11 @@ class OSFSOpener(Opener):
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.osfs import OSFS 
                                             
-        path = normpath(fs_path)
+        path = os.path.normpath(fs_path)
         if create_dir and not os.path.exists(path):
             from fs.osfs import _os_makedirs                    
             _os_makedirs(path)            
-        dirname, resourcename = pathsplit(fs_path)
+        dirname, resourcename = os.path.split(fs_path)
         osfs = OSFS(dirname)
         return osfs, resourcename                
         
@@ -862,3 +858,4 @@ opener = OpenerRegistry([OSFSOpener,
 
 fsopen = opener.open
 fsopendir = opener.opendir
+
