@@ -37,7 +37,7 @@ class _TempWriteFile(object):
     def __init__(self, fs, filename, close_callback):
         self.fs = fs
         self.filename = filename
-        self._file = self.fs.open(filename, 'w+')
+        self._file = self.fs.open(filename, 'wb+')
         self.close_callback = close_callback
 
     def write(self, data):
