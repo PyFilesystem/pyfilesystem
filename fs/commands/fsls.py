@@ -42,8 +42,8 @@ List contents of [PATH]"""
         dir_paths = []   
         file_paths = []
         fs_used = set()             
-        for fs_url in args:                        
-            fs, path = self.open_fs(fs_url) 
+        for fs_url in args:
+            fs, path = self.open_fs(fs_url)            
             fs_used.add(fs)               
             path = path or '.'
             wildcard = None

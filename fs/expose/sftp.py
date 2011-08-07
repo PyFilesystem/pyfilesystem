@@ -245,7 +245,10 @@ class SFTPRequestHandler(sockserv.StreamRequestHandler):
         t.start_server(server=self.server)
 
 
-class BaseSFTPServer(sockserv.TCPServer,paramiko.ServerInterface):
+class ThreadedTCPServer(sockserv.TCPServer, sockserv.ThreadingMixIn):
+    pass
+
+class BaseSFTPServer(ThreadedTCPServer, paramiko.ServerInterface):
     """SocketServer.TCPServer subclass exposing an FS via SFTP.
 
     BaseSFTPServer combines a simple SocketServer.TCPServer subclass with an
@@ -318,6 +321,7 @@ if __name__ == "__main__":
     from fs.tempfs import TempFS
     server = BaseSFTPServer(("localhost",8022),TempFS())
     try:
+        #import rpdb2; rpdb2.start_embedded_debugger('password')
         server.serve_forever()
     except (SystemExit,KeyboardInterrupt):
         server.server_close()

@@ -245,7 +245,7 @@ class Command(object):
             for col_no, col in enumerate(row):
                 td = col.ljust(max_row_widths[col_no])
                 if col_no in col_process:
-                     td = col_process[col_no](td)
+                    td = col_process[col_no](td)
                 out_col.append(td)
             lines.append(self.text_encode('%s\n' % '  '.join(out_col).rstrip()))
         self.output(''.join(lines))        

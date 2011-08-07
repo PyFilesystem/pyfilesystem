@@ -19,10 +19,28 @@ class _SocketFile(object):
     def write(self, data):
         self.socket.sendall(data)
 
-class ConnectionThread(threading.Thread):
+
+def remote_call(method_name=None):
+    method = method_name    
+    def deco(f):
+        if not hasattr(f, '_remote_call_names'):
+            f._remote_call_names = []        
+        f._remote_call_names.append(method or f.__name__)
+        return f      
+    return deco
+
+
+class RemoteResponse(Exception):
+    def __init__(self, header, payload):
+        self.header = header
+        self.payload = payload
+
+class ConnectionHandlerBase(threading.Thread):
+    
+    _methods = {}
     
     def __init__(self, server, connection_id, socket, address):
-        super(ConnectionThread, self).__init__()
+        super(ConnectionHandlerBase, self).__init__()
         self.server = server
         self.connection_id = connection_id        
         self.socket = socket
@@ -33,6 +51,16 @@ class ConnectionThread(threading.Thread):
     
         self._lock = threading.RLock()
         self.socket_error = None
+          
+        if not self._methods:  
+            for method_name in dir(self):
+                method = getattr(self, method_name)
+                if callable(method) and hasattr(method, '_remote_call_names'):
+                    for name in method._remote_call_names:
+            
+                        self._methods[name] = method
+                        
+        print self._methods
             
         self.fs = None        
     
@@ -70,17 +98,37 @@ class ConnectionThread(threading.Thread):
     def on_packet(self, header, payload):
         print '-' * 30
         print repr(header)
-        print repr(payload)            
-        
-        if header['method'] == 'ping':
-            self.encoder.write({'client_ref':header['client_ref']}, payload)
-         
+        print repr(payload)
+        if header['type'] == 'rpc':
+            method = header['method']
+            args = header['args']
+            kwargs = header['kwargs']
+            method_callable = self._methods[method]
+            remote = dict(type='rpcresult',
+                          client_ref = header['client_ref'])
+            try:
+                response = method_callable(*args, **kwargs)
+                remote['response'] = response
+                self.encoder.write(remote, '')
+            except RemoteResponse, response:
+                self.encoder.write(response.header, response.payload)                                
 
+class RemoteFSConnection(ConnectionHandlerBase):
+
+    @remote_call()
+    def auth(self, username, password, resource):
+        self.username = username
+        self.password = password
+        self.resource = resource
+        from fs.memoryfs import MemoryFS
+        self.fs = MemoryFS()
+        
 class Server(object):
     
-    def __init__(self, addr='', port=3000):
+    def __init__(self, addr='', port=3000, connection_factory=RemoteFSConnection):
         self.addr = addr
         self.port = port
+        self.connection_factory = connection_factory
         self.socket = None
         self.connection_id = 0
         self.threads = {}
@@ -124,10 +172,10 @@ class Server(object):
         print "Connection from", address
         with self._lock:
             self.connection_id += 1
-            thread = ConnectionThread(self,
-                                      self.connection_id,
-                                      clientsocket,
-                                      address)            
+            thread = self.connection_factory(self,
+                                             self.connection_id,
+                                             clientsocket,
+                                             address)            
             self.threads[self.connection_id] = thread            
             thread.start()            
         

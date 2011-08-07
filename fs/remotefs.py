@@ -1,5 +1,5 @@
 # Work in Progress - Do not use
-
+from __future__ import with_statement
 from fs.base import FS
 from fs.expose.serve import packetstream
 
@@ -107,18 +107,39 @@ class _SocketFile(object):
     def close(self):
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
-        
+     
+
+class _RemoteFile(object):
+    
+    def __init__(self, path, connection):
+        self.path = path
+        self.connection = connection  
 
 class RemoteFS(FS):
     
-    def __init__(self, addr='', port=3000, transport=None):
+    _meta = { 'thead_safe' : True,
+              'network' : True,
+              'virtual' : False,
+              'read_only' : False,
+              'unicode_paths' : True,
+              }
+    
+    def __init__(self, addr='', port=3000, username=None, password=None, resource=None, transport=None):
         self.addr = addr
         self.port = port
+        self.username = None
+        self.password = None
+        self.resource = None
         self.transport = transport
         if self.transport is None:
             self.transport = self._open_connection()
         self.packet_handler = PacketHandler(self.transport)  
         self.packet_handler.start()  
+        
+        self._remote_call('auth',
+                          username=username,
+                          password=password,
+                          resource=resource)
         
     def _open_connection(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -126,7 +147,20 @@ class RemoteFS(FS):
         socket_file = _SocketFile(sock)
         socket_file.write('pyfs/0.1\n')
         return socket_file
+    
+    def _make_call(self, method_name, *args, **kwargs):
+        call = dict(type='rpc',
+                    method=method_name,
+                    args=args,
+                    kwargs=kwargs)
+        return call        
         
+    def _remote_call(self, method_name, *args, **kwargs):
+        call = self._make_call(method_name, *args, **kwargs)
+        call_id = self.packet_handler.send_packet(call)
+        header, payload = self.packet_handler.get_packet(call_id)
+        return header, payload
+    
     def ping(self, msg):
         call_id = self.packet_handler.send_packet({'type':'rpc', 'method':'ping'}, msg)
         header, payload = self.packet_handler.get_packet(call_id)
@@ -137,11 +171,18 @@ class RemoteFS(FS):
     def close(self):
         self.transport.close()
         self.packet_handler.join()
+    
+    def open(self, path, mode="r", **kwargs):
+        pass
+    
+    def exists(self, path):
+        remote = self._remote_call('exists', path)
+        return remote.get('response')
+        
         
 
 if __name__ == "__main__":
     
-    rfs = RemoteFS()
-    rfs.ping("Hello, World!")
+    rfs = RemoteFS()    
     rfs.close()
     

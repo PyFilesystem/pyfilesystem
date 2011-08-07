@@ -139,10 +139,10 @@ class SFTPFS(FS):
         if not connection.is_active():
             raise RemoteConnectionError(msg='Unable to connect')
         
-        if no_auth:
+        if no_auth:            
             try:
                 connection.auth_none('')
-            except paramiko.SSHException:
+            except paramiko.SSHException:                
                 pass
         
         elif not connection.is_authenticated():
@@ -222,6 +222,8 @@ class SFTPFS(FS):
     @property
     @synchronize
     def client(self):
+        if self.closed:
+            return None
         client = getattr(self._tlocal, 'client', None)
         if client is None:
             if self._transport is None:
@@ -242,9 +244,10 @@ class SFTPFS(FS):
     def close(self):
         """Close the connection to the remote server."""
         if not self.closed:
-            if self.client:
-                self.client.close()
-            if self._owns_transport and self._transport:
+            self._tlocal = None
+            #if self.client:
+            #    self.client.close()
+            if self._owns_transport and self._transport and self._transport.is_active:
                 self._transport.close()
             self.closed = True
 

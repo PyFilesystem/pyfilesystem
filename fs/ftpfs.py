@@ -1209,7 +1209,7 @@ class FTPFS(FS):
     @ftperrors
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):                
         path = normpath(path)
-        self.clear_dircache(path)
+        #self.clear_dircache(path)
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         if not self.isdir(path):

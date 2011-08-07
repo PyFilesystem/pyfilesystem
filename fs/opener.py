@@ -174,7 +174,7 @@ class OpenerRegistry(object):
         for name in opener.names:
             self.registry[name] = index
     
-    def parse(self, fs_url, default_fs_name=None, writeable=False, create_dir=False):
+    def parse(self, fs_url, default_fs_name=None, writeable=False, create_dir=False, cache_hint=True):
         """Parses a FS url and returns an fs object a path within that FS object
         (if indicated in the path). A tuple of (<FS instance>, <path>) is returned.
         
@@ -216,7 +216,8 @@ class OpenerRegistry(object):
         if fs_url is None:
             raise OpenerError("Unable to parse '%s'" % orig_url)        
 
-        fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create_dir)
+        fs, fs_path = opener.get_fs(self, fs_name, fs_name_params, fs_url, writeable, create_dir)        
+        fs.cache_hint(cache_hint)
         
         if fs_path and iswildcard(fs_path):
             pathname, resourcename = pathsplit(fs_path or '')
@@ -432,7 +433,7 @@ examples:
                  
         dirpath, resourcepath = pathsplit(path)        
         url = netloc
-                                
+        
         ftpfs = FTPFS(url, user=username or '', passwd=password or '')
         ftpfs.cache_hint(True)
         

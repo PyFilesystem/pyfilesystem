@@ -237,6 +237,7 @@ def splitext(path):
     path = pathjoin(parent_path, pathname)
     return path, '.' + ext
 
+
 def isdotfile(path):
     """Detects if a path references a dot file, i.e. a resource who's name
     starts with a '.'
@@ -255,6 +256,7 @@ def isdotfile(path):
     """
     return basename(path).startswith('.')
 
+
 def dirname(path):
     """Returns the parent directory of a path.
 
@@ -265,12 +267,16 @@ def dirname(path):
 
     >>> dirname('foo/bar/baz')
     'foo/bar'
+    
+    >>> dirname('/foo/bar')
+    '/foo'
+    
+    >>> dirname('/foo')
+    '/'
 
     """
-    if '/' not in path:
-        return ''
-    return path.rsplit('/', 1)[0]
-    
+    return pathsplit(path)[0]
+
 
 def basename(path):
     """Returns the basename of the resource referenced by a path.
@@ -290,9 +296,7 @@ def basename(path):
     ''
 
     """
-    if '/' not in path:
-        return path
-    return path.rsplit('/', 1)[-1]
+    return pathsplit(path)[1]
 
 
 def issamedir(path1, path2):
@@ -309,10 +313,12 @@ def issamedir(path1, path2):
     """
     return dirname(normpath(path1)) == dirname(normpath(path2))
 
+
 def isbase(path1, path2):
     p1 = forcedir(abspath(path1))
     p2 = forcedir(abspath(path2))
     return p1 == p2 or p1.startswith(p2) 
+
 
 def isprefix(path1, path2):
     """Return true is path1 is a prefix of path2.
@@ -340,6 +346,7 @@ def isprefix(path1, path2):
         if bit1 != bit2:
             return False
     return True
+
 
 def forcedir(path):
     """Ensure the path ends with a trailing /

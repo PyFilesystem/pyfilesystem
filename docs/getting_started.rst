@@ -13,14 +13,22 @@ The easiest way to install PyFilesystem is with `easy_install <http://peak.telec
 Add the -U switch if you want to upgrade a previous installation::
 
 	easy_install -U fs
+	
+If you prefer to use Pip (http://pypi.python.org/pypi/pip) to install Python packages, the procedure is much the same::
 
-This will install the latest stable release. If you would prefer to install the cutting edge release then you can get the latest copy of the source via SVN::
+	pip install fs
+	
+Or to upgrade::
+
+	pip install fs --upgrade
+
+You can also install the cutting edge release by checking out the source via SVN::
 
     svn checkout http://pyfilesystem.googlecode.com/svn/trunk/ pyfilesystem-read-only
     cd pyfilesystem-read-only
     python setup.py install
 
-You should now have the `fs` module on your path:
+Whichever method you use, you should now have the `fs` module on your path (version number may vary)::
 
     >>> import fs
     >>> fs.__version__

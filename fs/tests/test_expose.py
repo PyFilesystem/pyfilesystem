@@ -29,6 +29,22 @@ class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
         port = 3000
         self.temp_fs = TempFS()
         self.server = None
+        
+        self.serve_more_requests = True
+        self.server_thread = threading.Thread(target=self.runServer)
+        self.server_thread.setDaemon(True) 
+        
+        self.start_event = threading.Event()
+        self.end_event = threading.Event()
+                   
+        self.server_thread.start()
+        
+        self.start_event.wait()
+
+    def runServer(self):
+        """Run the server, swallowing shutdown-related execptions."""
+        
+        port = 3000
         while not self.server:
             try:
                 self.server = self.makeServer(self.temp_fs,("127.0.0.1",port))
@@ -37,24 +53,26 @@ class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
                     port += 1
                 else:
                     raise
-        self.server_addr = ("127.0.0.1",port)
-        self.serve_more_requests = True
-        self.server_thread = threading.Thread(target=self.runServer)
-        self.server_thread.daemon = True            
-        self.server_thread.start()
-
-    def runServer(self):
-        """Run the server, swallowing shutdown-related execptions."""
-        if sys.platform != "win32":
-            try:
-                self.server.socket.settimeout(0.1)
-            except socket.error:
-                pass
+        self.server_addr = ("127.0.0.1", port)
+        
+        self.server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
+#        if sys.platform != "win32":
+#            try:
+#                self.server.socket.settimeout(1)
+#            except socket.error:
+#                pass
+#        
+        self.start_event.set()
+        
         try:
+            #self.server.serve_forever()
             while self.serve_more_requests:
                 self.server.handle_request()
         except Exception, e:
             pass
+        
+        self.end_event.set()
 
     def setUp(self):
         self.startServer()
@@ -62,12 +80,21 @@ class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
     def tearDown(self):
         self.serve_more_requests = False
+        #self.server.socket.close()
+#            self.server.socket.shutdown(socket.SHUT_RDWR)
+#            self.server.socket.close()
+#            self.temp_fs.close()
+        #self.server_thread.join()
+        
+        #self.end_event.wait()
+        #return
+        
         try:
             self.bump()
             self.server.server_close()
         except Exception:
             pass
-        self.server_thread.join()
+        #self.server_thread.join()
         self.temp_fs.close()
 
     def bump(self):

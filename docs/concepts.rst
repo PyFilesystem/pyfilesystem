@@ -1,7 +1,7 @@
 Concepts
 ========
 
-It is generally quite easy to get in to the mind-set of using PyFilesystem interface over lower level interfaces (since the code tends to be simpler) but there are a few concepts which you will need to keep in mind.
+Working with PyFilesystem is generally easier than working with lower level interfaces, as long as you are aware these simple concepts. 
 
 Sandboxing
 ----------
@@ -25,7 +25,9 @@ We can open the `foo` directory with the following code::
 	from fs.osfs import OSFS
 	foo_fs = OSFS('foo')
 
-The `foo_fs` object can work with any of the contents of `bar` and `baz`, which may not be desirable, especially if we are passing `foo_fs` to an untrusted function or one that could potentially delete files. Fortunately we can isolate a single sub-directory with then :meth:`~fs.base.FS.opendir` method::
+The `foo_fs` object can work with any of the contents of `bar` and `baz`, which may not be desirable,
+especially if we are passing `foo_fs` to an untrusted function or to a function that has the potential to delete files.
+Fortunately we can isolate a single sub-directory with then :meth:`~fs.base.FS.opendir` method::
 
 	bar_fs = foo_fs.opendir('bar')
 
@@ -54,7 +56,7 @@ When working with paths in FS objects, keep in mind the following:
  * A double dot means 'previous directory'
  
 Note that paths used by the FS interface will use this format, but the constructor or additional methods may not.
-Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which can be platform-dependent.
+Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which is platform-dependent.
 
 There are many helpful functions for working with paths in the :mod:`fs.path` module.
 
