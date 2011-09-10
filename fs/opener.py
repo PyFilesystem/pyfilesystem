@@ -67,6 +67,7 @@ __all__ = ['OpenerError',
            'HTTPOpener']
 
 from fs.path import pathsplit, join, iswildcard, normpath
+from fs.filelike import FileWrapper
 from os import getcwd
 import os.path
 import re
@@ -117,6 +118,14 @@ def _split_url_path(url):
     url = '%s://%s' % (scheme, netloc)
     return url, path
 
+class _FSClosingFile(FileWrapper):
+    """A file like object that closes its parent FS when closed itself"""
+    def close(self):
+        fs = getattr(self, '_closefs', None)
+        ret = super(_FSClosingFile).close()
+        if fs is not None:
+            fs.close
+        return ret
 
 class OpenerRegistry(object):
      
@@ -254,24 +263,10 @@ class OpenerRegistry(object):
         writeable = 'w' in mode or 'a' in mode or '+' in mode
         fs, path = self.parse(fs_url, writeable=writeable)                
         file_object = fs.open(path, mode)
-        
-        from fs.filelike import FileWrapper
-        file_object = FileWrapper(file_object, mode)
-        
-        # If we just return the file, then fs goes out of scope and closes,
-        # which may make the file unusable. To get around this, we store a
-        # reference in the file object to the FS, and patch the file's
-        # close method to also close the FS.
-        
-        close = file_object.close
-        close_fs = fs        
-        def replace_close():            
-            ret = close()
-            close_fs.close()
-            return ret                            
-        file_object.close = replace_close
-                    
-        return file_object
+                
+        file_object = _FSClosingFile(file_object, mode)
+        file_object.fs = fs
+        return file_object        
     
     def getcontents(self, fs_url):
         """Gets the contents from a given FS url (if it references a file)

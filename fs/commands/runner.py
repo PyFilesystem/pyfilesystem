@@ -82,7 +82,7 @@ class Command(object):
         self.verbosity_level = 0
         self.terminal_colors = not sys.platform.startswith('win') and self.is_terminal()
         if self.is_terminal():
-            w, h = getTerminalSize()
+            w, _h = getTerminalSize()
             self.terminal_width = w
         else:
             self.terminal_width = 80

@@ -15,7 +15,7 @@ implementations of this interface such as:
 
 """
 
-__version__ = "0.4.0rc"
+__version__ = "0.4.1"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
 # No longer necessary - WM

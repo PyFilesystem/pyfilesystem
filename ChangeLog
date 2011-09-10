@@ -79,4 +79,5 @@
     * Removed obsolete module fs.objectree; use fs.path.PathMap instead.
     * Added setcontents_async method to base
     * Added `appdirfs` module to abstract per-user application directories
-
+    
+0.5:

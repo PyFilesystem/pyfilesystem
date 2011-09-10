@@ -19,7 +19,7 @@ For example, lets say we have two filesystems containing config files and resour
 We can combine these filesystems in to a single filesystem with the following code::
 
     from fs.mountfs import MountFS
-    combined_fs = MountFS
+    combined_fs = MountFS()
     combined_fs.mountdir('config', config_fs)
     combined_fs.mountdir('resources', resources_fs)
 
