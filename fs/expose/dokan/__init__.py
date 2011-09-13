@@ -950,6 +950,7 @@ def unmount(drive):
     It works but may leave dangling processes; its better to use the "unmount"
     method on the MountProcess class if you have one.
     """
+    drive = _normalise_drive_string(drive)
     if not libdokan.DokanUnmount(drive):
         raise OSError("filesystem could not be unmounted: %s" % (drive,))
 
