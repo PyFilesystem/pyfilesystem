@@ -225,7 +225,6 @@ class MultiFS(FS):
             if fs.exists(path):
                 fs_file = fs.open(path, mode, **kwargs)
                 return fs_file
-
         raise ResourceNotFoundError(path)
 
     @synchronize
@@ -260,8 +259,7 @@ class MultiFS(FS):
     def remove(self, path):
         if self.writefs is None:
             raise OperationFailedError('remove', path=path, msg="No writeable FS set")        
-        self.writefs.remove(path)             
-        raise ResourceNotFoundError(path)
+        self.writefs.remove(path)                     
 
     @synchronize
     def removedir(self, path, recursive=False, force=False):
