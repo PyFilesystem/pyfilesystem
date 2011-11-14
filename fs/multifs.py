@@ -203,6 +203,8 @@ class MultiFS(FS):
         fs = self._delegate_search(path)
         if fs is not None:
             return fs.getsyspath(path, allow_none=allow_none)
+        if allow_none:
+            return None
         raise ResourceNotFoundError(path)
 
     @synchronize
@@ -254,6 +256,12 @@ class MultiFS(FS):
             except FSError:
                 pass
         return list(set(paths))
+
+    @synchronize
+    def makedir(self, path, recursive=False, allow_recreate=False):
+        if self.writefs is None:
+            raise OperationFailedError('makedir', path=path, msg="No writeable FS set")        
+        self.writefs.makedir(path, recursive=recursive, allow_recreate=allow_recreate)                
 
     @synchronize
     def remove(self, path):
