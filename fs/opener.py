@@ -84,6 +84,8 @@ class NoOpenerError(OpenerError):
 def _expand_syspath(path):
     if path is None:
         return path
+    if path.startswith('\\\\?\\'):
+        path = path[4:]
     path = os.path.expanduser(os.path.expandvars(path))
     path = os.path.normpath(os.path.abspath(path))
     return path

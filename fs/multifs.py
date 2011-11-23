@@ -94,7 +94,7 @@ class MultiFS(FS):
         self.auto_close = auto_close
         self.fs_sequence = []
         self.fs_lookup =  {}
-        self.write_fs = None        
+        self.writefs = None        
 
     @synchronize
     def __str__(self):
@@ -112,12 +112,12 @@ class MultiFS(FS):
         if self.auto_close:
             for fs in self.fs_sequence:
                 fs.close()
-            if self.write_fs is not None:
-                self.write_fs.close()            
+            if self.writefs is not None:
+                self.writefs.close()            
         # Discard any references
         del self.fs_sequence[:]
         self.fs_lookup.clear()
-        self.write_fs = None
+        self.writefs = None
         super(MultiFS, self).close()
         
     @synchronize
