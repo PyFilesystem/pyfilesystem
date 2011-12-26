@@ -177,7 +177,7 @@ class SFTPFS(FS):
         self._transport = connection
             
     def __unicode__(self):
-        return '<SFTPFS: %s>' % self.desc('/')
+        return u'<SFTPFS: %s>' % self.desc('/')
         
     @classmethod
     def _agent_auth(cls, transport, username):

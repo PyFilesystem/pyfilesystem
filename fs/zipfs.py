@@ -142,7 +142,7 @@ class ZipFS(FS):
         return "<ZipFS: %s>" % self.zip_path
 
     def __unicode__(self):
-        return unicode(self.__str__())
+        return u"<ZipFS: %s>" % self.zip_path
 
     def _parse_resource_list(self):
         for path in self.zf.namelist():
@@ -209,7 +209,7 @@ class ZipFS(FS):
         raise ValueError("Mode must contain be 'r' or 'w'")
 
     @synchronize
-    def getcontents(self, path):
+    def getcontents(self, path, mode="rb"):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         path = normpath(relpath(path))

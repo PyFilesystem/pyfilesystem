@@ -155,11 +155,11 @@ class S3FS(FS):
         super(S3FS,self).__setstate__(state)
         self._tlocal = thread_local()
 
-    def __str__(self):
+    def __repr__(self):
         args = (self.__class__.__name__,self._bucket_name,self._prefix)
         return '<%s: %s:%s>' % args
 
-    __repr__ = __str__
+    __str__ = __repr__
 
     def _s3path(self,path):
         """Get the absolute path to a file stored in S3."""

@@ -20,6 +20,9 @@ from fs.filelike import StringIO
 from os import SEEK_END
 import threading
 
+import six
+
+
 
 def _check_mode(mode, mode_chars):
     for c in mode_chars:
@@ -184,7 +187,7 @@ class DirEntry(object):
         
         self.lock = None
         if self.type == 'file':
-            self.mem_file = StringIO()
+            self.mem_file = StringIO()            
             self.lock = threading.RLock()
             
     def get_value(self):
@@ -226,7 +229,7 @@ class DirEntry(object):
             self.lock = None
         if self.mem_file is not None:
             data = self.mem_file
-            self.mem_file = StringIO()
+            self.mem_file = StringIO()            
             self.mem_file.write(data) 
 
 class MemoryFS(FS):
@@ -264,10 +267,11 @@ class MemoryFS(FS):
     def __str__(self):
         return "<MemoryFS>"
 
-    __repr__ = __str__
+    def __repr__(self):
+        return "MemoryFS()"    
 
     def __unicode__(self):
-        return unicode(self.__str__())
+        return "<MemoryFS>"
 
     @synchronize
     def _get_dir_entry(self, dirpath):
@@ -600,7 +604,7 @@ class MemoryFS(FS):
             dst_dir_entry.xattrs.update(src_xattrs)        
     
     @synchronize
-    def getcontents(self, path):        
+    def getcontents(self, path, mode="rb"):        
         dir_entry = self._get_dir_entry(path)
         if dir_entry is None:
             raise ResourceNotFoundError(path)
@@ -618,7 +622,7 @@ class MemoryFS(FS):
         dir_entry = self._get_dir_entry(path)
         if not dir_entry.isfile():
             raise ResourceInvalidError('Not a directory %(path)s', path)
-        new_mem_file = StringIO()
+        new_mem_file = StringIO()        
         new_mem_file.write(data)
         dir_entry.mem_file = new_mem_file                        
     

@@ -205,7 +205,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
 
     @convert_os_errors
     def open(self, path, mode="r", **kwargs):
-        mode = filter(lambda c: c in "rwabt+",mode)
+        #mode = filter(lambda c: c in "rwabt+",mode)
+        mode = ''.join(c for c in mode if c in 'rwabt+')
         sys_path = self.getsyspath(path)
         try:
             return open(sys_path, mode, kwargs.get("buffering", -1))

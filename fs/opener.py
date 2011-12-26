@@ -270,7 +270,7 @@ class OpenerRegistry(object):
         file_object.fs = fs
         return file_object        
     
-    def getcontents(self, fs_url):
+    def getcontents(self, fs_url, mode="rb"):
         """Gets the contents from a given FS url (if it references a file)
         
         :param fs_url: a FS URL e.g. ftp://ftp.mozilla.org/README
@@ -278,7 +278,7 @@ class OpenerRegistry(object):
         """
         
         fs, path = self.parse(fs_url)
-        return fs.getcontents(path)
+        return fs.getcontents(path, mode)
     
     def opendir(self, fs_url, writeable=True, create_dir=False):
         """Opens an FS object from an FS URL

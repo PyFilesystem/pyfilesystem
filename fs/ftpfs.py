@@ -1170,7 +1170,7 @@ class FTPFS(FS):
         self.ftp.storbinary('STOR %s' % _encode(path), data, blocksize=chunk_size)        
         
     @ftperrors
-    def getcontents(self, path):
+    def getcontents(self, path, mode="rb"):
         path = normpath(path) 
         contents = StringIO()                            
         self.ftp.retrbinary('RETR %s' % _encode(path), contents.write, blocksize=1024*64)            

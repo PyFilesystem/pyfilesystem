@@ -49,10 +49,10 @@ class TempFS(OSFS):
         self._cleaned = False
         super(TempFS, self).__init__(self._temp_dir, dir_mode=dir_mode, thread_synchronize=thread_synchronize)
 
-    def __str__(self):
+    def __repr__(self):
         return '<TempFS: %s>' % self._temp_dir
 
-    __repr__ = __str__
+    __str__ = __repr__
 
     def __unicode__(self):
         return u'<TempFS: %s>' % self._temp_dir

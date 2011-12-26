@@ -29,6 +29,8 @@ if sys.platform == "win32":
 else:
     watch_win32 = None
 
+import six
+from six import PY3, b
 
 class WatcherTestCases:
     """Testcases for filesystems providing change watcher support.
@@ -88,11 +90,11 @@ class WatcherTestCases:
 
     def test_watch_readfile(self):
         self.setupWatchers()
-        self.fs.setcontents("hello","hello world")
+        self.fs.setcontents("hello", b("hello world"))
         self.assertEventOccurred(CREATED,"/hello")
         self.clearCapturedEvents()
         old_atime = self.fs.getinfo("hello").get("accessed_time")
-        self.assertEquals(self.fs.getcontents("hello"),"hello world")
+        self.assertEquals(self.fs.getcontents("hello"), b("hello world"))
         if not isinstance(self.watchfs,PollingWatchableFS):
             #  Help it along by updting the atime.
             #  TODO: why is this necessary?
@@ -109,9 +111,9 @@ class WatcherTestCases:
             #  give up and bail out.
             for i in xrange(10):
                 if self.fs.getinfo("hello").get("accessed_time") != old_atime:
-                   if not self.checkEventOccurred(MODIFIED,"/hello"):
-                       self.assertEventOccurred(ACCESSED,"/hello")
-                   break
+                    if not self.checkEventOccurred(MODIFIED,"/hello"):
+                        self.assertEventOccurred(ACCESSED,"/hello")
+                    break
                 time.sleep(0.2)
                 if self.fs.hassyspath("hello"):
                     syspath = self.fs.getsyspath("hello")
@@ -121,17 +123,17 @@ class WatcherTestCases:
 
     def test_watch_writefile(self):
         self.setupWatchers()
-        self.fs.setcontents("hello","hello world")
+        self.fs.setcontents("hello", b("hello world"))
         self.assertEventOccurred(CREATED,"/hello")
         self.clearCapturedEvents()
-        self.fs.setcontents("hello","hello again world")
+        self.fs.setcontents("hello", b("hello again world"))
         self.assertEventOccurred(MODIFIED,"/hello")
 
     def test_watch_single_file(self):
-        self.fs.setcontents("hello","hello world")
+        self.fs.setcontents("hello", b("hello world"))
         events = []
         self.watchfs.add_watcher(events.append,"/hello",(MODIFIED,))
-        self.fs.setcontents("hello","hello again world")
+        self.fs.setcontents("hello", b("hello again world"))
         self.fs.remove("hello")
         self.waitForEvents()
         for evt in events:
@@ -140,10 +142,10 @@ class WatcherTestCases:
 
     def test_watch_single_file_remove(self):
         self.fs.makedir("testing")
-        self.fs.setcontents("testing/hello","hello world")
+        self.fs.setcontents("testing/hello", b("hello world"))
         events = []
         self.watchfs.add_watcher(events.append,"/testing/hello",(REMOVED,))
-        self.fs.setcontents("testing/hello","hello again world")
+        self.fs.setcontents("testing/hello", b("hello again world"))
         self.waitForEvents()
         self.fs.remove("testing/hello")
         self.waitForEvents()
@@ -154,7 +156,7 @@ class WatcherTestCases:
     def test_watch_iter_changes(self):
         changes = iter_changes(self.watchfs)
         self.fs.makedir("test1")
-        self.fs.setcontents("test1/hello","hello world")
+        self.fs.setcontents("test1/hello", b("hello world"))
         self.waitForEvents()
         self.fs.removedir("test1",force=True)
         self.waitForEvents()

@@ -33,11 +33,6 @@ Other useful classes include:
 
 import tempfile as _tempfile
 
-try:
-    from cStringIO import StringIO as _StringIO
-except ImportError:
-    from StringIO import StringIO as _StringIO
-
 import fs
 
 
@@ -50,6 +45,17 @@ class NotSeekableError(IOError):
 class NotTruncatableError(IOError):
     pass
 
+import six
+from six import PY3, b
+
+if PY3:
+    _StringIO = six.BytesIO
+else:
+    try:
+        from cStringIO import StringIO as _StringIO
+    except ImportError:
+        from StringIO import StringIO as _StringIO
+ 
 
 class FileLikeBase(object):
     """Base class for implementing file-like objects.
@@ -265,14 +271,14 @@ class FileLikeBase(object):
         if self.closed:
             raise IOError("File has been closed")
         if self._check_mode("w-") and self._wbuffer is not None:
-            buffered = ""
+            buffered = b("")
             if self._sbuffer:
                 buffered = buffered + self._sbuffer
                 self._sbuffer = None
             buffered = buffered + self._wbuffer
             self._wbuffer = None
             leftover = self._write(buffered,flushing=True)
-            if leftover:
+            if leftover and not isinstance(leftover, int):
                 raise IOError("Could not flush write buffer.")
     
     def close(self):
@@ -306,7 +312,7 @@ class FileLikeBase(object):
         next() returning subsequent lines from the file.
         """
         ln = self.readline()
-        if ln == "":
+        if ln == b(""):
             raise StopIteration()
         return ln
     
@@ -442,19 +448,19 @@ class FileLikeBase(object):
                 data = [self._rbuffer]
             else:
                 data = []
-            self._rbuffer = ""
+            self._rbuffer = b("")
             newData = self._read()
             while newData is not None:
                 data.append(newData)
                 newData = self._read()
-            output = "".join(data)
+            output = b("").join(data)
         # Otherwise, we need to return a specific amount of data
         else:
             if self._rbuffer:
                 newData = self._rbuffer
                 data = [newData]
             else:
-                newData = ""
+                newData = b("")
                 data = []
             sizeSoFar = len(newData)
             while sizeSoFar < size:
@@ -463,20 +469,20 @@ class FileLikeBase(object):
                     break
                 data.append(newData)
                 sizeSoFar += len(newData)
-            data = "".join(data)
+            data = b("").join(data)
             if sizeSoFar > size:
                 # read too many bytes, store in the buffer
                 self._rbuffer = data[size:]
                 data = data[:size]
             else:
-                self._rbuffer = ""
+                self._rbuffer = b("")
             output = data
         return output
 
     def _do_read_rest(self):
         """Private method to read the file through to EOF."""
         data = self._do_read(self._bufsize)
-        while data != "":
+        while data != b(""):
             data = self._do_read(self._bufsize)
         
     def readline(self,size=-1):
@@ -488,11 +494,11 @@ class FileLikeBase(object):
             nextBit = self.read(self._bufsize)
             bits.append(nextBit)
             sizeSoFar += len(nextBit)
-            if nextBit == "":
+            if nextBit == b(""):
                 break
             if size > 0 and sizeSoFar >= size:
                 break
-            indx = nextBit.find("\n")
+            indx = nextBit.find(b("\n"))
         # If not found, return whole string up to <size> length
         # Any leftovers are pushed onto front of buffer
         if indx == -1:
@@ -508,7 +514,7 @@ class FileLikeBase(object):
         extra = bits[-1][indx:]
         bits[-1] = bits[-1][:indx]
         self._rbuffer = extra + self._rbuffer
-        return "".join(bits)
+        return b("").join(bits)
     
     def readlines(self,sizehint=-1):
         """Return a list of all lines in the file."""
@@ -542,8 +548,8 @@ class FileLikeBase(object):
         if self._wbuffer:
             string = self._wbuffer + string
         leftover = self._write(string)
-        if leftover is None:
-            self._wbuffer = ""
+        if leftover is None or isinstance(leftover, int):
+            self._wbuffer = b("")
         else:
             self._wbuffer = leftover
     
@@ -649,7 +655,7 @@ class FileWrapper(FileLikeBase):
 
     def _read(self,sizehint=-1):
         data = self.wrapped_file.read(sizehint)
-        if data == "":
+        if data == b(""):
             return None
         return data
 
@@ -694,7 +700,7 @@ class StringIO(FileWrapper):
         if size > curlen:
             self.wrapped_file.seek(curlen)
             try:
-                self.wrapped_file.write("\x00"*(size-curlen))
+                self.wrapped_file.write(b("\x00")*(size-curlen))
             finally:
                 self.wrapped_file.seek(pos)
 
@@ -715,7 +721,8 @@ class SpooledTemporaryFile(FileWrapper):
         try:
             stf_args = (max_size,mode,bufsize) + args
             wrapped_file = _tempfile.SpooledTemporaryFile(*stf_args,**kwds)
-            wrapped_file._file = StringIO()
+            #wrapped_file._file = StringIO()
+            wrapped_file._file = six.BytesIO()
             self.__is_spooled = True
         except AttributeError:
             ntf_args = (mode,bufsize) + args

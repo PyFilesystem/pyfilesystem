@@ -95,7 +95,7 @@ class LimitSizeFS(WrapFS):
     def setcontents(self, path, data, chunk_size=64*1024):            
         f = None
         try:                
-            f = self.open(path, 'w')
+            f = self.open(path, 'wb')
             if hasattr(data, 'read'):
                 chunk = data.read(chunk_size)            
                 while chunk:

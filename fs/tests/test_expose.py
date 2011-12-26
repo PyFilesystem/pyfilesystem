@@ -20,6 +20,10 @@ from fs.errors import *
 
 from fs import rpcfs
 from fs.expose.xmlrpc import RPCFSServer
+
+import six
+from six import PY3, b
+
 class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
     
     def makeServer(self,fs,addr):
@@ -106,7 +110,7 @@ class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
                 sock = socket.socket(af, socktype, proto)
                 sock.settimeout(.1)
                 sock.connect(sa)
-                sock.send("\n")
+                sock.send(b("\n"))
             except socket.error, e:
                 pass
             finally:
@@ -114,9 +118,15 @@ class TestRPCFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
                     sock.close()
 
 
-from fs import sftpfs
-from fs.expose.sftp import BaseSFTPServer
+try:
+    from fs import sftpfs
+    from fs.expose.sftp import BaseSFTPServer
+except ImportError:
+    if not PY3:
+        raise
 class TestSFTPFS(TestRPCFS):
+    
+    __test__ = not PY3
 
     def makeServer(self,fs,addr):
         return BaseSFTPServer(addr,fs)
@@ -209,7 +219,7 @@ if dokan.is_available:
         def test_safety_wrapper(self):
             rawfs = MemoryFS()
             safefs = dokan.Win32SafetyFS(rawfs)
-            rawfs.setcontents("autoRun.inf","evilcodeevilcode")
+            rawfs.setcontents("autoRun.inf", b("evilcodeevilcode"))
             self.assertTrue(safefs.exists("_autoRun.inf"))
             self.assertTrue("autoRun.inf" not in safefs.listdir("/"))
             safefs.setcontents("file:stream","test")

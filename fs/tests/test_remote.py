@@ -22,6 +22,7 @@ from fs.tempfs import TempFS
 from fs.path import *
 from fs.local_functools import wraps
 
+from six import PY3, b
 
 class RemoteTempFS(TempFS):
     """
@@ -79,7 +80,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         self.fs.close()
         self.fakeOff()
 
-    def fake_setcontents(self, path, content='', chunk_size=16*1024):
+    def fake_setcontents(self, path, content=b(''), chunk_size=16*1024):
         ''' Fake replacement for RemoteTempFS setcontents() '''
         raise self.FakeException("setcontents should not be called here!")
     
@@ -99,8 +100,8 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         '''
             Tests on-demand loading of remote content in RemoteFileBuffer
         '''    
-        contents = "Tristatricettri stribrnych strikacek strikalo" + \
-                   "pres tristatricettri stribrnych strech."
+        contents = b("Tristatricettri stribrnych strikacek strikalo") + \
+                   b("pres tristatricettri stribrnych strech.")
         f = self.fs.open('test.txt', 'wb')
         f.write(contents)
         f.close()
@@ -136,10 +137,10 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         # Rollback position 5 characters before eof
         f._rfile.seek(len(contents[:-5]))
         # Write 10 new characters (will make contents longer for 5 chars)
-        f.write(u'1234567890')
+        f.write(b('1234567890'))
         f.flush()
         # We are on the end of file (and buffer not serve anything anymore)
-        self.assertEquals(f.read(), '')
+        self.assertEquals(f.read(), b(''))
         f.close()
         
         self.fakeOn()
@@ -147,7 +148,7 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         # Check if we wrote everything OK from
         # previous writing over the remote buffer edge
         f = self.fs.open('test.txt', 'rb')
-        self.assertEquals(f.read(), contents[:-5] + u'1234567890')
+        self.assertEquals(f.read(), contents[:-5] + b('1234567890'))
         f.close()
 
         self.fakeOff()
@@ -161,19 +162,19 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         '''
         self.fakeOn()
         f = self.fs.open('test.txt', 'wb', write_on_flush=True)
-        f.write('Sample text')
+        f.write(b('Sample text'))
         self.assertRaises(self.FakeException, f.flush)
-        f.write('Second sample text')
+        f.write(b('Second sample text'))
         self.assertRaises(self.FakeException, f.close)
         self.fakeOff()
         f.close()
         self.fakeOn()
         
         f = self.fs.open('test.txt', 'wb', write_on_flush=False)
-        f.write('Sample text')
+        f.write(b('Sample text'))
         # FakeException is not raised, because setcontents is not called
         f.flush()
-        f.write('Second sample text')
+        f.write(b('Second sample text'))
         self.assertRaises(self.FakeException, f.close)
         self.fakeOff()
         
@@ -183,8 +184,8 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
             back to remote destination and opened file is still
             in good condition.        
         '''
-        contents = "Zlutoucky kun upel dabelske ody."
-        contents2 = 'Ententyky dva spaliky cert vyletel z elektriky'
+        contents = b("Zlutoucky kun upel dabelske ody.")
+        contents2 = b('Ententyky dva spaliky cert vyletel z elektriky')
                 
         f = self.fs.open('test.txt', 'wb')
         f.write(contents)
@@ -195,17 +196,17 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
         self.assertEquals(f.read(10), contents[:10])
         self.assertEquals(f._rfile.tell(), 10)
         # Write garbage to file to mark it as _changed
-        f.write('x')
+        f.write(b('x'))
         # This should read the rest of file and store file back to again.
         f.flush()
         f.seek(0)
         # Try if we have unocrrupted file locally...
-        self.assertEquals(f.read(), contents[:10] + 'x' + contents[11:])
+        self.assertEquals(f.read(), contents[:10] + b('x') + contents[11:])
         f.close()
         
         # And if we have uncorrupted file also on storage
         f = self.fs.open('test.txt', 'rb')
-        self.assertEquals(f.read(), contents[:10] + 'x' + contents[11:])
+        self.assertEquals(f.read(), contents[:10] + b('x') + contents[11:])
         f.close()
         
         # Now try it again, but write garbage behind edge of remote file
@@ -243,7 +244,7 @@ class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         self.fs.cache_timeout = None
         try:
             self.assertFalse(self.fs.isfile("hello"))
-            self.wrapped_fs.setcontents("hello","world")
+            self.wrapped_fs.setcontents("hello",b("world"))
             self.assertTrue(self.fs.isfile("hello"))
             self.wrapped_fs.remove("hello")
             self.assertTrue(self.fs.isfile("hello"))
@@ -257,11 +258,11 @@ class TestCacheFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         self.fs.cache_timeout = None
         try:
             self.assertFalse(self.fs.isfile("hello"))
-            self.wrapped_fs.setcontents("hello","world")
+            self.wrapped_fs.setcontents("hello",b("world"))
             self.assertTrue(self.fs.isfile("hello"))
             self.wrapped_fs.remove("hello")
             self.assertTrue(self.fs.isfile("hello"))
-            self.wrapped_fs.setcontents("hello","world")
+            self.wrapped_fs.setcontents("hello",b("world"))
             self.assertTrue(self.fs.isfile("hello"))
             self.fs.remove("hello")
             self.assertFalse(self.fs.isfile("hello"))
@@ -315,7 +316,7 @@ class DisconnectingFS(WrapFS):
             time.sleep(random.random()*0.1)
             self._connected = not self._connected
 
-    def setcontents(self, path, contents='', chunk_size=64*1024):
+    def setcontents(self, path, contents=b(''), chunk_size=64*1024):
         return self.wrapped_fs.setcontents(path, contents)
 
     def close(self):

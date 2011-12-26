@@ -11,7 +11,7 @@ from __future__ import with_statement
 #  be captured by nose and reported appropriately
 import sys
 import logging
-logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
+#logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
 from fs.base import *
 from fs.path import *
@@ -31,6 +31,8 @@ try:
 except ImportError:
     import dummy_threading as threading
 
+import six
+from six import PY3, b
 
 class FSTestCases(object):
     """Base suite of testcases for filesystem implementations.
@@ -109,54 +111,54 @@ class FSTestCases(object):
       
     def test_writefile(self):
         self.assertRaises(ResourceNotFoundError,self.fs.open,"test1.txt")
-        f = self.fs.open("test1.txt","w")
-        f.write("testing")
+        f = self.fs.open("test1.txt","wb")
+        f.write(b("testing"))
         f.close()
         self.assertTrue(self.check("test1.txt"))
-        f = self.fs.open("test1.txt","r")
-        self.assertEquals(f.read(),"testing")
+        f = self.fs.open("test1.txt","rb")
+        self.assertEquals(f.read(),b("testing"))
         f.close()
-        f = self.fs.open("test1.txt","w")
-        f.write("test file overwrite")
+        f = self.fs.open("test1.txt","wb")
+        f.write(b("test file overwrite"))
         f.close()
         self.assertTrue(self.check("test1.txt"))
-        f = self.fs.open("test1.txt","r")
-        self.assertEquals(f.read(),"test file overwrite")
+        f = self.fs.open("test1.txt","rb")
+        self.assertEquals(f.read(),b("test file overwrite"))
         f.close()
 
     def test_setcontents(self):
         #  setcontents() should accept both a string...
-        self.fs.setcontents("hello","world")
-        self.assertEquals(self.fs.getcontents("hello"),"world")
+        self.fs.setcontents("hello",b("world"))
+        self.assertEquals(self.fs.getcontents("hello", "rb"),b("world"))
         #  ...and a file-like object
-        self.fs.setcontents("hello",StringIO("to you, good sir!"))
-        self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
+        self.fs.setcontents("hello",StringIO(b("to you, good sir!")))
+        self.assertEquals(self.fs.getcontents("hello", "rb"),b("to you, good sir!"))
         #  setcontents() should accept both a string...
-        self.fs.setcontents("hello","world", chunk_size=2)
-        self.assertEquals(self.fs.getcontents("hello"),"world")
+        self.fs.setcontents("hello",b("world"), chunk_size=2)
+        self.assertEquals(self.fs.getcontents("hello", "rb"),b("world"))
         #  ...and a file-like object
-        self.fs.setcontents("hello",StringIO("to you, good sir!"), chunk_size=2)
-        self.assertEquals(self.fs.getcontents("hello"),"to you, good sir!")
+        self.fs.setcontents("hello",StringIO(b("to you, good sir!")), chunk_size=2)
+        self.assertEquals(self.fs.getcontents("hello", "rb"),b("to you, good sir!"))
 
 
     def test_setcontents_async(self):
         #  setcontents() should accept both a string...
-        self.fs.setcontents_async("hello", "world").wait()
-        self.assertEquals(self.fs.getcontents("hello"), "world")
+        self.fs.setcontents_async("hello", b("world")).wait()
+        self.assertEquals(self.fs.getcontents("hello", "rb"), b("world"))
         #  ...and a file-like object
-        self.fs.setcontents_async("hello",StringIO("to you, good sir!")).wait()
-        self.assertEquals(self.fs.getcontents("hello"), "to you, good sir!")
-        self.fs.setcontents_async("hello", "world", chunk_size=2).wait()
-        self.assertEquals(self.fs.getcontents("hello"), "world")
+        self.fs.setcontents_async("hello",StringIO(b("to you, good sir!"))).wait()
+        self.assertEquals(self.fs.getcontents("hello"), b("to you, good sir!"))
+        self.fs.setcontents_async("hello", b("world"), chunk_size=2).wait()
+        self.assertEquals(self.fs.getcontents("hello", "rb"), b("world"))
         #  ...and a file-like object
-        self.fs.setcontents_async("hello", StringIO("to you, good sir!"), chunk_size=2).wait()
-        self.assertEquals(self.fs.getcontents("hello"), "to you, good sir!")        
+        self.fs.setcontents_async("hello", StringIO(b("to you, good sir!")), chunk_size=2).wait()
+        self.assertEquals(self.fs.getcontents("hello", "rb"), b("to you, good sir!"))        
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))
         self.assertFalse(self.fs.isdir("dir1"))
         self.assertFalse(self.fs.isfile("a.txt"))
-        self.fs.setcontents("a.txt", '')
+        self.fs.setcontents("a.txt", b(''))
         self.assertFalse(self.fs.isdir("dir1"))
         self.assertTrue(self.fs.exists("a.txt"))
         self.assertTrue(self.fs.isfile("a.txt"))
@@ -172,10 +174,10 @@ class FSTestCases(object):
         def check_unicode(items):
             for item in items:
                 self.assertTrue(isinstance(item,unicode))
-        self.fs.setcontents(u"a", '')
-        self.fs.setcontents("b", '')
-        self.fs.setcontents("foo", '')
-        self.fs.setcontents("bar", '')
+        self.fs.setcontents(u"a", b(''))
+        self.fs.setcontents("b", b(''))
+        self.fs.setcontents("foo", b(''))
+        self.fs.setcontents("bar", b(''))
         # Test listing of the root directory
         d1 = self.fs.listdir()
         self.assertEqual(len(d1), 4)
@@ -196,10 +198,10 @@ class FSTestCases(object):
         # Create some deeper subdirectories, to make sure their
         # contents are not inadvertantly included
         self.fs.makedir("p/1/2/3",recursive=True)
-        self.fs.setcontents("p/1/2/3/a", '')
-        self.fs.setcontents("p/1/2/3/b", '')
-        self.fs.setcontents("p/1/2/3/foo", '')
-        self.fs.setcontents("p/1/2/3/bar", '')
+        self.fs.setcontents("p/1/2/3/a", b(''))
+        self.fs.setcontents("p/1/2/3/b", b(''))
+        self.fs.setcontents("p/1/2/3/foo", b(''))
+        self.fs.setcontents("p/1/2/3/bar", b(''))
         self.fs.makedir("q")
         # Test listing just files, just dirs, and wildcards
         dirs_only = self.fs.listdir(dirs_only=True)
@@ -236,10 +238,10 @@ class FSTestCases(object):
         def check_equal(items,target):
             names = [nm for (nm,info) in items] 
             self.assertEqual(sorted(names),sorted(target))
-        self.fs.setcontents(u"a", '')
-        self.fs.setcontents("b", '')
-        self.fs.setcontents("foo", '')
-        self.fs.setcontents("bar", '')
+        self.fs.setcontents(u"a", b(''))
+        self.fs.setcontents("b", b(''))
+        self.fs.setcontents("foo", b(''))
+        self.fs.setcontents("bar", b(''))
         # Test listing of the root directory
         d1 = self.fs.listdirinfo()
         self.assertEqual(len(d1), 4)
@@ -261,10 +263,10 @@ class FSTestCases(object):
         # Create some deeper subdirectories, to make sure their
         # contents are not inadvertantly included
         self.fs.makedir("p/1/2/3",recursive=True)
-        self.fs.setcontents("p/1/2/3/a", '')
-        self.fs.setcontents("p/1/2/3/b", '')
-        self.fs.setcontents("p/1/2/3/foo", '')
-        self.fs.setcontents("p/1/2/3/bar", '')
+        self.fs.setcontents("p/1/2/3/a", b(''))
+        self.fs.setcontents("p/1/2/3/b", b(''))
+        self.fs.setcontents("p/1/2/3/foo", b(''))
+        self.fs.setcontents("p/1/2/3/bar", b(''))
         self.fs.makedir("q")
         # Test listing just files, just dirs, and wildcards
         dirs_only = self.fs.listdirinfo(dirs_only=True)
@@ -297,7 +299,7 @@ class FSTestCases(object):
     def test_walk(self):
         self.fs.setcontents('a.txt', 'hello')
         self.fs.setcontents('b.txt', 'world')
-        self.fs.makeopendir('foo').setcontents('c', '123')
+        self.fs.makeopendir('foo').setcontents('c', b('123'))
         sorted_walk = sorted([(d,sorted(fs)) for (d,fs) in self.fs.walk()])
         self.assertEquals(sorted_walk,
                           [("/",["a.txt","b.txt"]),
@@ -320,10 +322,10 @@ class FSTestCases(object):
         assert found_c, "depth search order was wrong: " + str(list(self.fs.walk(search="depth")))
 
     def test_walk_wildcard(self):
-        self.fs.setcontents('a.txt', 'hello')
-        self.fs.setcontents('b.txt', 'world')
-        self.fs.makeopendir('foo').setcontents('c', '123')
-        self.fs.makeopendir('.svn').setcontents('ignored', '')
+        self.fs.setcontents('a.txt', b('hello'))
+        self.fs.setcontents('b.txt', b('world'))
+        self.fs.makeopendir('foo').setcontents('c', b('123'))
+        self.fs.makeopendir('.svn').setcontents('ignored', b(''))
         for dir_path, paths in self.fs.walk(wildcard='*.txt'):
             for path in paths:
                 self.assert_(path.endswith('.txt'))
@@ -332,24 +334,24 @@ class FSTestCases(object):
                 self.assert_(path.endswith('.txt'))
 
     def test_walk_dir_wildcard(self):
-        self.fs.setcontents('a.txt', 'hello')
-        self.fs.setcontents('b.txt', 'world')
-        self.fs.makeopendir('foo').setcontents('c', '123')
-        self.fs.makeopendir('.svn').setcontents('ignored', '')
+        self.fs.setcontents('a.txt', b('hello'))
+        self.fs.setcontents('b.txt', b('world'))
+        self.fs.makeopendir('foo').setcontents('c', b('123'))
+        self.fs.makeopendir('.svn').setcontents('ignored', b(''))
         for dir_path, paths in self.fs.walk(dir_wildcard=lambda fn:not fn.endswith('.svn')):
             for path in paths:
                 self.assert_('.svn' not in path)
 
     def test_walkfiles(self):
-        self.fs.makeopendir('bar').setcontents('a.txt', '123')
-        self.fs.makeopendir('foo').setcontents('b', '123')
+        self.fs.makeopendir('bar').setcontents('a.txt', b('123'))
+        self.fs.makeopendir('foo').setcontents('b', b('123'))
         self.assertEquals(sorted(self.fs.walkfiles()),["/bar/a.txt","/foo/b"])
         self.assertEquals(sorted(self.fs.walkfiles(dir_wildcard="*foo*")),["/foo/b"])
         self.assertEquals(sorted(self.fs.walkfiles(wildcard="*.txt")),["/bar/a.txt"])
 
     def test_walkdirs(self):
-        self.fs.makeopendir('bar').setcontents('a.txt', '123')
-        self.fs.makeopendir('foo').makeopendir("baz").setcontents('b', '123')
+        self.fs.makeopendir('bar').setcontents('a.txt', b('123'))
+        self.fs.makeopendir('foo').makeopendir("baz").setcontents('b', b('123'))
         self.assertEquals(sorted(self.fs.walkdirs()),["/","/bar","/foo","/foo/baz"])
         self.assertEquals(sorted(self.fs.walkdirs(wildcard="*foo*")),["/","/foo","/foo/baz"])
 
@@ -357,8 +359,8 @@ class FSTestCases(object):
         alpha = u"\N{GREEK SMALL LETTER ALPHA}"
         beta = u"\N{GREEK SMALL LETTER BETA}"
         self.fs.makedir(alpha)
-        self.fs.setcontents(alpha+"/a", '')
-        self.fs.setcontents(alpha+"/"+beta, '')
+        self.fs.setcontents(alpha+"/a", b(''))
+        self.fs.setcontents(alpha+"/"+beta, b(''))
         self.assertTrue(self.check(alpha))
         self.assertEquals(sorted(self.fs.listdir(alpha)),["a",beta])
 
@@ -375,18 +377,18 @@ class FSTestCases(object):
         self.assert_(check("a/b/child"))
         self.assertRaises(DestinationExistsError,self.fs.makedir,"/a/b")
         self.fs.makedir("/a/b",allow_recreate=True)
-        self.fs.setcontents("/a/file", '')
+        self.fs.setcontents("/a/file", b(''))
         self.assertRaises(ResourceInvalidError,self.fs.makedir,"a/file")
 
     def test_remove(self):
-        self.fs.setcontents("a.txt", '')
+        self.fs.setcontents("a.txt", b(''))
         self.assertTrue(self.check("a.txt"))
         self.fs.remove("a.txt")
         self.assertFalse(self.check("a.txt"))
         self.assertRaises(ResourceNotFoundError,self.fs.remove,"a.txt")
         self.fs.makedir("dir1")
         self.assertRaises(ResourceInvalidError,self.fs.remove,"dir1")
-        self.fs.setcontents("/dir1/a.txt", '')
+        self.fs.setcontents("/dir1/a.txt", b(''))
         self.assertTrue(self.check("dir1/a.txt"))
         self.fs.remove("dir1/a.txt")
         self.assertFalse(self.check("/dir1/a.txt"))
@@ -413,13 +415,13 @@ class FSTestCases(object):
         self.assert_(not check("foo/bar"))
         self.assert_(not check("foo"))
         self.fs.makedir("foo/bar/baz", recursive=True)
-        self.fs.setcontents("foo/file.txt", "please don't delete me")
+        self.fs.setcontents("foo/file.txt", b("please don't delete me"))
         self.fs.removedir("foo/bar/baz", recursive=True)
         self.assert_(not check("foo/bar/baz"))
         self.assert_(not check("foo/bar"))
         #  Ensure that force=True works as expected
         self.fs.makedir("frollic/waggle", recursive=True)
-        self.fs.setcontents("frollic/waddle.txt","waddlewaddlewaddle")
+        self.fs.setcontents("frollic/waddle.txt",b("waddlewaddlewaddle"))
         self.assertRaises(DirectoryNotEmptyError,self.fs.removedir,"frollic")
         self.assertRaises(ResourceInvalidError,self.fs.removedir,"frollic/waddle.txt")
         self.fs.removedir("frollic",force=True)
@@ -439,14 +441,14 @@ class FSTestCases(object):
     def test_rename(self):
         check = self.check
         # test renaming a file in the same directory
-        self.fs.setcontents("foo.txt","Hello, World!")
+        self.fs.setcontents("foo.txt",b("Hello, World!"))
         self.assert_(check("foo.txt"))
         self.fs.rename("foo.txt", "bar.txt")
         self.assert_(check("bar.txt"))
         self.assert_(not check("foo.txt"))
         # test renaming a directory in the same directory
         self.fs.makedir("dir_a")
-        self.fs.setcontents("dir_a/test.txt","testerific")
+        self.fs.setcontents("dir_a/test.txt",b("testerific"))
         self.assert_(check("dir_a"))
         self.fs.rename("dir_a","dir_b")
         self.assert_(check("dir_b"))
@@ -462,7 +464,7 @@ class FSTestCases(object):
         self.assertRaises(ParentDirectoryMissingError,self.fs.rename,"dir_a/test.txt","nonexistent/test.txt")
 
     def test_info(self):
-        test_str = "Hello, World!"
+        test_str = b("Hello, World!")
         self.fs.setcontents("info.txt",test_str)
         info = self.fs.getinfo("info.txt")
         self.assertEqual(info['size'], len(test_str))
@@ -471,18 +473,18 @@ class FSTestCases(object):
         self.assertRaises(ResourceNotFoundError,self.fs.getinfo,"info.txt/inval")
 
     def test_getsize(self):
-        test_str = "*"*23
+        test_str = b("*")*23
         self.fs.setcontents("info.txt",test_str)
         size = self.fs.getsize("info.txt")
         self.assertEqual(size, len(test_str))
 
     def test_movefile(self):
         check = self.check
-        contents = "If the implementation is hard to explain, it's a bad idea."
+        contents = b("If the implementation is hard to explain, it's a bad idea.")
         def makefile(path):
             self.fs.setcontents(path,contents)
         def checkcontents(path):
-            check_contents = self.fs.getcontents(path)
+            check_contents = self.fs.getcontents(path, "rb")
             self.assertEqual(check_contents,contents)
             return contents == check_contents
 
@@ -511,7 +513,7 @@ class FSTestCases(object):
 
     def test_movedir(self):
         check = self.check
-        contents = "If the implementation is hard to explain, it's a bad idea."
+        contents = b("If the implementation is hard to explain, it's a bad idea.")
         def makefile(path):
             self.fs.setcontents(path, contents)
 
@@ -556,11 +558,11 @@ class FSTestCases(object):
 
     def test_copyfile(self):
         check = self.check
-        contents = "If the implementation is hard to explain, it's a bad idea."
+        contents = b("If the implementation is hard to explain, it's a bad idea.")
         def makefile(path,contents=contents):
             self.fs.setcontents(path,contents)
         def checkcontents(path,contents=contents):
-            check_contents = self.fs.getcontents(path)
+            check_contents = self.fs.getcontents(path, "rb")
             self.assertEqual(check_contents,contents)
             return contents == check_contents
 
@@ -580,18 +582,18 @@ class FSTestCases(object):
         self.assert_(check("/c.txt"))
         self.assert_(checkcontents("/c.txt"))
 
-        makefile("foo/bar/a.txt","different contents")
-        self.assert_(checkcontents("foo/bar/a.txt","different contents"))
+        makefile("foo/bar/a.txt",b("different contents"))
+        self.assert_(checkcontents("foo/bar/a.txt",b("different contents")))
         self.assertRaises(DestinationExistsError,self.fs.copy,"foo/bar/a.txt","/c.txt")
         self.assert_(checkcontents("/c.txt"))
         self.fs.copy("foo/bar/a.txt","/c.txt",overwrite=True)
-        self.assert_(checkcontents("foo/bar/a.txt","different contents"))
-        self.assert_(checkcontents("/c.txt","different contents"))
+        self.assert_(checkcontents("foo/bar/a.txt",b("different contents")))
+        self.assert_(checkcontents("/c.txt",b("different contents")))
 
 
     def test_copydir(self):
         check = self.check
-        contents = "If the implementation is hard to explain, it's a bad idea."
+        contents = b("If the implementation is hard to explain, it's a bad idea.")
         def makefile(path):
             self.fs.setcontents(path,contents)
         def checkcontents(path):
@@ -630,7 +632,7 @@ class FSTestCases(object):
 
     def test_copydir_with_dotfile(self):
         check = self.check
-        contents = "If the implementation is hard to explain, it's a bad idea."
+        contents = b("If the implementation is hard to explain, it's a bad idea.")
         def makefile(path):
             self.fs.setcontents(path,contents)
 
@@ -650,13 +652,13 @@ class FSTestCases(object):
 
     def test_readwriteappendseek(self):
         def checkcontents(path, check_contents):
-            read_contents = self.fs.getcontents(path)
+            read_contents = self.fs.getcontents(path, "rb")
             self.assertEqual(read_contents,check_contents)
             return read_contents == check_contents
-        test_strings = ["Beautiful is better than ugly.",
-                        "Explicit is better than implicit.",
-                        "Simple is better than complex."]
-        all_strings = "".join(test_strings)
+        test_strings = [b("Beautiful is better than ugly."),
+                        b("Explicit is better than implicit."),
+                        b("Simple is better than complex.")]
+        all_strings = b("").join(test_strings)
 
         self.assertRaises(ResourceNotFoundError, self.fs.open, "a.txt", "r")
         self.assert_(not self.fs.exists("a.txt"))
@@ -689,67 +691,67 @@ class FSTestCases(object):
         self.assert_(checkcontents("b.txt", test_strings[2]))
         f5 = self.fs.open("c.txt", "wb")
         for s in test_strings:
-            f5.write(s+"\n")
+            f5.write(s+b("\n"))
         f5.close()
         f6 = self.fs.open("c.txt", "rb")
         for s, t in zip(f6, test_strings):
-            self.assertEqual(s, t+"\n")
+            self.assertEqual(s, t+b("\n"))
         f6.close()
         f7 = self.fs.open("c.txt", "rb")
         f7.seek(13)
         word = f7.read(6)
-        self.assertEqual(word, "better")
+        self.assertEqual(word, b("better"))
         f7.seek(1, os.SEEK_CUR)
         word = f7.read(4)
-        self.assertEqual(word, "than")
+        self.assertEqual(word, b("than"))
         f7.seek(-9, os.SEEK_END)
         word = f7.read(7)
-        self.assertEqual(word, "complex")
+        self.assertEqual(word, b("complex"))
         f7.close()
-        self.assertEqual(self.fs.getcontents("a.txt"), all_strings)
+        self.assertEqual(self.fs.getcontents("a.txt", "rb"), all_strings)
 
     def test_truncate(self):
         def checkcontents(path, check_contents):
-            read_contents = self.fs.getcontents(path)
+            read_contents = self.fs.getcontents(path, "rb")
             self.assertEqual(read_contents,check_contents)
             return read_contents == check_contents
-        self.fs.setcontents("hello","world")
-        checkcontents("hello","world")
-        self.fs.setcontents("hello","hi")
-        checkcontents("hello","hi")
-        self.fs.setcontents("hello","1234567890")
-        checkcontents("hello","1234567890")
+        self.fs.setcontents("hello",b("world"))
+        checkcontents("hello",b("world"))
+        self.fs.setcontents("hello",b("hi"))
+        checkcontents("hello",b("hi"))
+        self.fs.setcontents("hello",b("1234567890"))
+        checkcontents("hello",b("1234567890"))
         with self.fs.open("hello","r+") as f:
             f.truncate(7)
-        checkcontents("hello","1234567")
+        checkcontents("hello",b("1234567"))
         with self.fs.open("hello","r+") as f:
             f.seek(5)
             f.truncate()
-        checkcontents("hello","12345")
+        checkcontents("hello",b("12345"))
 
     def test_truncate_to_larger_size(self):
         
-        with self.fs.open("hello","w") as f:
+        with self.fs.open("hello","wb") as f:
             f.truncate(30)
         self.assertEquals(self.fs.getsize("hello"), 30)
         
         # Some file systems (FTPFS) don't support both reading and writing
         if self.fs.getmeta('file.read_and_write', True):
-            with self.fs.open("hello","r+") as f:
+            with self.fs.open("hello","rb+") as f:
                 f.seek(25)
-                f.write("123456")
+                f.write(b("123456"))
                 
-            with self.fs.open("hello","r") as f:
+            with self.fs.open("hello","rb") as f:
                 f.seek(25)
-                self.assertEquals(f.read(),"123456")
+                self.assertEquals(f.read(),b("123456"))
 
     def test_write_past_end_of_file(self):
         if self.fs.getmeta('file.read_and_write', True):
-            with self.fs.open("write_at_end","w") as f:
+            with self.fs.open("write_at_end","wb") as f:
                 f.seek(25)
-                f.write("EOF")
-            with self.fs.open("write_at_end","r") as f:
-                self.assertEquals(f.read(),"\x00"*25 + "EOF")
+                f.write(b("EOF"))
+            with self.fs.open("write_at_end","rb") as f:
+                self.assertEquals(f.read(),b("\x00")*25 + b("EOF"))
 
 
     def test_with_statement(self):
@@ -760,24 +762,24 @@ class FSTestCases(object):
             #  A successful 'with' statement
             contents = "testing the with statement"
             code = "from __future__ import with_statement\n"
-            code += "with self.fs.open('f.txt','w-') as testfile:\n"
+            code += "with self.fs.open('f.txt','wb-') as testfile:\n"
             code += "    testfile.write(contents)\n"
-            code += "self.assertEquals(self.fs.getcontents('f.txt'),contents)"
+            code += "self.assertEquals(self.fs.getcontents('f.txt', 'rb'),contents)"
             code = compile(code,"<string>",'exec')
             eval(code)
             # A 'with' statement raising an error
             contents = "testing the with statement"
             code = "from __future__ import with_statement\n"
-            code += "with self.fs.open('f.txt','w-') as testfile:\n"
+            code += "with self.fs.open('f.txt','wb-') as testfile:\n"
             code += "    testfile.write(contents)\n"
             code += "    raise ValueError\n"
             code = compile(code,"<string>",'exec')
             self.assertRaises(ValueError,eval,code,globals(),locals())
-            self.assertEquals(self.fs.getcontents('f.txt'),contents)
+            self.assertEquals(self.fs.getcontents('f.txt', 'rb'),contents)
 
     def test_pickling(self):
         if self.fs.getmeta('pickle_contents', True):
-            self.fs.setcontents("test1","hello world")
+            self.fs.setcontents("test1",b("hello world"))
             fs2 = pickle.loads(pickle.dumps(self.fs))
             self.assert_(fs2.isfile("test1"))
             fs3 = pickle.loads(pickle.dumps(self.fs,-1))
@@ -789,15 +791,16 @@ class FSTestCases(object):
 
     def test_big_file(self):
         """Test handling of a big file (1MB)"""      
-        chunk_size = 1024 * 256
-        num_chunks = 4
-        def chunk_stream():
-            """Generate predictable-but-randomy binary content."""
-            r = random.Random(0)
-            randint = r.randint
-            for i in xrange(num_chunks):
-                c = "".join(chr(randint(0,255)) for j in xrange(chunk_size/8))
-                yield c * 8
+chunk_size = 1024 * 256
+num_chunks = 4
+def chunk_stream():
+    """Generate predictable-but-randomy binary content."""
+    r = random.Random(0)
+    randint = r.randint
+    int2byte = six.int2byte
+    for _i in xrange(num_chunks):
+        c = b("").join(int2byte(randint(0,255)) for _j in xrange(chunk_size//8))
+        yield c * 8
         f = self.fs.open("bigfile","wb")
         try:
             for chunk in chunk_stream():
@@ -812,7 +815,7 @@ class FSTestCases(object):
                     if chunks.next() != f.read(chunk_size):
                         assert False, "bigfile was corrupted"
             except StopIteration:
-                if f.read() != "":
+                if f.read() != b(""):
                     assert False, "bigfile was corrupted"
         finally:
             f.close()
@@ -825,7 +828,7 @@ class FSTestCases(object):
             return int(dts1) == int(dts2)       
         d1 = datetime.datetime(2010, 6, 20, 11, 0, 9, 987699)
         d2 = datetime.datetime(2010, 7, 5, 11, 0, 9, 500000)                        
-        self.fs.setcontents('/dates.txt', 'check dates')        
+        self.fs.setcontents('/dates.txt', b('check dates'))        
         # If the implementation supports settimes, check that the times
         # can be set and then retrieved
         try:
@@ -838,9 +841,12 @@ class FSTestCases(object):
             self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
 
+# Disabled - see below
 class ThreadingTestCases(object):
     """Testcases for thread-safety of FS implementations."""
 
+    
+    
     #  These are either too slow to be worth repeating,
     #  or cannot possibly break cross-thread.
     _dont_retest = ("test_pickling","test_multiple_overwrite",)
@@ -885,7 +891,7 @@ class ThreadingTestCases(object):
 
     def test_setcontents_threaded(self):
         def setcontents(name,contents):
-            f = self.fs.open(name,"w")
+            f = self.fs.open(name,"wb")
             self._yield()
             try:
                 f.write(contents)
@@ -893,13 +899,13 @@ class ThreadingTestCases(object):
             finally:
                 f.close()
         def thread1():
-            c = "thread1 was 'ere"
+            c = b("thread1 was 'ere")
             setcontents("thread1.txt",c)
-            self.assertEquals(self.fs.getcontents("thread1.txt"),c)
+            self.assertEquals(self.fs.getcontents("thread1.txt", 'rb'),c)
         def thread2():
-            c = "thread2 was 'ere"
+            c = b("thread2 was 'ere")
             setcontents("thread2.txt",c)
-            self.assertEquals(self.fs.getcontents("thread2.txt"),c)
+            self.assertEquals(self.fs.getcontents("thread2.txt", 'rb'),c)
         self._runThreads(thread1,thread2)
 
     def test_setcontents_threaded_samefile(self):
@@ -912,17 +918,17 @@ class ThreadingTestCases(object):
             finally:
                 f.close()
         def thread1():
-            c = "thread1 was 'ere"
+            c = b("thread1 was 'ere")
             setcontents("threads.txt",c)
             self._yield()
             self.assertEquals(self.fs.listdir("/"),["threads.txt"])
         def thread2():
-            c = "thread2 was 'ere"
+            c = b("thread2 was 'ere")
             setcontents("threads.txt",c)
             self._yield()
             self.assertEquals(self.fs.listdir("/"),["threads.txt"])
         def thread3():
-            c = "thread3 was 'ere"
+            c = b("thread3 was 'ere")
             setcontents("threads.txt",c)
             self._yield()
             self.assertEquals(self.fs.listdir("/"),["threads.txt"])
@@ -1011,9 +1017,9 @@ class ThreadingTestCases(object):
     def test_concurrent_copydir(self):
         self.fs.makedir("a")
         self.fs.makedir("a/b")
-        self.fs.setcontents("a/hello.txt","hello world")
-        self.fs.setcontents("a/guido.txt","is a space alien")
-        self.fs.setcontents("a/b/parrot.txt","pining for the fiords")
+        self.fs.setcontents("a/hello.txt",b("hello world"))
+        self.fs.setcontents("a/guido.txt",b("is a space alien"))
+        self.fs.setcontents("a/b/parrot.txt",b("pining for the fiords"))
         def copydir():
             self._yield()
             self.fs.copydir("a","copy of a")
@@ -1030,22 +1036,26 @@ class ThreadingTestCases(object):
             pass
         self.assertTrue(self.fs.isdir("copy of a"))
         self.assertTrue(self.fs.isdir("copy of a/b"))
-        self.assertEqual(self.fs.getcontents("copy of a/b/parrot.txt"),"pining for the fiords")
-        self.assertEqual(self.fs.getcontents("copy of a/hello.txt"),"hello world")
-        self.assertEqual(self.fs.getcontents("copy of a/guido.txt"),"is a space alien")
+        self.assertEqual(self.fs.getcontents("copy of a/b/parrot.txt", 'rb'),b("pining for the fiords"))
+        self.assertEqual(self.fs.getcontents("copy of a/hello.txt", 'rb'),b("hello world"))
+        self.assertEqual(self.fs.getcontents("copy of a/guido.txt", 'rb'),b("is a space alien"))
 
     def test_multiple_overwrite(self):
-        contents = ["contents one","contents the second","number three"]
+        contents = [b("contents one"),b("contents the second"),b("number three")]
         def thread1():
             for i in xrange(30):
                 for c in contents:
                     self.fs.setcontents("thread1.txt",c)
                     self.assertEquals(self.fs.getsize("thread1.txt"),len(c))
-                    self.assertEquals(self.fs.getcontents("thread1.txt"),c)
+                    self.assertEquals(self.fs.getcontents("thread1.txt", 'rb'),c)
         def thread2():
             for i in xrange(30):
                 for c in contents:
                     self.fs.setcontents("thread2.txt",c)
                     self.assertEquals(self.fs.getsize("thread2.txt"),len(c))
-                    self.assertEquals(self.fs.getcontents("thread2.txt"),c)
+                    self.assertEquals(self.fs.getcontents("thread2.txt", 'rb'),c)
         self._runThreads(thread1,thread2)
+
+
+class ThreadingTestCases(object):
+    _dont_retest = () 

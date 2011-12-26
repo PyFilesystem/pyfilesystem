@@ -91,7 +91,7 @@ class MountFS(FS):
     __repr__ = __str__
 
     def __unicode__(self):
-        return unicode(self.__str__())
+        return u"<%s [%s]>" % (self.__class__.__name__,self.mount_tree.items(),)
 
     def _delegate(self, path):
         path = abspath(normpath(path))

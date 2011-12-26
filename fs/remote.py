@@ -39,6 +39,7 @@ from fs import SEEK_SET, SEEK_CUR, SEEK_END
 
 _SENTINAL = object()
 
+from six import PY3, b
 
 class RemoteFileBuffer(FileWrapper):
     """File-like object providing buffer for local file operations.
@@ -186,7 +187,7 @@ class RemoteFileBuffer(FileWrapper):
                 self.wrapped_file.seek(curpos)
         
     def _read(self, length=None):
-        if length < 0:
+        if length is not None and length < 0:
             length = None
         with self._lock:
             self._fillbuffer(length)
@@ -668,7 +669,7 @@ class CacheFSMixin(FS):
     def getsize(self,path):
         return self.getinfo(path)["size"]
 
-    def setcontents(self, path, contents="", chunk_size=64*1024):
+    def setcontents(self, path, contents=b(""), chunk_size=64*1024):
         supsc =  super(CacheFSMixin,self).setcontents
         res = supsc(path, contents, chunk_size=chunk_size)
         with self.__cache_lock:

@@ -544,7 +544,7 @@ class MountProcess(subprocess.Popen):
             os.close(w)
             if os.read(r,1) != "S":
                 self.terminate()
-                raise RuntimeError("FUSE error: " + os.read(r,20))
+                raise RuntimeError("FUSE error: " + os.read(r,20)).decode(NATIVE_ENCODING)
 
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""

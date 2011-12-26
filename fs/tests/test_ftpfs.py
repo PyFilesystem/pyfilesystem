@@ -12,10 +12,14 @@ import time
 from os.path import abspath
 import urllib
 
+from six import PY3
+
+
 try:
     from pyftpdlib import ftpserver
 except ImportError:
-    raise ImportError("Requires pyftpdlib <http://code.google.com/p/pyftpdlib/>")
+    if not PY3:
+        raise ImportError("Requires pyftpdlib <http://code.google.com/p/pyftpdlib/>")
 
 from fs.path import *
 
@@ -23,6 +27,8 @@ from fs import ftpfs
 
 ftp_port = 30000
 class TestFTPFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
+    
+    __test__ = not PY3
 
     def setUp(self):
         global ftp_port

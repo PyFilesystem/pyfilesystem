@@ -13,7 +13,13 @@ import unittest
 from fs.tests import FSTestCases, ThreadingTestCases
 from fs.path import *
 
-from fs import s3fs
+from six import PY3
+try:
+    from fs import s3fs
+except ImportError:
+    if not PY3:
+        raise
+
 class TestS3FS(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
     #  Disable the tests by default
