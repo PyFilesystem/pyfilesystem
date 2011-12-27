@@ -30,7 +30,7 @@ from socket import error as socket_error
 from fs.local_functools import wraps
 
 import six
-from six import PY3
+from six import PY3, b
 
 if PY3:
     from six import BytesIO as StringIO
@@ -654,7 +654,7 @@ class _FTPFile(object):
     @fileftperrors
     def read(self, size=None):
         if self.conn is None:
-            return ''
+            return b('')
 
         chunks = []
         if size is None or size < 0:
@@ -682,7 +682,7 @@ class _FTPFile(object):
             self.read_pos += len(data)
             remaining_bytes -= len(data)
 
-        return ''.join(chunks)
+        return b('').join(chunks)
 
     @fileftperrors
     def write(self, data):
@@ -812,11 +812,11 @@ class _FTPFile(object):
         This isn't terribly efficient. It would probably be better to do
         a read followed by splitlines.
         """
-        endings = '\r\n'
+        endings = b('\r\n')
         chars = []
         append = chars.append
         read = self.read
-        join = ''.join
+        join = b('').join
         while True:
             char = read(1)
             if not char:

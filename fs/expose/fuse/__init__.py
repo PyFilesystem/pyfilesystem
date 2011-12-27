@@ -67,12 +67,14 @@ from fs.path import *
 from fs.local_functools import wraps
 
 from six import PY3
+from six import b
 
 try:
-    if PY3:
-        import fuse3 as fuse
-    else:
-        import fuse
+    #if PY3:
+    #    import fuse3 as fuse
+    #else:
+    #    import fuse
+    import fuse_ctypes as fuse
 except NotImplementedError:
     raise ImportError("FUSE found but not usable")
 try:
@@ -530,8 +532,12 @@ class MountProcess(subprocess.Popen):
     def __init__(self, fs, path, fuse_opts={}, nowait=False, **kwds):
         self.path = path
         if nowait or kwds.get("close_fds",False):
-            cmd = 'import cPickle; '
-            cmd = cmd + 'data = cPickle.loads(%s); '
+            if PY3:
+                cmd = "from pickle import loads;"
+            else:
+                cmd = "from cPickle import loads;"
+            #cmd = 'import cPickle; '
+            cmd = cmd + 'data = loads(%s); '
             cmd = cmd + 'from fs.expose.fuse import MountProcess; '
             cmd = cmd + 'MountProcess._do_mount_nowait(data)'
             cmd = cmd % (repr(cPickle.dumps((fs,path,fuse_opts),-1)),)
@@ -539,15 +545,21 @@ class MountProcess(subprocess.Popen):
             super(MountProcess,self).__init__(cmd,**kwds)
         else:
             (r,w) = os.pipe()
-            cmd = 'import cPickle; '
-            cmd = cmd + 'data = cPickle.loads(%s); '
+            if PY3:
+                cmd = "from pickle import loads;"
+            else:
+                cmd = "from cPickle import loads;"
+            #cmd = 'import cPickle; '
+            cmd = cmd + 'data = loads(%s); '
             cmd = cmd + 'from fs.expose.fuse import MountProcess; '
             cmd = cmd + 'MountProcess._do_mount_wait(data)'
-            cmd = cmd % (repr(cPickle.dumps((fs,path,fuse_opts,r,w),-1)),)
+            cmd = cmd % (repr(cPickle.dumps((fs,path,fuse_opts,r,w),-1)),)            
             cmd = [sys.executable,"-c",cmd]
             super(MountProcess,self).__init__(cmd,**kwds)
             os.close(w)
-            if os.read(r,1) != "S":
+            
+            byte = os.read(r, 1)            
+            if byte != b("S"):
                 self.terminate()
                 raise RuntimeError("FUSE error: " + os.read(r,20).decode(NATIVE_ENCODING))
 
@@ -595,7 +607,7 @@ class MountProcess(subprocess.Popen):
         successful = []
         def ready_callback():
             successful.append(True)
-            os.write(w,"S")
+            os.write(w, b("S"))
             os.close(w)
         opts["ready_callback"] = ready_callback
         def unmount_callback():
@@ -603,12 +615,12 @@ class MountProcess(subprocess.Popen):
         opts["unmount_callback"] = unmount_callback
         try:
             mount(fs,path,**opts)
-        except Exception, e:
-            os.write(w,"E"+str(e))
+        except Exception, e:            
+            os.write(w,b("E")+b(e))
             os.close(w)
         else:
             if not successful:
-                os.write(w,"E")
+                os.write(w,b("E"))
                 os.close(w)
 
 

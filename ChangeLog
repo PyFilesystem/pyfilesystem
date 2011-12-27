@@ -81,3 +81,5 @@
     * Added `appdirfs` module to abstract per-user application directories
     
 0.5:
+
+	* Ported to Python 3.X

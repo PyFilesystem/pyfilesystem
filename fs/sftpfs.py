@@ -2,6 +2,8 @@
 fs.sftpfs
 =========
 
+**Currently only avaiable on Python2 due to paramiko not being available for Python3**
+
 Filesystem accessing an SFTP server (via paramiko)
 
 """

@@ -721,19 +721,18 @@ class FSTestCases(object):
         checkcontents("hello",b("hi"))
         self.fs.setcontents("hello",b("1234567890"))
         checkcontents("hello",b("1234567890"))
-        with self.fs.open("hello","r+") as f:
+        with self.fs.open("hello","rb+") as f:
             f.truncate(7)
         checkcontents("hello",b("1234567"))
-        with self.fs.open("hello","r+") as f:
+        with self.fs.open("hello","rb+") as f:
             f.seek(5)
             f.truncate()
         checkcontents("hello",b("12345"))
 
-    def test_truncate_to_larger_size(self):
-        print repr(self.fs)
-        print self.fs.__class__
-        with self.fs.open("hello","wb") as f:
+    def test_truncate_to_larger_size(self):        
+        with self.fs.open("hello","wb") as f:        
             f.truncate(30)
+                    
         self.assertEquals(self.fs.getsize("hello"), 30)
         
         # Some file systems (FTPFS) don't support both reading and writing
@@ -792,34 +791,34 @@ class FSTestCases(object):
 
     def test_big_file(self):
         """Test handling of a big file (1MB)"""      
-chunk_size = 1024 * 256
-num_chunks = 4
-def chunk_stream():
-    """Generate predictable-but-randomy binary content."""
-    r = random.Random(0)
-    randint = r.randint
-    int2byte = six.int2byte
-    for _i in xrange(num_chunks):
-        c = b("").join(int2byte(randint(0,255)) for _j in xrange(chunk_size//8))
-        yield c * 8
-        f = self.fs.open("bigfile","wb")
-        try:
-            for chunk in chunk_stream():
-                f.write(chunk)
-        finally:
-            f.close()
-        chunks = chunk_stream()
-        f = self.fs.open("bigfile","rb")
-        try:
-            try:
-                while True:
-                    if chunks.next() != f.read(chunk_size):
-                        assert False, "bigfile was corrupted"
-            except StopIteration:
-                if f.read() != b(""):
-                    assert False, "bigfile was corrupted"
-        finally:
-            f.close()
+        chunk_size = 1024 * 256
+        num_chunks = 4
+        def chunk_stream():
+            """Generate predictable-but-randomy binary content."""
+            r = random.Random(0)
+            randint = r.randint
+            int2byte = six.int2byte
+            for _i in xrange(num_chunks):
+                c = b("").join(int2byte(randint(0,255)) for _j in xrange(chunk_size//8))
+                yield c * 8
+                f = self.fs.open("bigfile","wb")
+                try:
+                    for chunk in chunk_stream():
+                        f.write(chunk)
+                finally:
+                    f.close()
+                chunks = chunk_stream()
+                f = self.fs.open("bigfile","rb")
+                try:
+                    try:
+                        while True:
+                            if chunks.next() != f.read(chunk_size):
+                                assert False, "bigfile was corrupted"
+                    except StopIteration:
+                        if f.read() != b(""):
+                            assert False, "bigfile was corrupted"
+                finally:
+                    f.close()
 
     def test_settimes(self):        
         def cmp_datetimes(d1, d2):
@@ -842,7 +841,7 @@ def chunk_stream():
             self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
 
-# Disabled - see below
+# May be disabled - see end of file
 class ThreadingTestCases(object):
     """Testcases for thread-safety of FS implementations."""
 
@@ -911,7 +910,7 @@ class ThreadingTestCases(object):
 
     def test_setcontents_threaded_samefile(self):
         def setcontents(name,contents):
-            f = self.fs.open(name,"w")
+            f = self.fs.open(name,"wb")
             self._yield()
             try:
                 f.write(contents)
@@ -1057,6 +1056,6 @@ class ThreadingTestCases(object):
                     self.assertEquals(self.fs.getcontents("thread2.txt", 'rb'),c)
         self._runThreads(thread1,thread2)
 
-
-class ThreadingTestCases(object):
-    _dont_retest = () 
+# Uncomment to temporarily disable threading tests
+#class ThreadingTestCases(object):
+#    _dont_retest = () 

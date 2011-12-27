@@ -2,6 +2,8 @@
 fs.s3fs
 =======
 
+**Currently only avaiable on Python2 due to boto not being available for Python3**
+
 FS subclass accessing files in Amazon S3
 
 This module provides the class 'S3FS', which implements the FS filesystem

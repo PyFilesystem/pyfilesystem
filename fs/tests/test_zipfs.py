@@ -15,7 +15,7 @@ import fs.tests
 from fs.path import *
 from fs import zipfs
 
-from six import b
+from six import PY3, b
 
 class TestReadZipFS(unittest.TestCase):
 
@@ -122,9 +122,12 @@ class TestWriteZipFS(unittest.TestCase):
     def test_creation(self):
         zf = zipfile.ZipFile(self.temp_filename, "r")
         def check_contents(filename, contents):
-            zcontents = zf.read(filename.encode("CP437"))
+            if PY3:
+                zcontents = zf.read(filename)
+            else:
+                zcontents = zf.read(filename.encode("CP437"))
             self.assertEqual(contents, zcontents)
-        check_contents("a.txt", b()"Hello, World!")
+        check_contents("a.txt", b("Hello, World!"))
         check_contents("b.txt", b("b"))
         check_contents("foo/bar/baz.txt", b("baz"))
         check_contents("foo/second.txt", b("hai"))

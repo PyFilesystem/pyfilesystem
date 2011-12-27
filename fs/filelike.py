@@ -49,7 +49,7 @@ import six
 from six import PY3, b
 
 if PY3:
-    _StringIO = six.BytesIO
+    from six import BytesIO as _StringIO
 else:
     try:
         from cStringIO import StringIO as _StringIO
@@ -669,7 +669,7 @@ class FileWrapper(FileLikeBase):
         return self.wrapped_file.tell()
 
     def _truncate(self,size):
-        return self.wrapped_file.truncate(size)
+        return self.wrapped_file.truncate(size)        
 
 
 class StringIO(FileWrapper):
@@ -721,8 +721,8 @@ class SpooledTemporaryFile(FileWrapper):
         try:
             stf_args = (max_size,mode,bufsize) + args
             wrapped_file = _tempfile.SpooledTemporaryFile(*stf_args,**kwds)
-            #wrapped_file._file = StringIO()
-            wrapped_file._file = six.BytesIO()
+            wrapped_file._file = StringIO()
+            #wrapped_file._file = six.BytesIO()
             self.__is_spooled = True
         except AttributeError:
             ntf_args = (mode,bufsize) + args
