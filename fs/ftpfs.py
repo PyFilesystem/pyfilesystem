@@ -29,10 +29,16 @@ import calendar
 from socket import error as socket_error
 from fs.local_functools import wraps
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+import six
+from six import PY3
+
+if PY3:
+    from six import BytesIO as StringIO
+else:
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
 
 import time
 

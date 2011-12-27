@@ -297,8 +297,8 @@ class FSTestCases(object):
         self.assertRaises(ResourceInvalidError,self.fs.listdirinfo,"foo")
 
     def test_walk(self):
-        self.fs.setcontents('a.txt', 'hello')
-        self.fs.setcontents('b.txt', 'world')
+        self.fs.setcontents('a.txt', b('hello'))
+        self.fs.setcontents('b.txt', b('world'))
         self.fs.makeopendir('foo').setcontents('c', b('123'))
         sorted_walk = sorted([(d,sorted(fs)) for (d,fs) in self.fs.walk()])
         self.assertEquals(sorted_walk,
@@ -730,7 +730,8 @@ class FSTestCases(object):
         checkcontents("hello",b("12345"))
 
     def test_truncate_to_larger_size(self):
-        
+        print repr(self.fs)
+        print self.fs.__class__
         with self.fs.open("hello","wb") as f:
             f.truncate(30)
         self.assertEquals(self.fs.getsize("hello"), 30)

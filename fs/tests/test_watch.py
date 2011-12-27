@@ -178,7 +178,7 @@ class WatcherTestCases:
         while not isinstance(event,CLOSED):
             event = changes.next(timeout=1)
         #  That should be the last event in the list
-        self.assertRaises(StopIteration,changes.next,timeout=1)
+        self.assertRaises(StopIteration,getattr(changes, "next"),timeout=1)
         changes.close()
 
 

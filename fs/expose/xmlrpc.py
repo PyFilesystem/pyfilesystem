@@ -19,6 +19,9 @@ import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from datetime import datetime
 
+import six
+from six import PY3, b
+
 class RPCFSInterface(object):
     """Wrapper to expose an FS via a XML-RPC compatible interface.
 
@@ -37,11 +40,15 @@ class RPCFSInterface(object):
         must return something that can be represented in ASCII.  The default
         is base64-encoded UTF-8.
         """
+        if PY3:
+            return path        
         return path.encode("utf8").encode("base64")
 
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
-        return path.decode("base64").decode("utf8")
+        if PY3:
+            return path
+        return path.decode("base64").decode("utf8")        
 
     def getmeta(self, meta_name):
         meta = self.fs.getmeta(meta_name)
@@ -54,9 +61,9 @@ class RPCFSInterface(object):
     def hasmeta(self, meta_name):
         return self.fs.hasmeta(meta_name)
 
-    def get_contents(self, path):
+    def get_contents(self, path, mode="rb"):
         path = self.decode_path(path)
-        data = self.fs.getcontents(path)
+        data = self.fs.getcontents(path, mode)
         return xmlrpclib.Binary(data)
 
     def set_contents(self, path, data):
@@ -105,9 +112,10 @@ class RPCFSInterface(object):
             modified_time = datetime.strptime(modified_time.value, "%Y%m%dT%H:%M:%S")            
         return self.fs.settimes(path, accessed_time, modified_time)
 
-    def getinfo(self, path):
+    def getinfo(self, path):        
         path = self.decode_path(path)
-        return self.fs.getinfo(path)
+        info = self.fs.getinfo(path)        
+        return info
 
     def desc(self, path):
         path = self.decode_path(path)

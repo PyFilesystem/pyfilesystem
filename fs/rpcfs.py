@@ -18,6 +18,8 @@ from fs.path import *
 
 from fs.filelike import StringIO
 
+import six
+from six import PY3, b
 
 def re_raise_faults(func):
     """Decorator to re-raise XML-RPC faults as proper exceptions."""
@@ -126,6 +128,9 @@ class RPCFS(FS):
 
     def __str__(self):
         return '<RPCFS: %s>' % (self.uri,)
+    
+    def __repr__(self):
+        return '<RPCFS: %s>' % (self.uri,)
 
     @synchronize
     def __getstate__(self):
@@ -147,11 +152,15 @@ class RPCFS(FS):
         must return something that can be represented in ASCII.  The default
         is base64-encoded UTF8.
         """
-        return path.encode("utf8").encode("base64")
+        if PY3:
+            return path
+        return path.encode("utf8").encode("base64")      
 
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
-        return path.decode("base64").decode("utf8")
+        if PY3:
+            return path        
+        return path.decode("base64").decode("utf8")        
     
     @synchronize
     def getmeta(self, meta_name, default=NoDefaultMeta):
@@ -169,18 +178,18 @@ class RPCFS(FS):
         # TODO: chunked transport of large files
         path = self.encode_path(path)
         if "w" in mode:
-            self.proxy.set_contents(path,xmlrpclib.Binary(""))
+            self.proxy.set_contents(path,xmlrpclib.Binary(b("")))
         if "r" in mode or "a" in mode or "+" in mode:
             try:
-                data = self.proxy.get_contents(path).data
+                data = self.proxy.get_contents(path, "rb").data
             except IOError:
                 if "w" not in mode and "a" not in mode:
                     raise ResourceNotFoundError(path)
                 if not self.isdir(dirname(path)):
                     raise ParentDirectoryMissingError(path)
-                self.proxy.set_contents(path,xmlrpclib.Binary(""))
+                self.proxy.set_contents(path,xmlrpclib.Binary(b("")))
         else:
-            data = ""
+            data = b("")
         f = StringIO(data)
         if "a" not in mode:
             f.seek(0,0)
@@ -277,7 +286,7 @@ class RPCFS(FS):
 
     @synchronize
     def getinfo(self, path):
-        path = self.encode_path(path)
+        path = self.encode_path(path)        
         return self.proxy.getinfo(path)
 
     @synchronize

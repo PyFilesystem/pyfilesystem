@@ -10,6 +10,7 @@ from fs.expose.importhook import FSImportHook
 from fs.tempfs import TempFS
 from fs.zipfs import ZipFS
 
+from six import b
 
 class TestFSImportHook(unittest.TestCase):
 
@@ -32,23 +33,23 @@ class TestFSImportHook(unittest.TestCase):
         sys.path_importer_cache.clear()
 
     def _init_modules(self,fs):
-        fs.setcontents("fsih_hello.py",dedent("""
+        fs.setcontents("fsih_hello.py",b(dedent("""
             message = 'hello world!'
-        """))
+        """)))
         fs.makedir("fsih_pkg")
-        fs.setcontents("fsih_pkg/__init__.py",dedent("""
+        fs.setcontents("fsih_pkg/__init__.py",b(dedent("""
             a = 42
-        """))
-        fs.setcontents("fsih_pkg/sub1.py",dedent("""
+        """)))
+        fs.setcontents("fsih_pkg/sub1.py",b(dedent("""
             import fsih_pkg
             from fsih_hello import message
             a = fsih_pkg.a
-        """))
-        fs.setcontents("fsih_pkg/sub2.pyc",self._getpyc(dedent("""
+        """)))
+        fs.setcontents("fsih_pkg/sub2.pyc",self._getpyc(b(dedent("""
             import fsih_pkg
             from fsih_hello import message
             a = fsih_pkg.a * 2
-        """)))
+        """))))
 
     def _getpyc(self,src):
         """Get the .pyc contents to match th given .py source code."""

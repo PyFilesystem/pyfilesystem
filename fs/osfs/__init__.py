@@ -31,7 +31,7 @@ from fs.osfs.watch import OSFSWatchMixin
 
 @convert_os_errors
 def _os_stat(path):
-    """Replacement for os.stat that raises FSError subclasses."""
+    """Replacement for os.stat that raises FSError subclasses."""    
     return os.stat(path)
 
 @convert_os_errors
@@ -204,8 +204,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         return super(OSFS, self).getmeta(meta_name, default)
 
     @convert_os_errors
-    def open(self, path, mode="r", **kwargs):
-        #mode = filter(lambda c: c in "rwabt+",mode)
+    def open(self, path, mode="r", **kwargs):        
         mode = ''.join(c for c in mode if c in 'rwabt+')
         sys_path = self.getsyspath(path)
         try:
@@ -331,7 +330,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     @convert_os_errors
     def getinfo(self, path):
         stats = self._stat(path)
-        info = dict((k, getattr(stats, k)) for k in dir(stats) if not k.startswith('__') )
+        info = dict((k, getattr(stats, k)) for k in dir(stats) if k.startswith('st_'))
         info['size'] = info['st_size']
         #  TODO: this doesn't actually mean 'creation time' on unix
         ct = info.get('st_ctime', None)

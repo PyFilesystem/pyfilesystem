@@ -502,7 +502,7 @@ class FileLikeBase(object):
         # If not found, return whole string up to <size> length
         # Any leftovers are pushed onto front of buffer
         if indx == -1:
-            data = "".join(bits)
+            data = b("").join(bits)
             if size > 0 and sizeSoFar > size:
                 extra = data[size:]
                 data = data[:size]

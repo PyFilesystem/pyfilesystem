@@ -19,6 +19,7 @@ from memoryfs import MemoryFS
 
 import tempfs
 
+from six import PY3
 
 class ZipOpenError(CreateFailedError):
     """Thrown when the zip file could not be opened"""
@@ -144,9 +145,20 @@ class ZipFS(FS):
     def __unicode__(self):
         return u"<ZipFS: %s>" % self.zip_path
 
+    def _decode_path(self, path):
+        if PY3:
+            return path
+        return path.decode(self.encoding)
+    
+    def _encode_path(self, path):
+        if PY3:
+            return path
+        return path.encode(self.encoding)
+
     def _parse_resource_list(self):
         for path in self.zf.namelist():
-            self._add_resource(path.decode(self.encoding))
+            #self._add_resource(path.decode(self.encoding))
+            self._add_resource(self._decode_path(path))
 
     def _add_resource(self, path):
         if path.endswith('/'):
@@ -185,9 +197,9 @@ class ZipFS(FS):
                                            msg="1 Zip file must be opened for reading ('r') or appending ('a')")
             try:
                 if hasattr(self.zf, 'open') and self._zip_file_string:
-                    return self.zf.open(path.encode(self.encoding))
+                    return self.zf.open(self._encode_path(path), "r")
                 else:
-                    contents = self.zf.read(path.encode(self.encoding))
+                    contents = self.zf.read(self._encode_path(path))
             except KeyError:
                 raise ResourceNotFoundError(path)
             return StringIO(contents)
@@ -214,7 +226,7 @@ class ZipFS(FS):
             raise ResourceNotFoundError(path)
         path = normpath(relpath(path))
         try:
-            contents = self.zf.read(path.encode(self.encoding))
+            contents = self.zf.read(self._encode_path(path))
         except KeyError:
             raise ResourceNotFoundError(path)
         except RuntimeError:
@@ -224,7 +236,7 @@ class ZipFS(FS):
     @synchronize
     def _on_write_close(self, filename):
         sys_path = self.temp_fs.getsyspath(filename)
-        self.zf.write(sys_path, filename.encode(self.encoding))
+        self.zf.write(sys_path, self._encode_path(filename))
 
     def desc(self, path):        
         return "%s in zip file %s" % (path, self.zip_path)        
@@ -256,14 +268,14 @@ class ZipFS(FS):
             raise ResourceNotFoundError(path)
         path = normpath(path).lstrip('/')
         try:
-            zi = self.zf.getinfo(path.encode(self.encoding))
+            zi = self.zf.getinfo(self._encode_path(path))
             zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
             for k, v in zinfo.iteritems():
                 if callable(v):
                     zinfo[k] = v()
         except KeyError:
             zinfo = {'file_size':0}
-        info = {'size' : zinfo['file_size'] }
+        info = {'size' : zinfo['file_size']}
         if 'date_time' in zinfo:
             info['created_time'] = datetime.datetime(*zinfo['date_time'])
         info.update(zinfo)

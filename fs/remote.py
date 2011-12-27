@@ -94,7 +94,8 @@ class RemoteFileBuffer(FileWrapper):
                 self._eof = True
                 
             if not hasattr(rfile, "read"):
-                rfile = StringIO(unicode(rfile))
+                #rfile = StringIO(unicode(rfile))
+                rfile = StringIO(rfile)
                 
             self._rfile = rfile
         else:

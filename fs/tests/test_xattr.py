@@ -11,6 +11,7 @@ from fs.path import *
 from fs.errors import *
 from fs.tests import FSTestCases
 
+from six import b 
 
 class XAttrTestCases:
     """Testcases for filesystems providing extended attribute support.
@@ -26,11 +27,11 @@ class XAttrTestCases:
             self.assertEqual(self.fs.getxattr(p,"xattr1"),"value1")
             self.fs.delxattr(p,"xattr1")
             self.assertEqual(self.fs.getxattr(p,"xattr1"),None)
-        self.fs.setcontents("test.txt","hello")
+        self.fs.setcontents("test.txt",b("hello"))
         do_getsetdel("test.txt")
         self.assertRaises(ResourceNotFoundError,self.fs.getxattr,"test2.txt","xattr1")
         self.fs.makedir("mystuff")
-        self.fs.setcontents("/mystuff/test.txt","")
+        self.fs.setcontents("/mystuff/test.txt",b(""))
         do_getsetdel("mystuff")
         do_getsetdel("mystuff/test.txt")
 
@@ -49,15 +50,15 @@ class XAttrTestCases:
             self.assertEquals(sorted(self.fs.listxattrs(p)),["attr2"])
             self.fs.delxattr(p,"attr2")
             self.assertEquals(sorted(self.fs.listxattrs(p)),[])
-        self.fs.setcontents("test.txt","hello")
+        self.fs.setcontents("test.txt",b("hello"))
         do_list("test.txt")
         self.fs.makedir("mystuff")
-        self.fs.setcontents("/mystuff/test.txt","")
+        self.fs.setcontents("/mystuff/test.txt",b(""))
         do_list("mystuff")
         do_list("mystuff/test.txt")
 
     def test_copy_xattrs(self):
-        self.fs.setcontents("a.txt","content")
+        self.fs.setcontents("a.txt",b("content"))
         self.fs.setxattr("a.txt","myattr","myvalue")
         self.fs.setxattr("a.txt","testattr","testvalue")
         self.fs.makedir("stuff")
@@ -75,7 +76,7 @@ class XAttrTestCases:
         self.assertEquals(self.fs.getxattr("stuff","dirattr"),"a directory")
 
     def test_move_xattrs(self):
-        self.fs.setcontents("a.txt","content")
+        self.fs.setcontents("a.txt",b("content"))
         self.fs.setxattr("a.txt","myattr","myvalue")
         self.fs.setxattr("a.txt","testattr","testvalue")
         self.fs.makedir("stuff")

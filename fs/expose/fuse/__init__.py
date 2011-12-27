@@ -66,8 +66,13 @@ from fs.errors import *
 from fs.path import *
 from fs.local_functools import wraps
 
+from six import PY3
+
 try:
-    import fuse_ctypes as fuse
+    if PY3:
+        import fuse3 as fuse
+    else:
+        import fuse
 except NotImplementedError:
     raise ImportError("FUSE found but not usable")
 try:
@@ -178,7 +183,7 @@ class FSOperations(Operations):
         # FUSE doesn't seem to pass correct mode information here - at least,
         # I haven't figured out how to distinguish between "w" and "w+".
         # Go with the most permissive option.
-        fh = self._reg_file(self.fs.open(path,"w+"),path)
+        fh = self._reg_file(self.fs.open(path,"wb+"),path)
         fi.fh = fh
         fi.keep_cache = 0
 
@@ -318,10 +323,10 @@ class FSOperations(Operations):
     def truncate(self, path, length, fh=None):
         path = path.decode(NATIVE_ENCODING)
         if fh is None and length == 0:
-            self.fs.open(path,"w").close()
+            self.fs.open(path,"wb").close()
         else:
             if fh is None:
-                f = self.fs.open(path,"r+")
+                f = self.fs.open(path,"rb+")
                 if not hasattr(f,"truncate"):
                     raise UnsupportedError("truncate")
                 f.truncate(length)
@@ -544,7 +549,7 @@ class MountProcess(subprocess.Popen):
             os.close(w)
             if os.read(r,1) != "S":
                 self.terminate()
-                raise RuntimeError("FUSE error: " + os.read(r,20)).decode(NATIVE_ENCODING)
+                raise RuntimeError("FUSE error: " + os.read(r,20).decode(NATIVE_ENCODING))
 
     def unmount(self):
         """Cleanly unmount the FUSE filesystem, terminating this subprocess."""

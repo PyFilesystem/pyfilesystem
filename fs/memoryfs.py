@@ -23,7 +23,6 @@ import threading
 import six
 
 
-
 def _check_mode(mode, mode_chars):
     for c in mode_chars:
         if c not in mode:
@@ -76,7 +75,8 @@ class MemoryFile(object):
     def __str__(self):
         return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
-    __repr__ = __str__
+    def __repr__(self):
+        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path) 
 
     def __unicode__(self):
         return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
@@ -89,7 +89,9 @@ class MemoryFile(object):
         pass
 
     def __iter__(self):
-        return self
+        self.mem_file.seek(self.pos)
+        for line in self.mem_file:
+            yield line        
 
     @seek_and_lock
     def next(self):        
@@ -614,10 +616,10 @@ class MemoryFS(FS):
     
     @synchronize
     def setcontents(self, path, data, chunk_size=1024*64):
-        if not isinstance(data, str):
+        if not isinstance(data, six.binary_type):        
             return super(MemoryFS, self).setcontents(path, data, chunk_size)        
         if not self.exists(path):      
-            self.open(path, 'w').close()                    
+            self.open(path, 'wb').close()                    
             
         dir_entry = self._get_dir_entry(path)
         if not dir_entry.isfile():
