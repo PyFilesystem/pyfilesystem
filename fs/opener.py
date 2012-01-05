@@ -67,6 +67,7 @@ __all__ = ['OpenerError',
            'HTTPOpener']
 
 from fs.path import pathsplit, join, iswildcard, normpath
+from fs.osfs import OSFS
 from fs.filelike import FileWrapper
 from os import getcwd
 import os.path
@@ -288,10 +289,13 @@ class OpenerRegistry(object):
         :param create_dir: create the directory references by the FS URL, if
             it doesn't already exist          
         
-        """
-        fs, path = self.parse(fs_url, writeable=writeable, create_dir=create_dir)
+        """        
+        fs, path = self.parse(fs_url, writeable=writeable, create_dir=create_dir)        
+        if path and '://' not in fs_url:
+            # A shortcut to return an OSFS rather than a SubFS for os paths
+            return OSFS(fs_url)
         if path:
-            return fs.opendir(path)
+            fs = fs.opendir(path)
         return fs
                     
 
