@@ -94,7 +94,8 @@ class MultiFS(FS):
         self.auto_close = auto_close
         self.fs_sequence = []
         self.fs_lookup =  {}
-        self.writefs = None        
+        self.fs_priorities = {}
+        self.writefs = None     
 
     @synchronize
     def __str__(self):
@@ -105,6 +106,9 @@ class MultiFS(FS):
     @synchronize
     def __unicode__(self):
         return u"<MultiFS: %s>" % ", ".join(unicode(fs) for fs in self.fs_sequence)
+
+    def _get_priority(self, name):
+        return self.fs_priorities[name]
 
     @synchronize
     def close(self):
@@ -117,24 +121,39 @@ class MultiFS(FS):
         # Discard any references
         del self.fs_sequence[:]
         self.fs_lookup.clear()
+        self.fs_priorities.clear()
         self.writefs = None
         super(MultiFS, self).close()
+     
+    def _priority_sort(self):
+        """Sort filesystems by priority order"""
+        priority_order = sorted(self.fs_lookup.keys(), key=lambda n:self.fs_priorities[n], reverse=True)
+        self.fs_sequence = [self.fs_lookup[name] for name in priority_order]        
         
     @synchronize
-    def addfs(self, name, fs, write=False):
+    def addfs(self, name, fs, write=False, priority=0):
         """Adds a filesystem to the MultiFS.
 
         :param name: A unique name to refer to the filesystem being added.
             The filesystem can later be retrieved by using this name as an index to the MultiFS, i.e. multifs['myfs']
         :param fs: The filesystem to add
         :param write: If this value is True, then the `fs` will be used as the writeable FS
+        :param priority: A number that gives the priorty of the filesystem being added.
+            Filesystems will be searched in descending priority order and then by the reverse order they were added.
+            So by default, the most recently added filesystem will be looked at first
+            
 
         """
         if name in self.fs_lookup:
             raise ValueError("Name already exists.")
-
+        
+        priority = (priority, len(self.fs_sequence))
+        self.fs_priorities[name] = priority
         self.fs_sequence.append(fs)
         self.fs_lookup[name] = fs
+        
+        self._priority_sort()        
+        
         if write:
             self.setwritefs(fs)
 
@@ -166,6 +185,7 @@ class MultiFS(FS):
         fs = self.fs_lookup[name]
         self.fs_sequence.remove(fs)
         del self.fs_lookup[name]
+        self._priority_sort()
 
     @synchronize
     def __getitem__(self, name):
@@ -173,7 +193,7 @@ class MultiFS(FS):
 
     @synchronize
     def __iter__(self):
-        return reversed(self.fs_sequence[:])
+        return iter(self.fs_sequence[:])
 
     def _delegate_search(self, path):
         for fs in self:
