@@ -12,17 +12,17 @@ __all__ = ['copyfile',
            'isfile',
            'isdir',
            'find_duplicates',
-           'print_fs']
+           'print_fs',
+           'wrap_file']
 
 import os
 import sys
 import stat
+
 from fs.mountfs import MountFS
 from fs.path import pathjoin
 from fs.errors import DestinationExistsError
 from fs.base import FS
-
-
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
@@ -446,7 +446,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         if sys.platform.startswith('win'):
             terminal_colors = False
         else:
-            terminal_colors = True
+            terminal_colors = hasattr(file_out, 'isatty') and file_out.isatty()
     
     def write(line):
         file_out.write(line.encode(file_encoding, 'replace')+'\n')
@@ -516,29 +516,14 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         return len(dir_listing)
                 
     print_dir(fs, path)
-            
-            
 
 
 if __name__ == "__main__":
-    #from osfs import *
-    #fs = OSFS('~/copytest')
-
-    #from memoryfs import *
-    #m = MemoryFS()
-    #m.makedir('maps')
-
-    #copydir((fs, 'maps'), (m, 'maps'))
-
-    #from browsewin import browse
-    #browse(m)
-
-    from osfs import *
-    #f = OSFS('/home/will/projects')
-    f=OSFS('/home/will/tests')
     from fs.memoryfs import MemoryFS
-    mem = MemoryFS()
-    from fs.utils import copydir
-    copydir(f, mem)
-    print_fs(mem)
+    m = MemoryFS()
+    m.setcontents("test", "Hello, World!" * 10000)
     
+    f = m.open("test")
+    print f
+    tf = wrap_file(f, "r")
+    print repr(tf.read(10))
