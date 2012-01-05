@@ -54,10 +54,13 @@ class DirMount(object):
         self.fs = fs        
 
     def __str__(self):
-        return "Mount point: <%s,%s>" % (self.path,self.fs,)
-    __repr__ = __str__
+        return "<DirMount %s, %s>" % (self.path, self.fs)
+    
+    def __repr__(self):
+        return "<DirMount %s, %s>" % (self.path, self.fs)
+    
     def __unicode__(self):
-        return unicode(str(self))
+        return u"<DirMount %s, %s>" % (self.path, self.fs)
 
 
 class FileMount(object):
@@ -272,7 +275,6 @@ class MountFS(FS):
                 else:
                     yield mkpath(p)
 
-
     @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
         fs, _mount_path, delegate_path = self._delegate(path)
@@ -397,6 +399,7 @@ class MountFS(FS):
         :param fs: A filesystem object to mount        
 
         """
+        path = abspath(normpath(path))
         self.mount_tree[path] = MountFS.DirMount(path, fs)
     mount = mountdir
 
