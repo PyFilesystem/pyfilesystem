@@ -44,7 +44,7 @@ extra = {}
 if PY3:    
     extra["use_2to3"] = True
 
-setup(install_requires=['distribute'],
+setup(install_requires=['distribute', 'six'],
       name='fs',
       version=VERSION,
       description="Filesystem abstraction",
