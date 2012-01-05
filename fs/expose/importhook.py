@@ -85,7 +85,7 @@ class FSImportHook(object):
         import machinery of the running process, if it is not already
         installed.
         """
-        for i,imp in enumerate(sys.path_hooks):
+        for imp in enumerate(sys.path_hooks):
             try:
                 if issubclass(cls,imp):
                     break
@@ -225,7 +225,7 @@ class FSImportHook(object):
         (path,type,ispkg) = info
         if type != imp.PY_SOURCE:
             return None
-        return self.fs.getcontents(path).replace(b("\r\n"),b("\n"))
+        return self.fs.getcontents(path, 'rb').replace(b("\r\n"),b("\n"))
 
     def get_data(self,path):
         """Read the specified data file."""
