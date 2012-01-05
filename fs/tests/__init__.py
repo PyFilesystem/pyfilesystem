@@ -844,9 +844,7 @@ class FSTestCases(object):
 # May be disabled - see end of file
 class ThreadingTestCases(object):
     """Testcases for thread-safety of FS implementations."""
-
-    
-    
+        
     #  These are either too slow to be worth repeating,
     #  or cannot possibly break cross-thread.
     _dont_retest = ("test_pickling","test_multiple_overwrite",)
