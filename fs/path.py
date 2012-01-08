@@ -169,6 +169,17 @@ def pathjoin(*paths):
         path = abspath(path)
     return path
 
+def pathcombine(path1, path2):
+    """Joins two paths together.
+    
+    This is faster than `pathjoin`, but only works when the second path is relative,
+    and there are no backreferences in either path. 
+    
+    >>> pathcombine("foo/bar", "baz")
+    'foo/bar/baz' 
+    
+    """ 
+    return "%s/%s" % (path1.rstrip('/'), path2.lstrip('/'))
 
 def join(*paths):
     """Joins any number of paths together, returning a new path string.
@@ -510,9 +521,9 @@ class PathMap(object):
                     return
         for (nm,subm) in m.iteritems():
             if not nm:
-                yield abspath(normpath(root))
+                yield abspath(root)
             else:
-                k = pathjoin(root,nm)
+                k = pathcombine(root,nm)
                 for subk in self.iterkeys(k,subm):
                     yield subk
 
@@ -524,6 +535,7 @@ class PathMap(object):
 
     def itervalues(self,root="/",m=None):
         """Iterate over all values whose keys begin with the given root path."""
+        root = normpath(root)
         if m is None:
             m = self._map
             for name in iteratepath(root):
@@ -535,7 +547,7 @@ class PathMap(object):
             if not nm:
                 yield subm
             else:
-                k = pathjoin(root,nm)
+                k = pathcombine(root,nm)
                 for subv in self.itervalues(k,subm):
                     yield subv
 
@@ -544,6 +556,7 @@ class PathMap(object):
 
     def iteritems(self,root="/",m=None):
         """Iterate over all (key,value) pairs beginning with the given root."""
+        root = normpath(root)
         if m is None:
             m = self._map
             for name in iteratepath(root):
@@ -555,7 +568,7 @@ class PathMap(object):
             if not nm:
                 yield (abspath(normpath(root)),subm)
             else:
-                k = pathjoin(root,nm)
+                k = pathcombine(root,nm)
                 for (subk,subv) in self.iteritems(k,subm):
                     yield (subk,subv)
 

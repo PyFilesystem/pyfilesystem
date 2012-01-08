@@ -512,6 +512,7 @@ class FS(object):
         directory entries is returned.
         
         """
+        path = normpath(path)
         if dirs_only and files_only:
             raise ValueError("dirs_only and files_only can not both be True")
 
@@ -522,14 +523,17 @@ class FS(object):
             entries = [p for p in entries if wildcard(p)]
 
         if dirs_only:
-            entries = [p for p in entries if self.isdir(pathjoin(path, p))]
+            isdir = self.isdir
+            entries = [p for p in entries if isdir(pathcombine(path, p))]
         elif files_only:
-            entries = [p for p in entries if self.isfile(pathjoin(path, p))]
+            isfile = self.isfile
+            entries = [p for p in entries if isfile(pathcombine(path, p))]
 
         if full:
-            entries = [pathjoin(path, p) for p in entries]
+            entries = [pathcombine(path, p) for p in entries]
         elif absolute:
-            entries = [abspath(pathjoin(path, p)) for p in entries]
+            path = abspath(path)
+            entries = [(pathcombine(path, p)) for p in entries]
 
         return entries
 
@@ -912,6 +916,7 @@ class FS(object):
 
         """
 
+        path = normpath(path)
         def listdir(path, *args, **kwargs):
             if ignore_errors:
                 try:
@@ -936,18 +941,22 @@ class FS(object):
         if search == "breadth":
 
             dirs = [path]
+            dirs_append = dirs.append
+            dirs_pop = dirs.pop
+            isdir = self.isdir
             while dirs:
-                current_path = dirs.pop()
+                current_path = dirs_pop()
                 paths = []
+                paths_append = paths.append
                 try:
                     for filename in listdir(current_path):
-                        path = pathjoin(current_path, filename)
-                        if self.isdir(path):
+                        path = pathcombine(current_path, filename)
+                        if isdir(path):
                             if dir_wildcard(path):
-                                dirs.append(path)
+                                dirs_append(path)
                         else:
                             if wildcard(filename):
-                                paths.append(filename)
+                                paths_append(filename)
                 except ResourceNotFoundError:
                     # Could happen if another thread / process deletes something whilst we are walking
                     pass
@@ -997,9 +1006,9 @@ class FS(object):
         :rtype: iterator of file paths
 
         """
-        for path, files in self.walk(path, wildcard=wildcard, dir_wildcard=dir_wildcard, search=search, ignore_errors=ignore_errors):
+        for path, files in self.walk(normpath(path), wildcard=wildcard, dir_wildcard=dir_wildcard, search=search, ignore_errors=ignore_errors):
             for f in files:
-                yield pathjoin(path, f)
+                yield pathcombine(path, f)
 
     def walkdirs(self,
                  path="/",

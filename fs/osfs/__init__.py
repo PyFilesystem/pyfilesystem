@@ -15,6 +15,7 @@ For example, to print all the files and directories in the OS root::
 
 import os
 import os.path
+from os.path import exists as _exists, isdir as _isdir, isfile as _isfile
 import sys
 import errno
 import datetime
@@ -221,23 +222,21 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         return super(OSFS,self).setcontents(path, contents, chunk_size)
 
     @convert_os_errors
-    def exists(self, path):
-        path = self.getsyspath(path)
-        return os.path.exists(path)
+    def exists(self, path):        
+        return _exists(self.getsyspath(path))
 
     @convert_os_errors
-    def isdir(self, path):
-        path = self.getsyspath(path)
-        return os.path.isdir(path)
+    def isdir(self, path):        
+        return _isdir(self.getsyspath(path))
 
     @convert_os_errors
-    def isfile(self, path):
-        path = self.getsyspath(path)
-        return os.path.isfile(path)
+    def isfile(self, path):        
+        return _isfile(self.getsyspath(path))
 
     @convert_os_errors
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
-        paths = [self._decode_path(p) for p in os.listdir(self.getsyspath(path))]        
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
+        _decode_path = self._decode_path      
+        paths = [_decode_path(p) for p in os.listdir(self.getsyspath(path))]        
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @convert_os_errors

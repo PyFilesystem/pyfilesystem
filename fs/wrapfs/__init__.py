@@ -195,13 +195,13 @@ class WrapFS(FS):
         entries = []
         enc_path = self._encode(path)
         for e in self.wrapped_fs.listdir(enc_path,**kwds):
-            e = basename(self._decode(pathjoin(enc_path,e)))
+            e = basename(self._decode(pathcombine(enc_path,e)))
             if not wildcard(e):
                 continue
             if full:
-                e = pathjoin(path,e)
+                e = pathcombine(path,e)
             elif absolute:
-                e = abspath(pathjoin(path,e))
+                e = abspath(pathcombine(path,e))
             entries.append(e) 
         return entries
 
@@ -222,13 +222,13 @@ class WrapFS(FS):
             wildcard = lambda fn:bool (wildcard_re.match(fn))         
         enc_path = self._encode(path)
         for e in self.wrapped_fs.ilistdir(enc_path,**kwds):
-            e = basename(self._decode(pathjoin(enc_path,e)))
+            e = basename(self._decode(pathcombine(enc_path,e)))
             if not wildcard(e):
                 continue
             if full:
-                e = pathjoin(path,e)
+                e = pathcombine(path,e)
             elif absolute:
-                e = abspath(pathjoin(path,e))
+                e = abspath(pathcombine(path,e))
             yield e
 
     @rewrite_errors
@@ -249,13 +249,13 @@ class WrapFS(FS):
         entries = []
         enc_path = self._encode(path)
         for (nm,info) in self.wrapped_fs.listdirinfo(enc_path,**kwds):
-            nm = basename(self._decode(pathjoin(enc_path,nm)))
+            nm = basename(self._decode(pathcombine(enc_path,nm)))
             if not wildcard(nm):
                 continue
             if full:
-                nm = pathjoin(path,nm)
+                nm = pathcombine(path,nm)
             elif absolute:
-                nm = abspath(pathjoin(path,nm))
+                nm = abspath(pathcombine(path,nm))
             entries.append((nm,info))
         return entries
 
@@ -276,13 +276,13 @@ class WrapFS(FS):
             wildcard = lambda fn:bool (wildcard_re.match(fn))         
         enc_path = self._encode(path)
         for (nm,info) in self.wrapped_fs.ilistdirinfo(enc_path,**kwds):
-            nm = basename(self._decode(pathjoin(enc_path,nm)))
+            nm = basename(self._decode(pathcombine(enc_path,nm)))
             if not wildcard(nm):
                 continue
             if full:
-                nm = pathjoin(path,nm)
+                nm = pathcombine(path,nm)
             elif absolute:
-                nm = abspath(pathjoin(path,nm))
+                nm = abspath(pathcombine(path,nm))
             yield (nm,info)
 
     @rewrite_errors
@@ -300,7 +300,7 @@ class WrapFS(FS):
                 wildcard_re = re.compile(fnmatch.translate(wildcard))
                 wildcard = lambda fn:bool (wildcard_re.match(fn))         
             for (dirpath,filepaths) in self.wrapped_fs.walk(self._encode(path),search=search,ignore_errors=ignore_errors):
-                filepaths = [basename(self._decode(pathjoin(dirpath,p)))
+                filepaths = [basename(self._decode(pathcombine(dirpath,p)))
                                  for p in filepaths]
                 dirpath = abspath(self._decode(dirpath))
                 if wildcard is not None:
