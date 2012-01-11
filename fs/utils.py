@@ -20,7 +20,7 @@ import stat
 
 from fs.mountfs import MountFS
 from fs.path import pathjoin
-from fs.errors import DestinationExistsError, DeleteRootError
+from fs.errors import DestinationExistsError, RemoveRootError
 from fs.base import FS
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
@@ -206,7 +206,7 @@ def movedir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
 
     print fs1
     if parent_dir1 in ('', '/'):
-        raise DeleteRootError(dir1)
+        raise RemoveRootError(dir1)
     
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2

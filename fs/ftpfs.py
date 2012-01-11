@@ -1300,7 +1300,7 @@ class FTPFS(FS):
         if self.isfile(path):
             raise ResourceInvalidError(path)
         if normpath(path) in ('', '/'):
-            raise DeleteRootError(path)
+            raise RemoveRootError(path)
 
         if not force:
             for _checkpath in self.listdir(path):

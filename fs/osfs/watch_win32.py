@@ -240,17 +240,17 @@ class WatchedDirectory(object):
                     self.callback(os.path.join(self.path,name),action)
 
     def _extract_change_info(self,buffer):
-       """Extract the information out of a FILE_NOTIFY_INFORMATION structure."""
-       pos = 0
-       while pos < len(buffer):
-           jump, action, namelen = struct.unpack("iii",buffer[pos:pos+12])
-           # TODO: this may return a shortname or a longname, with no way
-           # to tell which.  Normalise them somehow?
-           name = buffer[pos+12:pos+12+namelen].decode("utf16")
-           yield (name,action)
-           if not jump:
-               break
-           pos += jump
+        """Extract the information out of a FILE_NOTIFY_INFORMATION structure."""
+        pos = 0
+        while pos < len(buffer):
+            jump, action, namelen = struct.unpack("iii",buffer[pos:pos+12])
+            # TODO: this may return a shortname or a longname, with no way
+            # to tell which.  Normalise them somehow?
+            name = buffer[pos+12:pos+12+namelen].decode("utf16")
+            yield (name,action)
+            if not jump:
+                break
+            pos += jump
 
 
 class WatchThread(threading.Thread):
@@ -290,24 +290,24 @@ class WatchThread(threading.Thread):
         flags = 0
         for evt in events:
             if issubclass(ACCESSED,evt):
-               do_access = True
+                do_access = True
             if issubclass(MODIFIED,evt):
-               do_change = True
-               flags |= FILE_NOTIFY_CHANGE_ATTRIBUTES
-               flags |= FILE_NOTIFY_CHANGE_CREATION
-               flags |= FILE_NOTIFY_CHANGE_SECURITY
+                do_change = True
+                flags |= FILE_NOTIFY_CHANGE_ATTRIBUTES
+                flags |= FILE_NOTIFY_CHANGE_CREATION
+                flags |= FILE_NOTIFY_CHANGE_SECURITY
             if issubclass(CREATED,evt):
-               flags |= FILE_NOTIFY_CHANGE_FILE_NAME
-               flags |= FILE_NOTIFY_CHANGE_DIR_NAME
+                flags |= FILE_NOTIFY_CHANGE_FILE_NAME
+                flags |= FILE_NOTIFY_CHANGE_DIR_NAME
             if issubclass(REMOVED,evt):
-               flags |= FILE_NOTIFY_CHANGE_FILE_NAME
-               flags |= FILE_NOTIFY_CHANGE_DIR_NAME
+                flags |= FILE_NOTIFY_CHANGE_FILE_NAME
+                flags |= FILE_NOTIFY_CHANGE_DIR_NAME
             if issubclass(MOVED_SRC,evt):
-               flags |= FILE_NOTIFY_CHANGE_FILE_NAME
-               flags |= FILE_NOTIFY_CHANGE_DIR_NAME
+                flags |= FILE_NOTIFY_CHANGE_FILE_NAME
+                flags |= FILE_NOTIFY_CHANGE_DIR_NAME
             if issubclass(MOVED_DST,evt):
-               flags |= FILE_NOTIFY_CHANGE_FILE_NAME
-               flags |= FILE_NOTIFY_CHANGE_DIR_NAME
+                flags |= FILE_NOTIFY_CHANGE_FILE_NAME
+                flags |= FILE_NOTIFY_CHANGE_DIR_NAME
         if do_access:
             # Separately capture FILE_NOTIFY_CHANGE_LAST_ACCESS events
             # so we can reliably generate ACCESSED events.

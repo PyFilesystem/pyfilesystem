@@ -841,7 +841,7 @@ class FSTestCases(object):
             self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
     def test_removeroot(self):
-        self.assertRaises(DeleteRootError, self.fs.removedir, "/")
+        self.assertRaises(RemoveRootError, self.fs.removedir, "/")
 
 # May be disabled - see end of file
 class ThreadingTestCases(object):

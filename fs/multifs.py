@@ -294,7 +294,7 @@ class MultiFS(FS):
         if self.writefs is None:
             raise OperationFailedError('removedir', path=path, msg="No writeable FS set")
         if normpath(path) in ('', '/'):
-            raise DeleteRootError(path)        
+            raise RemoveRootError(path)        
         self.writefs.removedir(path, recursive=recursive, force=force)                
 
     @synchronize

@@ -61,7 +61,7 @@ class SubFS(WrapFS):
         # Careful not to recurse outside the subdir
         path = normpath(path)
         if path in ('', '/'):
-            raise DeleteRootError(path)
+            raise RemoveRootError(path)
         super(SubFS,self).removedir(path,force=force)
         if recursive:
             try:

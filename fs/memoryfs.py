@@ -452,7 +452,7 @@ class MemoryFS(FS):
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
         if path in ('', '/'):
-            raise DeleteRootError(path) 
+            raise RemoveRootError(path) 
         dir_entry = self._get_dir_entry(path)
 
         if dir_entry is None:
@@ -469,13 +469,13 @@ class MemoryFS(FS):
                 rpathname, dirname = pathsplit(rpathname)
                 parent_dir = self._get_dir_entry(rpathname)
                 if not dirname:
-                    raise DeleteRootError(path)
+                    raise RemoveRootError(path)
                 del parent_dir.contents[dirname]
         else:
             pathname, dirname = pathsplit(path)
             parent_dir = self._get_dir_entry(pathname)
             if not dirname:
-                raise DeleteRootError(path)                    
+                raise RemoveRootError(path)                    
             del parent_dir.contents[dirname]
 
     @synchronize

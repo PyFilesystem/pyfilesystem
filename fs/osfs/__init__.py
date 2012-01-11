@@ -287,7 +287,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
                     pass
         #  Don't remove the root directory of this FS
         if path in ('', '/'):
-            raise DeleteRootError(path)
+            raise RemoveRootError(path)
         os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
