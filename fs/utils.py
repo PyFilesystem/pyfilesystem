@@ -12,8 +12,7 @@ __all__ = ['copyfile',
            'isfile',
            'isdir',
            'find_duplicates',
-           'print_fs',
-           'wrap_file']
+           'print_fs']
 
 import os
 import sys
@@ -21,7 +20,7 @@ import stat
 
 from fs.mountfs import MountFS
 from fs.path import pathjoin
-from fs.errors import DestinationExistsError
+from fs.errors import DestinationExistsError, DeleteRootError
 from fs.base import FS
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
@@ -187,38 +186,51 @@ def movefile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chun
             dst.close()    
 
 
-def movedir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
+def movedir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=64*1024):
     """Moves contents of a directory from one filesystem to another.
 
-    :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param fs1: A tuple of (<filesystem>, <directory path>)
     :param fs2: Destination filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param create_destination: If True, the destination will be created if it doesn't exist    
     :param ignore_errors: If True, exceptions from file moves are ignored
     :param chunk_size: Size of chunks to move if a simple copy is used
 
     """
-    if isinstance(fs1, tuple):
-        fs1, dir1 = fs1
-        fs1 = fs1.opendir(dir1)
+    if not isinstance(fs1, tuple):
+        raise ValueError("first argument must be a tuple of (<filesystem>, <path>)")
+        
+    fs1, dir1 = fs1
+    parent_fs1 = fs1
+    parent_dir1 = dir1   
+    fs1 = fs1.opendir(dir1)
+
+    print fs1
+    if parent_dir1 in ('', '/'):
+        raise DeleteRootError(dir1)
+    
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
-        fs2.makedir(dir2, allow_recreate=True)
-        fs2 = fs2.opendir(dir2)
+        if create_destination:       
+            fs2.makedir(dir2, allow_recreate=True, recursive=True)
+        fs2 = fs2.opendir(dir2)    
 
-    mount_fs = MountFS()
+    mount_fs = MountFS(auto_close=False)
     mount_fs.mount('src', fs1)
     mount_fs.mount('dst', fs2)
 
-    mount_fs.movedir('src', 'dst',
-                     overwrite=overwrite,
+    mount_fs.copydir('src', 'dst',
+                     overwrite=True,
                      ignore_errors=ignore_errors,
-                     chunk_size=chunk_size)
+                     chunk_size=chunk_size)    
+    parent_fs1.removedir(parent_dir1, force=True)            
 
 
-def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
+def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=64*1024):
     """Copies contents of a directory from one filesystem to another.
 
     :param fs1: Source filesystem, or a tuple of (<filesystem>, <directory path>)
     :param fs2: Destination filesystem, or a tuple of (<filesystem>, <directory path>)
+    :param create_destination: If True, the destination will be created if it doesn't exist
     :param ignore_errors: If True, exceptions from file moves are ignored
     :param chunk_size: Size of chunks to move if a simple copy is used
 
@@ -228,14 +240,15 @@ def copydir(fs1, fs2, overwrite=False, ignore_errors=False, chunk_size=64*1024):
         fs1 = fs1.opendir(dir1)
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
-        fs2.makedir(dir2, allow_recreate=True)
-        fs2 = fs2.opendir(dir2)
+        if create_destination:
+            fs2.makedir(dir2, allow_recreate=True, recursive=True)
+        fs2 = fs2.opendir(dir2)    
 
-    mount_fs = MountFS()
+    mount_fs = MountFS(auto_close=False)
     mount_fs.mount('src', fs1)
     mount_fs.mount('dst', fs2)
-    mount_fs.copydir('src', 'dst',
-                     overwrite=overwrite,
+    mount_fs.copydir('src', 'dst',                     
+                     overwrite=True,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
 
@@ -519,11 +532,20 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
 
 
 if __name__ == "__main__":
-    from fs.memoryfs import MemoryFS
-    m = MemoryFS()
-    m.setcontents("test", "Hello, World!" * 10000)
+    from fs.tempfs import TempFS
+    t1 = TempFS()
+    t1.setcontents("foo", "test")
+    t1.makedir("bar")
+    t1.setcontents("bar/baz", "another test")
     
-    f = m.open("test")
-    print f
-    tf = wrap_file(f, "r")
-    print repr(tf.read(10))
+    t1.tree()
+    
+    t2 = TempFS() 
+    print t2.listdir()   
+    movedir(t1, t2)
+    
+    print t2.listdir()
+    t1.tree()
+    t2.tree()
+    
+        

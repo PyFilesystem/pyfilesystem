@@ -451,6 +451,8 @@ class MemoryFS(FS):
     @synchronize
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
+        if path in ('', '/'):
+            raise DeleteRootError(path) 
         dir_entry = self._get_dir_entry(path)
 
         if dir_entry is None:
@@ -466,10 +468,14 @@ class MemoryFS(FS):
             while rpathname:
                 rpathname, dirname = pathsplit(rpathname)
                 parent_dir = self._get_dir_entry(rpathname)
+                if not dirname:
+                    raise DeleteRootError(path)
                 del parent_dir.contents[dirname]
         else:
             pathname, dirname = pathsplit(path)
             parent_dir = self._get_dir_entry(pathname)
+            if not dirname:
+                raise DeleteRootError(path)                    
             del parent_dir.contents[dirname]
 
     @synchronize
@@ -581,7 +587,7 @@ class MemoryFS(FS):
         super(MemoryFS, self).movedir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
-            dst_dir_entry.xattrs.update(src_xattrs)
+            dst_dir_entry.xattrs.update(src_xattrs)        
     
     @synchronize
     def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
@@ -589,7 +595,7 @@ class MemoryFS(FS):
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
-        super(MemoryFS, self).copy(src, dst, overwrite, chunk_size)        
+        super(MemoryFS, self).copy(src, dst, overwrite, chunk_size)
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
             dst_dir_entry.xattrs.update(src_xattrs)

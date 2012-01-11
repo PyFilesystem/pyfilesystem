@@ -496,6 +496,8 @@ class S3FS(FS):
 
     def removedir(self,path,recursive=False,force=False):
         """Remove the directory at the given path."""
+        if normpath(path) in ('', '/'):
+            raise DeleteRootError(path) 
         s3path = self._s3path(path)
         if s3path != self._prefix:
             s3path = s3path + self._separator

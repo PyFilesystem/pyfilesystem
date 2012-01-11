@@ -29,7 +29,7 @@ class LazyFS(WrapFS):
     """
 
     def __init__(self, fs):
-        super(LazyFS,self).__init__(fs)
+        super(LazyFS, self).__init__(fs)
         self._lazy_creation_lock = Lock()
 
     def __unicode__(self):

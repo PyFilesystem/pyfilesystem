@@ -292,7 +292,9 @@ class MultiFS(FS):
     @synchronize
     def removedir(self, path, recursive=False, force=False):
         if self.writefs is None:
-            raise OperationFailedError('removedir', path=path, msg="No writeable FS set")        
+            raise OperationFailedError('removedir', path=path, msg="No writeable FS set")
+        if normpath(path) in ('', '/'):
+            raise DeleteRootError(path)        
         self.writefs.removedir(path, recursive=recursive, force=force)                
 
     @synchronize

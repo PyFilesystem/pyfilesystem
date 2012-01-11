@@ -475,8 +475,8 @@ class SFTPFS(FS):
     @convert_os_errors
     def removedir(self,path,recursive=False,force=False):
         npath = self._normpath(path)
-        if path in ("","/"):
-            return
+        if normpath(path) in ('', '/'):
+            raise DeleteRootError(path)
         if force:
             for path2 in self.listdir(path,absolute=True):
                 try:

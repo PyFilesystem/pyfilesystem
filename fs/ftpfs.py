@@ -1294,11 +1294,13 @@ class FTPFS(FS):
 
     @ftperrors
     def removedir(self, path, recursive=False, force=False):
-        path = abspath(normpath(path))
+        path = abspath(normpath(path))        
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         if self.isfile(path):
             raise ResourceInvalidError(path)
+        if normpath(path) in ('', '/'):
+            raise DeleteRootError(path)
 
         if not force:
             for _checkpath in self.listdir(path):
@@ -1319,7 +1321,8 @@ class FTPFS(FS):
             pass
         if recursive:
             try:
-                self.removedir(dirname(path), recursive=True)
+                if dirname(path) not in ('', '/'):
+                    self.removedir(dirname(path), recursive=True)
             except DirectoryNotEmptyError:
                 pass
         self.clear_dircache(dirname(path), path)

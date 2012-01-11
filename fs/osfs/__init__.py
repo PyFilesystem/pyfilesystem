@@ -272,7 +272,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             raise
 
     @convert_os_errors
-    def removedir(self, path, recursive=False, force=False):
+    def removedir(self, path, recursive=False, force=False):        
         sys_path = self.getsyspath(path)
         if force:
             for path2 in self.listdir(path, absolute=True, files_only=True):
@@ -286,14 +286,15 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
                 except ResourceNotFoundError:
                     pass
         #  Don't remove the root directory of this FS
-        if path in ("","/"):
-            return
+        if path in ('', '/'):
+            raise DeleteRootError(path)
         os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
         if recursive:
             try:
-                self.removedir(dirname(path),recursive=True)
+                if dirname(path) not in ('', '/'):
+                    self.removedir(dirname(path),recursive=True)
             except DirectoryNotEmptyError:
                 pass
 

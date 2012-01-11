@@ -18,6 +18,7 @@ standard unix shell functionality of hiding dot-files in directory listings.
 import re
 import sys
 import fnmatch
+import threading
 
 from fs.base import FS, threading, synchronize, NoDefaultMeta
 from fs.errors import *
@@ -65,11 +66,11 @@ class WrapFS(FS):
     """
 
     def __init__(self, fs):
-        super(WrapFS,self).__init__()
+        super(WrapFS, self).__init__()        
         try:
             self._lock = fs._lock
-        except (AttributeError,FSError):
-            self._lock = None
+        except (AttributeError,FSError):            
+            self._lock = self._lock = threading.RLock()
         self.wrapped_fs = fs
 
     def _file_wrap(self, f, mode):

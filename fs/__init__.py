@@ -18,9 +18,6 @@ implementations of this interface such as:
 __version__ = "0.4.1"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
-# No longer necessary - WM
-#from base import *
-
 #  provide these by default so people can use 'fs.path.basename' etc.
 import errors
 import path

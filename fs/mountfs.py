@@ -331,6 +331,8 @@ class MountFS(FS):
     @synchronize
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
+        if path in ('', '/'):
+            raise DeleteRootError(path)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ResourceInvalidError(path, msg="Can not removedir for an un-mounted path")

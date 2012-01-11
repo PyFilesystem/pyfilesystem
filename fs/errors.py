@@ -18,6 +18,7 @@ __all__ = ['FSError',
            'PermissionDeniedError',
            'FSClosedError',
            'OperationTimeoutError',
+           'DeleteRootError',
            'ResourceError',
            'NoSysPathError',
            'NoMetaError',
@@ -117,6 +118,10 @@ class FSClosedError(OperationFailedError):
 
 class OperationTimeoutError(OperationFailedError):
     default_message = "Unable to %(opname)s: operation timed out"
+
+
+class DeleteRootError(OperationFailedError):
+    default_message = "Can't delete root dir"
 
 
 class ResourceError(FSError):

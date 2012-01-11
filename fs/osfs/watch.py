@@ -34,6 +34,8 @@ if OSFSWatchMixin is None:
 #  Fall back to raising UnsupportedError
 if OSFSWatchMixin is None:
     class OSFSWatchMixin(object):
+        def __init__(self, *args, **kwargs):
+            super(OSFSWatchMixin, self).__init__(*args, **kwargs)
         def add_watcher(self,*args,**kwds):
             raise UnsupportedError
         def del_watcher(self,watcher_or_callback):

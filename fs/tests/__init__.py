@@ -840,6 +840,8 @@ class FSTestCases(object):
             self.assertTrue(cmp_datetimes(d1, info['accessed_time']))
             self.assertTrue(cmp_datetimes(d2, info['modified_time']))
 
+    def test_removeroot(self):
+        self.assertRaises(DeleteRootError, self.fs.removedir, "/")
 
 # May be disabled - see end of file
 class ThreadingTestCases(object):
@@ -1023,7 +1025,7 @@ class ThreadingTestCases(object):
             self.fs.copydir("a","copy of a")
         def copydir_overwrite():
             self._yield()
-            self.fs.copydir("a","copy of a",overwrite=True)
+            self.fs.copydir("a","copy of a",overwrite=True)        
         # This should error out since we're not overwriting
         self.assertRaises(DestinationExistsError,self._runThreads,copydir,copydir)
         # This should run to completion and give a valid state, unless

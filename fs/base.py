@@ -58,9 +58,9 @@ class DummyLock(object):
         pass
 
     def __enter__(self):
-        pass
+        return self
 
-    def __exit__(self, *args):
+    def __exit__(self, exc_type, exc_value, traceback):
         pass
 
 
@@ -154,7 +154,7 @@ class FS(object):
 
     _meta = {}
 
-    def __init__(self, thread_synchronize=False):
+    def __init__(self, thread_synchronize=True):
         """The base class for Filesystem objects.
 
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
@@ -656,20 +656,21 @@ class FS(object):
         :type modified_time: datetime
 
         """
-
-        sys_path = self.getsyspath(path, allow_none=True)
-        if sys_path is not None:
-            now = datetime.datetime.now()
-            if accessed_time is None:
-                accessed_time = now
-            if modified_time is None:
-                modified_time = now
-            accessed_time = int(time.mktime(accessed_time.timetuple()))
-            modified_time = int(time.mktime(modified_time.timetuple()))
-            os.utime(sys_path, (accessed_time, modified_time))
-            return True
-        else:
-            raise UnsupportedError("settimes")
+        
+        with self._lock:
+            sys_path = self.getsyspath(path, allow_none=True)
+            if sys_path is not None:
+                now = datetime.datetime.now()
+                if accessed_time is None:
+                    accessed_time = now
+                if modified_time is None:
+                    modified_time = now
+                accessed_time = int(time.mktime(accessed_time.timetuple()))
+                modified_time = int(time.mktime(modified_time.timetuple()))
+                os.utime(sys_path, (accessed_time, modified_time))
+                return True
+            else:
+                raise UnsupportedError("settimes")
 
     def getinfo(self, path):
         """Returns information for a path as a dictionary. The exact content of
@@ -1068,30 +1069,30 @@ class FS(object):
         :type chunk_size: bool
 
         """
-
-        if not self.isfile(src):
-            if self.isdir(src):
-                raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
-            raise ResourceNotFoundError(src)
-        if not overwrite and self.exists(dst):
-            raise DestinationExistsError(dst)
-
-        src_syspath = self.getsyspath(src, allow_none=True)
-        dst_syspath = self.getsyspath(dst, allow_none=True)
-
-        if src_syspath is not None and dst_syspath is not None:
-            self._shutil_copyfile(src_syspath, dst_syspath)
-        else:
-            src_file = None
-            try:
-                src_file = self.open(src, "rb")
-                self.setcontents(dst, src_file, chunk_size=chunk_size)
-            except ResourceNotFoundError:
-                if self.exists(src) and not self.exists(dirname(dst)):
-                    raise ParentDirectoryMissingError(dst)
-            finally:
-                if src_file is not None:
-                    src_file.close()
+        with self._lock:
+            if not self.isfile(src):
+                if self.isdir(src):
+                    raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
+                raise ResourceNotFoundError(src)
+            if not overwrite and self.exists(dst):
+                raise DestinationExistsError(dst)
+    
+            src_syspath = self.getsyspath(src, allow_none=True)
+            dst_syspath = self.getsyspath(dst, allow_none=True)
+    
+            if src_syspath is not None and dst_syspath is not None:
+                self._shutil_copyfile(src_syspath, dst_syspath)
+            else:
+                src_file = None
+                try:
+                    src_file = self.open(src, "rb")
+                    self.setcontents(dst, src_file, chunk_size=chunk_size)
+                except ResourceNotFoundError:
+                    if self.exists(src) and not self.exists(dirname(dst)):
+                        raise ParentDirectoryMissingError(dst)
+                finally:
+                    if src_file is not None:
+                        src_file.close()
 
     @classmethod
     @convert_os_errors
@@ -1129,25 +1130,26 @@ class FS(object):
 
         """
 
-        src_syspath = self.getsyspath(src, allow_none=True)
-        dst_syspath = self.getsyspath(dst, allow_none=True)
-
-        #  Try to do an os-level rename if possible.
-        #  Otherwise, fall back to copy-and-remove.
-        if src_syspath is not None and dst_syspath is not None:
-            if not os.path.isfile(src_syspath):
-                if os.path.isdir(src_syspath):
-                    raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
-                raise ResourceNotFoundError(src)
-            if not overwrite and os.path.exists(dst_syspath):
-                raise DestinationExistsError(dst)
-            try:
-                os.rename(src_syspath, dst_syspath)
-                return
-            except OSError:
-                pass
-        self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
-        self.remove(src)
+        with self._lock:
+            src_syspath = self.getsyspath(src, allow_none=True)
+            dst_syspath = self.getsyspath(dst, allow_none=True)
+    
+            #  Try to do an os-level rename if possible.
+            #  Otherwise, fall back to copy-and-remove.
+            if src_syspath is not None and dst_syspath is not None:
+                if not os.path.isfile(src_syspath):
+                    if os.path.isdir(src_syspath):
+                        raise ResourceInvalidError(src, msg="Source is not a file: %(path)s")
+                    raise ResourceNotFoundError(src)
+                if not overwrite and os.path.exists(dst_syspath):
+                    raise DestinationExistsError(dst)
+                try:
+                    os.rename(src_syspath, dst_syspath)
+                    return
+                except OSError:
+                    pass
+            self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
+            self.remove(src)
 
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """moves a directory from one location to another.
@@ -1169,53 +1171,54 @@ class FS(object):
         :raise `fs.errors.DestinationExistsError`: if destination exists and `overwrite` is False
 
         """
-        if not self.isdir(src):
-            if self.isfile(src):
-                raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
-            raise ResourceNotFoundError(src)
-        if not overwrite and self.exists(dst):
-            raise DestinationExistsError(dst)
-
-        src_syspath = self.getsyspath(src, allow_none=True)
-        dst_syspath = self.getsyspath(dst, allow_none=True)
-
-        if src_syspath is not None and dst_syspath is not None:
-            try:
-                os.rename(src_syspath, dst_syspath)
-                return
-            except OSError:
-                pass
-
-        def movefile_noerrors(src, dst, **kwargs):
-            try:
-                return self.move(src, dst, **kwargs)
-            except FSError:
-                return
-        if ignore_errors:
-            movefile = movefile_noerrors
-        else:
-            movefile = self.move
-
-        src = abspath(src)
-        dst = abspath(dst)
-
-        if dst:
-            self.makedir(dst, allow_recreate=overwrite)
-
-        for dirname, filenames in self.walk(src, search="depth"):
-
-            dst_dirname = relpath(frombase(src, abspath(dirname)))
-            dst_dirpath = pathjoin(dst, dst_dirname)
-            self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
-
-            for filename in filenames:
-
-                src_filename = pathjoin(dirname, filename)
-                dst_filename = pathjoin(dst_dirpath, filename)
-                movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
-
-            self.removedir(dirname)
-
+        with self._lock:
+            if not self.isdir(src):
+                if self.isfile(src):
+                    raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
+                raise ResourceNotFoundError(src)
+            if not overwrite and self.exists(dst):
+                raise DestinationExistsError(dst)
+    
+            src_syspath = self.getsyspath(src, allow_none=True)
+            dst_syspath = self.getsyspath(dst, allow_none=True)
+    
+            if src_syspath is not None and dst_syspath is not None:
+                try:
+                    os.rename(src_syspath, dst_syspath)
+                    return
+                except OSError:
+                    pass
+    
+            def movefile_noerrors(src, dst, **kwargs):
+                try:
+                    return self.move(src, dst, **kwargs)
+                except FSError:
+                    return
+            if ignore_errors:
+                movefile = movefile_noerrors
+            else:
+                movefile = self.move
+    
+            src = abspath(src)
+            dst = abspath(dst)
+    
+            if dst:
+                self.makedir(dst, allow_recreate=overwrite)
+    
+            for dirname, filenames in self.walk(src, search="depth"):
+    
+                dst_dirname = relpath(frombase(src, abspath(dirname)))
+                dst_dirpath = pathjoin(dst, dst_dirname)
+                self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
+    
+                for filename in filenames:
+    
+                    src_filename = pathjoin(dirname, filename)
+                    dst_filename = pathjoin(dst_dirpath, filename)
+                    movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
+    
+                self.removedir(dirname)
+    
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """copies a directory from one location to another.
 
@@ -1232,38 +1235,39 @@ class FS(object):
             is required (defaults to 16K)
 
         """
-        if not self.isdir(src):
-            raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
-        def copyfile_noerrors(src, dst, **kwargs):
-            try:
-                return self.copy(src, dst, **kwargs)
-            except FSError:
-                return
-        if ignore_errors:
-            copyfile = copyfile_noerrors
-        else:
-            copyfile = self.copy
-
-        src = abspath(src)
-        dst = abspath(dst)
-
-        if not overwrite and self.exists(dst):
-            raise DestinationExistsError(dst)
-
-        if dst:
-            self.makedir(dst, allow_recreate=overwrite)
-
-        for dirname, filenames in self.walk(src):
-
-            dst_dirname = relpath(frombase(src, abspath(dirname)))
-            dst_dirpath = pathjoin(dst, dst_dirname)
-            self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
-
-            for filename in filenames:
-
-                src_filename = pathjoin(dirname, filename)
-                dst_filename = pathjoin(dst_dirpath, filename)
-                copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
+        with self._lock:
+            if not self.isdir(src):
+                raise ResourceInvalidError(src, msg="Source is not a directory: %(path)s")
+            def copyfile_noerrors(src, dst, **kwargs):
+                try:
+                    return self.copy(src, dst, **kwargs)
+                except FSError:
+                    return
+            if ignore_errors:
+                copyfile = copyfile_noerrors
+            else:
+                copyfile = self.copy
+    
+            src = abspath(src)
+            dst = abspath(dst)
+    
+            if not overwrite and self.exists(dst):
+                raise DestinationExistsError(dst)
+    
+            if dst:
+                self.makedir(dst, allow_recreate=True)
+    
+            for dirname, filenames in self.walk(src):
+    
+                dst_dirname = relpath(frombase(src, abspath(dirname)))
+                dst_dirpath = pathjoin(dst, dst_dirname)
+                self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
+    
+                for filename in filenames:
+    
+                    src_filename = pathjoin(dirname, filename)
+                    dst_filename = pathjoin(dst_dirpath, filename)
+                    copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
 
     def isdirempty(self, path):
         """Check if a directory is empty (contains no files or sub-directories)
@@ -1273,13 +1277,14 @@ class FS(object):
         :rtype: bool
 
         """
-        path = normpath(path)
-        iter_dir = iter(self.listdir(path))
-        try:
-            iter_dir.next()
-        except StopIteration:
-            return True
-        return False
+        with self._lock:
+            path = normpath(path)
+            iter_dir = iter(self.listdir(path))
+            try:
+                iter_dir.next()
+            except StopIteration:
+                return True
+            return False
 
     def makeopendir(self, path, recursive=False):
         """makes a directory (if it doesn't exist) and returns an FS object for
@@ -1291,11 +1296,11 @@ class FS(object):
         :return: the opened dir
         :rtype: an FS object
 
-        """
-
-        self.makedir(path, allow_recreate=True, recursive=recursive)
-        dir_fs = self.opendir(path)
-        return dir_fs
+        """        
+        with self._lock:
+            self.makedir(path, allow_recreate=True, recursive=recursive)
+            dir_fs = self.opendir(path)
+            return dir_fs
 
     def printtree(self, max_levels=5):
         """Prints a tree structure of the FS object to the console
