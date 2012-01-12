@@ -253,6 +253,23 @@ def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
                      chunk_size=chunk_size)
 
 
+def remove_all(fs, path):
+    """Remove everything in a directory. Returns True if successful.
+    
+    :param fs: A filesystem
+    :param path: Path to a directory
+    
+    """
+    fs.tree()    
+    sub_fs = fs.opendir(path)            
+    for sub_path in sub_fs.listdir():            
+        if sub_fs.isdir(sub_path):
+            sub_fs.removedir(sub_path, force=True)
+        else:
+            sub_fs.remove(sub_path)
+    return fs.isdirempty(path)
+    
+
 def copystructure(src_fs, dst_fs):
     """Copies the directory structure from one filesystem to another, so that
     all directories in `src_fs` will have a corresponding directory in `dst_fs`

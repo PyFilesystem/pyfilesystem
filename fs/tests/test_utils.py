@@ -87,20 +87,27 @@ class TestUtils(unittest.TestCase):
         utils.movedir((fs1, "from"), fs2)
         self.assert_(not fs1.exists("from"))        
         self._check_fs(fs2)
-    
-if __name__ == "__main__":
-    
-    def _make_fs(fs):
+        
+    def test_remove_all(self):
+        """Test remove_all function"""
+        fs = TempFS()
         fs.setcontents("f1", "file 1")
         fs.setcontents("f2", "file 2")
         fs.setcontents("f3", "file 3")
         fs.makedir("foo/bar", recursive=True)
-        fs.setcontents("foo/bar/fruit", "apple")
+        fs.setcontents("foo/bar/fruit", "apple")        
+        fs.setcontents("foo/baz", "baz")
+        
+        utils.remove_all(fs, "foo/bar")
+        self.assert_(not fs.exists("foo/bar/fruit"))
+        self.assert_(fs.exists("foo/bar"))
+        self.assert_(fs.exists("foo/baz"))
+        utils.remove_all(fs,  "")
+        self.assert_(not fs.exists("foo/bar/fruit"))
+        self.assert_(not fs.exists("foo/bar/baz"))
+        self.assert_(not fs.exists("foo/baz"))
+        self.assert_(not fs.exists("foo"))
+        self.assert_(not fs.exists("f1"))
+        self.assert_(fs.isdirempty('/'))
     
-    fs1 = TempFS()
-    fs2 = TempFS()
-    fs1sub = fs1.makeopendir("from")
-    _make_fs(fs1sub)            
-    utils.movedir((fs1, "from"), fs2)
-    #self.assert_(not fs1.exists("from"))        
-    #self._check_fs(fs2)
+    
