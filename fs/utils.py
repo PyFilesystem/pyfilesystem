@@ -259,8 +259,7 @@ def remove_all(fs, path):
     :param fs: A filesystem
     :param path: Path to a directory
     
-    """
-    fs.tree()    
+    """    
     sub_fs = fs.opendir(path)            
     for sub_path in sub_fs.listdir():            
         if sub_fs.isdir(sub_path):
