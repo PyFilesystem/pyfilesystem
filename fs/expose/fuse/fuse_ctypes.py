@@ -22,6 +22,27 @@ from platform import machine, system
 from stat import S_IFDIR
 from traceback import print_exc
 
+_system = system()
+_machine = machine()
+
+#  Locate the fuse shared library.
+#  On OSX this can be provided by a number of different packages
+#  with slightly incompatible interfaces.
+if _system == 'Darwin':
+    _libfuse_path = find_library('fuse4x') or find_library('fuse')
+else:
+    _libfuse_path = find_library('fuse')
+if not _libfuse_path:
+    raise EnvironmentError('Unable to find libfuse')
+
+if _system == 'Darwin':
+    _libiconv = CDLL(find_library('iconv'), RTLD_GLOBAL) # libfuse dependency
+_libfuse = CDLL(_libfuse_path)
+
+#  Check whether OSX is using the legacy "macfuse" system.
+#  This has a different struct layout than the newer fuse4x system.
+if _system == 'Darwin' and hasattr(_libfuse, 'macfuse_version'):
+    _system = 'Darwin-MacFuse'
 
 class c_timespec(Structure):
     _fields_ = [('tv_sec', c_long), ('tv_nsec', c_long)]
@@ -32,9 +53,7 @@ class c_utimbuf(Structure):
 class c_stat(Structure):
     pass    # Platform dependent
 
-_system = system()
-if _system in ('Darwin', 'FreeBSD'):
-    _libiconv = CDLL(find_library("iconv"), RTLD_GLOBAL)     # libfuse dependency
+if _system in ('Darwin', 'Darwin-MacFuse', 'FreeBSD'):
     ENOTSUP = 45
     c_dev_t = c_int32
     c_fsblkcnt_t = c_ulong
@@ -48,20 +67,44 @@ if _system in ('Darwin', 'FreeBSD'):
         c_size_t, c_int, c_uint32)
     getxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte),
         c_size_t, c_uint32)
-    c_stat._fields_ = [
-        ('st_dev', c_dev_t),
-        ('st_ino', c_uint32),
-        ('st_mode', c_mode_t),
-        ('st_nlink', c_uint16),
-        ('st_uid', c_uid_t),
-        ('st_gid', c_gid_t),
-        ('st_rdev', c_dev_t),
-        ('st_atimespec', c_timespec),
-        ('st_mtimespec', c_timespec),
-        ('st_ctimespec', c_timespec),
-        ('st_size', c_off_t),
-        ('st_blocks', c_int64),
-        ('st_blksize', c_int32)]
+    # OSX with fuse4x uses 64-bit inodes and so has a different
+    # struct layout.  Other darwinish platforms use 32-bit inodes.
+    if _system == 'Darwin':
+        c_stat._fields_ = [
+            ('st_dev', c_dev_t),
+            ('st_mode', c_mode_t),
+            ('st_nlink', c_uint16),
+            ('st_ino', c_uint64),
+            ('st_uid', c_uid_t),
+            ('st_gid', c_gid_t),
+            ('st_rdev', c_dev_t),
+            ('st_atimespec', c_timespec),
+            ('st_mtimespec', c_timespec),
+            ('st_ctimespec', c_timespec),
+            ('st_birthtimespec', c_timespec),
+            ('st_size', c_off_t),
+            ('st_blocks', c_int64),
+            ('st_blksize', c_int32),
+            ('st_flags', c_int32),
+            ('st_gen', c_int32),
+            ('st_lspare', c_int32),
+            ('st_qspare', c_int64)]
+    else:
+        c_stat._fields_ = [
+            ('st_dev', c_dev_t),
+            ('st_ino', c_uint32),
+            ('st_mode', c_mode_t),
+            ('st_nlink', c_uint16),
+            ('st_uid', c_uid_t),
+            ('st_gid', c_gid_t),
+            ('st_rdev', c_dev_t),
+            ('st_atimespec', c_timespec),
+            ('st_mtimespec', c_timespec),
+            ('st_ctimespec', c_timespec),
+            ('st_size', c_off_t),
+            ('st_blocks', c_int64),
+            ('st_blksize', c_int32)]
+ 
 elif _system == 'Linux':
     ENOTSUP = 95
     c_dev_t = c_ulonglong
@@ -239,10 +282,6 @@ def set_st_attrs(st, attrs):
             setattr(st, key, val)
 
 
-_libfuse_path = find_library('fuse')
-if not _libfuse_path:
-    raise EnvironmentError('Unable to find libfuse')
-_libfuse = CDLL(_libfuse_path)
 _libfuse.fuse_get_context.restype = POINTER(fuse_context)
 
 

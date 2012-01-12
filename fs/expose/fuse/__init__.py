@@ -478,10 +478,21 @@ def unmount(path):
     This function shells out to the 'fusermount' program to unmount a
     FUSE filesystem.  It works, but it would probably be better to use the
     'unmount' method on the MountProcess class if you have it.
+
+    On darwin, "diskutil umount <path>" is called
+    On freebsd, "umount <path>" is called
     """
+    if sys.platform == "darwin":
+        args = ["diskutil", "umount", path]
+    elif "freebsd" in sys.platform:
+        args = ["umount", path]
+    else:
+        args = ["fusermount", "-u", path]
+
     for num_tries in xrange(3):
-        p = subprocess.Popen(["fusermount","-u",path],stderr=subprocess.PIPE)
-        (stdout,stderr) = p.communicate()
+        p = subprocess.Popen(args, stderr=subprocess.PIPE,
+                              stdout=subprocess.PIPE)
+        (stdout, stderr) = p.communicate()
         if p.returncode == 0:
             return
         if "not mounted" in stderr:
