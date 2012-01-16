@@ -22,7 +22,7 @@ from six import PY3, b
 
 class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
     
-    __test__ = False
+    #__test__ = False
     
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(u"fstest")

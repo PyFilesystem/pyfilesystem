@@ -133,8 +133,7 @@ List contents of [PATH]"""
                 for line, path in zip(lines, column):
                     line.append(path)                                
             return '\n'.join(u'  '.join(line) for line in lines)
-                                                        
-               
+                                                                       
         if options.long:            
             for path in paths:
                 if path in dirs:

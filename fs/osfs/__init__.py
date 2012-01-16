@@ -135,6 +135,9 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def __str__(self):
         return "<OSFS: %s>" % self.root_path
 
+    def __repr__(self):
+        return "<OSFS: %r>" % self.root_path
+    
     def __unicode__(self):
         return u"<OSFS: %s>" % self.root_path
 
