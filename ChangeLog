@@ -82,6 +82,7 @@
     
 0.5:
 
-	* Ported to Python 3.X
-	* Added a DeleteRootError to exceptions thrown when trying to delete '/'
-	* Added a remove_all function to utils
+    * Ported to Python 3.X
+    * Added a DeleteRootError to exceptions thrown when trying to delete '/'
+    * Added a remove_all function to utils
+    * Added sqlitefs to fs.contrib, contributed by Nitin Bhide
