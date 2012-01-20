@@ -86,3 +86,4 @@
     * Added a DeleteRootError to exceptions thrown when trying to delete '/'
     * Added a remove_all function to utils
     * Added sqlitefs to fs.contrib, contributed by Nitin Bhide
+    * Added archivefs to fs.contrib, contributed by btimby
