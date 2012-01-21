@@ -187,7 +187,6 @@ class ArchiveMountFS(mountfs.MountFS):
     archives are mounted in place of the archive file.'''
     def __init__(self, root, **kwargs):
         super(ArchiveMountFS, self).__init__(**kwargs)
-        self.root_path = root_path
         self.mountdir('/', root)
 
     def ismount(self, path):
@@ -204,7 +203,7 @@ class ArchiveMountFS(mountfs.MountFS):
                 break
             if libarchive.is_archive_name(ppath):
                 # It looks like an archive, try mounting it.
-                full_path = pathjoin(self.root_path, relpath(ppath))
+                full_path = self.getsyspath(ppath)
                 try:
                     self.mountdir(ppath, ArchiveFS(full_path, 'r'))
                 except:
