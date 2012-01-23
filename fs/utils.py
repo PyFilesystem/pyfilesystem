@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 
 The `utils` module provides a number of utility functions that don't belong in the Filesystem interface. Generally the functions in this module work with multiple Filesystems, for instance moving and copying between non-similar Filesystems.
 
 """
+
 
 __all__ = ['copyfile',
            'movefile',
@@ -441,7 +443,15 @@ def find_duplicates(fs,
             paths = list(set(paths).difference(dups))
 
 
-def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hide_dotfiles=False, dirs_first=False):
+def print_fs(fs,
+             path='/',
+             max_levels=5,
+             file_out=None,
+             terminal_colors=None,
+             hide_dotfiles=False,
+             dirs_first=False,
+             files_wildcard=None,
+             dirs_only=False):
     """Prints a filesystem listing to stdout (including sub directories).
 
     This mostly useful as a debugging aid.
@@ -470,6 +480,7 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         file_out = sys.stdout
 
     file_encoding = getattr(file_out, 'encoding', 'utf-8') or 'utf-8'
+    file_encoding = file_encoding.upper()
 
     if terminal_colors is None:
         if sys.platform.startswith('win'):
@@ -482,13 +493,13 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
         
     def wrap_prefix(prefix):
         if not terminal_colors:
-            return prefix
+            return prefix        
         return '\x1b[2m%s\x1b[0m' % prefix                   
    
     def wrap_dirname(dirname):
         if not terminal_colors:
             return dirname
-        return '\x1b[1;32m%s\x1b[0m' % dirname
+        return '\x1b[1;34m%s\x1b[0m' % dirname
     
     def wrap_error(msg):
         if not terminal_colors:
@@ -498,20 +509,37 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
     def wrap_filename(fname):
         if not terminal_colors:
             return fname        
-        if '.' in fname:
-            name, ext = os.path.splitext(fname)
-            fname = '%s\x1b[36m%s\x1b[0m' % (name, ext)
+#        if '.' in fname:
+#            name, ext = os.path.splitext(fname)
+#            fname = '%s\x1b[36m%s\x1b[0m' % (name, ext)
         if fname.startswith('.'):
-            fname = '\x1b[2m%s\x1b[0m' % fname
+            #fname = '\x1b[2m%s\x1b[0m' % fname
+            fname = '\x1b[33m%s\x1b[0m' % fname
         return fname
-    
-    def print_dir(fs, path, levels=[]):
+    dircount = [0]
+    filecount = [0]
+    def print_dir(fs, path, levels=[]):        
+        if file_encoding == 'UTF-8':
+            char_vertline = u'│'
+            char_newnode = u'├'
+            char_line = u'──'
+            char_corner = u'└'
+        else:
+            char_vertline = '|'
+            char_newnode = '|'
+            char_line = '--'
+            char_corner = '`'
         
-        try:
-            dir_listing = ( [(True, p) for p in fs.listdir(path, dirs_only=True)] +
-                            [(False, p) for p in fs.listdir(path, files_only=True)] )
+        try:            
+            dirs = fs.listdir(path, dirs_only=True)
+            if dirs_only:
+                files = []
+            else:
+                files = fs.listdir(path, files_only=True, wildcard=files_wildcard)            
+            dir_listing = ( [(True, p) for p in dirs] +
+                            [(False, p) for p in files] )
         except Exception, e:
-            prefix = ''.join([('|   ', '    ')[last] for last in levels]) + '   '
+            prefix = ''.join([(char_vertline + '   ', '    ')[last] for last in levels]) + '   '
             write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unabled to retrieve directory list (%s) ..." % str(e)))
             return 0        
         
@@ -524,27 +552,31 @@ def print_fs(fs, path='/', max_levels=5, file_out=None, terminal_colors=None, hi
             dir_listing.sort(key = lambda (isdir, p):p.lower())
                             
         for i, (is_dir, item) in enumerate(dir_listing):
-            
-            is_last_item = (i == len(dir_listing) - 1)            
-            prefix = ''.join([('|   ', '    ')[last] for last in levels])
-            if is_last_item:
-                prefix += '`'
+            if is_dir:
+                dircount[0] += 1
             else:
-                prefix += '|'
+                filecount[0] += 1
+            is_last_item = (i == len(dir_listing) - 1)            
+            prefix = ''.join([(char_vertline + '   ', '    ')[last] for last in levels])
+            if is_last_item:
+                prefix += char_corner
+            else:
+                prefix += char_newnode
                                             
             if is_dir:                
-                write('%s %s' % (wrap_prefix(prefix + '--'), wrap_dirname(item)))
+                write('%s %s' % (wrap_prefix(prefix + char_line), wrap_dirname(item)))
                 if max_levels is not None and len(levels) + 1 >= max_levels:
                     pass
                     #write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
                 else:
                     print_dir(fs, pathjoin(path, item), levels[:] + [is_last_item])                                            
             else:
-                write('%s %s' % (wrap_prefix(prefix + '--'), wrap_filename(item)))
+                write('%s %s' % (wrap_prefix(prefix + char_line), wrap_filename(item)))
                 
         return len(dir_listing)
                 
     print_dir(fs, path)
+    return dircount[0], filecount[0]
 
 
 if __name__ == "__main__":

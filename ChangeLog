@@ -87,3 +87,4 @@
     * Added a remove_all function to utils
     * Added sqlitefs to fs.contrib, contributed by Nitin Bhide
     * Added archivefs to fs.contrib, contributed by btimby
+    * Added some polish to fstree command and unicode box lines rather than ascii art

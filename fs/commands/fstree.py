@@ -19,8 +19,12 @@ Recursively display the contents of PATH in an ascii tree"""
                             help="browse the tree with a gui")
         optparse.add_option('-a', '--all', dest='all', action='store_true', default=False,
                             help="do not hide dot files")        
-        optparse.add_option('-d', '--dirsfirst', dest='dirsfirst', action='store_true', default=False,
+        optparse.add_option('--dirsfirst', dest='dirsfirst', action='store_true', default=False,
                             help="List directories before files")
+        optparse.add_option('-P', dest="pattern", default=None,
+                            help="Only list files that match the given pattern")
+        optparse.add_option('-d', dest="dirsonly", default=False, action='store_true',
+                            help="List directories only")
         return optparse
         
     def do_run(self, options, args):        
@@ -43,12 +47,24 @@ Recursively display the contents of PATH in an ascii tree"""
                     max_levels = None
                 else:
                     max_levels = options.depth
-                print_fs(fs, path or '',
-                         file_out=self.output_file,
-                         max_levels=max_levels,
-                         terminal_colors=self.terminal_colors,
-                         hide_dotfiles=not options.all,
-                         dirs_first=options.dirsfirst)        
+                self.output(args[0] + '\n')
+                dircount, filecount = print_fs(fs, path or '',
+                                               file_out=self.output_file,
+                                               max_levels=max_levels,
+                                               terminal_colors=self.terminal_colors,
+                                               hide_dotfiles=not options.all,
+                                               dirs_first=options.dirsfirst,
+                                               files_wildcard=options.pattern,
+                                               dirs_only=options.dirsonly)
+                self.output_file.write('\n')
+                def pluralize(one, many, count):
+                    if count == 1:
+                        return '%i %s' % (count, one)
+                    else:
+                        return '%i %s' % (count, many)
+                
+                self.output("%s, %s\n" % (pluralize('directory', 'directories', dircount),
+                                  pluralize('file', 'files', filecount)))
    
 def run():
     return FSTree().run()          
