@@ -47,7 +47,7 @@ Recursively display the contents of PATH in an ascii tree"""
                     max_levels = None
                 else:
                     max_levels = options.depth
-                self.output(args[0] + '\n')
+                self.output(self.wrap_dirname(args[0] + '\n'))
                 dircount, filecount = print_fs(fs, path or '',
                                                file_out=self.output_file,
                                                max_levels=max_levels,
@@ -56,7 +56,7 @@ Recursively display the contents of PATH in an ascii tree"""
                                                dirs_first=options.dirsfirst,
                                                files_wildcard=options.pattern,
                                                dirs_only=options.dirsonly)
-                self.output_file.write('\n')
+                self.output('\n')
                 def pluralize(one, many, count):
                     if count == 1:
                         return '%i %s' % (count, one)

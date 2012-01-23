@@ -97,7 +97,7 @@ class Command(object):
     def wrap_dirname(self, dirname):
         if not self.terminal_colors:
             return dirname
-        return '\x1b[1;32m%s\x1b[0m' % dirname
+        return '\x1b[1;34m%s\x1b[0m' % dirname
     
     def wrap_error(self, msg):
         if not self.terminal_colors:
@@ -110,11 +110,11 @@ class Command(object):
             return fname
         if '://' in fname:
             return fname
-        if '.' in fname:
-            name, ext = splitext(fname)
-            fname = u'%s\x1b[36m%s\x1b[0m' % (name, ext)
+#        if '.' in fname:
+#            name, ext = splitext(fname)
+#            fname = u'%s\x1b[36m%s\x1b[0m' % (name, ext)
         if isdotfile(fname):
-            fname = u'\x1b[2m%s\x1b[0m' % fname
+            fname = '\x1b[33m%s\x1b[0m' % fname
         return fname
     
     def wrap_faded(self, text):
