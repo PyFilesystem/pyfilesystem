@@ -519,11 +519,11 @@ def print_fs(fs,
     dircount = [0]
     filecount = [0]
     def print_dir(fs, path, levels=[]):        
-        if file_encoding == 'UTF-8':
+        if file_encoding == 'UTF-8' and terminal_colors:
             char_vertline = u'│'
             char_newnode = u'├'
             char_line = u'──'
-            char_corner = u'└'
+            char_corner = u'╰'
         else:
             char_vertline = '|'
             char_newnode = '|'
