@@ -494,7 +494,7 @@ def print_fs(fs,
     def wrap_prefix(prefix):
         if not terminal_colors:
             return prefix        
-        return '\x1b[2m%s\x1b[0m' % prefix                   
+        return '\x1b[32m%s\x1b[0m' % prefix                   
    
     def wrap_dirname(dirname):
         if not terminal_colors:
