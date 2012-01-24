@@ -232,7 +232,7 @@ class FSOperations(Operations):
     def mkdir(self, path, mode):
         path = path.decode(NATIVE_ENCODING)
         try:
-            self.fs.makedir(path,mode)
+            self.fs.makedir(path, recursive=True)
         except TypeError:
             self.fs.makedir(path)
 
