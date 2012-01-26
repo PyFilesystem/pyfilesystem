@@ -125,7 +125,7 @@ class _FSClosingFile(FileWrapper):
     """A file like object that closes its parent FS when closed itself"""
     def close(self):
         fs = getattr(self, '_closefs', None)
-        ret = super(_FSClosingFile).close()
+        ret = super(_FSClosingFile, self).close()
         if fs is not None:
             fs.close
         return ret
