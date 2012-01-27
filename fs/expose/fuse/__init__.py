@@ -210,7 +210,7 @@ class FSOperations(Operations):
         try:
             value = self.fs.getxattr(path,name)
         except AttributeError:
-            raise OSError(errno.ENODATA,"no attribute '%s'" % (name,))
+            raise UnsupportedError("getxattr")
         else:
             if value is None:
                 raise OSError(errno.ENODATA,"no attribute '%s'" % (name,))
@@ -226,7 +226,7 @@ class FSOperations(Operations):
         try:
             return self.fs.listxattrs(path)
         except AttributeError:
-            return []
+            raise UnsupportedError("listxattrs")
 
     @handle_fs_errors
     def mkdir(self, path, mode):
