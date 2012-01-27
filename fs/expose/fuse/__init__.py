@@ -185,7 +185,8 @@ class FSOperations(Operations):
         # FUSE doesn't seem to pass correct mode information here - at least,
         # I haven't figured out how to distinguish between "w" and "w+".
         # Go with the most permissive option.
-        fh = self._reg_file(self.fs.open(path,"wb+"),path)
+        mode = flags_to_mode(fi.flags)
+        fh = self._reg_file(self.fs.open(path,mode),path)
         fi.fh = fh
         fi.keep_cache = 0
 
