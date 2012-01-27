@@ -360,6 +360,7 @@ class FSOperations(Operations):
 
     @handle_fs_errors
     def utimens(self, path, times=None):        
+        path = path.decode(NATIVE_ENCODING)
         accessed_time, modified_time = times
         if accessed_time is not None:
             accessed_time = datetime.datetime.fromtimestamp(accessed_time)
