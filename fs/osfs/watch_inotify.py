@@ -170,7 +170,7 @@ class OSFSWatchMixin(WatchableFSMixin):
         if inevt.mask & pyinotify.IN_MODIFY:
             watcher.handle_event(MODIFIED(self,path,True))
         if inevt.mask & pyinotify.IN_CLOSE_WRITE:
-            watcher.handle_event(MODIFIED(self,path,True))
+            watcher.handle_event(MODIFIED(self,path,True, closed=True))
         if inevt.mask & pyinotify.IN_MOVED_FROM:
             # Sorry folks, I'm not up for decoding the destination path.
             watcher.handle_event(MOVED_SRC(self,path,None))

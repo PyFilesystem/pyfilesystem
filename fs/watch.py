@@ -78,15 +78,16 @@ class REMOVED(EVENT):
 
 class MODIFIED(EVENT):
     """Event fired when a file or directory is modified."""
-    def __init__(self,fs,path,data_changed=False):
+    def __init__(self,fs,path,data_changed=False, closed=False):
         super(MODIFIED,self).__init__(fs,path)
         self.data_changed = data_changed
+        self.closed = closed
 
     def clone(self,fs=None,path=None,data_changed=None):
         evt = super(MODIFIED,self).clone(fs,path)
         if data_changed is None:
             data_changed = self.data_changed
-        evt.data_changd = data_changed
+        evt.data_changed = data_changed
         return evt
 
 class MOVED_DST(EVENT):
