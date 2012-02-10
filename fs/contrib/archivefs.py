@@ -117,15 +117,19 @@ class ArchiveFS(FS):
     def desc(self, path):        
         return "%s in zip file" % path
 
+    def getsyspath(self, path, allow_none=False):
+        path = normpath(path).lstrip('/')
+        return join(self.root_path, path)
+
     def isdir(self, path):
         info = self.getinfo(path)
         # Don't use stat.S_ISDIR, it won't work when mode == S_IFREG | S_IFDIR.
-        return info.get('mode', 0) & stat.S_IFDIR == stat.S_IFDIR
+        return info.get('st_mode', 0) & stat.S_IFDIR == stat.S_IFDIR
 
     def isfile(self, path):
         info = self.getinfo(path)
         # Don't use stat.S_ISREG, it won't work when mode == S_IFREG | S_IFDIR.
-        return info.get('mode', 0) & stat.S_IFREG == stat.S_IFREG
+        return info.get('st_mode', 0) & stat.S_IFREG == stat.S_IFREG
 
     def exists(self, path):
         path = normpath(path).lstrip('/')
@@ -163,10 +167,10 @@ class ArchiveFS(FS):
                 if name in info:
                     t = info.pop(name)
                     if t:
-                        info[long_name] = datetime.datetime.fromtimestamp(t)
+                        info[longname] = datetime.datetime.fromtimestamp(t)
             info['size'] = info.pop('st_size')
             # Masquerade as a directory.
-            info['mode'] |= stat.S_IFDIR
+            info['st_mode'] = info.get('st_mode', 0) | stat.S_IFDIR
         else:
             info = { 'size': 0 }
             entry = self.contents.get(path)
@@ -203,7 +207,7 @@ class ArchiveMountFS(mountfs.MountFS):
                 break
             if libarchive.is_archive_name(ppath):
                 # It looks like an archive, try mounting it.
-                full_path = self.getsyspath(ppath)
+                full_path = self.mount_tree['/'].fs.getsyspath(ppath)
                 try:
                     self.mountdir(ppath, ArchiveFS(full_path, 'r'))
                 except:
