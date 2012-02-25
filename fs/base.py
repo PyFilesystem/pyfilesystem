@@ -162,8 +162,8 @@ class FS(object):
         
         """
 
-        super(FS, self).__init__()
         self.closed = False
+        super(FS, self).__init__()        
         self.thread_synchronize = thread_synchronize
         if thread_synchronize:
             self._lock = threading.RLock()
@@ -174,8 +174,11 @@ class FS(object):
         return self.__str__()
 
     def __del__(self):
-        if not getattr(self, 'closed', True):
-            self.close()
+        if not getattr(self, 'closed', False):
+            try:
+                self.close()
+            except:
+                pass                                       
 
     def __enter__(self):
         return self
