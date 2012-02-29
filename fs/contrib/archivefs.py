@@ -178,7 +178,7 @@ class ArchiveFS(FS):
                 if attr.startswith('_'):
                     continue
                 elif attr == 'mtime':
-                    info['created_time'] = datetime.datetime.fromtimestamp(entry.mtime)
+                    info['modified_time'] = datetime.datetime.fromtimestamp(entry.mtime)
                 elif attr == 'mode':
                     info['st_mode'] = entry.mode
                 else:
