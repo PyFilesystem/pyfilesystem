@@ -98,6 +98,9 @@ class ArchiveFS(FS):
     @synchronize
     def open(self, path, mode="r", **kwargs):
         path = normpath(relpath(path))
+        if path == '':
+            # We need to open the archive itself, not one of it's entries.
+            return file(self.root_path, mode)
         if 'a' in mode:
             raise Exception('Unsupported mode ' + mode)
         if 'r' in mode:
@@ -114,7 +117,7 @@ class ArchiveFS(FS):
         f = self.open(path)
         return f.read()
 
-    def desc(self, path):        
+    def desc(self, path):
         return "%s in zip file" % path
 
     def getsyspath(self, path, allow_none=False):
