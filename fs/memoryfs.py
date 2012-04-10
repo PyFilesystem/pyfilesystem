@@ -89,16 +89,22 @@ class MemoryFile(object):
         pass
 
     def __iter__(self):
+        if 'r' not in self.mode and '+' not in self.mode:
+            raise IOError("File not open for reading")
         self.mem_file.seek(self.pos)
         for line in self.mem_file:
             yield line        
 
     @seek_and_lock
     def next(self):        
+        if 'r' not in self.mode and '+' not in self.mode:
+            raise IOError("File not open for reading")
         return self.mem_file.next()
 
     @seek_and_lock
     def readline(self, *args, **kwargs):
+        if 'r' not in self.mode and '+' not in self.mode:
+            raise IOError("File not open for reading")
         return self.mem_file.readline(*args, **kwargs)
 
     def close(self):
@@ -115,6 +121,8 @@ class MemoryFile(object):
 
     @seek_and_lock
     def read(self, size=None):
+        if 'r' not in self.mode and '+' not in self.mode:
+            raise IOError("File not open for reading")
         if size is None:
             size = -1
         return self.mem_file.read(size)
@@ -129,10 +137,14 @@ class MemoryFile(object):
 
     @seek_and_lock
     def truncate(self, *args, **kwargs):
+        if 'r' in self.mode and '+' not in self.mode:
+            raise IOError("File not open for writing")
         return self.mem_file.truncate(*args, **kwargs)
 
     #@seek_and_lock
     def write(self, data):        
+        if 'r' in self.mode and '+' not in self.mode:
+            raise IOError("File not open for writing")
         self.memory_fs._on_modify_memory_file(self.path)
         self._lock.acquire()
         try:
