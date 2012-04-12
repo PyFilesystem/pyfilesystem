@@ -220,6 +220,15 @@ class ArchiveMountFS(mountfs.MountFS):
                 break
         return super(ArchiveMountFS, self)._delegate(path)
 
+    def remove(self, path):
+        # In case one of our mounted file systems backing archive is being
+        # deleted, unmout it before continuing. Once unmounted, the archive
+        # can be deleted by root fs, otherwise, the ArchiveFS will be asked
+        # to remove itself, which it cannot do.
+        if self.ismount(path) and libarchive.is_archive_name(path):
+            self.unmount(path)
+        return super(ArchiveMountFS, self).remove(path)
+
 
 def main():
     ArchiveFS()
