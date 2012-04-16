@@ -8,10 +8,10 @@ from fs.utils import print_fs
 
 
 class FSServe(Command):
-    
+
     usage = """fsserve [OPTION]... [PATH]
 Serves the contents of PATH with one of a number of methods"""
-    
+
     def get_optparse(self):
         optparse = super(FSServe, self).get_optparse()                
         optparse.add_option('-t', '--type', dest='type', type="string", default="http",
@@ -21,42 +21,42 @@ Serves the contents of PATH with one of a number of methods"""
         optparse.add_option('-p', '--port', dest='port', type="int",
                             help="Port number", metavar="")        
         return optparse
-        
-    def do_run(self, options, args):        
-    
+
+    def do_run(self, options, args):
+
         try:
             fs_url = args[0]
         except IndexError:
-            fs_url = './'            
-            
+            fs_url = './'
+
         fs, path = self.open_fs(fs_url)
-        
+
         if fs.isdir(path):
             fs = fs.opendir(path)
             path = '/'
-                
+
         self.output("Opened %s\n" % fs, verbose=True)
-                    
+
         port = options.port
-            
+
         try:
-                                
-            if options.type == 'http':            
-                from fs.expose.http import serve_fs            
+
+            if options.type == 'http':
+                from fs.expose.http import serve_fs
                 if port is None:
                     port = 80
-                self.output("Starting http server on %s:%i\n" % (options.addr, port), verbose=True)         
-                serve_fs(fs, options.addr, port)                
-                    
-            elif options.type == 'rpc':            
+                self.output("Starting http server on %s:%i\n" % (options.addr, port), verbose=True)
+                serve_fs(fs, options.addr, port)
+
+            elif options.type == 'rpc':
                 from fs.expose.xmlrpc import RPCFSServer
                 if port is None:
                     port = 80
                 s = RPCFSServer(fs, (options.addr, port))
                 self.output("Starting rpc server on %s:%i\n" % (options.addr, port), verbose=True)
-                s.serve_forever()                
-            
-            elif options.type == 'sftp':            
+                s.serve_forever()
+
+            elif options.type == 'sftp':
                 from fs.expose.sftp import BaseSFTPServer
                 import logging
                 log = logging.getLogger('paramiko')
@@ -67,7 +67,7 @@ Serves the contents of PATH with one of a number of methods"""
                 ch = logging.StreamHandler()
                 ch.setLevel(logging.DEBUG)
                 log.addHandler(ch)
-                
+
                 if port is None:
                     port = 22
                 server = BaseSFTPServer((options.addr, port), fs)
@@ -78,20 +78,20 @@ Serves the contents of PATH with one of a number of methods"""
                     pass
                 finally:
                     server.server_close()
-            
+
             else:
                 self.error("Server type '%s' not recognised\n" % options.type)
-            
+
         except IOError, e:
             if e.errno == 13:
                 self.error('Permission denied\n')
                 return 1
-            else:                
+            else:
                 self.error(e.strerror + '\n')
-                return 1            
-            
-def run():                               
-    return FSServe().run()        
-    
+                return 1
+
+def run():
+    return FSServe().run()
+
 if __name__ == "__main__":
     sys.exit(run())
