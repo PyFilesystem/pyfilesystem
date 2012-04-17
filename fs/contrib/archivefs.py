@@ -192,9 +192,10 @@ class ArchiveFS(FS):
 class ArchiveMountFS(mountfs.MountFS):
     '''A subclass of MountFS that automatically identifies archives. Once identified
     archives are mounted in place of the archive file.'''
-    def __init__(self, root, **kwargs):
+    def __init__(self, rootfs, **kwargs):
         super(ArchiveMountFS, self).__init__(**kwargs)
-        self.mountdir('/', root)
+        self.rootfs = rootfs
+        self.mountdir('/', rootfs)
 
     def ismount(self, path):
         try:
@@ -210,7 +211,7 @@ class ArchiveMountFS(mountfs.MountFS):
                 break
             if libarchive.is_archive_name(ppath):
                 # It looks like an archive, try mounting it.
-                full_path = self.mount_tree['/'].fs.getsyspath(ppath)
+                full_path = self.rootfs.getsyspath(ppath)
                 try:
                     self.mountdir(ppath, ArchiveFS(full_path, 'r'))
                 except:
@@ -227,6 +228,10 @@ class ArchiveMountFS(mountfs.MountFS):
         # to remove itself, which it cannot do.
         if self.ismount(path) and libarchive.is_archive_name(path):
             self.unmount(path)
+            # Send the delete directoy to the root filesystem. This avoids
+            # being delegated, and the fs we just unmounted being remounted.
+            return self.rootfs.remove(path)
+        # Otherwise, just delegate to the responsible fs.
         return super(ArchiveMountFS, self).remove(path)
 
 
