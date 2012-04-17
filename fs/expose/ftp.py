@@ -37,7 +37,7 @@ class FTPFS(ftpserver.AbstractedFS):
         return self.fs.open(path, mode)
 
     def chdir(self, path):
-        self.cwd = path
+        self._cwd = self.ftp2fs(path)
 
     def mkdir(self, path):
         if isinstance(path, str):
