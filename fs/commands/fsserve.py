@@ -56,6 +56,13 @@ Serves the contents of PATH with one of a number of methods"""
                 self.output("Starting rpc server on %s:%i\n" % (options.addr, port), verbose=True)
                 s.serve_forever()
 
+            elif options.type == 'ftp':
+                from fs.expose.ftp import serve_fs
+                if port is None:
+                    port = 21
+                self.output("Starting ftp server on %s:%i\n" % (options.addr, port), verbose=True)
+                serve_fs(fs, options.addr, port)
+
             elif options.type == 'sftp':
                 from fs.expose.sftp import BaseSFTPServer
                 import logging
