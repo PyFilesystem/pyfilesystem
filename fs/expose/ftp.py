@@ -6,43 +6,46 @@ Expose an FS object over FTP (via pyftpdlib).
 
 This module provides the necessary interfaces to expose an FS object over
 FTP, plugging into the infrastructure provided by the 'pyftpdlib' module.
+
+To use this in combination with fsserve, do the following:
+
+$ fsserve -t 'ftp' $HOME
+
+The above will serve your home directory in read-only mode via anonymous FTP on the
+loopback address.
 """
 
-from __future__ import with_statement
-
 import os
-import stat as statinfo
-import time
-import threading
+import stat
 
 from pyftpdlib import ftpserver
 
-from fs.base import flags_to_mode
-from fs.path import *
-from fs.errors import *
-from fs.local_functools import wraps
-from fs.filelike import StringIO
-from fs.utils import isdir
 from fs.osfs import OSFS
 
+
 class FTPFS(ftpserver.AbstractedFS):
+    """
+    The basic FTP Filesystem. This is a bridge between a pyfs filesystem and pyftpdlib's
+    AbstractedFS. This class will cause the FTP server to service the given fs instance.
+    """
     def __init__(self, fs, root, cmd_channel):
         self.fs = fs
         super(FTPFS, self).__init__(root, cmd_channel)
 
     def validpath(self, path):
+        # All paths are valid because we offload chrooting to pyfs.
         return True
 
     def open(self, path, mode):
         return self.fs.open(path, mode)
 
     def chdir(self, path):
+        # Put the user into the requested directory, again, all paths
+        # are valid.
         self._cwd = self.ftp2fs(path)
 
     def mkdir(self, path):
-        if isinstance(path, str):
-            path = unicode(path, sys.getfilesystemencoding())
-        self.fs.createdir(path)
+        self.fs.makedir(path)
 
     def listdir(self, path):
         return map(lambda x: x.encode('utf8'), self.fs.listdir(path))
@@ -118,6 +121,10 @@ class HomeFTPFS(FTPFS):
 
 
 def serve_fs(fs, addr, port):
+    """
+    Creates a basic anonymous FTP server serving the given FS on the given address/port
+    combo.
+    """
     from pyftpdlib.contrib.authorizers import UnixAuthorizer
     ftp_handler = ftpserver.FTPHandler
     ftp_handler.authorizer = ftpserver.DummyAuthorizer()
@@ -125,12 +132,3 @@ def serve_fs(fs, addr, port):
     ftp_handler.abstracted_fs = FTPFSFactory(fs)
     s = ftpserver.FTPServer((addr, port), ftp_handler)
     s.serve_forever()
-
-
-def main():
-    serve_fs(HomeFTPFS, '127.0.0.1', 21)
-
-
-#  When called from the command-line, expose a DemoFS for testing purposes
-if __name__ == "__main__":
-    main()
