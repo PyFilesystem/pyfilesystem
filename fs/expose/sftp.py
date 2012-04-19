@@ -29,7 +29,7 @@ from __future__ import with_statement
 import os
 import stat as statinfo
 import time
-import SocketServer as sockserv
+import SocketServer
 import threading
 
 import paramiko
@@ -184,7 +184,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def canonicalize(self, path):
-        return abspath(normpath(path))
+        return abspath(normpath(path)).encode(self.encoding)
 
     @report_sftp_errors
     def chattr(self, path, attr):
@@ -243,33 +243,38 @@ class SFTPHandle(paramiko.SFTPHandle):
         return self.owner.chattr(self.path,attr)
 
 
-class SFTPRequestHandler(sockserv.StreamRequestHandler):
+class SFTPRequestHandler(SocketServer.BaseRequestHandler):
     """SocketServer RequestHandler subclass for BaseSFTPServer.
 
     This RequestHandler subclass creates a paramiko Transport, sets up the
     sftp subsystem, and hands off to the transport's own request handling
-    thread.  Note that paramiko.Transport uses a separate thread by default,
-    so there is no need to use ThreadingMixin.
+    thread.
     """
+    def setup(self):
+        """
+        Creates the SSH transport. Sets security options.
+        """
+        self.transport = paramiko.Transport(self.request)
+        self.transport.load_server_moduli()
+        so = self.transport.get_security_options()
+        so.digests = ('hmac-sha1', )
+        so.compression = ('zlib@openssh.com', 'none')
+        self.transport.add_server_key(self.server.host_key)
+        self.transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, self.server.encoding)
 
     def handle(self):
-        t = paramiko.Transport(self.request)
-        t.add_server_key(self.server.host_key)
-        t.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, getattr(self.server,"encoding",None))
-        # Note that this actually spawns a new thread to handle the requests.
-        # (Actually, paramiko.Transport is a subclass of Thread)
-        t.start_server(server=self.server)
+        """
+        Start the paramiko server, this will start a thread to handle the connection.
+        """
+        self.transport.start_server(server=ServerInterface())
 
 
-class ThreadedTCPServer(sockserv.TCPServer, sockserv.ThreadingMixIn):
+class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
 
-class BaseSFTPServer(ThreadedTCPServer, paramiko.ServerInterface):
-    """SocketServer.TCPServer subclass exposing an FS via SFTP.
 
-    BaseSFTPServer combines a simple SocketServer.TCPServer subclass with an
-    implementation of paramiko.ServerInterface, providing everything that's
-    needed to expose an FS via SFTP.
+class BaseSFTPServer(ThreadedTCPServer):
+    """SocketServer.TCPServer subclass exposing an FS via SFTP.
 
     Operation is in the standard SocketServer style.  The target FS object
     can be passed into the constructor, or set as an attribute on the server::
@@ -280,17 +285,10 @@ class BaseSFTPServer(ThreadedTCPServer, paramiko.ServerInterface):
     It is also possible to specify the host key used by the sever by setting
     the 'host_key' attribute.  If this is not specified, it will default to
     the key found in the DEFAULT_HOST_KEY variable.
-
-    Note that this base class allows UNAUTHENTICATED ACCESS to the exposed
-    FS.  This is intentional, since we can't guess what your authentication
-    needs are.  To protect the exposed FS, override the following methods:
-
-        * get_allowed_auths Determine the allowed auth modes
-        * check_auth_none Check auth with no credentials
-        * check_auth_password Check auth with a password
-        * check_auth_publickey Check auth with a public key
-
     """
+    # If the server stops/starts quickly, don't fail because of
+    # "port in use" error.
+    allow_reuse_address = True
 
     def __init__(self, address, fs=None, encoding=None, host_key=None, RequestHandlerClass=None):
         self.fs = fs
@@ -300,12 +298,30 @@ class BaseSFTPServer(ThreadedTCPServer, paramiko.ServerInterface):
         self.host_key = host_key
         if RequestHandlerClass is None:
             RequestHandlerClass = SFTPRequestHandler
-        sockserv.TCPServer.__init__(self,address,RequestHandlerClass)
+        SocketServer.TCPServer.__init__(self,address,RequestHandlerClass)
+
+    def shutdown_request(self, request):
+        # Prevent TCPServer from closing the connection prematurely
+        return
 
     def close_request(self, request):
-        #  paramiko.Transport closes itself when finished.
-        #  If we close it here, we'll break the Transport thread.
-        pass
+        # Prevent TCPServer from closing the connection prematurely
+        return
+
+
+class ServerInterface(paramiko.ServerInterface):
+    """
+    Paramiko ServerInterface implementation that performs user authentication.
+
+    Note that this base class allows UNAUTHENTICATED ACCESS to the exposed
+    FS.  This is intentional, since we can't guess what your authentication
+    needs are.  To protect the exposed FS, override the following methods:
+
+        * get_allowed_auths Determine the allowed auth modes
+        * check_auth_none Check auth with no credentials
+        * check_auth_password Check auth with a password
+        * check_auth_publickey Check auth with a public key
+    """
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':
