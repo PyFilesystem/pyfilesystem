@@ -44,7 +44,23 @@ from fs.utils import isdir
 
 # Default host key used by BaseSFTPServer
 #
-DEFAULT_HOST_KEY = paramiko.RSAKey.from_private_key(StringIO("-----BEGIN RSA PRIVATE KEY-----\nMIICXgIBAAKCAIEAl7sAF0x2O/HwLhG68b1uG8KHSOTqe3Cdlj5i/1RhO7E2BJ4B\n3jhKYDYtupRnMFbpu7fb21A24w3Y3W5gXzywBxR6dP2HgiSDVecoDg2uSYPjnlDk\nHrRuviSBG3XpJ/awn1DObxRIvJP4/sCqcMY8Ro/3qfmid5WmMpdCZ3EBeC0CAwEA\nAQKCAIBSGefUs5UOnr190C49/GiGMN6PPP78SFWdJKjgzEHI0P0PxofwPLlSEj7w\nRLkJWR4kazpWE7N/bNC6EK2pGueMN9Ag2GxdIRC5r1y8pdYbAkuFFwq9Tqa6j5B0\nGkkwEhrcFNBGx8UfzHESXe/uE16F+e8l6xBMcXLMJVo9Xjui6QJBAL9MsJEx93iO\nzwjoRpSNzWyZFhiHbcGJ0NahWzc3wASRU6L9M3JZ1VkabRuWwKNuEzEHNK8cLbRl\nTyH0mceWXcsCQQDLDEuWcOeoDteEpNhVJFkXJJfwZ4Rlxu42MDsQQ/paJCjt2ONU\nWBn/P6iYDTvxrt/8+CtLfYc+QQkrTnKn3cLnAkEAk3ixXR0h46Rj4j/9uSOfyyow\nqHQunlZ50hvNz8GAm4TU7v82m96449nFZtFObC69SLx/VsboTPsUh96idgRrBQJA\nQBfGeFt1VGAy+YTLYLzTfnGnoFQcv7+2i9ZXnn/Gs9N8M+/lekdBFYgzoKN0y4pG\n2+Q+Tlr2aNlAmrHtkT13+wJAJVgZATPI5X3UO0Wdf24f/w9+OY+QxKGl86tTQXzE\n4bwvYtUGufMIHiNeWP66i6fYCucXCMYtx6Xgu2hpdZZpFw==\n-----END RSA PRIVATE KEY-----\n"))
+DEFAULT_HOST_KEY = paramiko.RSAKey.from_private_key(StringIO(
+    "-----BEGIN RSA PRIVATE KEY-----\n" \
+    "MIICXgIBAAKCAIEAl7sAF0x2O/HwLhG68b1uG8KHSOTqe3Cdlj5i/1RhO7E2BJ4B\n" \
+    "3jhKYDYtupRnMFbpu7fb21A24w3Y3W5gXzywBxR6dP2HgiSDVecoDg2uSYPjnlDk\n" \
+    "HrRuviSBG3XpJ/awn1DObxRIvJP4/sCqcMY8Ro/3qfmid5WmMpdCZ3EBeC0CAwEA\n" \
+    "AQKCAIBSGefUs5UOnr190C49/GiGMN6PPP78SFWdJKjgzEHI0P0PxofwPLlSEj7w\n" \
+    "RLkJWR4kazpWE7N/bNC6EK2pGueMN9Ag2GxdIRC5r1y8pdYbAkuFFwq9Tqa6j5B0\n" \
+    "GkkwEhrcFNBGx8UfzHESXe/uE16F+e8l6xBMcXLMJVo9Xjui6QJBAL9MsJEx93iO\n" \
+    "zwjoRpSNzWyZFhiHbcGJ0NahWzc3wASRU6L9M3JZ1VkabRuWwKNuEzEHNK8cLbRl\n" \
+    "TyH0mceWXcsCQQDLDEuWcOeoDteEpNhVJFkXJJfwZ4Rlxu42MDsQQ/paJCjt2ONU\n" \
+    "WBn/P6iYDTvxrt/8+CtLfYc+QQkrTnKn3cLnAkEAk3ixXR0h46Rj4j/9uSOfyyow\n" \
+    "qHQunlZ50hvNz8GAm4TU7v82m96449nFZtFObC69SLx/VsboTPsUh96idgRrBQJA\n" \
+    "QBfGeFt1VGAy+YTLYLzTfnGnoFQcv7+2i9ZXnn/Gs9N8M+/lekdBFYgzoKN0y4pG\n" \
+    "2+Q+Tlr2aNlAmrHtkT13+wJAJVgZATPI5X3UO0Wdf24f/w9+OY+QxKGl86tTQXzE\n" \
+    "4bwvYtUGufMIHiNeWP66i6fYCucXCMYtx6Xgu2hpdZZpFw==\n" \
+    "-----END RSA PRIVATE KEY-----\n"
+))
 
 
 def report_sftp_errors(func):
@@ -55,8 +71,8 @@ def report_sftp_errors(func):
     """
     @wraps(func)
     def wrapper(*args,**kwds):
-        try:            
-            return func(*args,**kwds)            
+        try:
+            return func(*args, **kwds)
         except ResourceNotFoundError, e:
             return paramiko.SFTP_NO_SUCH_FILE
         except UnsupportedError, e:
@@ -85,7 +101,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         if encoding is None:
             encoding = "utf8"
         self.encoding = encoding
-        super(SFTPServerInterface,self).__init__(server,*args,**kwds)
+        super(SFTPServerInterface,self).__init__(server, *args, **kwds)
 
     @report_sftp_errors
     def open(self, path, flags, attr):
@@ -96,10 +112,10 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         stats = []
-        for entry in self.fs.listdir(path,absolute=True):
+        for entry in self.fs.listdir(path, absolute=True):
             stat = self.stat(entry)
             if not isinstance(stat, int):
-                stats.append(stat)        
+                stats.append(stat)
         return stats
  
     @report_sftp_errors
@@ -109,26 +125,26 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
         info = self.fs.getinfo(path)
         get = info.get
-                
+
         stat = paramiko.SFTPAttributes()
-        stat.filename = basename(path).encode(self.encoding)                    
-        stat.st_size = info.get("size")          
-        
+        stat.filename = basename(path).encode(self.encoding)
+        stat.st_size = info.get("size")
+
         if 'st_atime' in info:
-            stat.st_atime = get('st_atime')    
+            stat.st_atime = get('st_atime')
         elif 'accessed_time' in info:
             stat.st_atime = time.mktime(get("accessed_time").timetuple())
-            
+
         if 'st_mtime' in info:
             stat.st_mtime = get('st_mtime')
         else:
             if 'modified_time' in info:
                 stat.st_mtime = time.mktime(get("modified_time").timetuple())
-                        
+
         if isdir(self.fs, path, info):
             stat.st_mode = 0777 | statinfo.S_IFDIR
         else:
-            stat.st_mode = 0777 | statinfo.S_IFREG        
+            stat.st_mode = 0777 | statinfo.S_IFREG
         return stat
 
     def lstat(self, path):
@@ -155,7 +171,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def mkdir(self, path, attr):
-        if not isinstance(path,unicode):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         self.fs.makedir(path)
         return paramiko.SFTP_OK
