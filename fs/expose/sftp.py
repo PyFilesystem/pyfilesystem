@@ -124,22 +124,21 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
             path = path.decode(self.encoding)
 
         info = self.fs.getinfo(path)
-        get = info.get
 
         stat = paramiko.SFTPAttributes()
         stat.filename = basename(path).encode(self.encoding)
         stat.st_size = info.get("size")
 
         if 'st_atime' in info:
-            stat.st_atime = get('st_atime')
+            stat.st_atime = info.get('st_atime')
         elif 'accessed_time' in info:
-            stat.st_atime = time.mktime(get("accessed_time").timetuple())
+            stat.st_atime = time.mktime(info.get("accessed_time").timetuple())
 
         if 'st_mtime' in info:
-            stat.st_mtime = get('st_mtime')
+            stat.st_mtime = info.get('st_mtime')
         else:
             if 'modified_time' in info:
-                stat.st_mtime = time.mktime(get("modified_time").timetuple())
+                stat.st_mtime = time.mktime(info.get("modified_time").timetuple())
 
         if isdir(self.fs, path, info):
             stat.st_mode = 0777 | statinfo.S_IFDIR
@@ -152,7 +151,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def remove(self, path):
-        if not isinstance(path,unicode):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         self.fs.remove(path)
         return paramiko.SFTP_OK
@@ -178,7 +177,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
 
     @report_sftp_errors
     def rmdir(self, path):
-        if not isinstance(path,unicode):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
         self.fs.removedir(path)
         return paramiko.SFTP_OK
@@ -215,10 +214,10 @@ class SFTPHandle(paramiko.SFTPHandle):
         super(SFTPHandle,self).__init__(flags)
         mode = flags_to_mode(flags) + "b"
         self.owner = owner
-        if not isinstance(path,unicode):
+        if not isinstance(path, unicode):
             path = path.decode(self.owner.encoding)
         self.path = path
-        self._file = owner.fs.open(path,mode)
+        self._file = owner.fs.open(path, mode)
 
     @report_sftp_errors
     def close(self):
@@ -240,7 +239,7 @@ class SFTPHandle(paramiko.SFTPHandle):
         return self.owner.stat(self.path)
 
     def chattr(self,attr):
-        return self.owner.chattr(self.path,attr)
+        return self.owner.chattr(self.path, attr)
 
 
 class SFTPRequestHandler(SocketServer.BaseRequestHandler):
@@ -260,7 +259,7 @@ class SFTPRequestHandler(SocketServer.BaseRequestHandler):
         so.digests = ('hmac-sha1', )
         so.compression = ('zlib@openssh.com', 'none')
         self.transport.add_server_key(self.server.host_key)
-        self.transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, self.server.encoding)
+        self.transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, encoding=self.server.encoding)
 
     def handle(self):
         """
