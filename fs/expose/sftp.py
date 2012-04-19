@@ -266,7 +266,7 @@ class SFTPRequestHandler(SocketServer.BaseRequestHandler):
         """
         Start the paramiko server, this will start a thread to handle the connection.
         """
-        self.transport.start_server(server=ServerInterface())
+        self.transport.start_server(server=BaseServerInterface())
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -298,7 +298,7 @@ class BaseSFTPServer(ThreadedTCPServer):
         self.host_key = host_key
         if RequestHandlerClass is None:
             RequestHandlerClass = SFTPRequestHandler
-        SocketServer.TCPServer.__init__(self,address,RequestHandlerClass)
+        SocketServer.TCPServer.__init__(self, address, RequestHandlerClass)
 
     def shutdown_request(self, request):
         # Prevent TCPServer from closing the connection prematurely
@@ -309,7 +309,7 @@ class BaseSFTPServer(ThreadedTCPServer):
         return
 
 
-class ServerInterface(paramiko.ServerInterface):
+class BaseServerInterface(paramiko.ServerInterface):
     """
     Paramiko ServerInterface implementation that performs user authentication.
 
