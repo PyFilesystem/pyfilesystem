@@ -101,6 +101,10 @@ class FTPFS(ftpserver.AbstractedFS):
 
     @convert_fs_errors
     def rename(self, src, dst):
+        if not isinstance(src, unicode):
+            src = src.decode(self.encoding)
+        if not isinstance(dst, unicode):
+            dst = dst.decode(self.encoding)
         self.fs.rename(src, dst)
 
     def chmod(self, path, mode):
