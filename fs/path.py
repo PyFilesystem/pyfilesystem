@@ -60,7 +60,7 @@ def normpath(path):
         # Imported here because errors imports this module (path),
         # causing a circular import.
         from fs.errors import BackReferenceError
-        BackReferenceError(details={ 'path': path })
+        BackReferenceError('Too many backrefs in \'%s\'' % path)
     if path[0] == '/':
         return '/%s' % '/'.join(components)
     return '/'.join(components)
