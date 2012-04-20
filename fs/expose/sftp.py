@@ -185,12 +185,10 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
     def canonicalize(self, path):
         try:
             return abspath(normpath(path)).encode(self.encoding)
-        except ValueError, e:
+        except BackReferenceError:
             # If the client tries to use backrefs to escape root, gently
             # nudge them back to /.
-            if 'too many backrefs' in e.args[0]:
-                return '/'
-            raise
+            return '/'
 
     @report_sftp_errors
     def chattr(self, path, attr):

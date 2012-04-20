@@ -188,6 +188,11 @@ class NoMMapError(ResourceError):
     default_message = "Can't get mmap for %(path)s"
 
 
+class BackReferenceError(FSError, ValueError):
+    """Exception raised when too many backrefs exist in a path (ex: '/..', '/docs/../..')."""
+    default_message = "Too many backrefs in '%(path)s'"
+
+
 def convert_fs_errors(func):
     """Function wrapper to convert FSError instances into OSError."""
     @wraps(func)

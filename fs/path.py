@@ -33,31 +33,34 @@ def normpath(path):
     >>> normpath("foo/../../bar")
     Traceback (most recent call last)
         ...
-    ValueError: too many backrefs in path 'foo/../../bar'
+    BackReferenceError: Too many backrefs in 'foo/../../bar'
 
     """
-    
+
     if path in ('', '/'):
         return path
-    
+
     path = path.replace('\\', '/')
-    
+
     # An early out if there is no need to normalize this path
     if not _requires_normalization(path):
         return path.rstrip('/')
-                
+
     components = []
     append = components.append
     special = ('..', '.', '').__contains__  
     try:
         for component in path.split('/'):
             if special(component):
-                if component == '..':                    
+                if component == '..':
                     components.pop()
             else:
                 append(component)
     except IndexError:
-        raise ValueError("too many backrefs in path '%s'" % path)
+        # Imported here because errors imports this module (path),
+        # causing a circular import.
+        from fs.errors import BackReferenceError
+        BackReferenceError(details={ 'path': path })
     if path[0] == '/':
         return '/%s' % '/'.join(components)
     return '/'.join(components)
@@ -77,7 +80,8 @@ def iteratepath(path, numsplits=None):
         return path.split('/')
     else:
         return path.split('/', numsplits)
-        
+
+
 def recursepath(path, reverse=False):
     """Returns intermediate paths from the root to the given path
     
