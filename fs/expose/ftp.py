@@ -196,7 +196,7 @@ class FTPFSFactory(object):
         This is the entry point of pyftpdlib. We will pass along the two parameters
         as well as the previously provided fs instance and encoding.
         """
-        return FTPFS(self.fs, root, cmd_channel, encoding=encoding)
+        return FTPFS(self.fs, root, cmd_channel, encoding=self.encoding)
 
 
 class HomeFTPFS(FTPFS):
