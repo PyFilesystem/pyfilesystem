@@ -183,7 +183,14 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def canonicalize(self, path):
-        return abspath(normpath(path)).encode(self.encoding)
+        try:
+            return abspath(normpath(path)).encode(self.encoding)
+        except ValueError, e:
+            # If the client tries to use backrefs to escape root, gently
+            # nudge them back to /.
+            if 'too many backrefs' in e.args[0]:
+                return '/'
+            raise
 
     @report_sftp_errors
     def chattr(self, path, attr):
