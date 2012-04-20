@@ -221,6 +221,10 @@ class ArchiveMountFS(mountfs.MountFS):
                 break
         return super(ArchiveMountFS, self)._delegate(path)
 
+    # TODO: probably need to override move(), movedir() and any other methods
+    # that modify files (and therefore archives). See remove() below to see
+    # why.
+
     def remove(self, path):
         # In case one of our mounted file systems backing archive is being
         # deleted, unmout it before continuing. Once unmounted, the archive
