@@ -18,6 +18,7 @@ loopback address.
 import os
 import stat
 import time
+from functools import wraps
 
 from pyftpdlib import ftpserver
 
@@ -28,6 +29,23 @@ from fs.errors import convert_fs_errors
 # Get these once so we can reuse them:
 UID = os.getuid()
 GID = os.getgid()
+
+
+def decode_args(f):
+    """
+    Decodes string arguments using the decoding defined on the method's class.
+    This decorator is for use on methods (functions which take a class or instance
+    as the first parameter).
+    """
+    @wraps(f)
+    def wrapper(self, *args):
+        encoded = []
+        for arg in args:
+            if isinstance(arg, str):
+                arg = arg.decode(self.encoding)
+            encoded.append(arg)
+        return f(self, *encoded)
+    return wrapper
 
 
 class FakeStat(object):
@@ -67,53 +85,44 @@ class FTPFS(ftpserver.AbstractedFS):
             return False
 
     @convert_fs_errors
+    @decode_args
     def open(self, path, mode):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return self.fs.open(path, mode)
 
     def chdir(self, path):
         self._cwd = self.ftp2fs(path)
 
     @convert_fs_errors
+    @decode_args
     def mkdir(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         self.fs.makedir(path)
 
     @convert_fs_errors
+    @decode_args
     def listdir(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return map(lambda x: x.encode(self.encoding), self.fs.listdir(path))
 
     @convert_fs_errors
+    @decode_args
     def rmdir(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         self.fs.removedir(path)
 
     @convert_fs_errors
+    @decode_args
     def remove(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         self.fs.remove(path)
 
     @convert_fs_errors
+    @decode_args
     def rename(self, src, dst):
-        if not isinstance(src, unicode):
-            src = src.decode(self.encoding)
-        if not isinstance(dst, unicode):
-            dst = dst.decode(self.encoding)
         self.fs.rename(src, dst)
 
     def chmod(self, path, mode):
-        raise NotImplementedError()
+        return
 
     @convert_fs_errors
+    @decode_args
     def stat(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         info = self.fs.getinfo(path)
         kwargs = {
             'st_size': info.get('size'),
@@ -147,27 +156,23 @@ class FTPFS(ftpserver.AbstractedFS):
     lstat = stat
 
     @convert_fs_errors
+    @decode_args
     def isfile(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return self.fs.isfile(path)
 
     @convert_fs_errors
+    @decode_args
     def isdir(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return self.fs.isdir(path)
 
     @convert_fs_errors
+    @decode_args
     def getsize(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return self.fs.getsize(path)
 
     @convert_fs_errors
+    @decode_args
     def getmtime(self, path):
-        if not isinstance(path, unicode):
-            path = path.decode(self.encoding)
         return self.fs.getinfo(path).time
 
     def realpath(self, path):
