@@ -126,10 +126,11 @@ class FTPFS(ftpserver.AbstractedFS):
         info = self.fs.getinfo(path)
         kwargs = {
             'st_size': info.get('size'),
-            # Echo current user instead of 0/0.
-            'st_uid': UID,
-            'st_gid': GID,
         }
+        # Give the fs a chance to provide the uid/gid. Otherwise echo the current
+        # uid/gid.
+        kwargs['st_uid'] = info.get('st_uid', UID)
+        kwargs['st_gid'] = info.get('st_gid', GID)
         if 'st_atime' in info:
             kwargs['st_atime'] = info.get('st_atime')
         elif 'accessed_time' in info:
