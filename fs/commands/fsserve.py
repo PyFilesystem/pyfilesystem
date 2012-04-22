@@ -93,8 +93,8 @@ Serves the contents of PATH with one of a number of methods"""
             if e.errno == 13:
                 self.error('Permission denied\n')
                 return 1
-            else:
-                self.error(e.strerror + '\n')
+            else:                                        
+                self.error(str(e) + '\n')
                 return 1
 
 def run():
