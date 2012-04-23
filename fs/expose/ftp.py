@@ -147,10 +147,15 @@ class FTPFS(ftpserver.AbstractedFS):
         elif 'st_mtime' in kwargs:
             # As a last resort, just copy the modified time.
             kwargs['st_ctime'] = kwargs['st_mtime']
-        if self.fs.isdir(path):
-            kwargs['st_mode'] = 0777 | stat.S_IFDIR
-        else:
-            kwargs['st_mode'] = 0777 | stat.S_IFREG
+        mode = 0777
+        # Merge in the type (dir or file). File is tested first, some file systems
+        # such as ArchiveMountFS treat archive files as directories too. By checking
+        # file first, any such files will be only files (not directories).
+        if self.fs.isfile(path):
+            mode |= stat.S_IFREG
+        elif self.fs.isdir(path):
+            mode |= stat.S_IFDIR
+        kwargs['st_mode'] = mode
         return FakeStat(**kwargs)
 
     # No link support...
