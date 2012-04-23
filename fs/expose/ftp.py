@@ -18,6 +18,7 @@ loopback address.
 import os
 import stat
 import time
+import errno
 from functools import wraps
 
 from pyftpdlib import ftpserver
@@ -90,6 +91,16 @@ class FTPFS(ftpserver.AbstractedFS):
         return self.fs.open(path, mode)
 
     def chdir(self, path):
+        # TODO: can the following conditional checks be farmed out to the fs?
+        # If we don't raise an error here for files, then the FTP server will
+        # happily allow the client to CWD into a file. We really only want to
+        # allow that for directories.
+        if self.fs.isfile(path):
+            raise OSError(errno.ENOTDIR, 'Not a directory')
+        # similarly, if we don't check for existence, the FTP server will allow
+        # the client to CWD into a non-existent directory.
+        if not self.fs.exists(path):
+            raise OSError(errno.ENOENT, 'Does not exist')
         self._cwd = self.ftp2fs(path)
 
     @convert_fs_errors
@@ -147,7 +158,8 @@ class FTPFS(ftpserver.AbstractedFS):
         elif 'st_mtime' in kwargs:
             # As a last resort, just copy the modified time.
             kwargs['st_ctime'] = kwargs['st_mtime']
-        mode = 0777
+        # Not executable by default, Chrome uses the exec flag to denote directories.
+        mode = 0660
         # Merge in the type (dir or file). File is tested first, some file systems
         # such as ArchiveMountFS treat archive files as directories too. By checking
         # file first, any such files will be only files (not directories).
@@ -155,6 +167,7 @@ class FTPFS(ftpserver.AbstractedFS):
             mode |= stat.S_IFREG
         elif self.fs.isdir(path):
             mode |= stat.S_IFDIR
+            mode |= 0110  # Merge in exec bit
         kwargs['st_mode'] = mode
         return FakeStat(**kwargs)
 
