@@ -79,6 +79,9 @@ class ArchiveFS(FS):
                     else:
                         self.contents[part] = libarchive.Entry(pathname=part, mode=stat.S_IFDIR, size=0, mtime=item.mtime)
 
+    def __del__(self):
+        self.close()
+
     def __str__(self):
         return "<ArchiveFS: %s>" % self.root_path
 
@@ -196,6 +199,11 @@ class ArchiveMountFS(mountfs.MountFS):
         super(ArchiveMountFS, self).__init__(**kwargs)
         self.rootfs = rootfs
         self.mountdir('/', rootfs)
+
+    def __del__(self):
+        # Umount everything that we mounted.
+        for mountpoint in self.mount_tree.keys():
+            self.unmount(mountpoint)
 
     def ismount(self, path):
         try:
