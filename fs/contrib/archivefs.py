@@ -195,15 +195,15 @@ class ArchiveFS(FS):
 class ArchiveMountFS(mountfs.MountFS):
     '''A subclass of MountFS that automatically identifies archives. Once identified
     archives are mounted in place of the archive file.'''
-    def __init__(self, rootfs, **kwargs):
-        super(ArchiveMountFS, self).__init__(**kwargs)
+    def __init__(self, rootfs, auto_mount=True):
+        self.auto_mount = auto_mount
+        super(ArchiveMountFS, self).__init__(auto_close=True)
         self.rootfs = rootfs
         self.mountdir('/', rootfs)
 
     def __del__(self):
-        # Umount everything that we mounted.
-        for mountpoint in self.mount_tree.keys():
-            self.unmount(mountpoint)
+        # Close automatically.
+        self.close()
 
     def ismount(self, path):
         try:
@@ -213,20 +213,21 @@ class ArchiveMountFS(mountfs.MountFS):
         return type(object) is mountfs.MountFS.DirMount
 
     def _delegate(self, path):
-        for ppath in recursepath(path)[1:]:
-            # Don't mount again...
-            if self.ismount(ppath):
-                break
-            if libarchive.is_archive_name(ppath):
-                # It looks like an archive, try mounting it.
-                full_path = self.rootfs.getsyspath(ppath)
-                try:
-                    self.mountdir(ppath, ArchiveFS(full_path, 'r'))
-                except:
-                    pass # Must NOT have been an archive after all
-                # Stop recursing path, we support just one archive per path!
-                # No nested archives yet!
-                break
+        if self.auto_mount:
+            for ppath in recursepath(path)[1:]:
+                # Don't mount again...
+                if self.ismount(ppath):
+                    break
+                if libarchive.is_archive_name(ppath):
+                    # It looks like an archive, try mounting it.
+                    full_path = self.rootfs.getsyspath(ppath)
+                    try:
+                        self.mountdir(ppath, ArchiveFS(full_path, 'r'))
+                    except:
+                        pass # Must NOT have been an archive after all
+                    # Stop recursing path, we support just one archive per path!
+                    # No nested archives yet!
+                    break
         return super(ArchiveMountFS, self)._delegate(path)
 
     # TODO: probably need to override move(), movedir() and any other methods
