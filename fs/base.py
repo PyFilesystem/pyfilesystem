@@ -893,6 +893,8 @@ class FS(object):
         from fs.wrapfs.subfs import SubFS
         if not self.exists(path):
             raise ResourceNotFoundError(path)
+        if not self.isdir(path):
+            raise ResourceInvalidError("path should reference a directory")
         return SubFS(self, path)
 
     def walk(self,
