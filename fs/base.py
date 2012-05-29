@@ -174,7 +174,7 @@ class FS(object):
         return self.__str__()
 
     def __del__(self):
-        if not getattr(self, 'closed', False):
+        if not getattr(self, 'closed', True):
             try:
                 self.close()
             except:
