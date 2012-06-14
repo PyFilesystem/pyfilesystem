@@ -143,32 +143,38 @@ class FTPFS(ftpserver.AbstractedFS):
         kwargs['st_uid'] = info.get('st_uid', UID)
         kwargs['st_gid'] = info.get('st_gid', GID)
         if 'st_atime' in info:
-            kwargs['st_atime'] = info.get('st_atime')
+            kwargs['st_atime'] = info['st_atime']
         elif 'accessed_time' in info:
-            kwargs['st_atime'] = time.mktime(info.get("accessed_time").timetuple())
+            kwargs['st_atime'] = time.mktime(info["accessed_time"].timetuple())
         if 'st_mtime' in info:
             kwargs['st_mtime'] = info.get('st_mtime')
         elif 'modified_time' in info:
-            kwargs['st_mtime'] = time.mktime(info.get("modified_time").timetuple())
+            kwargs['st_mtime'] = time.mktime(info["modified_time"].timetuple())
         # Pyftpdlib uses st_ctime on Windows platform, try to provide it.
         if 'st_ctime' in info:
-            kwargs['st_ctime'] = info.get('st_ctime')
+            kwargs['st_ctime'] = info['st_ctime']
         elif 'created_time' in info:
-            kwargs['st_ctime'] = time.mktime(info.get("created_time").timetuple())
+            kwargs['st_ctime'] = time.mktime(info["created_time"].timetuple())
         elif 'st_mtime' in kwargs:
             # As a last resort, just copy the modified time.
             kwargs['st_ctime'] = kwargs['st_mtime']
-        # Not executable by default, Chrome uses the exec flag to denote directories.
-        mode = 0660
-        # Merge in the type (dir or file). File is tested first, some file systems
-        # such as ArchiveMountFS treat archive files as directories too. By checking
-        # file first, any such files will be only files (not directories).
-        if self.fs.isfile(path):
-            mode |= stat.S_IFREG
-        elif self.fs.isdir(path):
-            mode |= stat.S_IFDIR
-            mode |= 0110  # Merge in exec bit
-        kwargs['st_mode'] = mode
+        # Try to use existing mode.
+        if 'st_mode' in info:
+            kwargs['st_mode'] = info['st_mode']
+        elif 'mode' in info:
+            kwargs['st_mode'] = info['mode']
+        else:
+            # Otherwise, build one. Not executable by default.
+            mode = 0660
+            # Merge in the type (dir or file). File is tested first, some file systems
+            # such as ArchiveMountFS treat archive files as directories too. By checking
+            # file first, any such files will be only files (not directories).
+            if self.fs.isfile(path):
+                mode |= stat.S_IFREG
+            elif self.fs.isdir(path):
+                mode |= stat.S_IFDIR
+                mode |= 0110  # Merge in exec bit to signal dir is listable
+            kwargs['st_mode'] = mode
         return FakeStat(**kwargs)
 
     # No link support...
