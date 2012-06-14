@@ -258,7 +258,7 @@ class ArchiveMountFS(mountfs.MountFS):
         # call would succeed without the check below.
         if self.rootfs.isfile(path):
             raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
-        return super(ArchiveFS, self).makedir(path, *args, **kwargs)
+        return super(ArchiveMountFS, self).makedir(path, *args, **kwargs)
 
 
 def main():
