@@ -234,6 +234,11 @@ class ArchiveMountFS(mountfs.MountFS):
     # that modify files (and therefore archives). See remove() below to see
     # why.
 
+    def getsyspath(self, path):
+        # Optimized getsyspath() that avoids calling _delegate() and thus
+        # mounting an archive.
+        return self.rootfs.getsyspath(path)
+
     def remove(self, path):
         # In case one of our mounted file systems backing archive is being
         # deleted, unmout it before continuing. Once unmounted, the archive
@@ -246,6 +251,14 @@ class ArchiveMountFS(mountfs.MountFS):
             return self.rootfs.remove(path)
         # Otherwise, just delegate to the responsible fs.
         return super(ArchiveMountFS, self).remove(path)
+
+    def makedir(self, path, *args, **kwargs):
+        # If the caller is trying to create a directory where an archive lives
+        # we should raise an error. In the case when allow_recreate=True, this
+        # call would succeed without the check below.
+        if self.rootfs.isfile(path):
+            raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
+        return super(ArchiveFS, self).makedir(path, *args, **kwargs)
 
 
 def main():
