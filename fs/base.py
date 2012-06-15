@@ -170,9 +170,6 @@ class FS(object):
         else:
             self._lock = DummyLock()
 
-    def __repr__(self):
-        return self.__str__()
-
     def __del__(self):
         if not getattr(self, 'closed', True):
             try:

@@ -45,6 +45,7 @@ from fs.filelike import FileWrapper
 class EVENT(object):
     """Base class for change notification events."""
     def __init__(self,fs,path):
+        super(EVENT, self).__init__()
         self.fs = fs
         if path is not None:
             path = abspath(normpath(path))
