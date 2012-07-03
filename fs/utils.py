@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 
-The `utils` module provides a number of utility functions that don't belong in the Filesystem interface. Generally the functions in this module work with multiple Filesystems, for instance moving and copying between non-similar Filesystems.
+The `utils` module provides a number of utility functions that don't belong
+in the Filesystem interface. Generally the functions in this module work with
+multiple Filesystems, for instance moving and copying between non-similar Filesystems.
 
 """
 
@@ -36,15 +38,15 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
-    
+
     # If the src and dst fs objects are the same, then use a direct copy
     if src_fs is dst_fs:
         src_fs.copy(src_path, dst_path, overwrite=overwrite)
         return
-    
+
     src_syspath = src_fs.getsyspath(src_path, allow_none=True)
     dst_syspath = dst_fs.getsyspath(dst_path, allow_none=True)
-    
+
     if not overwrite and dst_fs.exists(dst_path):
         raise DestinationExistsError(dst_path)
 
@@ -57,44 +59,44 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
 
     if src_lock is not None:
         src_lock.acquire()
-        
+
     try:
-        src = None        
-        try:        
+        src = None
+        try:
             src = src_fs.open(src_path, 'rb')
-            dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)                                    
+            dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
         finally:
             if src is not None:
-                src.close()                
+                src.close()
     finally:
         if src_lock is not None:
             src_lock.release()
 
 def copyfile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """A non atomic version of copyfile (will not block other threads using src_fs or dst_fst)
-    
+
     :param src_fs: Source filesystem object
     :param src_path: -- Source path
     :param dst_fs: Destination filesystem object
     :param dst_path: Destination filesystem object
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
-    
+
     """
-    
+
     if not overwrite and dst_fs.exists(dst_path):
         raise DestinationExistsError(dst_path)
-    
+
     src = None
-    dst = None        
-    try:        
-        src = src_fs.open(src_path, 'rb')        
+    dst = None
+    try:
+        src = src_fs.open(src_path, 'rb')
         dst = dst_fs.open(dst_path, 'wb')
         write = dst.write
         read = src.read
         chunk = read(chunk_size)
-        while chunk:            
+        while chunk:
             write(chunk)
-            chunk = read(chunk_size)                    
+            chunk = read(chunk_size)
     finally:
         if src is not None:
             src.close()
@@ -118,14 +120,14 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
 
     if not overwrite and dst_fs.exists(dst_path):
         raise DestinationExistsError(dst_path)
-        
+
     if src_fs is dst_fs:
         src_fs.move(src_path, dst_path, overwrite=overwrite)
         return
 
     # System copy if there are two sys paths
-    if src_syspath is not None and dst_syspath is not None:        
-        FS._shutil_movefile(src_syspath, dst_syspath)        
+    if src_syspath is not None and dst_syspath is not None:
+        FS._shutil_movefile(src_syspath, dst_syspath)
         return
 
     src_lock = getattr(src_fs, '_lock', None)
@@ -134,18 +136,18 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         src_lock.acquire()
 
     try:
-        src = None        
+        src = None
         try:
             # Chunk copy
             src = src_fs.open(src_path, 'rb')
             dst_fs.setcontents(dst_path, src, chunk_size=chunk_size)
         except:
-            raise        
+            raise
         else:
-            src_fs.remove(src_path)              
+            src_fs.remove(src_path)
         finally:
             if src is not None:
-                src.close()        
+                src.close()
     finally:
         if src_lock is not None:
             src_lock.release()
@@ -160,32 +162,32 @@ def movefile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chun
     :param dst_path: Destination filesystem object
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
-    """    
+    """
 
     if not overwrite and dst_fs.exists(dst_path):
         raise DestinationExistsError(dst_path)
-        
+
     src = None
-    dst = None        
+    dst = None
     try:
         # Chunk copy
-        src = src_fs.open(src_path, 'rb')        
+        src = src_fs.open(src_path, 'rb')
         dst = dst_fs.open(dst_path, 'wb')
         write = dst.write
         read = src.read
         chunk = read(chunk_size)
-        while chunk:            
+        while chunk:
             write(chunk)
             chunk = read(chunk_size)
     except:
         raise
     else:
-        src_fs.remove(src_path)                    
+        src_fs.remove(src_path)
     finally:
         if src is not None:
             src.close()
         if dst is not None:
-            dst.close()    
+            dst.close()
 
 
 def movedir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=64*1024):
@@ -193,28 +195,27 @@ def movedir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
 
     :param fs1: A tuple of (<filesystem>, <directory path>)
     :param fs2: Destination filesystem, or a tuple of (<filesystem>, <directory path>)
-    :param create_destination: If True, the destination will be created if it doesn't exist    
+    :param create_destination: If True, the destination will be created if it doesn't exist
     :param ignore_errors: If True, exceptions from file moves are ignored
     :param chunk_size: Size of chunks to move if a simple copy is used
 
     """
     if not isinstance(fs1, tuple):
         raise ValueError("first argument must be a tuple of (<filesystem>, <path>)")
-        
+
     fs1, dir1 = fs1
     parent_fs1 = fs1
-    parent_dir1 = dir1   
+    parent_dir1 = dir1
     fs1 = fs1.opendir(dir1)
 
-    print fs1
     if parent_dir1 in ('', '/'):
         raise RemoveRootError(dir1)
-    
+
     if isinstance(fs2, tuple):
         fs2, dir2 = fs2
-        if create_destination:       
+        if create_destination:
             fs2.makedir(dir2, allow_recreate=True, recursive=True)
-        fs2 = fs2.opendir(dir2)    
+        fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS(auto_close=False)
     mount_fs.mount('src', fs1)
@@ -223,8 +224,8 @@ def movedir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
     mount_fs.copydir('src', 'dst',
                      overwrite=True,
                      ignore_errors=ignore_errors,
-                     chunk_size=chunk_size)    
-    parent_fs1.removedir(parent_dir1, force=True)            
+                     chunk_size=chunk_size)
+    parent_fs1.removedir(parent_dir1, force=True)
 
 
 def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=64*1024):
@@ -244,12 +245,12 @@ def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
         fs2, dir2 = fs2
         if create_destination:
             fs2.makedir(dir2, allow_recreate=True, recursive=True)
-        fs2 = fs2.opendir(dir2)    
+        fs2 = fs2.opendir(dir2)
 
     mount_fs = MountFS(auto_close=False)
     mount_fs.mount('src', fs1)
     mount_fs.mount('dst', fs2)
-    mount_fs.copydir('src', 'dst',                     
+    mount_fs.copydir('src', 'dst',
                      overwrite=True,
                      ignore_errors=ignore_errors,
                      chunk_size=chunk_size)
@@ -257,29 +258,29 @@ def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
 
 def remove_all(fs, path):
     """Remove everything in a directory. Returns True if successful.
-    
+
     :param fs: A filesystem
     :param path: Path to a directory
-    
-    """    
-    sub_fs = fs.opendir(path)            
-    for sub_path in sub_fs.listdir():            
+
+    """
+    sub_fs = fs.opendir(path)
+    for sub_path in sub_fs.listdir():
         if sub_fs.isdir(sub_path):
             sub_fs.removedir(sub_path, force=True)
         else:
             sub_fs.remove(sub_path)
     return fs.isdirempty(path)
-    
+
 
 def copystructure(src_fs, dst_fs):
     """Copies the directory structure from one filesystem to another, so that
     all directories in `src_fs` will have a corresponding directory in `dst_fs`
-    
+
     :param src_fs: Filesystem to copy structure from
     :param dst_fs: Filesystem to copy structure to
-    
+
     """
-    
+
     for path in src_fs.walkdirs():
         dst_fs.makedir(path, allow_recreate=True)
 
@@ -349,7 +350,7 @@ def find_duplicates(fs,
     :param signature_size: The total number of bytes read to generate a signature
 
     For example, the following will list all the duplicate .jpg files in "~/Pictures"::
-    
+
         >>> from fs.utils import find_duplicates
         >>> from fs.osfs import OSFS
         >>> fs = OSFS('~/Pictures')
@@ -457,9 +458,9 @@ def print_fs(fs,
     This mostly useful as a debugging aid.
     Be careful about printing a OSFS, or any other large filesystem.
     Without max_levels set, this function will traverse the entire directory tree.
-    
+
     For example, the following will print a tree of the files under the current working directory::
-    
+
         >>> from fs.osfs import *
         >>> from fs.utils import *
         >>> fs = OSFS('.')
@@ -487,28 +488,28 @@ def print_fs(fs,
             terminal_colors = False
         else:
             terminal_colors = hasattr(file_out, 'isatty') and file_out.isatty()
-    
+
     def write(line):
         file_out.write(line.encode(file_encoding, 'replace')+'\n')
-        
+
     def wrap_prefix(prefix):
         if not terminal_colors:
-            return prefix        
-        return '\x1b[32m%s\x1b[0m' % prefix                   
-   
+            return prefix
+        return '\x1b[32m%s\x1b[0m' % prefix
+
     def wrap_dirname(dirname):
         if not terminal_colors:
             return dirname
         return '\x1b[1;34m%s\x1b[0m' % dirname
-    
+
     def wrap_error(msg):
         if not terminal_colors:
             return msg
         return '\x1b[31m%s\x1b[0m' % msg
-    
+
     def wrap_filename(fname):
         if not terminal_colors:
-            return fname        
+            return fname
 #        if '.' in fname:
 #            name, ext = os.path.splitext(fname)
 #            fname = '%s\x1b[36m%s\x1b[0m' % (name, ext)
@@ -518,7 +519,7 @@ def print_fs(fs,
         return fname
     dircount = [0]
     filecount = [0]
-    def print_dir(fs, path, levels=[]):        
+    def print_dir(fs, path, levels=[]):
         if file_encoding == 'UTF-8' and terminal_colors:
             char_vertline = u'│'
             char_newnode = u'├'
@@ -529,52 +530,52 @@ def print_fs(fs,
             char_newnode = '|'
             char_line = '--'
             char_corner = '`'
-        
-        try:            
+
+        try:
             dirs = fs.listdir(path, dirs_only=True)
             if dirs_only:
                 files = []
             else:
-                files = fs.listdir(path, files_only=True, wildcard=files_wildcard)            
+                files = fs.listdir(path, files_only=True, wildcard=files_wildcard)
             dir_listing = ( [(True, p) for p in dirs] +
                             [(False, p) for p in files] )
         except Exception, e:
             prefix = ''.join([(char_vertline + '   ', '    ')[last] for last in levels]) + '   '
             write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unabled to retrieve directory list (%s) ..." % str(e)))
-            return 0        
-        
+            return 0
+
         if hide_dotfiles:
             dir_listing = [(isdir, p) for isdir, p in dir_listing if not p.startswith('.')]
-        
+
         if dirs_first:
             dir_listing.sort(key = lambda (isdir, p):(not isdir, p.lower()))
         else:
             dir_listing.sort(key = lambda (isdir, p):p.lower())
-                            
+
         for i, (is_dir, item) in enumerate(dir_listing):
             if is_dir:
                 dircount[0] += 1
             else:
                 filecount[0] += 1
-            is_last_item = (i == len(dir_listing) - 1)            
+            is_last_item = (i == len(dir_listing) - 1)
             prefix = ''.join([(char_vertline + '   ', '    ')[last] for last in levels])
             if is_last_item:
                 prefix += char_corner
             else:
                 prefix += char_newnode
-                                            
-            if is_dir:                
+
+            if is_dir:
                 write('%s %s' % (wrap_prefix(prefix + char_line), wrap_dirname(item)))
                 if max_levels is not None and len(levels) + 1 >= max_levels:
                     pass
                     #write(wrap_prefix(prefix[:-1] + '       ') + wrap_error('max recursion levels reached'))
                 else:
-                    print_dir(fs, pathjoin(path, item), levels[:] + [is_last_item])                                            
+                    print_dir(fs, pathjoin(path, item), levels[:] + [is_last_item])
             else:
                 write('%s %s' % (wrap_prefix(prefix + char_line), wrap_filename(item)))
-                
+
         return len(dir_listing)
-                
+
     print_dir(fs, path)
     return dircount[0], filecount[0]
 
@@ -585,15 +586,14 @@ if __name__ == "__main__":
     t1.setcontents("foo", "test")
     t1.makedir("bar")
     t1.setcontents("bar/baz", "another test")
-    
+
     t1.tree()
-    
-    t2 = TempFS() 
-    print t2.listdir()   
+
+    t2 = TempFS()
+    print t2.listdir()
     movedir(t1, t2)
-    
+
     print t2.listdir()
     t1.tree()
     t2.tree()
-    
-        
+
