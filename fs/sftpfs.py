@@ -243,7 +243,7 @@ class SFTPFS(FS):
             try:
                 transport.auth_publickey(username, key)
                 return key
-            except paramike.SSHException:
+            except paramiko.SSHException:
                 pass
         return None
 
