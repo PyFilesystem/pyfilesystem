@@ -139,7 +139,14 @@ class S3FS(FS):
             return b
         except AttributeError:
             try:
-                b = self._s3conn.get_bucket(self._bucket_name, validate=True)
+                # Validate by listing the bucket if there is no prefix.
+                # If there is a prefix, validate by listing only the prefix
+                # itself, to avoid errors when an IAM policy has been applied.
+                if self._prefix:
+                    b = self._s3conn.get_bucket(self._bucket_name, validate=0)
+                    b.get_key(self._prefix)
+                else:
+                    b = self._s3conn.get_bucket(self._bucket_name, validate=1)
             except S3ResponseError, e:
                 if "404 Not Found" not in str(e):
                     raise
