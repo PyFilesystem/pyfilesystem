@@ -1,6 +1,6 @@
 """
 
-  fs.tests.test_zipfs:  testcases for the ZipFS class
+  fs.tests.test_archivefs:  testcases for the ArchiveFS class
 
 """
 
@@ -17,7 +17,7 @@ from fs.contrib import archivefs
 
 from six import PY3, b
 
-class TestReadZipFS(unittest.TestCase):
+class TestReadArchiveFS(unittest.TestCase):
 
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
@@ -87,7 +87,7 @@ class TestReadZipFS(unittest.TestCase):
         check_listing('foo/bar', ['baz.txt'])
 
 
-class TestWriteZipFS(unittest.TestCase):
+class TestWriteArchiveFS(unittest.TestCase):
 
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
@@ -133,7 +133,7 @@ class TestWriteZipFS(unittest.TestCase):
         check_contents(u"\N{GREEK SMALL LETTER ALPHA}/\N{GREEK CAPITAL LETTER OMEGA}.txt", b("this is the alpha and the omega"))
 
 
-#~ class TestAppendZipFS(TestWriteZipFS):
+#~ class TestAppendArchiveFS(TestWriteArchiveFS):
 
     #~ def setUp(self):
         #~ self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
@@ -160,7 +160,7 @@ class TestWriteZipFS(unittest.TestCase):
 
         #~ zip_fs.close()
 
-#~ class TestZipFSErrors(unittest.TestCase):
+#~ class TestArchiveFSErrors(unittest.TestCase):
 
     #~ def setUp(self):
         #~ self.workdir = tempfile.mkdtemp()
