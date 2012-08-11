@@ -15,6 +15,7 @@ import tempfile
 from fs import osfs
 from fs.errors import * 
 from fs.path import *
+from fs.utils import remove_all
 from fs import wrapfs
 
 import six
@@ -61,7 +62,7 @@ class TestLimitSizeFS(TestWrapFS):
         self.fs = LimitSizeFS(self.fs,1024*1024*2)  # 2MB limit
 
     def tearDown(self):
-        self.fs.removedir("/",force=True)
+        remove_all(self.fs, "/")
         self.assertEquals(self.fs.cur_size,0)
         super(TestLimitSizeFS,self).tearDown()
         self.fs.close()
