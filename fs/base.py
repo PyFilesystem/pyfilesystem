@@ -12,6 +12,8 @@ For more information regarding implementing a working PyFilesystem interface, se
 
 """
 
+from __future__ import with_statement
+
 __all__ = ['DummyLock',
            'silence_fserrors',
            'NullFile',
