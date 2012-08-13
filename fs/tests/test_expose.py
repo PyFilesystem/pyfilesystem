@@ -223,7 +223,7 @@ if dokan.is_available:
             rawfs.setcontents("autoRun.inf", b("evilcodeevilcode"))
             self.assertTrue(safefs.exists("_autoRun.inf"))
             self.assertTrue("autoRun.inf" not in safefs.listdir("/"))
-            safefs.setcontents("file:stream","test")
+            safefs.setcontents("file:stream",b("test"))
             self.assertFalse(rawfs.exists("file:stream"))
             self.assertTrue(rawfs.exists("file__colon__stream"))
             self.assertTrue("file:stream" in safefs.listdir("/"))

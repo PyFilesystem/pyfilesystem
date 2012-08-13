@@ -46,6 +46,8 @@ from fs.contrib.davfs.util import *
 from fs.contrib.davfs import xmlobj
 from fs.contrib.davfs.xmlobj import *
 
+from six import b
+
 import errno
 _RETRYABLE_ERRORS = [errno.EADDRINUSE]
 try:
@@ -354,7 +356,7 @@ class DAVFS(FS):
     def open(self,path,mode="r"):
         mode = mode.replace("b","").replace("t","")
         # Truncate the file if requested
-        contents = ""
+        contents = b("")
         if "w" in mode:
             self.setcontents(path,contents)
         else:
@@ -364,7 +366,7 @@ class DAVFS(FS):
                 if "a" not in mode:
                     contents.close()
                     raise ResourceNotFoundError(path)
-                contents = ""
+                contents = b("")
                 self.setcontents(path,contents)
             elif contents.status in (401,403):
                 contents.close()

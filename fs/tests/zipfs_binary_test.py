@@ -9,8 +9,10 @@ import unittest
 from fs.zipfs import ZipFS
 import os
 
+from six import b
+
 class ZipFsBinaryWriteRead(unittest.TestCase):
-    test_content = chr(32) + chr(10)
+    test_content = b(chr(32) + chr(10))
     
     def setUp(self):
         self.z = ZipFS('test.zip', 'w')

@@ -73,6 +73,8 @@ from fs.base import fnmatch, NoDefaultMeta
 from util import TahoeUtil
 from connection import Connection   
 
+from six import b
+
 logger = fs.getLogger('fs.tahoelafs')
 
 def _fix_path(func):
@@ -155,7 +157,7 @@ class _TahoeLAFS(FS):
             self._log(DEBUG, 'Creating empty file %s' % path)
             if self.getmeta("read_only"):
                 raise errors.UnsupportedError('read only filesystem')
-            self.setcontents(path, '')
+            self.setcontents(path, b(''))
             handler = NullFile()
         else:
             self._log(DEBUG, 'Opening existing file %s for reading' % path)

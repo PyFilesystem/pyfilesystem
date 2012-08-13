@@ -1061,11 +1061,12 @@ if __name__ == "__main__":
     from fs.osfs import OSFS
     from fs.memoryfs import MemoryFS
     from shutil import rmtree
+    from six import b
     path = tempfile.mkdtemp()
     try:
         fs = OSFS(path)
         #fs = MemoryFS()
-        fs.setcontents("test1.txt","test one")
+        fs.setcontents("test1.txt",b("test one"))
         flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
         mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
         fs.close()

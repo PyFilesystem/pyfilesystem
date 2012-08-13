@@ -2,6 +2,8 @@ from fs.multifs import MultiFS
 from fs.memoryfs import MemoryFS
 import unittest
 
+from six import b
+
 class TestMultiFS(unittest.TestCase):
     
     def test_auto_close(self):
@@ -36,48 +38,48 @@ class TestMultiFS(unittest.TestCase):
         m1 = MemoryFS()
         m2 = MemoryFS()
         m3 = MemoryFS()
-        m1.setcontents("name", "m1")
-        m2.setcontents("name", "m2")
-        m3.setcontents("name", "m3")
+        m1.setcontents("name", b("m1"))
+        m2.setcontents("name", b("m2"))
+        m3.setcontents("name", b("m3"))
         multi_fs = MultiFS(auto_close=False)
         multi_fs.addfs("m1", m1)
         multi_fs.addfs("m2", m2)
         multi_fs.addfs("m3", m3)
-        self.assert_(multi_fs.getcontents("name") == "m3")
+        self.assert_(multi_fs.getcontents("name") == b("m3"))
         
         m1 = MemoryFS()
         m2 = MemoryFS()
         m3 = MemoryFS()
-        m1.setcontents("name", "m1")
-        m2.setcontents("name", "m2")
-        m3.setcontents("name", "m3")
+        m1.setcontents("name", b("m1"))
+        m2.setcontents("name", b("m2"))
+        m3.setcontents("name", b("m3"))
         multi_fs = MultiFS(auto_close=False)
         multi_fs.addfs("m1", m1)
         multi_fs.addfs("m2", m2, priority=10)
         multi_fs.addfs("m3", m3)
-        self.assert_(multi_fs.getcontents("name") == "m2")        
+        self.assert_(multi_fs.getcontents("name") == b("m2"))        
         
         m1 = MemoryFS()
         m2 = MemoryFS()
         m3 = MemoryFS()
-        m1.setcontents("name", "m1")
-        m2.setcontents("name", "m2")
-        m3.setcontents("name", "m3")
+        m1.setcontents("name", b("m1"))
+        m2.setcontents("name", b("m2"))
+        m3.setcontents("name", b("m3"))
         multi_fs = MultiFS(auto_close=False)
         multi_fs.addfs("m1", m1)
         multi_fs.addfs("m2", m2, priority=10)
         multi_fs.addfs("m3", m3, priority=10)
-        self.assert_(multi_fs.getcontents("name") == "m3")
+        self.assert_(multi_fs.getcontents("name") == b("m3"))
         
         m1 = MemoryFS()
         m2 = MemoryFS()
         m3 = MemoryFS()
-        m1.setcontents("name", "m1")
-        m2.setcontents("name", "m2")
-        m3.setcontents("name", "m3")
+        m1.setcontents("name", b("m1"))
+        m2.setcontents("name", b("m2"))
+        m3.setcontents("name", b("m3"))
         multi_fs = MultiFS(auto_close=False)
         multi_fs.addfs("m1", m1, priority=11)
         multi_fs.addfs("m2", m2, priority=10)
         multi_fs.addfs("m3", m3, priority=10)
-        self.assert_(multi_fs.getcontents("name") == "m1")
+        self.assert_(multi_fs.getcontents("name") == b("m1"))
         

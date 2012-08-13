@@ -4,14 +4,16 @@ from fs.tempfs import TempFS
 from fs.memoryfs import MemoryFS
 from fs import utils
 
+from six import b
+
 class TestUtils(unittest.TestCase):
     
     def _make_fs(self, fs):
-        fs.setcontents("f1", "file 1")
-        fs.setcontents("f2", "file 2")
-        fs.setcontents("f3", "file 3")
+        fs.setcontents("f1", b("file 1"))
+        fs.setcontents("f2", b("file 2"))
+        fs.setcontents("f3", b("file 3"))
         fs.makedir("foo/bar", recursive=True)
-        fs.setcontents("foo/bar/fruit", "apple")
+        fs.setcontents("foo/bar/fruit", b("apple"))
         
     def _check_fs(self, fs):
         self.assert_(fs.isfile("f1"))
@@ -19,10 +21,10 @@ class TestUtils(unittest.TestCase):
         self.assert_(fs.isfile("f3"))
         self.assert_(fs.isdir("foo/bar"))
         self.assert_(fs.isfile("foo/bar/fruit"))
-        self.assertEqual(fs.getcontents("f1", "rb"), "file 1")
-        self.assertEqual(fs.getcontents("f2", "rb"), "file 2")
-        self.assertEqual(fs.getcontents("f3", "rb"), "file 3")
-        self.assertEqual(fs.getcontents("foo/bar/fruit", "rb"), "apple")        
+        self.assertEqual(fs.getcontents("f1", "rb"), b("file 1"))
+        self.assertEqual(fs.getcontents("f2", "rb"), b("file 2"))
+        self.assertEqual(fs.getcontents("f3", "rb"), b("file 3"))
+        self.assertEqual(fs.getcontents("foo/bar/fruit", "rb"), b("apple"))        
         
     def test_copydir_root(self):
         """Test copydir from root"""
@@ -91,12 +93,12 @@ class TestUtils(unittest.TestCase):
     def test_remove_all(self):
         """Test remove_all function"""
         fs = TempFS()
-        fs.setcontents("f1", "file 1")
-        fs.setcontents("f2", "file 2")
-        fs.setcontents("f3", "file 3")
+        fs.setcontents("f1", b("file 1"))
+        fs.setcontents("f2", b("file 2"))
+        fs.setcontents("f3", b("file 3"))
         fs.makedir("foo/bar", recursive=True)
-        fs.setcontents("foo/bar/fruit", "apple")        
-        fs.setcontents("foo/baz", "baz")
+        fs.setcontents("foo/bar/fruit", b("apple"))        
+        fs.setcontents("foo/baz", b("baz"))
         
         utils.remove_all(fs, "foo/bar")
         self.assert_(not fs.exists("foo/bar/fruit"))

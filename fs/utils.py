@@ -582,10 +582,11 @@ def print_fs(fs,
 
 if __name__ == "__main__":
     from fs.tempfs import TempFS
+    from six import b
     t1 = TempFS()
-    t1.setcontents("foo", "test")
+    t1.setcontents("foo", b("test"))
     t1.makedir("bar")
-    t1.setcontents("bar/baz", "another test")
+    t1.setcontents("bar/baz", b("another test"))
 
     t1.tree()
 
