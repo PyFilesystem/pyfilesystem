@@ -8,7 +8,6 @@ A FS object that represents the contents of a Zip file
 
 import datetime
 import os.path
-from contextlib import closing
 
 from fs.base import *
 from fs.path import *
@@ -205,7 +204,7 @@ class ZipFS(FS):
                     contents = self.zf.read(self._encode_path(path))
             except KeyError:
                 raise ResourceNotFoundError(path)
-            return closing(StringIO(contents))
+            return StringIO(contents)
 
         if 'w' in mode:
             if self.zip_mode not in 'wa':
