@@ -127,7 +127,6 @@ except ImportError:
 class TestSFTPFS(TestRPCFS):
     
     __test__ = not PY3
-    __test__ = False
 
     def makeServer(self,fs,addr):
         return BaseSFTPServer(addr,fs)

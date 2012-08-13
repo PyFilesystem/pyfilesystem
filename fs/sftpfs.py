@@ -545,7 +545,8 @@ class SFTPFS(FS):
             raise
         if recursive:
             try:
-                self.removedir(dirname(path),recursive=True)
+                if dirname(path) not in ('', '/'):
+                    self.removedir(dirname(path),recursive=True)
             except DirectoryNotEmptyError:
                 pass
 
