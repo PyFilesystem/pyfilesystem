@@ -1060,6 +1060,7 @@ if __name__ == "__main__":
     import tempfile
     from fs.osfs import OSFS
     from fs.memoryfs import MemoryFS
+    from shutil import rmtree
     path = tempfile.mkdtemp()
     try:
         fs = OSFS(path)
@@ -1069,6 +1070,6 @@ if __name__ == "__main__":
         mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
         fs.close()
     finally:
-        OSFS(path).removedir("/",force=True)
+        rmtree(path)
 
 
