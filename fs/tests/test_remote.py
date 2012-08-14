@@ -89,7 +89,6 @@ class TestRemoteFileBuffer(unittest.TestCase, FSTestCases, ThreadingTestCases):
             Turn on fake_setcontents(). When setcontents on RemoteTempFS
             is called, FakeException is raised and nothing is stored.
         '''
-        self.original_setcontents = self.fs.setcontents
         self.fs.setcontents = self.fake_setcontents
         
     def fakeOff(self):
