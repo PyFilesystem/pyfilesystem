@@ -38,8 +38,7 @@ from fs.errors import *
 from fs.local_functools import wraps
 
 import compatibility
-import six
-from six import PY3, b
+from six import b
 
 class DummyLock(object):
     """A dummy lock object that doesn't do anything.
@@ -772,89 +771,15 @@ class FS(object):
             
         """
 
-        if progress_callback is None:
-            progress_callback = lambda bytes_written:None
-
         finished_event = threading.Event()
         def do_setcontents():
-            if PY3:                    
-                try:
-                    f = None
-                    try:                    
-                        progress_callback(0)
-    
-                        if hasattr(data, "read"):                            
-                            bytes_written = 0
-                            read = data.read
-                            chunk = read(chunk_size)                                            
-                            if isinstance(chunk, six.text_type):
-                                f = self.open(path, 'w')
-                            else:
-                                f = self.open(path, 'wb')
-                            write = f.write
-                                                    
-                            while chunk:                                
-                                write(chunk)
-                                bytes_written += len(chunk)
-                                progress_callback(bytes_written)
-                                chunk = read(chunk_size)
-                        else:
-                            if isinstance(data, six.text_type):
-                                f = self.open(path, 'w')
-                            else:
-                                f = self.open(path, 'wb')
-                            f.write(data)
-                            progress_callback(len(data))
-    
-                        if finished_callback is not None:
-                            finished_callback()
-    
-                    finally:
-                        if f is not None:
-                            f.close()
-    
-                except Exception, e:                    
-                    if error_callback is not None:
-                        error_callback(e)
-                    raise
-    
-                finally:
-                    finished_event.set()
-            
-            else:            
-                try:
-                    f = None
-                    try:    
-                        f = self.open(path, 'wb')
-                        progress_callback(0)
-                        
-                        if hasattr(data, "read"):                            
-                            bytes_written = 0
-                            read = data.read
-                            write = f.write
-                            chunk = read(chunk_size)
-                            while chunk:
-                                write(chunk)
-                                bytes_written += len(chunk)
-                                progress_callback(bytes_written)
-                                chunk = read(chunk_size)
-                        else:                            
-                            f.write(data)
-                            progress_callback(len(data))
-    
-                        if finished_callback is not None:
-                            finished_callback()
-    
-                    finally:
-                        if f is not None:
-                            f.close()
-    
-                except Exception, e:
-                    if error_callback is not None:
-                        error_callback(e)
-    
-                finally:
-                    finished_event.set()
+            try:
+                compatibility.copy_file_to_fs(data, self, path, chunk_size=chunk_size, progress_callback=progress_callback, finished_callback=finished_callback)
+            except Exception, e:
+                if error_callback is not None:
+                    error_callback(e)
+            finally:
+                finished_event.set()
         
         threading.Thread(target=do_setcontents).start()
         return finished_event
