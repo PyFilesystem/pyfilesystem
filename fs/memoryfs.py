@@ -21,6 +21,7 @@ from os import SEEK_END
 import threading
 
 import six
+from six import b
 
 
 def _check_mode(mode, mode_chars):
@@ -574,7 +575,7 @@ class MemoryFS(FS):
         if dir_entry.isdir():
             info['st_mode'] = 0755 | stat.S_IFDIR
         else:
-            info['size'] = len(dir_entry.data or '')
+            info['size'] = len(dir_entry.data or b(''))
             info['st_mode'] = 0666 | stat.S_IFREG
             
         return info    
@@ -630,7 +631,7 @@ class MemoryFS(FS):
             raise ResourceNotFoundError(path)
         if not dir_entry.isfile():
             raise ResourceInvalidError(path, msg="not a file: %(path)s")
-        return dir_entry.data or ''
+        return dir_entry.data or b('')
     
     @synchronize
     def setcontents(self, path, data, chunk_size=1024*64):

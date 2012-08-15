@@ -41,6 +41,8 @@ from fs.wrapfs import WrapFS
 from fs.base import FS
 from fs.filelike import FileWrapper
 
+from six import b
+
 
 class EVENT(object):
     """Base class for change notification events."""
@@ -304,7 +306,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
         self.notify_watchers(ACCESSED,path)
         return WatchedFile(f,self,path,mode)
 
-    def setcontents(self, path, data='', chunk_size=64*1024):
+    def setcontents(self, path, data=b(''), chunk_size=64*1024):
         existed = self.wrapped_fs.isfile(path)
         ret = super(WatchableFS, self).setcontents(path, data, chunk_size=chunk_size)
         if not existed:

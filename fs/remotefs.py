@@ -10,6 +10,9 @@ from json import dumps
 import Queue as queue
 import socket
 
+from six import b
+
+
 class PacketHandler(threading.Thread):
     
     def __init__(self, transport, prelude_callback=None):
@@ -99,7 +102,7 @@ class _SocketFile(object):
         try:
             return self.socket.recv(size)
         except:           
-            return ''        
+            return b('')        
     
     def write(self, data):
         self.socket.sendall(data)
@@ -145,7 +148,7 @@ class RemoteFS(FS):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((self.addr, self.port))
         socket_file = _SocketFile(sock)
-        socket_file.write('pyfs/0.1\n')
+        socket_file.write(b('pyfs/0.1\n'))
         return socket_file
     
     def _make_call(self, method_name, *args, **kwargs):

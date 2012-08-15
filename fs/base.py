@@ -39,7 +39,7 @@ from fs.local_functools import wraps
 
 import compatibility
 import six
-from six import PY3
+from six import PY3, b
 
 class DummyLock(object):
     """A dummy lock object that doesn't do anything.
@@ -112,13 +112,13 @@ class NullFile(object):
         raise StopIteration
 
     def readline(self, *args, **kwargs):
-        return ""
+        return b("")
 
     def close(self):
         self.closed = True
 
     def read(self, size=None):
-        return ""
+        return b("")
 
     def seek(self, *args, **kwargs):
         pass

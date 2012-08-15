@@ -667,7 +667,7 @@ class _FTPFile(object):
                     break
                 chunks.append(data)
                 self.read_pos += len(data)
-            return ''.join(chunks)
+            return b('').join(chunks)
 
         remaining_bytes = size
         while remaining_bytes:
