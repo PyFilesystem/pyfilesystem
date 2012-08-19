@@ -55,7 +55,7 @@ class ReadOnlyFS(WrapFS):
     makedir = _no_can_do
     rename = _no_can_do
     setxattr = _no_can_do
-    delattr = _no_can_do
+    delxattr = _no_can_do
     remove = _no_can_do
     removedir = _no_can_do
     settimes = _no_can_do
