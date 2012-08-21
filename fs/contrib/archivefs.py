@@ -91,7 +91,7 @@ class ArchiveFS(FS):
     def getmeta(self, meta_name, default=NoDefaultMeta):
         if meta_name == 'read_only':
             return self.read_only
-        return super(ZipFS, self).getmeta(meta_name, default)
+        return super(ArchiveFS, self).getmeta(meta_name, default)
 
     def close(self):
         if getattr(self, 'archive', None) is None:
