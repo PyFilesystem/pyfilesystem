@@ -30,6 +30,7 @@ __all__ = ['FSError',
            'ParentDirectoryMissingError',
            'ResourceLockedError',
            'NoMMapError',
+           'BackReferenceError',
            'convert_fs_errors',
            'convert_os_errors'
            ]
