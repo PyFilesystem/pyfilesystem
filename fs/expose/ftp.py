@@ -67,7 +67,7 @@ class FakeStat(object):
 class FTPFS(ftpserver.AbstractedFS):
     """
     The basic FTP Filesystem. This is a bridge between a pyfs filesystem and pyftpdlib's
-    AbstractedFS. This class will cause the FTP server to service the given fs instance.
+    AbstractedFS. This class will cause the FTP server to serve the given fs instance.
     """
     encoding = 'utf8'
     "Sets the encoding to use for paths."
@@ -198,7 +198,7 @@ class FTPFS(ftpserver.AbstractedFS):
     @convert_fs_errors
     @decode_args
     def getmtime(self, path):
-        return self.fs.getinfo(path).time
+        return self.stat(path).st_mtime
 
     def realpath(self, path):
         return path
