@@ -40,7 +40,7 @@ class ReadOnlyFS(WrapFS):
     
     def open(self, path, mode='r', **kwargs):
         """ Only permit read access """
-        if 'w' in mode or 'a' in mode:
+        if 'w' in mode or 'a' in mode or '+' in mode:
             raise UnsupportedError('write')
         return super(ReadOnlyFS, self).open(path, mode, **kwargs)
         
