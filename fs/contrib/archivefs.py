@@ -196,7 +196,7 @@ class ArchiveMountFS(mountfs.MountFS):
             return False
         return type(object) is mountfs.MountFS.DirMount
 
-    def _delegate(self, path):
+    def _delegate(self, path, auto_mount=True):
         if self.auto_mount and auto_mount:
             for ppath in recursepath(path)[1:]:
                 if self.ismount(ppath):
