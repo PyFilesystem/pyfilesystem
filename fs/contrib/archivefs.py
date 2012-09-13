@@ -157,46 +157,30 @@ class ArchiveFS(FS):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         path = normpath(path).lstrip('/')
-        if path == '':
-            # We are being asked about root (the archive itself)
-            if self.root_path:
-                st = os.stat(self.root_path)
-            elif hasattr(self.fileobj, 'fileno'):
-                st = os.fstat(self.fileobj.fileno())
+        info = { 'size': 0 }
+        entry = self.contents.get(path)
+        for attr in dir(entry):
+            if attr.startswith('_'):
+                continue
+            elif attr == 'mtime':
+                info['modified_time'] = datetime.datetime.fromtimestamp(entry.mtime)
+            elif attr == 'mode':
+                info['st_mode'] = entry.mode
             else:
-                raise Exception('Could not stat archive.')
-            info = dict((k, getattr(st, k)) for k in dir(st) if k.startswith('st_'))
-            for name, longname in (
-                    ('st_ctime', 'created_time'), ('st_atime', 'accessed_time'),
-                    ('st_mtime', 'modified_time'),
-                ):
-                if name in info:
-                    t = info.pop(name)
-                    if t:
-                        info[longname] = datetime.datetime.fromtimestamp(t)
-            info['size'] = info.pop('st_size')
-            # Masquerade as a directory.
-            info['st_mode'] = info.get('st_mode', 0) | stat.S_IFDIR
-        else:
-            info = { 'size': 0 }
-            entry = self.contents.get(path)
-            for attr in dir(entry):
-                if attr.startswith('_'):
-                    continue
-                elif attr == 'mtime':
-                    info['modified_time'] = datetime.datetime.fromtimestamp(entry.mtime)
-                elif attr == 'mode':
-                    info['st_mode'] = entry.mode
-                else:
-                    info[attr] = getattr(entry, attr)
+                info[attr] = getattr(entry, attr)
         return info
+
+    def getsize(self, path):
+        return self.getinfo(path)['st_size']
 
 
 class ArchiveMountFS(mountfs.MountFS):
     '''A subclass of MountFS that automatically identifies archives. Once identified
     archives are mounted in place of the archive file.'''
-    def __init__(self, rootfs, auto_mount=True):
+
+    def __init__(self, rootfs, auto_mount=True, max_size=None):
         self.auto_mount = auto_mount
+        self.max_size = max_size
         super(ArchiveMountFS, self).__init__(auto_close=True)
         self.rootfs = rootfs
         self.mountdir('/', rootfs)
@@ -213,39 +197,66 @@ class ArchiveMountFS(mountfs.MountFS):
         return type(object) is mountfs.MountFS.DirMount
 
     def _delegate(self, path):
-        if self.auto_mount:
+        if self.auto_mount and auto_mount:
             for ppath in recursepath(path)[1:]:
-                # Don't mount again...
                 if self.ismount(ppath):
+                    # If something is already mounted here, no need to continue.
                     break
                 if libarchive.is_archive_name(ppath):
-                    # It looks like an archive, try mounting it.
+                    # It looks like an archive, we might mount it.
+                    # First check that the size is acceptable.
+                    if self.max_size:
+                        if self.rootfs.exists(ppath) and \
+                           self.rootfs.getsize(ppath) > self.max_size:
+                            break
+                    # Looks good, the proof is in the pudding, so let's try to
+                    # mount this *supposed* archive...
                     full_path = self.rootfs.getsyspath(ppath)
                     try:
+                        # TODO: it would be really nice if we could open the path using
+                        # self.rootfs.open(), that way we could support archives on a file
+                        # system other than osfs (even nested archives). However, the libarchive
+                        # wrapper is not sophisticated enough to handle a Python file-like object,
+                        # it uses an actual fd.
                         self.mountdir(ppath, ArchiveFS(full_path, 'r'))
+                        # That worked!! Stop recursing path, we support just one archive per path!
+                        break
                     except:
-                        pass # Must NOT have been an archive after all
-                    # Stop recursing path, we support just one archive per path!
-                    # No nested archives yet!
-                    break
+                        # Must NOT have been an archive after all, but maybe
+                        # there is one deeper in the directory...
+                        continue
         return super(ArchiveMountFS, self)._delegate(path)
 
-    # TODO: probably need to override move(), movedir() and any other methods
-    # that modify files (and therefore archives). See remove() below to see
-    # why.
-
     def getsyspath(self, path):
-        # Optimized getsyspath() that avoids calling _delegate() and thus
-        # mounting an archive.
+        """Optimized getsyspath() that avoids calling _delegate() and thus
+        mounting an archive."""
         return self.rootfs.getsyspath(path)
 
+    def getinfo(self, path):
+        "Optimized getinfo() that skips mounting an archive to get it's info."
+        path = normpath(path).lstrip('/')
+        if libarchive.is_archive_name(path):
+            # Skip trying to mount the archive and just get it's info.
+            info = self.rootfs.getinfo(path)
+            # Masquerade as a directory.
+            info['st_mode'] = info.get('st_mode', 0) | stat.S_IFDIR
+            return info
+        return super(ArchiveMountFS, self).getinfo(path)
+
+    def getsize(self, path):
+        "Optimized getsize() that skips mounting an archive to get is' size."
+        path = normpath(path).lstrip('/')
+        if libarchive.is_archive_name(path):
+            return self.rootfs.getsize(path)
+        return super(ArchiveMountFS, self).getsize(path)
+
     def remove(self, path):
-        # In case one of our mounted file systems backing archive is being
-        # deleted, unmout it before continuing. Once unmounted, the archive
-        # can be deleted by root fs, otherwise, the ArchiveFS will be asked
-        # to remove itself, which it cannot do.
+        "Optimized remove() that deletes an archive directly."
+        path = normpath(path).lstrip('/')
         if self.ismount(path) and libarchive.is_archive_name(path):
+            # Ensure a mount archive is unmounted before it is deleted.
             self.unmount(path)
+        if libarchive.is_archive_name(path):
             # Send the delete directoy to the root filesystem. This avoids
             # being delegated, and the fs we just unmounted being remounted.
             return self.rootfs.remove(path)
@@ -257,8 +268,53 @@ class ArchiveMountFS(mountfs.MountFS):
         # we should raise an error. In the case when allow_recreate=True, this
         # call would succeed without the check below.
         if self.rootfs.isfile(path):
-            raise ResourceInvalidError(path,msg="Cannot create directory, there's already a file of that name: %(path)s")
+            raise ResourceInvalidError(path, msg="Cannot create directory, there's "
+                                       "already a file of that name: %(path)s")
         return super(ArchiveMountFS, self).makedir(path, *args, **kwargs)
+
+    def copy(self, src, dst, **kwargs):
+        """An optimized copy() that will skip mounting an archive if one is involved
+        as either the src or dst. It tries to be smart and delegate as much work as
+        possible."""
+        src = normpath(src).lstrip('/')
+        dst = normpath(dst).lstrip('/')
+        # If src or dst are an archive unmount them. Then delegate their path and allow mounting
+        # only if the path itself does not point at an archive.
+        src_is_archive = libarchive.is_archive_name(src)
+        if src_is_archive and self.ismount(src):
+            self.unmount(src)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src, auto_mount=(not src_is_archive))
+        dst_is_archive = libarchive.is_archive_name(dst)
+        if dst_is_archive and self.ismount(dst):
+            self.unmount(dst)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst, auto_mount=(not dst_is_archive))
+        # Use the same logic that appears in MountFS:
+        if fs1 is fs2 and fs1 is not self:
+            fs1.copy(delegate_path1, delegate_path2, **kwargs)
+        else:
+            super(ArchiveMountFS, self).copy(src, dst, **kwargs)
+
+    def move(self, src, dst, **kwargs):
+        """An optimized move() that does not bother mounting an archive to perform a move.
+        It actually uses copy() then remove() to do it's work, since both of those are
+        already "safe"."""
+        src = normpath(src).lstrip('/')
+        dst = normpath(dst).lstrip('/')
+        # If src or dst are an archive unmount them. Then delegate their path and allow mounting
+        # only if the path itself does not point at an archive.
+        src_is_archive = libarchive.is_archive_name(src)
+        if src_is_archive and self.ismount(src):
+            self.unmount(src)
+        fs1, _mount_path1, delegate_path1 = self._delegate(src, auto_mount=(not src_is_archive))
+        dst_is_archive = libarchive.is_archive_name(dst)
+        if dst_is_archive and self.ismount(dst):
+            self.unmount(dst)
+        fs2, _mount_path2, delegate_path2 = self._delegate(dst, auto_mount=(not dst_is_archive))
+        # Use the same logic that appears in MountFS:
+        if fs1 is fs2 and fs1 is not self:
+            fs1.move(delegate_path1, delegate_path2, **kwargs)
+        else:
+            super(ArchiveMountFS, self).move(src, dst, **kwargs)
 
 
 def main():
