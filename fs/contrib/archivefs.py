@@ -267,28 +267,6 @@ class ArchiveMountFS(mountfs.MountFS):
             return info
         return super(ArchiveMountFS, self).getinfo(path)
 
-    def isdir(self, path):
-        """An isdir() override that allows archives to masquerade as directories. If
-        the path is not an archive, the call is delegated. In the event that the path
-        is an archive, that archive is mounted to ensure it can actually be treated
-        like a directory."""
-        fs, _mount_path, delegate_path = self._delegate(path)
-        if isinstance(fs, ArchiveFS) and path == _mount_path:
-            # If the path is an archive mount point, it is a directory.
-            return True
-        return super(ArchiveMountFS, self).isdir(path)
-
-    def isfile(self, path):
-        """An isfile() override that checks if the given path is a file or not. It is
-        not fooled by a mounted archive. If the path is not an archive, the call is
-        delegated."""
-        fs, _mount_path, delegate_path = self._delegate(path, auto_mount=False)
-        if isinstance(fs, ArchiveFS) and path == _mount_path:
-            # If the path is an archive mount point, it is a file.
-            return True
-        else:
-            return fs.isfile(delegate_path)
-
     def getsize(self, path):
         """A getsize() override that returns the size of an archive. It is not fooled by
         a mounted archive. If the path is not an archive, the call is delegated."""
