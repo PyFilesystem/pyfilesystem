@@ -336,7 +336,7 @@ class ArchiveMountFS(mountfs.MountFS):
         # srcfs, src and dstfs, dst are now the file system and path for our src and dst.
         if srcfs is dstfs and srcfs is not self:
             # Both src and dst are on the same fs, let it do the copy.
-            srcfs.copy(src, dst, **kwargs)
+            srcfs.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
         else:
             # Src and dst are on different file systems. Just do the copy...
             srcfd = None
