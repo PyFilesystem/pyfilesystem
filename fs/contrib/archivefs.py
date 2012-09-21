@@ -356,6 +356,112 @@ class ArchiveMountFS(mountfs.MountFS):
         self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
         self.remove(src)
 
+    def walk(self,
+             path="/",
+             wildcard=None,
+             dir_wildcard=None,
+             search="breadth",
+             ignore_errors=False,
+             archives_as_files=True):
+        """Walks a directory tree and yields the root path and contents.
+        Yields a tuple of the path of each directory and a list of its file
+        contents.
+
+        :param path: root path to start walking
+        :type path: string
+        :param wildcard: if given, only return files that match this wildcard
+        :type wildcard: a string containing a wildcard (e.g. `*.txt`) or a callable that takes the file path and returns a boolean
+        :param dir_wildcard: if given, only walk directories that match the wildcard
+        :type dir_wildcard: a string containing a wildcard (e.g. `*.txt`) or a callable that takes the directory name and returns a boolean
+        :param search: a string identifying the method used to walk the directories. There are two such methods:
+
+             * ``"breadth"`` yields paths in the top directories first
+             * ``"depth"`` yields the deepest paths first
+
+        :param ignore_errors: ignore any errors reading the directory
+        :type ignore_errors: bool
+        :param archives_as_files: treats archives as files rather than directories.
+        :type ignore_errors: bool
+
+        :rtype: iterator of (current_path, paths)
+
+        """
+        path = normpath(path)
+
+        def isdir(path):
+            if not self.isfile(path):
+                return True
+            if not archives_as_files and self.ismount(path):
+                return True
+            return False
+
+        def listdir(path, *args, **kwargs):
+            dirs_only = kwargs.pop('dirs_only', False)
+            if ignore_errors:
+                try:
+                    listing = self.listdir(path, *args, **kwargs)
+                except:
+                    return []
+            else:
+                listing = self.listdir(path, *args, **kwargs)
+            if dirs_only:
+                listing = filter(isdir, listing)
+            return listing
+
+        if wildcard is None:
+            wildcard = lambda f:True
+        elif not callable(wildcard):
+            wildcard_re = re.compile(fnmatch.translate(wildcard))
+            wildcard = lambda fn:bool (wildcard_re.match(fn))
+
+        if dir_wildcard is None:
+            dir_wildcard = lambda f:True
+        elif not callable(dir_wildcard):
+            dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
+            dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))
+
+        if search == "breadth":
+
+            dirs = [path]
+            dirs_append = dirs.append
+            dirs_pop = dirs.pop
+            while dirs:
+                current_path = dirs_pop()
+                paths = []
+                paths_append = paths.append
+                try:
+                    for filename in listdir(current_path):
+                        path = pathcombine(current_path, filename)
+                        if isdir(path):
+                            if dir_wildcard(path):
+                                dirs_append(path)
+                        else:
+                            if wildcard(filename):
+                                paths_append(filename)
+                except ResourceNotFoundError:
+                    # Could happen if another thread / process deletes something whilst we are walking
+                    pass
+
+                yield (current_path, paths)
+
+        elif search == "depth":
+
+            def recurse(recurse_path):
+                try:
+                    for path in listdir(recurse_path, wildcard=dir_wildcard, full=True, dirs_only=True):
+                        for p in recurse(path):
+                            yield p
+                except ResourceNotFoundError:
+                    # Could happen if another thread / process deletes something whilst we are walking
+                    pass
+                yield (recurse_path, listdir(recurse_path, wildcard=wildcard, files_only=True))
+
+            for p in recurse(path):
+                yield p
+
+        else:
+            raise ValueError("Search should be 'breadth' or 'depth'")
+
 
 def main():
     ArchiveFS()
