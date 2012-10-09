@@ -47,7 +47,7 @@ class DummyLock(object):
     directly use the Lock class from the dummy_threading module, since
     it attempts to sanity-check the sequence of acquire/release calls
     in a way that breaks when real threading is available.
-    
+
     """
 
     def acquire(self, blocking=1):
@@ -160,11 +160,11 @@ class FS(object):
 
         :param thread_synconize: If True, a lock object will be created for the object, otherwise a dummy lock will be used.
         :type thread_synchronize: bool
-        
+
         """
 
         self.closed = False
-        super(FS, self).__init__()        
+        super(FS, self).__init__()
         self.thread_synchronize = thread_synchronize
         if thread_synchronize:
             self._lock = threading.RLock()
@@ -176,7 +176,7 @@ class FS(object):
             try:
                 self.close()
             except:
-                pass                                       
+                pass
 
     def __enter__(self):
         return self
@@ -204,7 +204,7 @@ class FS(object):
         the filesystem object is garbage collected, but it is good practice
         to call it explicitly so that any attached resourced are freed when they
         are no longer required.
-        
+
         """
         self.closed = True
 
@@ -235,33 +235,33 @@ class FS(object):
 
         Meta values are a way for an FS implementation to report potentially
         useful information associated with the file system.
-        
+
         A meta key is a lower case string with no spaces. Meta keys may also
-        be grouped in namespaces in a dotted notation, e.g. 'atomic.namespaces'.                
+        be grouped in namespaces in a dotted notation, e.g. 'atomic.namespaces'.
         FS implementations aren't obliged to return any meta values, but the
         following are common:
-        
+
          * *read_only* True if the file system cannot be modified
          * *thread_safe* True if the implementation is thread safe
          * *network* True if the file system requires network access
          * *unicode_paths* True if the file system supports unicode paths
-         * *case_insensitive_paths* True if the file system ignores the case of paths        
+         * *case_insensitive_paths* True if the file system ignores the case of paths
          * *atomic.makedir* True if making a directory is an atomic operation
          * *atomic.rename* True if rename is an atomic operation, (and not implemented as a copy followed by a delete)
-         * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)        
-         * *free_space* The free space (in bytes) available on the file system   
+         * *atomic.setcontents* True if the implementation supports setting the contents of a file as an atomic operation (without opening a file)
+         * *free_space* The free space (in bytes) available on the file system
          * *total_space* The total space (in bytes) available on the file system
          * *virtual* True if the filesystem defers to other filesystems
-        
+
         FS implementations may expose non-generic meta data through a self-named namespace. e.g. ``"somefs.some_meta"``
-        
+
         Since no meta value is guaranteed to exist, it is advisable to always supply a
-        default value to ``getmeta``.   
-        
+        default value to ``getmeta``.
+
         :param meta_name: The name of the meta value to retrieve
         :param default: An option default to return, if the meta value isn't present
-        :raises `fs.errors.NoMetaError`: If specified meta value is not present, and there is no default        
-        
+        :raises `fs.errors.NoMetaError`: If specified meta value is not present, and there is no default
+
         """
         if meta_name not in self._meta:
             if default is not NoDefaultMeta:
@@ -271,10 +271,10 @@ class FS(object):
 
     def hasmeta(self, meta_name):
         """Check that a meta value is supported
-        
+
         :param meta_name: The name of a meta value to check
         :rtype: bool
-        
+
         """
         try:
             self.getmeta(meta_name)
@@ -295,7 +295,7 @@ class FS(object):
         :type allow_none: bool
         :raises `fs.errors.NoSysPathError`: if the path does not map on to a system path, and allow_none is set to False (default)
         :rtype: unicode
-        
+
         """
         if not allow_none:
             raise NoSysPathError(path=path)
@@ -306,25 +306,25 @@ class FS(object):
 
         :param path: path to check
         :returns: True if `path` maps to a system path
-        :rtype: bool  
-              
+        :rtype: bool
+
         """
         return self.getsyspath(path, allow_none=True) is not None
 
     def getpathurl(self, path, allow_none=False):
         """Returns a url that corresponds to the given path, if one exists.
-        
+
         If the path does not have an equivalent URL form (and allow_none is False)
         then a :class:`~fs.errors.NoPathURLError` exception is thrown. Otherwise the URL will be
         returns as an unicode string.
-        
+
         :param path: a path within the filesystem
         :param allow_none: if true, this method can return None if there is no
             URL form of the given path
         :type allow_none: bool
         :raises `fs.errors.NoPathURLError`: If no URL form exists, and allow_none is False (the default)
-        :rtype: unicode 
-        
+        :rtype: unicode
+
         """
         if not allow_none:
             raise NoPathURLError(path=path)
@@ -336,7 +336,7 @@ class FS(object):
         :param path: path to check
         :returns: True if `path` has a URL form
         :rtype: bool
-                
+
         """
         return self.getpathurl(path, allow_none=True) is not None
 
@@ -445,7 +445,7 @@ class FS(object):
         :param dirs_only: if True, only return directories
         :type dirs_only: bool
         :param files_only: if True, only return files
-        :type files_only: bool        
+        :type files_only: bool
 
         :rtype: iterable of paths
 
@@ -514,7 +514,7 @@ class FS(object):
         that directory, this method applies the semantics of the listdir()
         keyword arguments. An appropriately modified and filtered list of
         directory entries is returned.
-        
+
         """
         path = normpath(path)
         if dirs_only and files_only:
@@ -552,7 +552,7 @@ class FS(object):
         This method behaves identically to :py:meth:`fs.base.FS.listdir` but returns an generator
         instead of a list.  Depending on the filesystem this may be more
         efficient than calling :py:meth:`fs.base.FS.listdir` and iterating over the resulting list.
-        
+
         """
         return iter(self.listdir(path,
                                  wildcard=wildcard,
@@ -573,7 +573,7 @@ class FS(object):
         instead of a list.  Depending on the filesystem this may be more
         efficient than calling :py:meth:`~fs.base.listdirinfo` and iterating over the resulting
         list.
-        
+
         """
         return iter(self.listdirinfo(path,
                                      wildcard,
@@ -660,7 +660,7 @@ class FS(object):
         :type modified_time: datetime
 
         """
-        
+
         with self._lock:
             sys_path = self.getsyspath(path, allow_none=True)
             if sys_path is not None:
@@ -684,7 +684,7 @@ class FS(object):
 
          * "size" - Number of bytes used to store the file or directory
          * "created_time" - A datetime object containing the time the resource was created
-         * "accessed_time" - A datetime object containing the time the resource was last accessed  
+         * "accessed_time" - A datetime object containing the time the resource was last accessed
          * "modified_time" - A datetime object containing the time the resource was modified
 
         :param path: a path to retrieve information for
@@ -705,7 +705,7 @@ class FS(object):
 
         :param path: A path to describe
         :rtype: str
-        
+
         """
         if not self.exists(path):
             return ''
@@ -731,14 +731,14 @@ class FS(object):
         finally:
             if f is not None:
                 f.close()
-    
+
     def setcontents(self, path, data, chunk_size=1024 * 64):
         """A convenience method to create a new file from a string or file-like object
 
         :param path: a path of the file to create
         :param data: a string or a file-like object containing the contents for the new file
         :param chunk_size: Number of bytes to read in a chunk, if the implementation has to resort to a read / copy loop
-        
+
         """
 
         if not data:
@@ -754,10 +754,10 @@ class FS(object):
                           finished_callback=None,
                           error_callback=None):
         """Create a new file from a string or file-like object asynchronously
-        
+
         This method returns a ``threading.Event`` object. Call the ``wait`` method on the event object
-        to block until all data has been written, or simply ignore it.        
-        
+        to block until all data has been written, or simply ignore it.
+
         :param path: a path of the file to create
         :param data: a string or a file-like object containing the contents for the new file
         :param chunk_size: Number of bytes to read and write in a chunk
@@ -768,7 +768,7 @@ class FS(object):
             object if any error occurs during the copy process.
         :returns: An event object that is set when the copy is complete, call
             the `wait` method of this object to block until the data is written
-            
+
         """
 
         finished_event = threading.Event()
@@ -780,17 +780,17 @@ class FS(object):
                     error_callback(e)
             finally:
                 finished_event.set()
-        
+
         threading.Thread(target=do_setcontents).start()
         return finished_event
 
 
     def createfile(self, path, wipe=False):
         """Creates an empty file if it doesn't exist
-        
+
         :param path: path to the file to create
-        :param wipe: if True, the contents of the file will be erased 
-        
+        :param wipe: if True, the contents of the file will be erased
+
         """
         if not wipe and self.isfile(path):
             return
@@ -850,6 +850,10 @@ class FS(object):
         """
 
         path = normpath(path)
+
+        if not self.exists(path):
+            raise ResourceNotFoundError(path)
+
         def listdir(path, *args, **kwargs):
             if ignore_errors:
                 try:
@@ -1008,10 +1012,10 @@ class FS(object):
                 raise ResourceNotFoundError(src)
             if not overwrite and self.exists(dst):
                 raise DestinationExistsError(dst)
-    
+
             src_syspath = self.getsyspath(src, allow_none=True)
             dst_syspath = self.getsyspath(dst, allow_none=True)
-    
+
             if src_syspath is not None and dst_syspath is not None:
                 self._shutil_copyfile(src_syspath, dst_syspath)
             else:
@@ -1052,7 +1056,7 @@ class FS(object):
         :param dst: destination path
         :type dst: string
         :param overwrite: When True the destination will be overwritten (if it exists),
-            otherwise a DestinationExistsError will be thrown 
+            otherwise a DestinationExistsError will be thrown
         :type overwrite: bool
         :param chunk_size: Size of chunks to use when copying, if a simple copy
             is required
@@ -1065,7 +1069,7 @@ class FS(object):
         with self._lock:
             src_syspath = self.getsyspath(src, allow_none=True)
             dst_syspath = self.getsyspath(dst, allow_none=True)
-    
+
             #  Try to do an os-level rename if possible.
             #  Otherwise, fall back to copy-and-remove.
             if src_syspath is not None and dst_syspath is not None:
@@ -1110,17 +1114,17 @@ class FS(object):
                 raise ResourceNotFoundError(src)
             if not overwrite and self.exists(dst):
                 raise DestinationExistsError(dst)
-    
+
             src_syspath = self.getsyspath(src, allow_none=True)
             dst_syspath = self.getsyspath(dst, allow_none=True)
-    
+
             if src_syspath is not None and dst_syspath is not None:
                 try:
                     os.rename(src_syspath, dst_syspath)
                     return
                 except OSError:
                     pass
-    
+
             def movefile_noerrors(src, dst, **kwargs):
                 try:
                     return self.move(src, dst, **kwargs)
@@ -1130,27 +1134,27 @@ class FS(object):
                 movefile = movefile_noerrors
             else:
                 movefile = self.move
-    
+
             src = abspath(src)
             dst = abspath(dst)
-    
+
             if dst:
                 self.makedir(dst, allow_recreate=overwrite)
-    
+
             for dirname, filenames in self.walk(src, search="depth"):
-    
+
                 dst_dirname = relpath(frombase(src, abspath(dirname)))
                 dst_dirpath = pathjoin(dst, dst_dirname)
                 self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
-    
+
                 for filename in filenames:
-    
+
                     src_filename = pathjoin(dirname, filename)
                     dst_filename = pathjoin(dst_dirpath, filename)
                     movefile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
-    
+
                 self.removedir(dirname)
-    
+
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=16384):
         """copies a directory from one location to another.
 
@@ -1179,24 +1183,24 @@ class FS(object):
                 copyfile = copyfile_noerrors
             else:
                 copyfile = self.copy
-    
+
             src = abspath(src)
             dst = abspath(dst)
-    
+
             if not overwrite and self.exists(dst):
                 raise DestinationExistsError(dst)
-    
+
             if dst:
                 self.makedir(dst, allow_recreate=True)
-    
+
             for dirname, filenames in self.walk(src):
-    
+
                 dst_dirname = relpath(frombase(src, abspath(dirname)))
                 dst_dirpath = pathjoin(dst, dst_dirname)
                 self.makedir(dst_dirpath, allow_recreate=True, recursive=True)
-    
+
                 for filename in filenames:
-    
+
                     src_filename = pathjoin(dirname, filename)
                     dst_filename = pathjoin(dst_dirpath, filename)
                     copyfile(src_filename, dst_filename, overwrite=overwrite, chunk_size=chunk_size)
@@ -1228,7 +1232,7 @@ class FS(object):
         :return: the opened dir
         :rtype: an FS object
 
-        """        
+        """
         with self._lock:
             self.makedir(path, allow_recreate=True, recursive=recursive)
             dir_fs = self.opendir(path)
@@ -1236,10 +1240,10 @@ class FS(object):
 
     def printtree(self, max_levels=5):
         """Prints a tree structure of the FS object to the console
-        
+
         :param max_levels: The maximum sub-directories to display, defaults to
-            5. Set to None for no limit 
-        
+            5. Set to None for no limit
+
         """
         from fs.utils import print_fs
         print_fs(self, max_levels=max_levels)
@@ -1247,23 +1251,23 @@ class FS(object):
 
     def browse(self, hide_dotfiles=False):
         """Displays the FS tree in a graphical window (requires wxPython)
-        
+
         :param hide_dotfiles: If True, files and folders that begin with a dot will be hidden
-        
+
         """
         from fs.browsewin import browse
         browse(self, hide_dotfiles)
 
     def getmmap(self, path, read_only=False, copy=False):
         """Returns a mmap object for this path.
-        
+
         See http://docs.python.org/library/mmap.html for more details on the mmap module.
-        
+
         :param path: A path on this filesystem
         :param read_only: If True, the mmap may not be modified
         :param copy: If False then changes wont be written back to the file
-        :raises `fs.errors.NoMMapError`: Only paths that have a syspath can be opened as a mmap 
-         
+        :raises `fs.errors.NoMMapError`: Only paths that have a syspath can be opened as a mmap
+
         """
         syspath = self.getsyspath(path, allow_none=True)
         if syspath is None:
