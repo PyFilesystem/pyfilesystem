@@ -79,9 +79,6 @@ class ArchiveFS(FS):
                     else:
                         self.contents[part] = libarchive.Entry(pathname=part, mode=stat.S_IFDIR, size=0, mtime=item.mtime)
 
-    def __del__(self):
-        self.close()
-
     def __str__(self):
         return "<ArchiveFS: %s>" % self.root_path
 
@@ -93,6 +90,7 @@ class ArchiveFS(FS):
             return self.read_only
         return super(ArchiveFS, self).getmeta(meta_name, default)
 
+    @synchronize
     def close(self):
         if getattr(self, 'archive', None) is None:
             return
@@ -185,10 +183,12 @@ class ArchiveMountFS(mountfs.MountFS):
         self.rootfs = rootfs
         self.mountdir('/', rootfs)
 
-    def __del__(self):
-        # Close (if requested by auto_close, why by default is True) when
-        # de-referenced.
-        self.close()
+    @synchronize
+    def close(self):
+        # Close and delete references to any other fs instances.
+        self.rootfs.close()
+        del self.rootfs
+        super(ArchiveMountFS, self).close()
 
     def ismount(self, path):
         "Checks if the given path has a file system mounted on it."
