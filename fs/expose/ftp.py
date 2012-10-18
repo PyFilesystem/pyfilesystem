@@ -78,6 +78,12 @@ class FTPFS(ftpserver.AbstractedFS):
             self.encoding = encoding
         super(FTPFS, self).__init__(root, cmd_channel)
 
+    def close(self):
+        # Close and dereference the pyfs file system.
+        if self.fs:
+            self.fs.close()
+        self.fs = None
+
     def validpath(self, path):
         try:
             normpath(path)
@@ -207,6 +213,19 @@ class FTPFS(ftpserver.AbstractedFS):
         return True
 
 
+class FTPFSHandler(ftpserver.FTPHandler):
+    """
+    An FTPHandler class that closes the filesystem when done.
+    """
+
+    def close(self):
+        # Close the FTPFS instance, it will close the pyfs file system.
+        if self.fs:
+            self.fs.close()
+        super(FTPFSHandler, self).close()
+
+
+
 class FTPFSFactory(object):
     """
     A factory class which can hold a reference to a file system object and
@@ -247,7 +266,7 @@ def serve_fs(fs, addr, port):
     combo.
     """
     from pyftpdlib.contrib.authorizers import UnixAuthorizer
-    ftp_handler = ftpserver.FTPHandler
+    ftp_handler = FTPFSHandler
     ftp_handler.authorizer = ftpserver.DummyAuthorizer()
     ftp_handler.authorizer.add_anonymous('/')
     ftp_handler.abstracted_fs = FTPFSFactory(fs)

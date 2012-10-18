@@ -187,7 +187,7 @@ class ArchiveMountFS(mountfs.MountFS):
     def close(self):
         # Close and delete references to any other fs instances.
         self.rootfs.close()
-        del self.rootfs
+        self.rootfs = None
         super(ArchiveMountFS, self).close()
 
     def ismount(self, path):

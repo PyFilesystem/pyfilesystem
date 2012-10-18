@@ -103,6 +103,11 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
         self.encoding = encoding
         super(SFTPServerInterface,self).__init__(server, *args, **kwds)
 
+    def close(self):
+        # Close the pyfs file system and dereference it.
+        self.fs.close()
+        self.fs = None
+
     @report_sftp_errors
     def open(self, path, flags, attr):
         return SFTPHandle(self, path, flags)
@@ -247,6 +252,17 @@ class SFTPHandle(paramiko.SFTPHandle):
         return self.owner.chattr(self.path, attr)
 
 
+class SFTPServer(paramiko.SFTPServer):
+    """
+    An SFTPServer class that closes the filesystem when done.
+    """
+
+    def finish_subsystem(self):
+        # Close the SFTPServerInterface, it will close the pyfs file system.
+        self.server.close()
+        super(SFTPServer, self).finish_subsystem()
+
+
 class SFTPRequestHandler(SocketServer.BaseRequestHandler):
     """SocketServer RequestHandler subclass for BaseSFTPServer.
 
@@ -254,6 +270,9 @@ class SFTPRequestHandler(SocketServer.BaseRequestHandler):
     sftp subsystem, and hands off to the transport's own request handling
     thread.
     """
+    timeout = 60
+    auth_timeout = 60
+
     def setup(self):
         """
         Creates the SSH transport. Sets security options.
@@ -264,13 +283,26 @@ class SFTPRequestHandler(SocketServer.BaseRequestHandler):
         so.digests = ('hmac-sha1', )
         so.compression = ('zlib@openssh.com', 'none')
         self.transport.add_server_key(self.server.host_key)
-        self.transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerInterface, self.server.fs, encoding=self.server.encoding)
+        self.transport.set_subsystem_handler("sftp", SFTPServer, SFTPServerInterface, self.server.fs, encoding=self.server.encoding)
 
     def handle(self):
         """
         Start the paramiko server, this will start a thread to handle the connection.
         """
         self.transport.start_server(server=BaseServerInterface())
+        # TODO: I like the code below _in theory_ but it does not work as I expected.
+        # Figure out how to actually time out a new client if they fail to auth in a
+        # certain amount of time.
+        #chan = self.transport.accept(self.auth_timeout)
+        #if chan is None:
+        #    self.transport.close()
+
+    def handle_timeout(self):
+        try:
+            self.transport.close()
+        finally:
+            super(SFTPRequestHandler, self).handle_timeout()
+
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
