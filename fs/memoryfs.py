@@ -484,6 +484,9 @@ class MemoryFS(FS):
                 if not dirname:
                     raise RemoveRootError(path)
                 del parent_dir.contents[dirname]
+                # stop recursing if the directory has other contents
+                if parent_dir.contents:
+                    break
         else:
             pathname, dirname = pathsplit(path)
             parent_dir = self._get_dir_entry(pathname)
