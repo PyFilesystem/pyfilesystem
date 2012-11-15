@@ -432,6 +432,7 @@ class WrapFS(FS):
         if not self.closed:
             self.wrapped_fs.close()
             super(WrapFS,self).close()
+            self.wrapped_fs = None
 
 
 def wrap_fs_methods(decorator, cls=None, exclude=[]):
