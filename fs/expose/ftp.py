@@ -27,6 +27,7 @@ from fs.path import *
 from fs.osfs import OSFS
 from fs.errors import convert_fs_errors
 
+
 # Get these once so we can reuse them:
 UID = os.getuid()
 GID = os.getgid()
@@ -223,7 +224,6 @@ class FTPFSHandler(ftpserver.FTPHandler):
         if self.fs:
             self.fs.close()
         super(FTPFSHandler, self).close()
-
 
 
 class FTPFSFactory(object):
