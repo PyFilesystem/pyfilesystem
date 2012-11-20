@@ -80,6 +80,8 @@ class LazyFS(WrapFS):
             self._fsclass = fs
             self._fsargs = []
             self._fskwds = {}
+        elif fs is None:
+            del self.__dict__['wrapped_fs']
         else:
             self._fsclass = fs[0]
             try:
