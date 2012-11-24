@@ -11,6 +11,7 @@ catch-all exception.
 __all__ = ['FSError',
            'CreateFailedError',
            'PathError',
+           'InvalidCharsInPathError',
            'OperationFailedError',
            'UnsupportedError',
            'RemoteConnectionError',
@@ -32,7 +33,7 @@ __all__ = ['FSError',
            'NoMMapError',
            'BackReferenceError',
            'convert_fs_errors',
-           'convert_os_errors'
+           'convert_os_errors',
            ]
 
 import sys
@@ -40,10 +41,6 @@ import errno
 
 from fs.path import *
 from fs.local_functools import wraps
-
-
-class InvalidPathError(Exception):
-    pass
 
 
 class FSError(Exception):
@@ -71,7 +68,6 @@ class FSError(Exception):
         return (self.__class__,(),self.__dict__.copy(),)
 
 
-
 class CreateFailedError(FSError):
     """An exception thrown when a FS could not be created"""
     default_message = "Unable to create filesystem"
@@ -85,6 +81,10 @@ class PathError(FSError):
     def __init__(self,path="",**kwds):
         self.path = path
         super(PathError,self).__init__(**kwds)
+
+
+class InvalidCharsInPathError(PathError):
+    default_message = "Path contains invalid characters: %(path)s"
 
 
 class OperationFailedError(FSError):

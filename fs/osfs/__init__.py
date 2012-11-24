@@ -22,8 +22,8 @@ import datetime
 import platform
 
 from fs.base import *
-from fs.errors import *
 from fs.path import *
+from fs.errors import *
 from fs import _thread_synchronize_default
 
 from fs.osfs.xattrs import OSFSXAttrMixin
@@ -87,6 +87,12 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
               'atomic.setcontents' : False,
              }
 
+    if sys.platform == 'win32':
+        _invalid_path_chars = '\\:*?"<>|'
+    else:
+        _invalid_path_chars = '\0'
+    _re_invalid_path_chars = re.compile('|'.join(re.escape(c) for c in _invalid_path_chars), re.UNICODE)
+
     def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700, use_long_paths=True):
         """
         Creates an FS object that represents the OS Filesystem under a given root path
@@ -147,12 +153,18 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             return p
         return p.decode(self.encoding, 'replace')
 
+    def _validate_path(self, path):
+        """Raise an error if there are any invalid characters in the path"""
+        if self._re_invalid_path_chars.search(path):
+            raise InvalidCharsInPathError(path)
+
     def getsyspath(self, path, allow_none=False):
         path = relpath(normpath(path)).replace("/", os.sep)
         path = os.path.join(self.root_path, path)
         if not path.startswith(self.root_path):
             raise PathError(path, msg="OSFS given path outside root: %(path)s")
         path = self._decode_path(path)
+        self._validate_path(path)
         return path
 
     def unsyspath(self, path):
