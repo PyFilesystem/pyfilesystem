@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 """
 fs.path
 =======
@@ -11,21 +13,22 @@ by forward slashes and with an optional leading slash).
 """
 
 import re
+import os
 
-_requires_normalization = re.compile(r'/\.\.|\./|\.|//|\\').search
+
+_requires_normalization = re.compile(r'/\.\.|\./|\.|//').search
+
+
 def normpath(path):
     """Normalizes a path to be in the format expected by FS objects.
 
     This function remove any leading or trailing slashes, collapses
-    duplicate slashes, replaces backward with forward slashes, and generally
-    tries very hard to return a new path string the canonical FS format.
+    duplicate slashes, and generally tries very hard to return a new path
+    in the canonical FS format.
     If the path is invalid, ValueError will be raised.
-    
+
     :param path: path to normalize
     :returns: a valid FS path
-
-    >>> normpath(r"foo\\bar\\baz")
-    'foo/bar/baz'
 
     >>> normpath("/foo//bar/frob/../baz")
     '/foo/bar/baz'
@@ -40,15 +43,13 @@ def normpath(path):
     if path in ('', '/'):
         return path
 
-    path = path.replace('\\', '/')
-
     # An early out if there is no need to normalize this path
     if not _requires_normalization(path):
         return path.rstrip('/')
 
     components = []
     append = components.append
-    special = ('..', '.', '').__contains__  
+    special = ('..', '.', '').__contains__
     try:
         for component in path.split('/'):
             if special(component):
@@ -66,12 +67,27 @@ def normpath(path):
     return '/'.join(components)
 
 
+if os.sep != '/':
+    def ospath(path):
+        """Replace path separators in an OS path if required"""
+        return path.replace(os.sep, '/')
+else:
+    def ospath(path):
+        """Replace path separators in an OS path if required"""
+        return path
+
+
+def normospath(path):
+    """Normalizes a path with os separators"""
+    return normpath(ospath)
+
+
 def iteratepath(path, numsplits=None):
     """Iterate over the individual components of a path.
-    
+
     :param path: Path to iterate over
     :numsplits: Maximum number of splits
-    
+
     """
     path = relpath(normpath(path))
     if not path:
@@ -84,38 +100,39 @@ def iteratepath(path, numsplits=None):
 
 def recursepath(path, reverse=False):
     """Returns intermediate paths from the root to the given path
-    
+
     :param reverse: reverses the order of the paths
-    
+
     >>> recursepath('a/b/c')
     ['/', u'/a', u'/a/b', u'/a/b/c']
-    
-    """        
-    
+
+    """
+
     if path in ('', '/'):
         return [u'/']
-        
-    path = abspath(normpath(path)) + '/'    
-   
+
+    path = abspath(normpath(path)) + '/'
+
     paths = [u'/']
     find = path.find
-    append = paths.append             
+    append = paths.append
     pos = 1
-    len_path = len(path)    
-    
-    while pos < len_path:                        
-        pos = find('/', pos)                     
+    len_path = len(path)
+
+    while pos < len_path:
+        pos = find('/', pos)
         append(path[:pos])
-        pos += 1                            
-        
+        pos += 1
+
     if reverse:
         return paths[::-1]
-    return paths        
+    return paths
 
 
 def isabs(path):
     """Return True if path is an absolute path."""
     return path.startswith('/')
+
 
 def abspath(path):
     """Convert the given path to an absolute path.
@@ -134,9 +151,9 @@ def relpath(path):
 
     This is the inverse of abspath(), stripping a leading '/' from the
     path if it is present.
-    
+
     :param path: Path to adjust
-    
+
     >>> relpath('/a/b')
     'a/b'
 
@@ -146,7 +163,7 @@ def relpath(path):
 
 def pathjoin(*paths):
     """Joins any number of paths together, returning a new path string.
-    
+
     :param paths: Paths to join are given in positional arguments
 
     >>> pathjoin('foo', 'bar', 'baz')
@@ -160,10 +177,10 @@ def pathjoin(*paths):
 
     """
     absolute = False
-    relpaths = []    
+    relpaths = []
     for p in paths:
         if p:
-            if p[0] in '\\/':
+            if p[0] == '/':
                 del relpaths[:]
                 absolute = True
             relpaths.append(p)
@@ -173,24 +190,26 @@ def pathjoin(*paths):
         path = abspath(path)
     return path
 
+
 def pathcombine(path1, path2):
     """Joins two paths together.
-    
+
     This is faster than `pathjoin`, but only works when the second path is relative,
-    and there are no backreferences in either path. 
-    
+    and there are no backreferences in either path.
+
     >>> pathcombine("foo/bar", "baz")
-    'foo/bar/baz' 
-    
-    """ 
+    'foo/bar/baz'
+
+    """
     return "%s/%s" % (path1.rstrip('/'), path2.lstrip('/'))
+
 
 def join(*paths):
     """Joins any number of paths together, returning a new path string.
 
     This is a simple alias for the ``pathjoin`` function, allowing it to be
     used as ``fs.path.join`` in direct correspondence with ``os.path.join``.
-    
+
     :param paths: Paths to join are given in positional arguments
     """
     return pathjoin(*paths)
@@ -201,7 +220,7 @@ def pathsplit(path):
 
     This function splits a path into a pair (head, tail) where 'tail' is the
     last pathname component and 'head' is all preceding components.
-    
+
     :param path: Path to split
 
     >>> pathsplit("foo/bar")
@@ -209,7 +228,7 @@ def pathsplit(path):
 
     >>> pathsplit("foo/bar/baz")
     ('foo/bar', 'baz')
-    
+
     >>> pathsplit("/foo/bar/baz")
     ('/foo/bar', 'baz')
 
@@ -234,17 +253,17 @@ def split(path):
 def splitext(path):
     """Splits the extension from the path, and returns the path (up to the last
     '.' and the extension).
-    
+
     :param path: A path to split
-    
+
     >>> splitext('baz.txt')
     ('baz', 'txt')
-    
+
     >>> splitext('foo/bar/baz.txt')
     ('foo/bar/baz', 'txt')
-    
+
     """
-    
+
     parent_path, pathname = pathsplit(path)
     if '.' not in pathname:
         return path, ''
@@ -256,18 +275,18 @@ def splitext(path):
 def isdotfile(path):
     """Detects if a path references a dot file, i.e. a resource who's name
     starts with a '.'
-    
+
     :param path: Path to check
-    
+
     >>> isdotfile('.baz')
     True
-    
+
     >>> isdotfile('foo/bar/baz')
     True
-    
+
     >>> isdotfile('foo/bar.baz').
     False
-    
+
     """
     return basename(path).startswith('.')
 
@@ -277,15 +296,15 @@ def dirname(path):
 
     This is always equivalent to the 'head' component of the value returned
     by pathsplit(path).
-    
+
     :param path: A FS path
 
     >>> dirname('foo/bar/baz')
     'foo/bar'
-    
+
     >>> dirname('/foo/bar')
     '/foo'
-    
+
     >>> dirname('/foo')
     '/'
 
@@ -298,15 +317,15 @@ def basename(path):
 
     This is always equivalent to the 'tail' component of the value returned
     by pathsplit(path).
-    
+
     :param path: A FS path
 
     >>> basename('foo/bar/baz')
     'baz'
-    
+
     >>> basename('foo/bar')
     'bar'
-    
+
     >>> basename('foo/bar/')
     ''
 
@@ -316,7 +335,7 @@ def basename(path):
 
 def issamedir(path1, path2):
     """Return true if two paths reference a resource in the same directory.
-    
+
     :param path1: An FS path
     :param path2: An FS path
 
@@ -332,15 +351,15 @@ def issamedir(path1, path2):
 def isbase(path1, path2):
     p1 = forcedir(abspath(path1))
     p2 = forcedir(abspath(path2))
-    return p1 == p2 or p1.startswith(p2) 
+    return p1 == p2 or p1.startswith(p2)
 
 
 def isprefix(path1, path2):
     """Return true is path1 is a prefix of path2.
-    
+
     :param path1: An FS path
     :param path2: An FS path
-    
+
     >>> isprefix("foo/bar", "foo/bar/spam.txt")
     True
     >>> isprefix("foo/bar/", "foo/bar")
@@ -365,7 +384,7 @@ def isprefix(path1, path2):
 
 def forcedir(path):
     """Ensure the path ends with a trailing /
-    
+
     :param path: An FS path
 
     >>> forcedir("foo/bar")
@@ -602,12 +621,12 @@ class PathMap(object):
 _wild_chars = frozenset('*?[]!{}')
 def iswildcard(path):
     """Check if a path ends with a wildcard
-    
+
     >>> is_wildcard('foo/bar/baz.*')
     True
     >>> is_wildcard('foo/bar')
     False
-    
+
     """
     assert path is not None
     base_chars = frozenset(basename(path))

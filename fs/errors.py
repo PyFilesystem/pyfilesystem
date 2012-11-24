@@ -24,7 +24,7 @@ __all__ = ['FSError',
            'NoMetaError',
            'NoPathURLError',
            'ResourceNotFoundError',
-           'ResourceInvalidError',           
+           'ResourceInvalidError',
            'DestinationExistsError',
            'DirectoryNotEmptyError',
            'ParentDirectoryMissingError',
@@ -40,6 +40,10 @@ import errno
 
 from fs.path import *
 from fs.local_functools import wraps
+
+
+class InvalidPathError(Exception):
+    pass
 
 
 class FSError(Exception):
@@ -81,7 +85,7 @@ class PathError(FSError):
     def __init__(self,path="",**kwds):
         self.path = path
         super(PathError,self).__init__(**kwds)
- 
+
 
 class OperationFailedError(FSError):
     """Base exception class for errors associated with a specific operation."""
@@ -183,6 +187,7 @@ class ParentDirectoryMissingError(ResourceError):
 class ResourceLockedError(ResourceError):
     """Exception raised when a resource can't be used because it is locked."""
     default_message = "Resource is locked: %(path)s"
+
 
 class NoMMapError(ResourceError):
     """Exception raise when getmmap fails to create a mmap"""
