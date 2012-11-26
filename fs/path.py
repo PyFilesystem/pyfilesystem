@@ -77,7 +77,7 @@ else:
 
 def normospath(path):
     """Normalizes a path with os separators"""
-    return normpath(ospath)
+    return normpath(ospath(path))
 
 
 def iteratepath(path, numsplits=None):
