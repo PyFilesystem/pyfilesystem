@@ -72,7 +72,7 @@ class TestMountFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         self.fs.close()
 
     def check(self, p):
-        return self.mount_fs.exists(os.path.join("mounted/memfs", relpath(p)))
+        return self.mount_fs.exists(pathjoin("mounted/memfs", relpath(p)))
 
 class TestMountFS_atroot(unittest.TestCase,FSTestCases,ThreadingTestCases):
 
@@ -101,7 +101,7 @@ class TestMountFS_stacked(unittest.TestCase,FSTestCases,ThreadingTestCases):
         self.fs.close()
 
     def check(self, p):
-        return self.mount_fs.exists(os.path.join("mem/two", relpath(p)))
+        return self.mount_fs.exists(pathjoin("mem/two", relpath(p)))
 
 
 from fs import tempfs
