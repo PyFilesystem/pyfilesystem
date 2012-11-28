@@ -88,7 +88,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
              }
 
     if sys.platform == 'win32':
-        _invalid_path_chars = ''.join(char(n) for n in xrange(31)) + '\\:*?"<>|'
+        _invalid_path_chars = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
     else:
         _invalid_path_chars = '\0'
     _re_invalid_path_chars = re.compile('|'.join(re.escape(c) for c in _invalid_path_chars), re.UNICODE)
