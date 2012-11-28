@@ -88,7 +88,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
              }
 
     if sys.platform == 'win32':
-        _invalid_path_chars = '\\:*?"<>|'
+        _invalid_path_chars = ''.join(char(n) for n in xrange(31)) + '\\:*?"<>|'
     else:
         _invalid_path_chars = '\0'
     _re_invalid_path_chars = re.compile('|'.join(re.escape(c) for c in _invalid_path_chars), re.UNICODE)
@@ -159,12 +159,12 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             raise InvalidCharsInPathError(path)
 
     def getsyspath(self, path, allow_none=False):
-        path = relpath(normpath(path)).replace("/", os.sep)
+        self._validate_path(path)
+        path = relpath(normpath(path)).replace(u"/", os.sep)
         path = os.path.join(self.root_path, path)
         if not path.startswith(self.root_path):
             raise PathError(path, msg="OSFS given path outside root: %(path)s")
         path = self._decode_path(path)
-        self._validate_path(path)
         return path
 
     def unsyspath(self, path):
