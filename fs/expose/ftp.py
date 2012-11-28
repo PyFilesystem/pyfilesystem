@@ -38,6 +38,8 @@ def decode_args(f):
     Decodes string arguments using the decoding defined on the method's class.
     This decorator is for use on methods (functions which take a class or instance
     as the first parameter).
+
+    Pyftpdlib (as of 0.7.0) uses str internally, so this decoding is necessary.
     """
     @wraps(f)
     def wrapper(self, *args):
@@ -97,17 +99,22 @@ class FTPFS(ftpserver.AbstractedFS):
     def open(self, path, mode):
         return self.fs.open(path, mode)
 
+    @convert_fs_errors
     def chdir(self, path):
+        # We dont' use the decorator here, we actually decode a version of the
+        # path for use with pyfs, but keep the original for use with pyftpdlib.
+        unipath = unicode(path, self.encoding)
         # TODO: can the following conditional checks be farmed out to the fs?
         # If we don't raise an error here for files, then the FTP server will
         # happily allow the client to CWD into a file. We really only want to
         # allow that for directories.
-        if self.fs.isfile(path):
+        if self.fs.isfile(unipath):
             raise OSError(errno.ENOTDIR, 'Not a directory')
         # similarly, if we don't check for existence, the FTP server will allow
         # the client to CWD into a non-existent directory.
-        if not self.fs.exists(path):
+        if not self.fs.exists(unipath):
             raise OSError(errno.ENOENT, 'Does not exist')
+        # We use the original path here, so we don't corrupt self._cwd
         self._cwd = self.ftp2fs(path)
 
     @convert_fs_errors
@@ -135,6 +142,8 @@ class FTPFS(ftpserver.AbstractedFS):
     def rename(self, src, dst):
         self.fs.rename(src, dst)
 
+    @convert_fs_errors
+    @decode_args
     def chmod(self, path, mode):
         return
 
