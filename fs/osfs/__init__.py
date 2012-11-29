@@ -87,7 +87,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
               'atomic.setcontents' : False,
              }
 
-    if sys.platform == 'win32':
+    if platform.system() == 'Windows':
         _invalid_path_chars = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
     else:
         _invalid_path_chars = '\0'
