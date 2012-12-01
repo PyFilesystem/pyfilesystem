@@ -10,6 +10,7 @@ import os
 import os.path
 import time
 import tempfile
+import platform
 
 from fs.osfs import OSFS
 from fs.errors import *
@@ -20,7 +21,7 @@ class TempFS(OSFS):
 
     """Create a Filesystem in a temporary directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
-    
+
     _meta = { 'thread_safe' : True,
               'virtual' : False,
               'read_only' : False,
@@ -32,8 +33,13 @@ class TempFS(OSFS):
               'atomic.copy' : True,
               'atomic.makedir' : True,
               'atomic.rename' : True,
-              'atomic.setcontents' : False            
+              'atomic.setcontents' : False
              }
+
+    if platform.system() == 'Windows':
+        _meta["invalid_path_chars"] = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
+    else:
+        _meta["invalid_path_chars"] = '\0'
 
     def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_synchronize_default):
         """Creates a temporary Filesystem
@@ -56,21 +62,21 @@ class TempFS(OSFS):
 
     def __unicode__(self):
         return u'<TempFS: %s>' % self._temp_dir
-    
+
     def __getstate__(self):
         # If we are picking a TempFS, we want to preserve its contents,
         # so we *don't* do the clean
         state = super(TempFS, self).__getstate__()
         self._cleaned = True
         return state
-    
-    def __setstate__(self, state):        
-        state = super(TempFS, self).__setstate__(state)  
-        self._cleaned = False      
-        #self._temp_dir = tempfile.mkdtemp(self.identifier or "TempFS", dir=self.temp_dir)  
+
+    def __setstate__(self, state):
+        state = super(TempFS, self).__setstate__(state)
+        self._cleaned = False
+        #self._temp_dir = tempfile.mkdtemp(self.identifier or "TempFS", dir=self.temp_dir)
         #super(TempFS, self).__init__(self._temp_dir,
         #                             dir_mode=self.dir_mode,
-        #                             thread_synchronize=self.thread_synchronize)      
+        #                             thread_synchronize=self.thread_synchronize)
 
     def close(self):
         """Removes the temporary directory.

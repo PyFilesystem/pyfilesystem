@@ -31,7 +31,16 @@ class TestOSFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         return os.path.exists(os.path.join(self.temp_dir, relpath(p)))
 
     def test_invalid_chars(self):
+        self.assertEqual(self.fs.validatepath(''), None)
+        self.assertEqual(self.fs.validatepath('.foo'), None)
+        self.assertEqual(self.fs.validatepath('foo'), None)
+        self.assertEqual(self.fs.validatepath('foo/bar'), None)
+        self.assert_(self.fs.isvalidpath('foo/bar'))
+
         self.assertRaises(errors.InvalidCharsInPathError, self.fs.open, 'invalid\0file', 'wb')
+        self.assertFalse(self.fs.isvalidpath('invalid\0file'))
+        self.assert_(self.fs.isvalidpath('validfile'))
+        self.assert_(self.fs.isvalidpath('completely_valid/path/foo.bar'))
 
 
 class TestSubFS(unittest.TestCase,FSTestCases,ThreadingTestCases):

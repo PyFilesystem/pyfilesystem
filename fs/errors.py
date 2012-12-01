@@ -11,6 +11,7 @@ catch-all exception.
 __all__ = ['FSError',
            'CreateFailedError',
            'PathError',
+           'InvalidPathError',
            'InvalidCharsInPathError',
            'OperationFailedError',
            'UnsupportedError',
@@ -83,7 +84,13 @@ class PathError(FSError):
         super(PathError,self).__init__(**kwds)
 
 
-class InvalidCharsInPathError(PathError):
+class InvalidPathError(PathError):
+    """Base exception for fs paths that can't be mapped on to the underlaying filesystem."""
+    default_message = "Path is invalid on this filesystem %(path)s"
+
+
+class InvalidCharsInPathError(InvalidPathError):
+    """The path contains characters that are invalid on this filesystem"""
     default_message = "Path contains invalid characters: %(path)s"
 
 

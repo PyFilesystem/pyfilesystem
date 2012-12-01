@@ -14,7 +14,9 @@ import re
 import os
 
 
-_requires_normalization = re.compile(r'/\.\.|\./|\.|//').search
+#_requires_normalization = re.compile(r'/\.\.|\./|\.|//').search
+# New improved re that avoids normalizing paths that don't need it - WM
+_requires_normalization = re.compile(r'/\.\.|\./|^\.$|\.$|//').search
 
 
 def normpath(path):
@@ -73,11 +75,6 @@ else:
     def ospath(path):
         """Replace path separators in an OS path if required"""
         return path
-
-
-def normospath(path):
-    """Normalizes a path with os separators"""
-    return normpath(ospath(path))
 
 
 def iteratepath(path, numsplits=None):
@@ -374,7 +371,7 @@ def isprefix(path1, path2):
         bits1.pop()
     if len(bits1) > len(bits2):
         return False
-    for (bit1,bit2) in zip(bits1,bits2):
+    for (bit1, bit2) in zip(bits1, bits2):
         if bit1 != bit2:
             return False
     return True
@@ -434,7 +431,7 @@ class PathMap(object):
     def __init__(self):
         self._map = {}
 
-    def __getitem__(self,path):
+    def __getitem__(self, path):
         """Get the value stored under the given path."""
         m = self._map
         for name in iteratepath(path):
@@ -447,7 +444,7 @@ class PathMap(object):
         except KeyError:
             raise KeyError(path)
 
-    def __contains__(self,path):
+    def __contains__(self, path):
         """Check whether the given path has a value stored in the map."""
         try:
             self[path]
@@ -456,22 +453,22 @@ class PathMap(object):
         else:
             return True
 
-    def __setitem__(self,path,value):
+    def __setitem__(self, path, value):
         """Set the value stored under the given path."""
         m = self._map
         for name in iteratepath(path):
             try:
                 m = m[name]
             except KeyError:
-                m = m.setdefault(name,{})
+                m = m.setdefault(name, {})
         m[""] = value
 
-    def __delitem__(self,path):
+    def __delitem__(self, path):
         """Delete the value stored under the given path."""
-        ms = [[self._map,None]]
+        ms = [[self._map, None]]
         for name in iteratepath(path):
             try:
-                ms.append([ms[-1][0][name],None])
+                ms.append([ms[-1][0][name], None])
             except KeyError:
                 raise KeyError(path)
             else:
@@ -485,19 +482,19 @@ class PathMap(object):
                 del ms[-1]
                 del ms[-1][0][ms[-1][1]]
 
-    def get(self,path,default=None):
+    def get(self, path, default=None):
         """Get the value stored under the given path, or the given default."""
         try:
             return self[path]
         except KeyError:
             return default
 
-    def pop(self,path,default=None):
+    def pop(self, path, default=None):
         """Pop the value stored under the given path, or the given default."""
-        ms = [[self._map,None]]
+        ms = [[self._map, None]]
         for name in iteratepath(path):
             try:
-                ms.append([ms[-1][0][name],None])
+                ms.append([ms[-1][0][name], None])
             except KeyError:
                 return default
             else:
@@ -512,16 +509,16 @@ class PathMap(object):
                 del ms[-1][0][ms[-1][1]]
         return val
 
-    def setdefault(self,path,value):
+    def setdefault(self, path, value):
         m = self._map
         for name in iteratepath(path):
             try:
                 m = m[name]
             except KeyError:
-                m = m.setdefault(name,{})
-        return m.setdefault("",value)
+                m = m.setdefault(name, {})
+        return m.setdefault("", value)
 
-    def clear(self,root="/"):
+    def clear(self, root="/"):
         """Clear all entries beginning with the given root path."""
         m = self._map
         for name in iteratepath(root):
@@ -531,7 +528,7 @@ class PathMap(object):
                 return
         m.clear()
 
-    def iterkeys(self,root="/",m=None):
+    def iterkeys(self, root="/", m=None):
         """Iterate over all keys beginning with the given root path."""
         if m is None:
             m = self._map
@@ -540,12 +537,12 @@ class PathMap(object):
                     m = m[name]
                 except KeyError:
                     return
-        for (nm,subm) in m.iteritems():
+        for (nm, subm) in m.iteritems():
             if not nm:
                 yield abspath(root)
             else:
-                k = pathcombine(root,nm)
-                for subk in self.iterkeys(k,subm):
+                k = pathcombine(root, nm)
+                for subk in self.iterkeys(k, subm):
                     yield subk
 
     def __iter__(self):
@@ -554,7 +551,7 @@ class PathMap(object):
     def keys(self,root="/"):
         return list(self.iterkeys(root))
 
-    def itervalues(self,root="/",m=None):
+    def itervalues(self, root="/", m=None):
         """Iterate over all values whose keys begin with the given root path."""
         root = normpath(root)
         if m is None:
@@ -564,18 +561,18 @@ class PathMap(object):
                     m = m[name]
                 except KeyError:
                     return
-        for (nm,subm) in m.iteritems():
+        for (nm, subm) in m.iteritems():
             if not nm:
                 yield subm
             else:
-                k = pathcombine(root,nm)
-                for subv in self.itervalues(k,subm):
+                k = pathcombine(root, nm)
+                for subv in self.itervalues(k, subm):
                     yield subv
 
-    def values(self,root="/"):
+    def values(self, root="/"):
         return list(self.itervalues(root))
 
-    def iteritems(self,root="/",m=None):
+    def iteritems(self, root="/", m=None):
         """Iterate over all (key,value) pairs beginning with the given root."""
         root = normpath(root)
         if m is None:
@@ -585,18 +582,18 @@ class PathMap(object):
                     m = m[name]
                 except KeyError:
                     return
-        for (nm,subm) in m.iteritems():
+        for (nm, subm) in m.iteritems():
             if not nm:
-                yield (abspath(normpath(root)),subm)
+                yield (abspath(normpath(root)), subm)
             else:
-                k = pathcombine(root,nm)
-                for (subk,subv) in self.iteritems(k,subm):
-                    yield (subk,subv)
+                k = pathcombine(root, nm)
+                for (subk, subv) in self.iteritems(k, subm):
+                    yield (subk, subv)
 
-    def items(self,root="/"):
+    def items(self, root="/"):
         return list(self.iteritems(root))
 
-    def iternames(self,root="/"):
+    def iternames(self, root="/"):
         """Iterate over all names beneath the given root path.
 
         This is basically the equivalent of listdir() for a PathMap - it yields
@@ -608,15 +605,17 @@ class PathMap(object):
                 m = m[name]
             except KeyError:
                 return
-        for (nm,subm) in m.iteritems():
+        for (nm, subm) in m.iteritems():
             if nm and subm:
                 yield nm
 
-    def names(self,root="/"):
+    def names(self, root="/"):
         return list(self.iternames(root))
 
 
 _wild_chars = frozenset('*?[]!{}')
+
+
 def iswildcard(path):
     """Check if a path ends with a wildcard
 
@@ -627,8 +626,7 @@ def iswildcard(path):
 
     """
     assert path is not None
-    base_chars = frozenset(basename(path))
-    return bool(base_chars.intersection(_wild_chars))
+    return not _wild_chars.isdisjoint(path)
 
 if __name__ == "__main__":
     print recursepath('a/b/c')

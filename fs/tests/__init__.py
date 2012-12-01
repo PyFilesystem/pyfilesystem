@@ -41,7 +41,7 @@ class FSTestCases(object):
     To apply the tests to your own FS implementation, simply use FSTestCase
     as a mixin for your own unittest.TestCase subclass and have the setUp
     method set self.fs to an instance of your FS implementation.
-    
+
     NB. The Filesystem being tested must have a capacity of at least 3MB.
 
     This class is designed as a mixin so that it's not detected by test
@@ -52,10 +52,19 @@ class FSTestCases(object):
         """Check that a file exists within self.fs"""
         return self.fs.exists(p)
 
+    def test_invalid_chars(self):
+        """Check paths validate ok"""
+        # Will have to be overriden selectively for custom validepath methods
+        self.assertEqual(self.fs.validatepath(''), None)
+        self.assertEqual(self.fs.validatepath('.foo'), None)
+        self.assertEqual(self.fs.validatepath('foo'), None)
+        self.assertEqual(self.fs.validatepath('foo/bar'), None)
+        self.assert_(self.fs.isvalidpath('foo/bar'))
+
     def test_meta(self):
         """Checks getmeta / hasmeta are functioning"""
         # getmeta / hasmeta are hard to test, since there is no way to validate
-        # the implementations response
+        # the implementation's response
         meta_names = ["read_only",
                       "network",
                       "unicode_paths"]
@@ -70,7 +79,7 @@ class FSTestCases(object):
                 self.assertTrue(self.fs.hasmeta(meta_name))
             except NoMetaError:
                 self.assertFalse(self.fs.hasmeta(meta_name))
-        
+
 
     def test_root_dir(self):
         self.assertTrue(self.fs.isdir(""))
@@ -108,7 +117,7 @@ class FSTestCases(object):
         else:
             f.close()
             assert False, "ResourceInvalidError was not raised"
-      
+
     def test_writefile(self):
         self.assertRaises(ResourceNotFoundError,self.fs.open,"test1.txt")
         f = self.fs.open("test1.txt","wb")
@@ -152,7 +161,7 @@ class FSTestCases(object):
         self.assertEquals(self.fs.getcontents("hello", "rb"), b("world"))
         #  ...and a file-like object
         self.fs.setcontents_async("hello", StringIO(b("to you, good sir!")), chunk_size=2).wait()
-        self.assertEquals(self.fs.getcontents("hello", "rb"), b("to you, good sir!"))        
+        self.assertEquals(self.fs.getcontents("hello", "rb"), b("to you, good sir!"))
 
     def test_isdir_isfile(self):
         self.assertFalse(self.fs.exists("dir1"))
@@ -236,7 +245,7 @@ class FSTestCases(object):
             for (nm,info) in items:
                 self.assertTrue(isinstance(nm,unicode))
         def check_equal(items,target):
-            names = [nm for (nm,info) in items] 
+            names = [nm for (nm,info) in items]
             self.assertEqual(sorted(names),sorted(target))
         self.fs.setcontents(u"a", b(''))
         self.fs.setcontents("b", b(''))
@@ -318,7 +327,7 @@ class FSTestCases(object):
             if "c" in files:
                 found_c = True
             if "a.txt" in files:
-                break        
+                break
         assert found_c, "depth search order was wrong: " + str(list(self.fs.walk(search="depth")))
 
     def test_walk_wildcard(self):
@@ -730,18 +739,18 @@ class FSTestCases(object):
             f.truncate()
         checkcontents("hello",b("12345"))
 
-    def test_truncate_to_larger_size(self):        
-        with self.fs.open("hello","wb") as f:        
+    def test_truncate_to_larger_size(self):
+        with self.fs.open("hello","wb") as f:
             f.truncate(30)
-                    
+
         self.assertEquals(self.fs.getsize("hello"), 30)
-        
+
         # Some file systems (FTPFS) don't support both reading and writing
         if self.fs.getmeta('file.read_and_write', True):
             with self.fs.open("hello","rb+") as f:
                 f.seek(25)
                 f.write(b("123456"))
-                
+
             with self.fs.open("hello","rb") as f:
                 f.seek(25)
                 self.assertEquals(f.read(),b("123456"))
@@ -788,10 +797,10 @@ class FSTestCases(object):
         else:
             # Just make sure it doesn't throw an exception
             fs2 = pickle.loads(pickle.dumps(self.fs))
-            
+
 
     def test_big_file(self):
-        """Test handling of a big file (1MB)"""      
+        """Test handling of a big file (1MB)"""
         chunk_size = 1024 * 256
         num_chunks = 4
         def chunk_stream():
@@ -821,19 +830,19 @@ class FSTestCases(object):
                 finally:
                     f.close()
 
-    def test_settimes(self):        
+    def test_settimes(self):
         def cmp_datetimes(d1, d2):
             """Test datetime objects are the same to within the timestamp accuracy"""
             dts1 = time.mktime(d1.timetuple())
             dts2 = time.mktime(d2.timetuple())
-            return int(dts1) == int(dts2)       
+            return int(dts1) == int(dts2)
         d1 = datetime.datetime(2010, 6, 20, 11, 0, 9, 987699)
-        d2 = datetime.datetime(2010, 7, 5, 11, 0, 9, 500000)                        
-        self.fs.setcontents('/dates.txt', b('check dates'))        
+        d2 = datetime.datetime(2010, 7, 5, 11, 0, 9, 500000)
+        self.fs.setcontents('/dates.txt', b('check dates'))
         # If the implementation supports settimes, check that the times
         # can be set and then retrieved
         try:
-            self.fs.settimes('/dates.txt', d1, d2)                
+            self.fs.settimes('/dates.txt', d1, d2)
         except UnsupportedError:
             pass
         else:
@@ -847,7 +856,7 @@ class FSTestCases(object):
 # May be disabled - see end of file
 class ThreadingTestCases(object):
     """Testcases for thread-safety of FS implementations."""
-        
+
     #  These are either too slow to be worth repeating,
     #  or cannot possibly break cross-thread.
     _dont_retest = ("test_pickling","test_multiple_overwrite",)
@@ -1026,7 +1035,7 @@ class ThreadingTestCases(object):
             self.fs.copydir("a","copy of a")
         def copydir_overwrite():
             self._yield()
-            self.fs.copydir("a","copy of a",overwrite=True)        
+            self.fs.copydir("a","copy of a",overwrite=True)
         # This should error out since we're not overwriting
         self.assertRaises(DestinationExistsError,self._runThreads,copydir,copydir)
         # This should run to completion and give a valid state, unless
@@ -1059,4 +1068,4 @@ class ThreadingTestCases(object):
 
 # Uncomment to temporarily disable threading tests
 #class ThreadingTestCases(object):
-#    _dont_retest = () 
+#    _dont_retest = ()

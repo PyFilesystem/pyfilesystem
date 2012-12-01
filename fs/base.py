@@ -252,6 +252,7 @@ class FS(object):
          * *free_space* The free space (in bytes) available on the file system
          * *total_space* The total space (in bytes) available on the file system
          * *virtual* True if the filesystem defers to other filesystems
+         * *invalid_path_chars* A string containing characters that may not be used in paths
 
         FS implementations may expose non-generic meta data through a self-named namespace. e.g. ``"somefs.some_meta"``
 
@@ -281,6 +282,38 @@ class FS(object):
         except NoMetaError:
             return False
         return True
+
+    def validatepath(self, path):
+        """Validate an fs path, throws an :class:`~fs.errors.InvalidPathError` exception if validation fails.
+
+        A path is invalid if it fails to map to a path on the underlaying filesystem. The default
+        implementation checks for the presence of any of the characters in the meta value 'invalid_path_chars',
+        but implementations may have other requirements for paths.
+
+        :param path: an fs path to validatepath
+        :raises `fs.errors.InvalidPathError`: if `path` does not map on to a valid path on this filesystem
+
+        """
+        invalid_chars = self.getmeta('invalid_path_chars', default=None)
+        if invalid_chars:
+            re_invalid_chars = getattr(self, '_re_invalid_chars', None)
+            if re_invalid_chars is None:
+                self._re_invalid_chars = re_invalid_chars = re.compile('|'.join(re.escape(c) for c in invalid_chars), re.UNICODE)
+            if re_invalid_chars.search(path):
+                raise InvalidCharsInPathError(path)
+
+    def isvalidpath(self, path):
+        """Check if a path is valid on this filesystem
+
+        :param path: an fs path
+
+        """
+        try:
+            self.validatepath(path)
+        except InvalidPathError:
+            return False
+        else:
+            return True
 
     def getsyspath(self, path, allow_none=False):
         """Returns the system path (a path recognized by the OS) if one is present.

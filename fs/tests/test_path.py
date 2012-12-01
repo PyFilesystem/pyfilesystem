@@ -138,6 +138,15 @@ class TestPathFunctions(unittest.TestCase):
         for path, test_basename in tests:
             self.assertEqual(basename(path), test_basename)
 
+    def test_iswildcard(self):
+        self.assert_(iswildcard('*'))
+        self.assert_(iswildcard('*.jpg'))
+        self.assert_(iswildcard('foo/*'))
+        self.assert_(iswildcard('foo/{}'))
+        self.assertFalse(iswildcard('foo'))
+        self.assertFalse(iswildcard('img.jpg'))
+        self.assertFalse(iswildcard('foo/bar'))
+
 
 class Test_PathMap(unittest.TestCase):
 

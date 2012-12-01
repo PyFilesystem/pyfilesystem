@@ -88,10 +88,9 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
              }
 
     if platform.system() == 'Windows':
-        _invalid_path_chars = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
+        _meta["invalid_path_chars"] = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
     else:
-        _invalid_path_chars = '\0'
-    _re_invalid_path_chars = re.compile('|'.join(re.escape(c) for c in _invalid_path_chars), re.UNICODE)
+        _meta["invalid_path_chars"] = '\0'
 
     def __init__(self, root_path, thread_synchronize=_thread_synchronize_default, encoding=None, create=False, dir_mode=0700, use_long_paths=True):
         """
@@ -153,13 +152,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             return p
         return p.decode(self.encoding, 'replace')
 
-    def _validate_path(self, path):
-        """Raise an error if there are any invalid characters in the path"""
-        if self._re_invalid_path_chars.search(path):
-            raise InvalidCharsInPathError(path)
-
     def getsyspath(self, path, allow_none=False):
-        self._validate_path(path)
+        self.validatepath(path)
         path = relpath(normpath(path)).replace(u"/", os.sep)
         path = os.path.join(self.root_path, path)
         if not path.startswith(self.root_path):
