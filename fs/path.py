@@ -22,9 +22,8 @@ _requires_normalization = re.compile(r'/\.\.|\./|^\.$|\.$|//').search
 def normpath(path):
     """Normalizes a path to be in the format expected by FS objects.
 
-    This function remove any leading or trailing slashes, collapses
-    duplicate slashes, and generally tries very hard to return a new path
-    in the canonical FS format.
+    This function removes trailing slashes, collapses duplicate slashes,
+    and generally tries very hard to return a new path in the canonical FS format.
     If the path is invalid, ValueError will be raised.
 
     :param path: path to normalize
@@ -47,7 +46,7 @@ def normpath(path):
     if not _requires_normalization(path):
         return path.rstrip('/')
 
-    components = []
+    components = [''] if path.startswith('/') else []
     append = components.append
     special = ('..', '.', '').__contains__
     try:
@@ -62,9 +61,7 @@ def normpath(path):
         # causing a circular import.
         from fs.errors import BackReferenceError
         raise BackReferenceError('Too many backrefs in \'%s\'' % path)
-    if path[0] == '/':
-        return '/%s' % '/'.join(components)
-    return '/'.join(components)
+    return u'/'.join(components)
 
 
 if os.sep != '/':
