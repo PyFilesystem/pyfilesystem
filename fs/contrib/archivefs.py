@@ -70,7 +70,7 @@ class ArchiveFS(FS):
             self.root_path = getattr(f, 'name', None)
         self.contents = PathMap()
         self.archive = libarchive.SeekableArchive(f, format=format, mode=mode)
-        if mode == 'r':
+        if 'r' in mode:
             for item in self.archive:
                 for part in recursepath(item.pathname)[1:]:
                     part = relpath(part)
@@ -197,6 +197,22 @@ class ArchiveMountFS(mountfs.MountFS):
         except KeyError:
             return False
         return isinstance(object, mountfs.MountFS.DirMount)
+
+    def unmount(self, path):
+        """Unmounts a path.
+
+        :param path: Path to unmount
+
+        """
+        # This might raise a KeyError, but that is what MountFS will do, so
+        # shall we.
+        fs = self.mount_tree.pop(path)
+        # TODO: it may be necessary to remember what paths were auto-mounted,
+        # so we can close those here. It may not be safe to close a file system
+        # that the user provided. However, it is definitely NOT safe to leave
+        # one open.
+        if callable(getattr(fs, 'close', None)):
+            fs.close()
 
     def _delegate(self, path, auto_mount=True):
         """A _delegate() override that will automatically mount archives that are
@@ -356,6 +372,27 @@ class ArchiveMountFS(mountfs.MountFS):
         self.copy(src, dst, overwrite=overwrite, chunk_size=chunk_size)
         self.remove(src)
 
+    def rename(self, src, dst):
+        """An rename() implementation that ensures the rename does not span
+        file systems. It also ensures that an archive can be renamed (without
+        trying to mount either the src or destination paths)."""
+        src_is_archive = libarchive.is_archive_name(src)
+        # If src path is a mounted archive, unmount it.
+        if src_is_archive and self.ismount(src):
+            self.unmount(src)
+        # Now delegate the path, if the path is an archive, don't remount it.
+        srcfs, _ignored, src = self._delegate(src, auto_mount=(not src_is_archive))
+        # Follow the same steps for dst.
+        dst_is_archive = libarchive.is_archive_name(dst)
+        if dst_is_archive and self.ismount(dst):
+            self.unmount(dst)
+        dstfs, _ignored, dst = self._delegate(dst, auto_mount=(not dst_is_archive))
+        # srcfs, src and dstfs, dst are now the file system and path for our src and dst.
+        if srcfs is dstfs and srcfs is not self:
+            # Both src and dst are on the same fs, let it do the copy.
+            return srcfs.rename(src, dst)
+        raise OperationFailedError("rename resource", path=src)
+
     def walk(self,
              path="/",
              wildcard=None,
@@ -465,6 +502,7 @@ class ArchiveMountFS(mountfs.MountFS):
 
 def main():
     ArchiveFS()
+
 
 if __name__ == '__main__':
     main()
