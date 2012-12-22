@@ -46,7 +46,8 @@ def normpath(path):
     if not _requires_normalization(path):
         return path.rstrip('/')
 
-    components = [''] if path.startswith('/') else []
+    prefix = u'/' if path.startswith('/') else u''
+    components = []
     append = components.append
     special = ('..', '.', '').__contains__
     try:
@@ -61,7 +62,7 @@ def normpath(path):
         # causing a circular import.
         from fs.errors import BackReferenceError
         raise BackReferenceError('Too many backrefs in \'%s\'' % path)
-    return u'/'.join(components)
+    return prefix + u'/'.join(components)
 
 
 if os.sep != '/':

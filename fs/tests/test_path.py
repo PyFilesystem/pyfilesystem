@@ -18,6 +18,7 @@ class TestPathFunctions(unittest.TestCase):
                     (".", ""),
                     ("./", ""),
                     ("", ""),
+                    ("/.", "/"),
                     ("/a/b/c", "/a/b/c"),
                     ("a/b/c", "a/b/c"),
                     ("a/b/../c/", "a/c"),
@@ -50,7 +51,9 @@ class TestPathFunctions(unittest.TestCase):
             result = testpaths[-1]
             self.assertEqual(pathjoin(*paths), result)
 
+        self.assertRaises(ValueError, pathjoin, "..")
         self.assertRaises(ValueError, pathjoin, "../")
+        self.assertRaises(ValueError, pathjoin, "/..")
         self.assertRaises(ValueError, pathjoin, "./../")
         self.assertRaises(ValueError, pathjoin, "a/b", "../../..")
         self.assertRaises(ValueError, pathjoin, "a/b/../../../d")
