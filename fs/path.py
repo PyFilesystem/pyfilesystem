@@ -14,9 +14,7 @@ import re
 import os
 
 
-#_requires_normalization = re.compile(r'/\.\.|\./|\.|//').search
-# New improved re that avoids normalizing paths that don't need it - WM
-_requires_normalization = re.compile(r'/\.\.|\./|^\.$|\.$|//').search
+_requires_normalization = re.compile(r'(^|/)\.\.?($|/)|//').search
 
 
 def normpath(path):
