@@ -124,3 +124,10 @@ class TestTempFS(unittest.TestCase,FSTestCases,ThreadingTestCases):
         td = self.fs._temp_dir
         return os.path.exists(os.path.join(td, relpath(p)))
 
+    def test_invalid_chars(self):
+        super(TestTempFS, self).test_invalid_chars()
+
+        self.assertRaises(errors.InvalidCharsInPathError, self.fs.open, 'invalid\0file', 'wb')
+        self.assertFalse(self.fs.isvalidpath('invalid\0file'))
+        self.assert_(self.fs.isvalidpath('validfile'))
+        self.assert_(self.fs.isvalidpath('completely_valid/path/foo.bar'))

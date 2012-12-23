@@ -22,24 +22,11 @@ class TempFS(OSFS):
     """Create a Filesystem in a temporary directory (with tempfile.mkdtemp),
     and removes it when the TempFS object is cleaned up."""
 
-    _meta = { 'thread_safe' : True,
-              'virtual' : False,
-              'read_only' : False,
-              'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',
-              'pickle_contents': False,
-              'network' : False,
-              'atomic.move' : True,
-              'atomic.copy' : True,
-              'atomic.makedir' : True,
-              'atomic.rename' : True,
-              'atomic.setcontents' : False
-             }
-
-    if platform.system() == 'Windows':
-        _meta["invalid_path_chars"] = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
-    else:
-        _meta["invalid_path_chars"] = '\0'
+    _meta = dict(OSFS._meta)
+    _meta['pickle_contents'] = False
+    _meta['network'] = False
+    _meta['atomic.move'] = True
+    _meta['atomic.copy'] = True
 
     def __init__(self, identifier=None, temp_dir=None, dir_mode=0700, thread_synchronize=_thread_synchronize_default):
         """Creates a temporary Filesystem
