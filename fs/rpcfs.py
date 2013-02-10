@@ -23,22 +23,22 @@ from six import PY3, b
 
 def re_raise_faults(func):
     """Decorator to re-raise XML-RPC faults as proper exceptions."""
-    def wrapper(*args,**kwds):        
+    def wrapper(*args,**kwds):
         try:
             return func(*args,**kwds)
-        except xmlrpclib.Fault, f:
+        except (xmlrpclib.Fault), f:
             # Make sure it's in a form we can handle
-            bits = f.faultString.split(" ")            
+            bits = f.faultString.split(" ")
             if bits[0] not in ["<type","<class"]:
                 raise f
             # Find the class/type object
             bits = " ".join(bits[1:]).split(">:")
-            cls = bits[0]            
-            msg = ">:".join(bits[1:])            
-            cls = cls.strip('\'')        
+            cls = bits[0]
+            msg = ">:".join(bits[1:])
+            cls = cls.strip('\'')
             cls = _object_by_name(cls)
             # Re-raise using the remainder of the fault code as message
-            if cls:                            
+            if cls:
                 if issubclass(cls,FSError):
                     raise cls('', msg=msg)
                 else:
@@ -66,7 +66,7 @@ def _object_by_name(name,root=None):
         return _object_by_name(".".join(bits[1:]),obj)
     else:
         return obj
-    
+
 
 class ReRaiseFaults:
     """XML-RPC proxy wrapper that re-raises Faults as proper Exceptions."""
@@ -94,9 +94,9 @@ class RPCFS(FS):
 
     """
 
-    _meta = {'thread_safe' : True,               
-             'virtual': False,                                          
-             'network' : True,              
+    _meta = {'thread_safe' : True,
+             'virtual': False,
+             'network' : True,
               }
 
     def __init__(self, uri, transport=None):
@@ -105,30 +105,30 @@ class RPCFS(FS):
         The only required argument is the URI of the server to connect
         to.  This will be passed to the underlying XML-RPC server proxy
         object, along with the 'transport' argument if it is provided.
-        
-        :param uri: address of the server        
-        
+
+        :param uri: address of the server
+
         """
         super(RPCFS, self).__init__(thread_synchronize=True)
         self.uri = uri
         self._transport = transport
-        self.proxy = self._make_proxy()        
+        self.proxy = self._make_proxy()
         self.isdir('/')
 
     @synchronize
     def _make_proxy(self):
         kwds = dict(allow_none=True, use_datetime=True)
-        
+
         if self._transport is not None:
             proxy = xmlrpclib.ServerProxy(self.uri,self._transport,**kwds)
         else:
-            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)            
-    
+            proxy = xmlrpclib.ServerProxy(self.uri,**kwds)
+
         return ReRaiseFaults(proxy)
 
     def __str__(self):
         return '<RPCFS: %s>' % (self.uri,)
-    
+
     def __repr__(self):
         return '<RPCFS: %s>' % (self.uri,)
 
@@ -140,10 +140,10 @@ class RPCFS(FS):
         except KeyError:
             pass
         return state
-    
+
     def __setstate__(self, state):
-        super(RPCFS, self).__setstate__(state)       
-        self.proxy = self._make_proxy()        
+        super(RPCFS, self).__setstate__(state)
+        self.proxy = self._make_proxy()
 
     def encode_path(self, path):
         """Encode a filesystem path for sending over the wire.
@@ -154,23 +154,27 @@ class RPCFS(FS):
         """
         if PY3:
             return path
-        return path.encode("utf8").encode("base64")      
+        return path.encode("utf8").encode("base64")
 
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
         if PY3:
-            return path        
-        return path.decode("base64").decode("utf8")        
-    
+            return path
+        return path.decode("base64").decode("utf8")
+
     @synchronize
     def getmeta(self, meta_name, default=NoDefaultMeta):
-        if default is NoDefaultMeta:                
-            return self.proxy.getmeta(meta_name)
+        if default is NoDefaultMeta:
+            meta = self.proxy.getmeta(meta_name)
         else:
-            return self.proxy.getmeta_default(meta_name, default)    
-    
-    @synchronize                     
-    def hasmeta(self, meta_name):        
+            meta = self.proxy.getmeta_default(meta_name, default)
+        if isinstance(meta, basestring):
+            #  To allow transport of meta with invalid xml chars (like null)
+            meta = meta.encode('base64')
+        return meta
+
+    @synchronize
+    def hasmeta(self, meta_name):
         return self.proxy.hasmeta(meta_name)
 
     @synchronize
@@ -197,7 +201,7 @@ class RPCFS(FS):
             f.seek(0,2)
         oldflush = f.flush
         oldclose = f.close
-        oldtruncate = f.truncate        
+        oldtruncate = f.truncate
         def newflush():
             self._lock.acquire()
             try:
@@ -219,7 +223,7 @@ class RPCFS(FS):
                 f.flush()
             finally:
                 self._lock.release()
-                
+
         f.flush = newflush
         f.close = newclose
         f.truncate = newtruncate
@@ -241,7 +245,7 @@ class RPCFS(FS):
         return self.proxy.isfile(path)
 
     @synchronize
-    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):        
+    def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         enc_path = self.encode_path(path)
         if not callable(wildcard):
             entries =  self.proxy.listdir(enc_path,wildcard,full,absolute,
@@ -272,7 +276,7 @@ class RPCFS(FS):
     def removedir(self, path, recursive=False, force=False):
         path = self.encode_path(path)
         return self.proxy.removedir(path,recursive,force)
-        
+
     @synchronize
     def rename(self, src, dst):
         src = self.encode_path(src)
@@ -286,7 +290,7 @@ class RPCFS(FS):
 
     @synchronize
     def getinfo(self, path):
-        path = self.encode_path(path)        
+        path = self.encode_path(path)
         return self.proxy.getinfo(path)
 
     @synchronize

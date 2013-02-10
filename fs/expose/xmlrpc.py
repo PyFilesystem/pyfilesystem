@@ -41,23 +41,27 @@ class RPCFSInterface(object):
         is base64-encoded UTF-8.
         """
         if PY3:
-            return path        
+            return path
         return path.encode("utf8").encode("base64")
 
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
         if PY3:
             return path
-        return path.decode("base64").decode("utf8")        
+        return path.decode("base64").decode("utf8")
 
     def getmeta(self, meta_name):
         meta = self.fs.getmeta(meta_name)
+        if isinstance(meta, basestring):
+            meta = meta.decode('base64')
         return meta
-    
+
     def getmeta_default(self, meta_name, default):
         meta = self.fs.getmeta(meta_name, default)
+        if isinstance(meta, basestring):
+            meta = meta.decode('base64')
         return meta
-    
+
     def hasmeta(self, meta_name):
         return self.fs.hasmeta(meta_name)
 
@@ -98,7 +102,7 @@ class RPCFSInterface(object):
     def removedir(self, path, recursive=False, force=False):
         path = self.decode_path(path)
         return self.fs.removedir(path, recursive, force)
-        
+
     def rename(self, src, dst):
         src = self.decode_path(src)
         dst = self.decode_path(dst)
@@ -109,12 +113,12 @@ class RPCFSInterface(object):
         if isinstance(accessed_time, xmlrpclib.DateTime):
             accessed_time = datetime.strptime(accessed_time.value, "%Y%m%dT%H:%M:%S")
         if isinstance(modified_time, xmlrpclib.DateTime):
-            modified_time = datetime.strptime(modified_time.value, "%Y%m%dT%H:%M:%S")            
+            modified_time = datetime.strptime(modified_time.value, "%Y%m%dT%H:%M:%S")
         return self.fs.settimes(path, accessed_time, modified_time)
 
-    def getinfo(self, path):        
+    def getinfo(self, path):
         path = self.decode_path(path)
-        info = self.fs.getinfo(path)        
+        info = self.fs.getinfo(path)
         return info
 
     def desc(self, path):
