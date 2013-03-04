@@ -186,7 +186,7 @@ class ArchiveMountFS(mountfs.MountFS):
     @synchronize
     def close(self):
         # Close and delete references to any other fs instances.
-        if self.rootsfs is not None:
+        if self.rootfs is not None:
             self.rootfs.close()
             self.rootfs = None
         super(ArchiveMountFS, self).close()
