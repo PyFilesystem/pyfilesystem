@@ -414,7 +414,7 @@ class MountFS(FS):
         :param info_callable: A callable that returns a dictionary with information regarding the file-like object
 
         """
-        self.mount_tree[path] = MountFS.FileMount(path, callable, info_callable)
+        self.mount_tree[path] = MountFS.FileMount(path, open_callable, info_callable)
 
     @synchronize
     def unmount(self, path):
