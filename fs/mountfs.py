@@ -166,10 +166,13 @@ class MountFS(FS):
     def isdir(self, path):
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
+            path = normpath(path)
+            if path in ("/", ""):
+                return True
             return False
         if fs is self:
-            object = self.mount_tree.get(path, None)
-            return not isinstance(object,MountFS.FileMount)
+            obj = self.mount_tree.get(path, None)
+            return not isinstance(obj, MountFS.FileMount)
         return fs.isdir(delegate_path)
 
     @synchronize
@@ -178,12 +181,14 @@ class MountFS(FS):
         if fs is None:
             return False
         if fs is self:
-            object = self.mount_tree.get(path, None)
-            return isinstance(object,MountFS.FileMount)
+            obj = self.mount_tree.get(path, None)
+            return isinstance(obj, MountFS.FileMount)
         return fs.isfile(delegate_path)
 
     @synchronize
     def exists(self, path):
+        if path in ("/", ""):
+            return True
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
             return False
@@ -196,9 +201,11 @@ class MountFS(FS):
         fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
-            raise ResourceNotFoundError(path)
+            if path in ("/", ""):
+                return []
+            raise ResourceNotFoundError("path")
 
-        if fs is self:
+        elif fs is self:
             paths = self.mount_tree.names(path)
             return self._listdir_helper(path,
                                         paths,
@@ -289,9 +296,9 @@ class MountFS(FS):
 
     @synchronize
     def open(self, path, mode="r", **kwargs):
-        object = self.mount_tree.get(path, None)
-        if type(object) is MountFS.FileMount:
-            callable = object.open_callable
+        obj = self.mount_tree.get(path, None)
+        if type(obj) is MountFS.FileMount:
+            callable = obj.open_callable
             return callable(path, mode, **kwargs)
 
         fs, _mount_path, delegate_path = self._delegate(path)
@@ -303,8 +310,8 @@ class MountFS(FS):
 
     @synchronize
     def setcontents(self, path, data, chunk_size=64*1024):
-        object = self.mount_tree.get(path, None)
-        if type(object) is MountFS.FileMount:
+        obj = self.mount_tree.get(path, None)
+        if type(obj) is MountFS.FileMount:
             return super(MountFS,self).setcontents(path, data, chunk_size=chunk_size)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
@@ -313,8 +320,8 @@ class MountFS(FS):
 
     @synchronize
     def createfile(self, path, wipe=False):
-        object = self.mount_tree.get(path, None)
-        if type(object) is MountFS.FileMount:
+        obj = self.mount_tree.get(path, None)
+        if type(obj) is MountFS.FileMount:
             return super(MountFS,self).createfile(path, wipe=wipe)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
@@ -410,8 +417,10 @@ class MountFS(FS):
         """Mounts a single file path.
 
         :param path: A path within the MountFS
-        :param open_callable: A callable that returns a file-like object
-        :param info_callable: A callable that returns a dictionary with information regarding the file-like object
+        :param open_callable: A callable that returns a file-like object,
+            `open_callable` should have the same signature as :py:meth:`~fs.base.FS.open`
+        :param info_callable: A callable that returns a dictionary with information regarding the file-like object,
+            `info_callable` should have the same signagture as :py:meth:`~fs.base.FS.getinfo`
 
         """
         self.mount_tree[path] = MountFS.FileMount(path, open_callable, info_callable)
@@ -421,9 +430,16 @@ class MountFS(FS):
         """Unmounts a path.
 
         :param path: Path to unmount
+        :return: True if a dir was unmounted, False if the path was already unmounted
+        :rtype: bool
 
         """
-        del self.mount_tree[path]
+        try:
+            del self.mount_tree[path]
+        except KeyError:
+            return False
+        else:
+            return True
 
     @synchronize
     def settimes(self, path, accessed_time=None, modified_time=None):
