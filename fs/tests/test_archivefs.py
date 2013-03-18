@@ -97,6 +97,8 @@ class TestReadArchiveFS(unittest.TestCase):
 
 class TestWriteArchiveFS(unittest.TestCase):
 
+    __test__ = libarchive_available
+
     def setUp(self):
         self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
         self.temp_filename = os.path.join(tempfile.gettempdir(), self.temp_filename)
@@ -143,6 +145,8 @@ class TestWriteArchiveFS(unittest.TestCase):
 
 #~ class TestAppendArchiveFS(TestWriteArchiveFS):
 
+    #~ __test__ = libarchive_available
+
     #~ def setUp(self):
         #~ self.temp_filename = "".join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(6))+".zip"
         #~ self.temp_filename = os.path.join(tempfile.gettempdir(), self.temp_filename)
@@ -169,6 +173,8 @@ class TestWriteArchiveFS(unittest.TestCase):
         #~ zip_fs.close()
 
 #~ class TestArchiveFSErrors(unittest.TestCase):
+
+    #~ __test__ = libarchive_available
 
     #~ def setUp(self):
         #~ self.workdir = tempfile.mkdtemp()
