@@ -6,7 +6,8 @@
 
 import unittest
 import sys
-import os, os.path
+import os
+import os.path
 import socket
 import threading
 import time
@@ -32,6 +33,12 @@ try:
 except ImportError:
     if not PY3:
         raise
+
+import logging
+logging.getLogger('paramiko').setLevel(logging.ERROR)
+logging.getLogger('paramiko.transport').setLevel(logging.ERROR)
+
+
 class TestSFTPFS(TestRPCFS):
 
     __test__ = not PY3
@@ -55,7 +62,7 @@ except ImportError:
     pass
 else:
     from fs.osfs import OSFS
-    class TestFUSE(unittest.TestCase,FSTestCases,ThreadingTestCases):
+    class TestFUSE(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
         def setUp(self):
             self.temp_fs = TempFS()
@@ -64,7 +71,7 @@ else:
             self.mounted_fs = self.temp_fs.opendir("root")
             self.mount_point = self.temp_fs.getsyspath("mount")
             self.fs = OSFS(self.temp_fs.getsyspath("mount"))
-            self.mount_proc = fuse.mount(self.mounted_fs,self.mount_point)
+            self.mount_proc = fuse.mount(self.mounted_fs, self.mount_point)
 
         def tearDown(self):
             self.mount_proc.unmount()
@@ -76,7 +83,7 @@ else:
                 fuse.unmount(self.mount_point)
                 self.temp_fs.close()
 
-        def check(self,p):
+        def check(self, p):
             return self.mounted_fs.exists(p)
 
 

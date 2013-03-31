@@ -19,6 +19,8 @@ from fs.base import *
 from fs.path import *
 from fs.errors import *
 from fs.utils import isdir, isfile
+from fs import iotools
+
 
 class WrongHostKeyError(RemoteConnectionError):
     pass
@@ -108,7 +110,6 @@ class SFTPFS(FS):
             if other authentication is not succesful
 
         """
-
         credentials = dict(username=username,
                            password=password,
                            pkey=pkey)
@@ -300,12 +301,12 @@ class SFTPFS(FS):
                 self._transport.close()
             self.closed = True
 
-    def _normpath(self,path):
-        if not isinstance(path,unicode):
+    def _normpath(self, path):
+        if not isinstance(path, unicode):
             path = path.decode(self.encoding)
-        npath = pathjoin(self.root_path,relpath(normpath(path)))
-        if not isprefix(self.root_path,npath):
-            raise PathError(path,msg="Path is outside root: %(path)s")
+        npath = pathjoin(self.root_path, relpath(normpath(path)))
+        if not isprefix(self.root_path, npath):
+            raise PathError(path, msg="Path is outside root: %(path)s")
         return npath
 
     def getpathurl(self, path, allow_none=False):
@@ -325,17 +326,19 @@ class SFTPFS(FS):
 
     @synchronize
     @convert_os_errors
-    def open(self,path,mode="rb",bufsize=-1):
+    @iotools.filelike_to_stream
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, bufsize=-1, **kwargs):
         npath = self._normpath(path)
         if self.isdir(path):
             msg = "that's a directory: %(path)s"
-            raise ResourceInvalidError(path,msg=msg)
+            raise ResourceInvalidError(path, msg=msg)
         #  paramiko implements its own buffering and write-back logic,
         #  so we don't need to use a RemoteFileBuffer here.
-        f = self.client.open(npath,mode,bufsize)
+        f = self.client.open(npath, mode, bufsize)
         #  Unfortunately it has a broken truncate() method.
         #  TODO: implement this as a wrapper
         old_truncate = f.truncate
+
         def new_truncate(size=None):
             if size is None:
                 size = f.tell()
@@ -354,7 +357,7 @@ class SFTPFS(FS):
 
     @synchronize
     @convert_os_errors
-    def exists(self,path):
+    def exists(self, path):
         if path in ('', '/'):
             return True
         npath = self._normpath(path)
@@ -369,7 +372,7 @@ class SFTPFS(FS):
     @synchronize
     @convert_os_errors
     def isdir(self,path):
-        if path in ('', '/'):
+        if normpath(path) in ('', '/'):
             return True
         npath = self._normpath(path)
         try:
@@ -378,7 +381,7 @@ class SFTPFS(FS):
             if getattr(e,"errno",None) == 2:
                 return False
             raise
-        return statinfo.S_ISDIR(stat.st_mode)
+        return statinfo.S_ISDIR(stat.st_mode) != 0
 
     @synchronize
     @convert_os_errors
@@ -390,7 +393,7 @@ class SFTPFS(FS):
             if getattr(e,"errno",None) == 2:
                 return False
             raise
-        return statinfo.S_ISREG(stat.st_mode)
+        return statinfo.S_ISREG(stat.st_mode) != 0
 
     @synchronize
     @convert_os_errors

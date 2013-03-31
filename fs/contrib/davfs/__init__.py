@@ -41,11 +41,13 @@ from fs.base import *
 from fs.path import *
 from fs.errors import *
 from fs.remote import RemoteFileBuffer
+from fs import iotools
 
 from fs.contrib.davfs.util import *
 from fs.contrib.davfs import xmlobj
 from fs.contrib.davfs.xmlobj import *
 
+import six
 from six import b
 
 import errno
@@ -84,12 +86,12 @@ class DAVFS(FS):
         "http": 80,
         "https": 443,
     }
-    
+
     _meta = { 'virtual' : False,
               'read_only' : False,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
-              'network' : True            
+              'network' : True
              }
 
     def __init__(self,url,credentials=None,get_credentials=None,thread_synchronize=True,connection_classes=None,timeout=None):
@@ -121,7 +123,7 @@ class DAVFS(FS):
         self.url = url
         pf = propfind(prop="<prop xmlns='DAV:'><resourcetype /></prop>")
         resp = self._request("/","PROPFIND",pf.render(),{"Depth":"0"})
-        try:            
+        try:
             if resp.status == 404:
                 raise ResourceNotFoundError("/",msg="root url gives 404")
             if resp.status in (401,403):
@@ -147,9 +149,9 @@ class DAVFS(FS):
         if not port:
             try:
                 port = self._DEFAULT_PORT_NUMBERS[scheme]
-	    except KeyError:
-	        msg = "unsupported protocol: '%s'" % (url.scheme,)
-	        raise RemoteConnectionError(msg=msg)
+            except KeyError:
+                msg = "unsupported protocol: '%s'" % (url.scheme,)
+                raise RemoteConnectionError(msg=msg)
         #  Can we re-use an existing connection?
         with self._connection_lock:
             now = time.time()
@@ -165,12 +167,12 @@ class DAVFS(FS):
                         return (False,con)
                     self._discard_connection(con)
         #  Nope, we need to make a fresh one.
-	try:
-	    ConClass = self.connection_classes[scheme]
-	except KeyError:
-	    msg = "unsupported protocol: '%s'" % (url.scheme,)
-	    raise RemoteConnectionError(msg=msg)
-	con = ConClass(url.hostname,url.port,timeout=self.timeout)
+        try:
+            ConClass = self.connection_classes[scheme]
+        except KeyError:
+            msg = "unsupported protocol: '%s'" % (url.scheme,)
+            raise RemoteConnectionError(msg=msg)
+        con = ConClass(url.hostname,url.port,timeout=self.timeout)
         self._connections.append(con)
         return (True,con)
 
@@ -182,9 +184,9 @@ class DAVFS(FS):
         if not port:
             try:
                 port = self._DEFAULT_PORT_NUMBERS[scheme]
-	    except KeyError:
-	        msg = "unsupported protocol: '%s'" % (url.scheme,)
-	        raise RemoteConnectionError(msg=msg)
+            except KeyError:
+                msg = "unsupported protocol: '%s'" % (url.scheme,)
+                raise RemoteConnectionError(msg=msg)
         with self._connection_lock:
             now = time.time()
             try:
@@ -256,7 +258,7 @@ class DAVFS(FS):
         resp = None
         try:
             resp = self._raw_request(url,method,body,headers)
-            #  Loop to retry for redirects and authentication responses.                    
+            #  Loop to retry for redirects and authentication responses.
             while resp.status in (301,302,401,403):
                 resp.close()
                 if resp.status in (301,302,):
@@ -268,7 +270,7 @@ class DAVFS(FS):
                         raise OperationFailedError(msg="redirection seems to be looping")
                     if len(visited) > 10:
                         raise OperationFailedError("too much redirection")
-                elif resp.status in (401,403):                    
+                elif resp.status in (401,403):
                     if self.get_credentials is None:
                         break
                     else:
@@ -276,7 +278,7 @@ class DAVFS(FS):
                         if creds is None:
                             break
                         else:
-                            self.credentials = creds   
+                            self.credentials = creds
                 resp = self._raw_request(url,method,body,headers)
         except Exception:
             if resp is not None:
@@ -343,8 +345,10 @@ class DAVFS(FS):
                 msg = str(e)
             raise RemoteConnectionError("",msg=msg,details=e)
 
-    def setcontents(self,path, contents, chunk_size=1024*64):
-        resp = self._request(path,"PUT",contents)
+    def setcontents(self,path, data=b'', encoding=None, errors=None, chunk_size=1024 * 64):
+        if isinstance(data, six.text_type):
+            data = data.encode(encoding=encoding, errors=errors)
+        resp = self._request(path, "PUT", data)
         resp.close()
         if resp.status == 405:
             raise ResourceInvalidError(path)
@@ -353,7 +357,8 @@ class DAVFS(FS):
         if resp.status not in (200,201,204):
             raise_generic_error(resp,"setcontents",path)
 
-    def open(self,path,mode="r"):
+    @iotools.filelike_to_stream
+    def open(self,path,mode="r", **kwargs):
         mode = mode.replace("b","").replace("t","")
         # Truncate the file if requested
         contents = b("")
@@ -417,7 +422,7 @@ class DAVFS(FS):
                 if self._isurl(path,res.href):
                    for ps in res.propstats:
                        if ps.props.getElementsByTagNameNS("DAV:","collection"):
-                           return True 
+                           return True
             return False
         finally:
             response.close()
@@ -437,11 +442,11 @@ class DAVFS(FS):
                      rt = ps.props.getElementsByTagNameNS("DAV:","resourcetype")
                      cl = ps.props.getElementsByTagNameNS("DAV:","collection")
                      if rt and not cl:
-                        return True 
+                        return True
             return False
         finally:
             response.close()
-         
+
     def listdir(self,path="./",wildcard=None,full=False,absolute=False,dirs_only=False,files_only=False):
         return list(self.ilistdir(path=path,wildcard=wildcard,full=full,absolute=absolute,dirs_only=dirs_only,files_only=files_only))
 

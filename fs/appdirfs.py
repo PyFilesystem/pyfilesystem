@@ -6,8 +6,8 @@ A collection of filesystems that map to application specific locations.
 
 These classes abstract away the different requirements for user data across platforms,
 which vary in their conventions. They are all subclasses of :class:`fs.osfs.OSFS`,
-all that differs from `OSFS` is the constructor which detects the appropriate 
-location given the name of the application, author name and other parameters. 
+all that differs from `OSFS` is the constructor which detects the appropriate
+location given the name of the application, author name and other parameters.
 
 Uses `appdirs` (https://github.com/ActiveState/appdirs), written by Trent Mick and Sridhar Ratnakumar <trentm at gmail com; github at srid name>
 
@@ -30,10 +30,10 @@ class UserDataFS(OSFS):
         :param version: optional version string, if a unique location per version of the application is required
         :param roaming: if True, use a *roaming* profile on Windows, see http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx
         :param create: if True (the default) the directory will be created if it does not exist
-        
+
         """
         app_dirs = AppDirs(appname, appauthor, version, roaming)
-        super(self.__class__, self).__init__(app_dirs.user_data_dir, create=create)
+        super(UserDataFS, self).__init__(app_dirs.user_data_dir, create=create)
 
 
 class SiteDataFS(OSFS):
@@ -45,10 +45,10 @@ class SiteDataFS(OSFS):
         :param version: optional version string, if a unique location per version of the application is required
         :param roaming: if True, use a *roaming* profile on Windows, see http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx
         :param create: if True (the default) the directory will be created if it does not exist
-        
+
         """
         app_dirs = AppDirs(appname, appauthor, version, roaming)
-        super(self.__class__, self).__init__(app_dirs.site_data_dir, create=create)
+        super(SiteDataFS, self).__init__(app_dirs.site_data_dir, create=create)
 
 
 class UserCacheFS(OSFS):
@@ -60,10 +60,10 @@ class UserCacheFS(OSFS):
         :param version: optional version string, if a unique location per version of the application is required
         :param roaming: if True, use a *roaming* profile on Windows, see http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx
         :param create: if True (the default) the directory will be created if it does not exist
-        
+
         """
         app_dirs = AppDirs(appname, appauthor, version, roaming)
-        super(self.__class__, self).__init__(app_dirs.user_cache_dir, create=create)
+        super(UserCacheFS, self).__init__(app_dirs.user_cache_dir, create=create)
 
 
 class UserLogFS(OSFS):
@@ -75,13 +75,14 @@ class UserLogFS(OSFS):
         :param version: optional version string, if a unique location per version of the application is required
         :param roaming: if True, use a *roaming* profile on Windows, see http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx
         :param create: if True (the default) the directory will be created if it does not exist
-        
+
         """
         app_dirs = AppDirs(appname, appauthor, version, roaming)
-        super(self.__class__, self).__init__(app_dirs.user_log_dir, create=create)
+        super(UserLogFS, self).__init__(app_dirs.user_log_dir, create=create)
+
 
 if __name__ == "__main__":
-    udfs = UserDataFS('sexytime', appauthor='pyfs')
+    udfs = UserDataFS('exampleapp', appauthor='pyfs')
     print udfs
-    udfs2 = UserDataFS('sexytime2', appauthor='pyfs', create=False)
+    udfs2 = UserDataFS('exampleapp2', appauthor='pyfs', create=False)
     print udfs2

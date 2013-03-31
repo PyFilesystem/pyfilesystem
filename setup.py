@@ -28,7 +28,6 @@ classifiers = [
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2.5',
     'Programming Language :: Python :: 2.6',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
@@ -41,7 +40,7 @@ Even if you only need to work with file and directories on the local hard-drive,
 """
 
 extra = {}
-if PY3:    
+if PY3:
     extra["use_2to3"] = True
 
 setup(install_requires=['distribute', 'six'],
@@ -49,12 +48,12 @@ setup(install_requires=['distribute', 'six'],
       version=VERSION,
       description="Filesystem abstraction",
       long_description=long_desc,
-      license = "BSD",
+      license="BSD",
       author="Will McGugan",
       author_email="will@willmcgugan.com",
       url="http://code.google.com/p/pyfilesystem/",
       download_url="http://code.google.com/p/pyfilesystem/downloads/list",
-      platforms = ['any'],
+      platforms=['any'],
       packages=['fs',
                 'fs.expose',
                 'fs.expose.dokan',
@@ -66,10 +65,10 @@ setup(install_requires=['distribute', 'six'],
                 'fs.contrib',
                 'fs.contrib.bigfs',
                 'fs.contrib.davfs',
-                'fs.contrib.tahoelafs',                
+                'fs.contrib.tahoelafs',
                 'fs.commands'],
+      package_data={'fs': ['tests/data/*.txt']},
       scripts=['fs/commands/%s' % command for command in COMMANDS],
       classifiers=classifiers,
       **extra
       )
-

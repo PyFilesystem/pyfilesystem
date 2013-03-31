@@ -150,21 +150,21 @@ class WrapFS(FS):
         return self.wrapped_fs.hassyspath(self._encode(path))
 
     @rewrite_errors
-    def open(self, path, mode="r", **kwargs):
+    def open(self, path, mode='r', **kwargs):
         (mode, wmode) = self._adjust_mode(mode)
         f = self.wrapped_fs.open(self._encode(path), wmode, **kwargs)
         return self._file_wrap(f, mode)
 
     @rewrite_errors
-    def setcontents(self, path, data, chunk_size=64*1024):
+    def setcontents(self, path, data, encoding=None, errors=None, chunk_size=64*1024):
         #  We can't pass setcontents() through to the wrapped FS if the
         #  wrapper has defined a _file_wrap method, as it would bypass
         #  the file contents wrapping.
         #if self._file_wrap.im_func is WrapFS._file_wrap.im_func:
         if getattr(self.__class__, '_file_wrap', None) is getattr(WrapFS, '_file_wrap', None):
-            return self.wrapped_fs.setcontents(self._encode(path), data, chunk_size=chunk_size)
+            return self.wrapped_fs.setcontents(self._encode(path), data, encoding=encoding, errors=errors, chunk_size=chunk_size)
         else:
-            return super(WrapFS,self).setcontents(path, data, chunk_size=chunk_size)
+            return super(WrapFS, self).setcontents(path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
 
     @rewrite_errors
     def createfile(self, path):

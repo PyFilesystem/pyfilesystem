@@ -12,6 +12,7 @@ from fs.zipfs import ZipFS
 
 from six import b
 
+
 class TestFSImportHook(unittest.TestCase):
 
     def setUp(self):
@@ -140,4 +141,3 @@ class TestFSImportHook(unittest.TestCase):
             sys.path_hooks.remove(FSImportHook)
             sys.path.pop()
             t.close()
-

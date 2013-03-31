@@ -122,7 +122,7 @@ class SFTPServerInterface(paramiko.SFTPServerInterface):
             if not isinstance(stat, int):
                 stats.append(stat)
         return stats
- 
+
     @report_sftp_errors
     def stat(self, path):
         if not isinstance(path, unicode):
@@ -221,8 +221,8 @@ class SFTPHandle(paramiko.SFTPHandle):
     """
 
     def __init__(self, owner, path, flags):
-        super(SFTPHandle,self).__init__(flags)
-        mode = flags_to_mode(flags) + "b"
+        super(SFTPHandle, self).__init__(flags)
+        mode = flags_to_mode(flags)
         self.owner = owner
         if not isinstance(path, unicode):
             path = path.decode(self.owner.encoding)

@@ -17,6 +17,7 @@ from fs.base import *
 from fs.errors import *
 from fs import _thread_synchronize_default
 from fs.filelike import StringIO
+from fs import iotools
 from os import SEEK_END
 import threading
 
@@ -31,7 +32,7 @@ def _check_mode(mode, mode_chars):
     return True
 
 class MemoryFile(object):
-        
+
     def seek_and_lock(f):
         def deco(self, *args, **kwargs):
             try:
@@ -40,7 +41,7 @@ class MemoryFile(object):
                 ret = f(self, *args, **kwargs)
                 self.pos = self.mem_file.tell()
                 return ret
-            finally:                
+            finally:
                 self._lock.release()
         return deco
 
@@ -48,12 +49,12 @@ class MemoryFile(object):
         self.closed = False
         self.path = path
         self.memory_fs = memory_fs
-        self.mem_file = mem_file        
-        self.mode = mode        
+        self.mem_file = mem_file
+        self.mode = mode
         self._lock = lock
-        
-        self.pos = 0                
-                
+
+        self.pos = 0
+
         if _check_mode(mode, 'a'):
             lock.acquire()
             try:
@@ -61,7 +62,7 @@ class MemoryFile(object):
                 self.pos = self.mem_file.tell()
             finally:
                 lock.release()
-        
+
         elif _check_mode(mode, 'w'):
             lock.acquire()
             try:
@@ -69,7 +70,7 @@ class MemoryFile(object):
                 self.mem_file.truncate()
             finally:
                 lock.release()
-        
+
 
         assert self.mem_file is not None, "self.mem_file should have a value"
 
@@ -77,7 +78,7 @@ class MemoryFile(object):
         return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __repr__(self):
-        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path) 
+        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __unicode__(self):
         return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
@@ -94,10 +95,10 @@ class MemoryFile(object):
             raise IOError("File not open for reading")
         self.mem_file.seek(self.pos)
         for line in self.mem_file:
-            yield line        
+            yield line
 
     @seek_and_lock
-    def next(self):        
+    def next(self):
         if 'r' not in self.mode and '+' not in self.mode:
             raise IOError("File not open for reading")
         return self.mem_file.next()
@@ -116,9 +117,9 @@ class MemoryFile(object):
             if do_close:
                 self.closed = True
         finally:
-            self._lock.release()                
+            self._lock.release()
         if do_close:
-            self.memory_fs._on_close_memory_file(self, self.path)            
+            self.memory_fs._on_close_memory_file(self, self.path)
 
     @seek_and_lock
     def read(self, size=None):
@@ -129,7 +130,7 @@ class MemoryFile(object):
         return self.mem_file.read(size)
 
     @seek_and_lock
-    def seek(self, *args, **kwargs):        
+    def seek(self, *args, **kwargs):
         return self.mem_file.seek(*args, **kwargs)
 
     @seek_and_lock
@@ -143,7 +144,7 @@ class MemoryFile(object):
         return self.mem_file.truncate(*args, **kwargs)
 
     #@seek_and_lock
-    def write(self, data):        
+    def write(self, data):
         if 'r' in self.mode and '+' not in self.mode:
             raise IOError("File not open for writing")
         self.memory_fs._on_modify_memory_file(self.path)
@@ -156,7 +157,7 @@ class MemoryFile(object):
             self._lock.release()
 
     @seek_and_lock
-    def writelines(self, *args, **kwargs):        
+    def writelines(self, *args, **kwargs):
         return self.mem_file.writelines(*args, **kwargs)
 
     def __enter__(self):
@@ -192,22 +193,22 @@ class DirEntry(object):
             contents = {}
 
         self.open_files = []
-        self.contents = contents        
-        self.mem_file = None            
+        self.contents = contents
+        self.mem_file = None
         self.created_time = datetime.datetime.now()
         self.modified_time = self.created_time
         self.accessed_time = self.created_time
-        
+
         self.xattrs = {}
-        
+
         self.lock = None
         if self.type == 'file':
-            self.mem_file = StringIO()            
+            self.mem_file = StringIO()
             self.lock = threading.RLock()
-            
+
     def get_value(self):
         self.lock.acquire()
-        try:            
+        try:
             return self.mem_file.getvalue()
         finally:
             self.lock.release()
@@ -227,15 +228,15 @@ class DirEntry(object):
 
     def __str__(self):
         return "%s: %s" % (self.name, self.desc_contents())
-        
+
     @sync
     def __getstate__(self):
-        state = self.__dict__.copy()        
+        state = self.__dict__.copy()
         state.pop('lock')
         if self.mem_file is not None:
             state['mem_file'] = self.data
         return state
-            
+
     def __setstate__(self, state):
         self.__dict__.update(state)
         if self.type == 'file':
@@ -244,16 +245,16 @@ class DirEntry(object):
             self.lock = None
         if self.mem_file is not None:
             data = self.mem_file
-            self.mem_file = StringIO()            
-            self.mem_file.write(data) 
+            self.mem_file = StringIO()
+            self.mem_file.write(data)
 
 class MemoryFS(FS):
 
     """An in-memory filesystem.
 
     """
-    
-    _meta = {'thread_safe' : True,            
+
+    _meta = {'thread_safe' : True,
              'network' : False,
              'virtual': False,
              'read_only' : False,
@@ -263,7 +264,7 @@ class MemoryFS(FS):
              'atomic.copy' : False,
              'atomic.makedir' : True,
              'atomic.rename' : True,
-             'atomic.setcontents' : False,              
+             'atomic.setcontents' : False,
               }
 
     def _make_dir_entry(self, *args, **kwargs):
@@ -277,13 +278,13 @@ class MemoryFS(FS):
         if not callable(self.file_factory):
             raise ValueError("file_factory should be callable")
 
-        self.root = self._make_dir_entry('dir', 'root')        
+        self.root = self._make_dir_entry('dir', 'root')
 
     def __str__(self):
         return "<MemoryFS>"
 
     def __repr__(self):
-        return "MemoryFS()"    
+        return "MemoryFS()"
 
     def __unicode__(self):
         return "<MemoryFS>"
@@ -300,7 +301,7 @@ class MemoryFS(FS):
                 return None
             current_dir = dir_entry
         return current_dir
-    
+
     @synchronize
     def _dir_entry(self, path):
         dir_entry = self._get_dir_entry(path)
@@ -338,7 +339,7 @@ class MemoryFS(FS):
         return dir_item.isfile()
 
     @synchronize
-    def exists(self, path): 
+    def exists(self, path):
         path = normpath(path)
         if path in ('', '/'):
             return True
@@ -401,22 +402,24 @@ class MemoryFS(FS):
 
         if dir_item is None:
             parent_dir.contents[dirname] = self._make_dir_entry("dir", dirname)
-        
+
 
     #@synchronize
     #def _orphan_files(self, file_dir_entry):
     #    for f in file_dir_entry.open_files[:]:
     #        f.close()
 
+
     @synchronize
-    def open(self, path, mode="r", **kwargs):
+    @iotools.filelike_to_stream
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         path = normpath(path)
         filepath, filename = pathsplit(path)
         parent_dir_entry = self._get_dir_entry(filepath)
 
         if parent_dir_entry is None or not parent_dir_entry.isdir():
             raise ResourceNotFoundError(path)
-        
+
         if 'r' in mode or 'a' in mode:
             if filename not in parent_dir_entry.contents:
                 raise ResourceNotFoundError(path)
@@ -424,7 +427,7 @@ class MemoryFS(FS):
             file_dir_entry = parent_dir_entry.contents[filename]
             if file_dir_entry.isdir():
                 raise ResourceInvalidError(path)
-            
+
             file_dir_entry.accessed_time = datetime.datetime.now()
 
             mem_file = self.file_factory(path, self, file_dir_entry.mem_file, mode, file_dir_entry.lock)
@@ -438,8 +441,8 @@ class MemoryFS(FS):
             else:
                 file_dir_entry = parent_dir_entry.contents[filename]
 
-            file_dir_entry.accessed_time = datetime.datetime.now()            
-            
+            file_dir_entry.accessed_time = datetime.datetime.now()
+
             mem_file = self.file_factory(path, self, file_dir_entry.mem_file, mode, file_dir_entry.lock)
             file_dir_entry.open_files.append(mem_file)
             return mem_file
@@ -455,7 +458,7 @@ class MemoryFS(FS):
             raise ResourceNotFoundError(path)
 
         if dir_entry.isdir():
-            raise ResourceInvalidError(path,msg="That's a directory, not a file: %(path)s")
+            raise ResourceInvalidError(path, msg="That's a directory, not a file: %(path)s")
 
         pathname, dirname = pathsplit(path)
         parent_dir = self._get_dir_entry(pathname)
@@ -465,7 +468,7 @@ class MemoryFS(FS):
     def removedir(self, path, recursive=False, force=False):
         path = normpath(path)
         if path in ('', '/'):
-            raise RemoveRootError(path) 
+            raise RemoveRootError(path)
         dir_entry = self._get_dir_entry(path)
 
         if dir_entry is None:
@@ -491,7 +494,7 @@ class MemoryFS(FS):
             pathname, dirname = pathsplit(path)
             parent_dir = self._get_dir_entry(pathname)
             if not dirname:
-                raise RemoveRootError(path)                    
+                raise RemoveRootError(path)
             del parent_dir.contents[dirname]
 
     @synchronize
@@ -528,27 +531,27 @@ class MemoryFS(FS):
         if accessed_time is None:
             accessed_time = now
         if modified_time is None:
-            modified_time = now                    
-        
+            modified_time = now
+
         dir_entry = self._get_dir_entry(path)
         if dir_entry is not None:
             dir_entry.accessed_time = accessed_time
             dir_entry.modified_time = modified_time
             return True
         return False
-        
+
     @synchronize
     def _on_close_memory_file(self, open_file, path):
         dir_entry = self._get_dir_entry(path)
         if dir_entry is not None:
-            dir_entry.open_files.remove(open_file)        
-                
-        
+            dir_entry.open_files.remove(open_file)
+
+
     @synchronize
     def _on_modify_memory_file(self, path):
         dir_entry = self._get_dir_entry(path)
         if dir_entry is not None:
-            dir_entry.modified_time = datetime.datetime.now()        
+            dir_entry.modified_time = datetime.datetime.now()
 
     @synchronize
     def listdir(self, path="/", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
@@ -573,38 +576,38 @@ class MemoryFS(FS):
         info = {}
         info['created_time'] = dir_entry.created_time
         info['modified_time'] = dir_entry.modified_time
-        info['accessed_time'] = dir_entry.accessed_time                
+        info['accessed_time'] = dir_entry.accessed_time
 
         if dir_entry.isdir():
             info['st_mode'] = 0755 | stat.S_IFDIR
         else:
             info['size'] = len(dir_entry.data or b(''))
             info['st_mode'] = 0666 | stat.S_IFREG
-            
-        return info    
-    
+
+        return info
+
     @synchronize
     def copydir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
-        super(MemoryFS, self).copydir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
+        super(MemoryFS, self).copydir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
             dst_dir_entry.xattrs.update(src_xattrs)
-    
+
     @synchronize
     def movedir(self, src, dst, overwrite=False, ignore_errors=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
-        super(MemoryFS, self).movedir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)        
+        super(MemoryFS, self).movedir(src, dst, overwrite, ignore_errors=ignore_errors, chunk_size=chunk_size)
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
-            dst_dir_entry.xattrs.update(src_xattrs)        
-    
+            dst_dir_entry.xattrs.update(src_xattrs)
+
     @synchronize
     def copy(self, src, dst, overwrite=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
@@ -615,53 +618,69 @@ class MemoryFS(FS):
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
             dst_dir_entry.xattrs.update(src_xattrs)
-    
+
     @synchronize
     def move(self, src, dst, overwrite=False, chunk_size=1024*64):
         src_dir_entry = self._get_dir_entry(src)
         if src_dir_entry is None:
             raise ResourceNotFoundError(src)
         src_xattrs = src_dir_entry.xattrs.copy()
-        super(MemoryFS, self).move(src, dst, overwrite, chunk_size)        
+        super(MemoryFS, self).move(src, dst, overwrite, chunk_size)
         dst_dir_entry = self._get_dir_entry(dst)
         if dst_dir_entry is not None:
-            dst_dir_entry.xattrs.update(src_xattrs)        
-    
+            dst_dir_entry.xattrs.update(src_xattrs)
+
     @synchronize
-    def getcontents(self, path, mode="rb"):        
+    def getcontents(self, path, mode="rb", encoding=None, errors=None, newline=None):
         dir_entry = self._get_dir_entry(path)
         if dir_entry is None:
             raise ResourceNotFoundError(path)
         if not dir_entry.isfile():
             raise ResourceInvalidError(path, msg="not a file: %(path)s")
-        return dir_entry.data or b('')
-    
+        data = dir_entry.data or b('')
+        if 'b' not in mode:
+            return iotools.decode_binary(data, encoding=encoding, errors=errors, newline=newline)
+        return data
+
     @synchronize
-    def setcontents(self, path, data, chunk_size=1024*64):
-        if not isinstance(data, six.binary_type):        
-            return super(MemoryFS, self).setcontents(path, data, chunk_size)        
-        if not self.exists(path):      
-            self.open(path, 'wb').close()                    
-            
-        dir_entry = self._get_dir_entry(path)
-        if not dir_entry.isfile():
-            raise ResourceInvalidError('Not a directory %(path)s', path)
-        new_mem_file = StringIO()        
-        new_mem_file.write(data)
-        dir_entry.mem_file = new_mem_file                        
-    
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=1024*64):
+        if isinstance(data, six.binary_type):
+            if not self.exists(path):
+                self.open(path, 'wb').close()
+            dir_entry = self._get_dir_entry(path)
+            if not dir_entry.isfile():
+                raise ResourceInvalidError('Not a directory %(path)s', path)
+            new_mem_file = StringIO()
+            new_mem_file.write(data)
+            dir_entry.mem_file = new_mem_file
+            return len(data)
+
+        return super(MemoryFS, self).setcontents(path, data=data, encoding=encoding, errors=errors, chunk_size=chunk_size)
+
+        # if isinstance(data, six.text_type):
+        #     return super(MemoryFS, self).setcontents(path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
+        # if not self.exists(path):
+        #     self.open(path, 'wb').close()
+
+        # dir_entry = self._get_dir_entry(path)
+        # if not dir_entry.isfile():
+        #     raise ResourceInvalidError('Not a directory %(path)s', path)
+        # new_mem_file = StringIO()
+        # new_mem_file.write(data)
+        # dir_entry.mem_file = new_mem_file
+
     @synchronize
-    def setxattr(self, path, key, value):                
+    def setxattr(self, path, key, value):
         dir_entry = self._dir_entry(path)
-        key = unicode(key)        
+        key = unicode(key)
         dir_entry.xattrs[key] = value
-    
-    @synchronize    
+
+    @synchronize
     def getxattr(self, path, key, default=None):
         key = unicode(key)
-        dir_entry = self._dir_entry(path)        
+        dir_entry = self._dir_entry(path)
         return dir_entry.xattrs.get(key, default)
-    
+
     @synchronize
     def delxattr(self, path, key):
         dir_entry = self._dir_entry(path)
@@ -669,7 +688,7 @@ class MemoryFS(FS):
             del dir_entry.xattrs[key]
         except KeyError:
             pass
-        
+
     @synchronize
     def listxattrs(self, path):
         dir_entry = self._dir_entry(path)

@@ -18,9 +18,11 @@ an FS object, which can then be exposed using whatever server you choose
 import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from datetime import datetime
+import base64
 
 import six
-from six import PY3, b
+from six import PY3
+
 
 class RPCFSInterface(object):
     """Wrapper to expose an FS via a XML-RPC compatible interface.
@@ -40,26 +42,23 @@ class RPCFSInterface(object):
         must return something that can be represented in ASCII.  The default
         is base64-encoded UTF-8.
         """
-        if PY3:
-            return path
-        return path.encode("utf8").encode("base64")
+        #return path
+        return six.text_type(base64.b64encode(path.encode("utf8")), 'ascii')
 
     def decode_path(self, path):
         """Decode paths arriving over the wire."""
-        if PY3:
-            return path
-        return path.decode("base64").decode("utf8")
+        return six.text_type(base64.b64decode(path.encode('ascii')), 'utf8')
 
     def getmeta(self, meta_name):
         meta = self.fs.getmeta(meta_name)
         if isinstance(meta, basestring):
-            meta = meta.decode('base64')
+            meta = self.decode_path(meta)
         return meta
 
     def getmeta_default(self, meta_name, default):
         meta = self.fs.getmeta(meta_name, default)
         if isinstance(meta, basestring):
-            meta = meta.decode('base64')
+            meta = self.decode_path(meta)
         return meta
 
     def hasmeta(self, meta_name):
@@ -72,7 +71,7 @@ class RPCFSInterface(object):
 
     def set_contents(self, path, data):
         path = self.decode_path(path)
-        self.fs.setcontents(path,data.data)
+        self.fs.setcontents(path, data.data)
 
     def exists(self, path):
         path = self.decode_path(path)
@@ -88,7 +87,7 @@ class RPCFSInterface(object):
 
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         path = self.decode_path(path)
-        entries = self.fs.listdir(path,wildcard,full,absolute,dirs_only,files_only)
+        entries = self.fs.listdir(path, wildcard, full, absolute, dirs_only, files_only)
         return [self.encode_path(e) for e in entries]
 
     def makedir(self, path, recursive=False, allow_recreate=False):
@@ -149,7 +148,7 @@ class RPCFSInterface(object):
         dst = self.decode_path(dst)
         return self.fs.copy(src, dst, overwrite, chunk_size)
 
-    def move(self,src,dst,overwrite=False,chunk_size=16384):
+    def move(self, src, dst, overwrite=False, chunk_size=16384):
         src = self.decode_path(src)
         dst = self.decode_path(dst)
         return self.fs.move(src, dst, overwrite, chunk_size)
@@ -187,11 +186,10 @@ class RPCFSServer(SimpleXMLRPCServer):
         if logRequests is not None:
             kwds['logRequests'] = logRequests
         self.serve_more_requests = True
-        SimpleXMLRPCServer.__init__(self,addr,**kwds)
+        SimpleXMLRPCServer.__init__(self, addr, **kwds)
         self.register_instance(RPCFSInterface(fs))
 
     def serve_forever(self):
         """Override serve_forever to allow graceful shutdown."""
         while self.serve_more_requests:
             self.handle_request()
-

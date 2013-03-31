@@ -26,6 +26,7 @@ from pyftpdlib import ftpserver
 from fs.path import *
 from fs.osfs import OSFS
 from fs.errors import convert_fs_errors
+from fs import iotools
 
 
 # Get these once so we can reuse them:
@@ -96,8 +97,9 @@ class FTPFS(ftpserver.AbstractedFS):
 
     @convert_fs_errors
     @decode_args
-    def open(self, path, mode):
-        return self.fs.open(path, mode)
+    @iotools.filelike_to_stream
+    def open(self, path, mode, **kwargs):
+        return self.fs.open(path, mode, **kwargs)
 
     @convert_fs_errors
     def chdir(self, path):

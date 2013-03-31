@@ -29,6 +29,10 @@ if sys.platform == "win32":
 else:
     watch_win32 = None
 
+import logging
+logging.getLogger('pyinotify').setLevel(logging.ERROR)
+
+
 import six
 from six import PY3, b
 
@@ -53,7 +57,7 @@ class WatcherTestCases:
             self.watchfs._poll_cond.wait()
             self.watchfs._poll_cond.release()
         else:
-            time.sleep(2)#0.5)
+            time.sleep(2)
 
     def assertEventOccurred(self,cls,path=None,event_list=None,**attrs):
         if not self.checkEventOccurred(cls,path,event_list,**attrs):
@@ -222,4 +226,3 @@ class TestWatchers_MemoryFS_polling(TestWatchers_MemoryFS):
     def setUp(self):
         self.fs = memoryfs.MemoryFS()
         self.watchfs = ensure_watchable(self.fs,poll_interval=0.1)
-

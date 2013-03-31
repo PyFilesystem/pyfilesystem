@@ -43,7 +43,7 @@ to subprocess.Popen::
 
 If you are exposing an untrusted filesystem, you may like to apply the
 wrapper class Win32SafetyFS before passing it into dokan.  This will take
-a number of steps to avoid suspicious operations on windows, such as 
+a number of steps to avoid suspicious operations on windows, such as
 hiding autorun files.
 
 The binding to Dokan is created via ctypes.  Due to the very stable ABI of
@@ -77,9 +77,9 @@ from fs.wrapfs import WrapFS
 
 try:
     import libdokan
-except (NotImplementedError,EnvironmentError,ImportError,NameError,):
+except (NotImplementedError, EnvironmentError, ImportError, NameError,):
     is_available = False
-    sys.modules.pop("fs.expose.dokan.libdokan",None)
+    sys.modules.pop("fs.expose.dokan.libdokan", None)
     libdokan = None
 else:
     is_available = True
@@ -168,7 +168,7 @@ def handle_fs_errors(func):
     name = func.__name__
     func = convert_fs_errors(func)
     @wraps(func)
-    def wrapper(*args,**kwds):        
+    def wrapper(*args,**kwds):
         try:
             res = func(*args,**kwds)
         except OSError, e:
@@ -183,7 +183,7 @@ def handle_fs_errors(func):
                 res = 0
         return res
     return wrapper
- 
+
 
 # During long-running operations, Dokan requires that the DokanResetTimeout
 # function be called periodically to indicate the progress is still being
@@ -204,7 +204,7 @@ _TIMEOUT_PROTECT_RESET_TIME = 5 * 60 * 1000
 
 def _start_timeout_protect_thread():
     """Start the background thread used to protect dokan from timeouts.
- 
+
     This function starts the background thread that monitors calls into the
     dokan API and resets their timeouts.  It's safe to call this more than
     once, only a single thread will be started.
@@ -287,7 +287,7 @@ class FSOperations(object):
         #  We explicitly keep track of the size Dokan expects a file to be.
         #  This dict is indexed by path, then file handle.
         self._files_size_written = PathMap()
-        
+
     def get_ops_struct(self):
         """Get a DOKAN_OPERATIONS struct mapping to our methods."""
         struct = libdokan.DOKAN_OPERATIONS()
@@ -325,9 +325,9 @@ class FSOperations(object):
         """
         self._files_lock.acquire()
         try:
-            (f2,path,lock) = self._files_by_handle[fh]
+            (f2, path, lock) = self._files_by_handle[fh]
             assert f2.closed
-            self._files_by_handle[fh] = (f,path,lock)
+            self._files_by_handle[fh] = (f, path, lock)
             return fh
         finally:
             self._files_lock.release()
@@ -336,10 +336,10 @@ class FSOperations(object):
         """Unregister the given file handle."""
         self._files_lock.acquire()
         try:
-            (f,path,lock) = self._files_by_handle.pop(fh)
+            (f, path, lock) = self._files_by_handle.pop(fh)
             del self._files_size_written[path][fh]
             if not self._files_size_written[path]:
-                del self._files_size_written[path] 
+                del self._files_size_written[path]
         finally:
             self._files_lock.release()
 
@@ -368,7 +368,7 @@ class FSOperations(object):
                     locks = self._active_locks[path]
                 except KeyError:
                     return 0
-        for (lh,lstart,lend) in locks:
+        for (lh, lstart, lend) in locks:
             if info is not None and info.contents.Context == lh:
                 continue
             if lstart >= offset + length:
@@ -423,7 +423,8 @@ class FSOperations(object):
         #  Try to open the requested file.  It may actually be a directory.
         info.contents.Context = 1
         try:
-            f = self.fs.open(path,mode)
+            f = self.fs.open(path, mode)
+            print path, mode, repr(f)
         except ResourceInvalidError:
             info.contents.IsDirectory = True
         except FSError:
@@ -434,7 +435,7 @@ class FSOperations(object):
             else:
                 raise
         else:
-            info.contents.Context = self._reg_file(f,path)
+            info.contents.Context = self._reg_file(f, path)
         return retcode
 
     @timeout_protect
@@ -444,10 +445,10 @@ class FSOperations(object):
         if self._is_pending_delete(path):
             raise ResourceNotFoundError(path)
         if not self.fs.isdir(path):
-             if not self.fs.exists(path):
-                 raise ResourceNotFoundError(path)
-             else:
-                 raise ResourceInvalidError(path)
+            if not self.fs.exists(path):
+                raise ResourceNotFoundError(path)
+            else:
+                raise ResourceInvalidError(path)
         info.contents.IsDirectory = True
 
     @timeout_protect
@@ -468,7 +469,7 @@ class FSOperations(object):
                 self.fs.removedir(path)
                 self._pending_delete.remove(path)
         else:
-            (file,_,lock) = self._get_file(info.contents.Context)
+            (file, _, lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
                 file.close()
@@ -484,7 +485,7 @@ class FSOperations(object):
     @handle_fs_errors
     def CloseFile(self, path, info):
         if info.contents.Context >= MIN_FH:
-            (file,_,lock) = self._get_file(info.contents.Context)
+            (file, _, lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
                 file.close()
@@ -497,20 +498,20 @@ class FSOperations(object):
     @handle_fs_errors
     def ReadFile(self, path, buffer, nBytesToRead, nBytesRead, offset, info):
         path = normpath(path)
-        (file,_,lock) = self._get_file(info.contents.Context)
+        (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
-            errno = self._check_lock(path,offset,nBytesToRead,info)
+            errno = self._check_lock(path, offset, nBytesToRead, info)
             if errno:
                 return errno
             #  This may be called after Cleanup, meaning we
             #  need to re-open the file.
             if file.closed:
-                file = self.fs.open(path,file.mode)
-                self._rereg_file(info.contents.Context,file)
+                file = self.fs.open(path, file.mode)
+                self._rereg_file(info.contents.Context, file)
             file.seek(offset)
             data = file.read(nBytesToRead)
-            ctypes.memmove(buffer,ctypes.create_string_buffer(data),len(data))
+            ctypes.memmove(buffer, ctypes.create_string_buffer(data), len(data))
             nBytesRead[0] = len(data)
         finally:
             lock.release()
@@ -520,23 +521,23 @@ class FSOperations(object):
     def WriteFile(self, path, buffer, nBytesToWrite, nBytesWritten, offset, info):
         path = normpath(path)
         fh = info.contents.Context
-        (file,_,lock) = self._get_file(fh)
+        (file, _, lock) = self._get_file(fh)
         lock.acquire()
         try:
-            errno = self._check_lock(path,offset,nBytesToWrite,info)
+            errno = self._check_lock(path, offset, nBytesToWrite, info)
             if errno:
                 return errno
             #  This may be called after Cleanup, meaning we
             #  need to re-open the file.
             if file.closed:
-                file = self.fs.open(path,file.mode)
-                self._rereg_file(info.contents.Context,file)
+                file = self.fs.open(path, file.mode)
+                self._rereg_file(info.contents.Context, file)
             if info.contents.WriteToEndOfFile:
-                file.seek(0,os.SEEK_END)
+                file.seek(0, os.SEEK_END)
             else:
                 file.seek(offset)
             data = ctypes.create_string_buffer(nBytesToWrite)
-            ctypes.memmove(data,buffer,nBytesToWrite)
+            ctypes.memmove(data, buffer, nBytesToWrite)
             file.write(data.raw)
             nBytesWritten[0] = len(data.raw)
             try:
@@ -554,7 +555,7 @@ class FSOperations(object):
     @handle_fs_errors
     def FlushFileBuffers(self, path, info):
         path = normpath(path)
-        (file,_,lock) = self._get_file(info.contents.Context)
+        (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
             file.flush()
@@ -567,7 +568,7 @@ class FSOperations(object):
         path = normpath(path)
         finfo = self.fs.getinfo(path)
         data = buffer.contents
-        self._info2finddataw(path,finfo,data,info)
+        self._info2finddataw(path, finfo, data, info)
         try:
             written_size = max(self._files_size_written[path].values())
         except KeyError:
@@ -583,26 +584,25 @@ class FSOperations(object):
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
         path = normpath(path)
-        for (nm,finfo) in self.fs.listdirinfo(path):
-            fpath = pathjoin(path,nm)
+        for (nm, finfo) in self.fs.listdirinfo(path):
+            fpath = pathjoin(path, nm)
             if self._is_pending_delete(fpath):
                 continue
-            data = self._info2finddataw(fpath,finfo)
-            fillFindData(ctypes.byref(data),info)
+            data = self._info2finddataw(fpath, finfo)
+            fillFindData(ctypes.byref(data), info)
 
     @timeout_protect
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
         path = normpath(path)
-        infolist = []
-        for (nm,finfo) in self.fs.listdirinfo(path):
-            fpath = pathjoin(path,nm)
+        for (nm, finfo) in self.fs.listdirinfo(path):
+            fpath = pathjoin(path, nm)
             if self._is_pending_delete(fpath):
                 continue
-            if not libdokan.DokanIsNameInExpression(pattern,nm,True):
+            if not libdokan.DokanIsNameInExpression(pattern, nm, True):
                 continue
-            data = self._info2finddataw(fpath,finfo,None)
-            fillFindData(ctypes.byref(data),info)
+            data = self._info2finddataw(fpath, finfo, None)
+            fillFindData(ctypes.byref(data), info)
 
     @timeout_protect
     @handle_fs_errors
@@ -620,7 +620,7 @@ class FSOperations(object):
                 atime = _filetime2datetime(atime.contents)
             except ValueError:
                 atime = None
-        if mtime is  not None:
+        if mtime is not None:
             try:
                 mtime = _filetime2datetime(mtime.contents)
             except ValueError:
@@ -648,7 +648,7 @@ class FSOperations(object):
     def DeleteDirectory(self, path, info):
         path = normpath(path)
         for nm in self.fs.listdir(path):
-            if not self._is_pending_delete(pathjoin(path,nm)):
+            if not self._is_pending_delete(pathjoin(path, nm)):
                 raise DirectoryNotEmptyError(path)
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
@@ -658,7 +658,7 @@ class FSOperations(object):
     def MoveFile(self, src, dst, overwrite, info):
         #  Close the file if we have an open handle to it.
         if info.contents.Context >= MIN_FH:
-            (file,_,lock) = self._get_file(info.contents.Context)
+            (file, _, lock) = self._get_file(info.contents.Context)
             lock.acquire()
             try:
                 file.close()
@@ -668,15 +668,15 @@ class FSOperations(object):
         src = normpath(src)
         dst = normpath(dst)
         if info.contents.IsDirectory:
-            self.fs.movedir(src,dst,overwrite=overwrite)
+            self.fs.movedir(src, dst, overwrite=overwrite)
         else:
-            self.fs.move(src,dst,overwrite=overwrite)
+            self.fs.move(src, dst, overwrite=overwrite)
 
     @timeout_protect
     @handle_fs_errors
     def SetEndOfFile(self, path, length, info):
         path = normpath(path)
-        (file,_,lock) = self._get_file(info.contents.Context)
+        (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
             pos = file.tell()
@@ -684,7 +684,7 @@ class FSOperations(object):
                 file.seek(length)
             file.truncate()
             if pos < length:
-                file.seek(min(pos,length))
+                file.seek(min(pos, length))
         finally:
             lock.release()
 
@@ -694,15 +694,15 @@ class FSOperations(object):
         #  It's better to pretend an operation is possible and have it fail
         #  than to pretend an operation will fail when it's actually possible.
         large_amount = 100 * 1024*1024*1024
-        nBytesFree[0] = self.fs.getmeta("free_space",large_amount)
-        nBytesTotal[0] = self.fs.getmeta("total_space",2*large_amount)
+        nBytesFree[0] = self.fs.getmeta("free_space", large_amount)
+        nBytesTotal[0] = self.fs.getmeta("total_space", 2 * large_amount)
         nBytesAvail[0] = nBytesFree[0]
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
         nm = ctypes.create_unicode_buffer(self.volname[:vnmSz-1])
-        sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
-        ctypes.memmove(vnmBuf,nm,sz)
+        sz = (len(nm.value) + 1) * ctypes.sizeof(ctypes.c_wchar)
+        ctypes.memmove(vnmBuf, nm, sz)
         if sNum:
             sNum[0] = 0
         if maxLen:
@@ -710,8 +710,8 @@ class FSOperations(object):
         if flags:
             flags[0] = 0
         nm = ctypes.create_unicode_buffer(self.fsname[:fnmSz-1])
-        sz = (len(nm.value)+1) * ctypes.sizeof(ctypes.c_wchar)
-        ctypes.memmove(fnmBuf,nm,sz)
+        sz = (len(nm.value) + 1) * ctypes.sizeof(ctypes.c_wchar)
+        ctypes.memmove(fnmBuf, nm, sz)
 
     @timeout_protect
     @handle_fs_errors
@@ -731,10 +731,10 @@ class FSOperations(object):
             except KeyError:
                 locks = self._active_locks[path] = []
             else:
-                errno = self._check_lock(path,offset,length,None,locks)
+                errno = self._check_lock(path, offset, length, None, locks)
                 if errno:
                     return errno
-            locks.append((info.contents.Context,offset,end))
+            locks.append((info.contents.Context, offset, end))
             return 0
 
     @timeout_protect
@@ -747,7 +747,7 @@ class FSOperations(object):
             except KeyError:
                 return -ERROR_NOT_LOCKED
             todel = []
-            for i,(lh,lstart,lend) in enumerate(locks):
+            for i, (lh, lstart, lend) in enumerate(locks):
                 if info.contents.Context == lh:
                     if lstart == offset:
                         if lend == offset + length:
@@ -755,17 +755,17 @@ class FSOperations(object):
             if not todel:
                 return -ERROR_NOT_LOCKED
             for i in reversed(todel):
-                del locks[i] 
+                del locks[i]
             return 0
 
     @handle_fs_errors
     def Unmount(self, info):
         pass
 
-    def _info2attrmask(self,path,info,hinfo=None):
+    def _info2attrmask(self, path, info, hinfo=None):
         """Convert a file/directory info dict to a win32 file attribute mask."""
         attrs = 0
-        st_mode = info.get("st_mode",None)
+        st_mode = info.get("st_mode", None)
         if st_mode:
             if statinfo.S_ISDIR(st_mode):
                 attrs |= FILE_ATTRIBUTE_DIRECTORY
@@ -859,7 +859,7 @@ def _normalise_drive_string(drive):
     if not ":\\".startswith(drive[1:]):
         raise ValueError("invalid drive letter: %r" % (drive,))
     return drive[0].upper()
-    
+
 
 def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
     """Mount the given FS at the given drive letter, using Dokan.

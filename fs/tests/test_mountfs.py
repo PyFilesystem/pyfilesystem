@@ -2,10 +2,11 @@ from fs.mountfs import MountFS
 from fs.memoryfs import MemoryFS
 import unittest
 
-class TestMultiFS(unittest.TestCase):
+
+class TestMountFS(unittest.TestCase):
 
     def test_auto_close(self):
-        """Test MultiFS auto close is working"""
+        """Test MountFS auto close is working"""
         multi_fs = MountFS()
         m1 = MemoryFS()
         m2 = MemoryFS()
@@ -18,7 +19,7 @@ class TestMultiFS(unittest.TestCase):
         self.assert_(m2.closed)
 
     def test_no_auto_close(self):
-        """Test MultiFS auto close can be disabled"""
+        """Test MountFS auto close can be disabled"""
         multi_fs = MountFS(auto_close=False)
         m1 = MemoryFS()
         m2 = MemoryFS()
@@ -32,7 +33,7 @@ class TestMultiFS(unittest.TestCase):
 
     def test_mountfile(self):
         """Test mounting a file"""
-        quote = """If you wish to make an apple pie from scratch, you must first invent the universe."""
+        quote = b"""If you wish to make an apple pie from scratch, you must first invent the universe."""
         mem_fs = MemoryFS()
         mem_fs.makedir('foo')
         mem_fs.setcontents('foo/bar.txt', quote)
@@ -58,11 +59,11 @@ class TestMultiFS(unittest.TestCase):
 
         # Check changes are written back
         mem_fs.setcontents('foo/bar.txt', 'baz')
-        self.assertEqual(mount_fs.getcontents('bar.txt'), 'baz')
+        self.assertEqual(mount_fs.getcontents('bar.txt'), b'baz')
         self.assertEqual(mount_fs.getsize('bar.txt'), len('baz'))
 
         # Check changes are written to the original fs
-        self.assertEqual(mem_fs.getcontents('foo/bar.txt'), 'baz')
+        self.assertEqual(mem_fs.getcontents('foo/bar.txt'), b'baz')
         self.assertEqual(mem_fs.getsize('foo/bar.txt'), len('baz'))
 
         # Check unmount

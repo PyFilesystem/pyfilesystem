@@ -20,6 +20,7 @@ import sys
 import errno
 import datetime
 import platform
+import io
 
 from fs.base import *
 from fs.path import *
@@ -76,16 +77,15 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     methods in the os and os.path modules.
     """
 
-    _meta = { 'thread_safe' : True,
-              'network' : False,
-              'virtual' : False,
-              'read_only' : False,
-              'unicode_paths' : os.path.supports_unicode_filenames,
-              'case_insensitive_paths' : os.path.normcase('Aa') == 'aa',
-              'atomic.makedir' : True,
-              'atomic.rename' : True,
-              'atomic.setcontents' : False,
-             }
+    _meta = {'thread_safe': True,
+             'network': False,
+             'virtual': False,
+             'read_only': False,
+             'unicode_paths': os.path.supports_unicode_filenames,
+             'case_insensitive_paths': os.path.normcase('Aa') == 'aa',
+             'atomic.makedir': True,
+             'atomic.rename': True,
+             'atomic.setcontents': False}
 
     if platform.system() == 'Windows':
         _meta["invalid_path_chars"] = ''.join(chr(n) for n in xrange(31)) + '\\:*?"<>|'
@@ -215,11 +215,11 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         return super(OSFS, self).getmeta(meta_name, default)
 
     @convert_os_errors
-    def open(self, path, mode="r", **kwargs):
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         mode = ''.join(c for c in mode if c in 'rwabt+')
         sys_path = self.getsyspath(path)
         try:
-            return open(sys_path, mode, kwargs.get("buffering", -1))
+            return io.open(sys_path, mode=mode, buffering=buffering, encoding=encoding, errors=errors, newline=newline)
         except EnvironmentError, e:
             #  Win32 gives EACCES when opening a directory.
             if sys.platform == "win32" and e.errno in (errno.EACCES,):
@@ -228,8 +228,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
             raise
 
     @convert_os_errors
-    def setcontents(self, path, contents, chunk_size=64 * 1024):
-        return super(OSFS, self).setcontents(path, contents, chunk_size)
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64 * 1024):
+        return super(OSFS, self).setcontents(path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
 
     @convert_os_errors
     def exists(self, path):

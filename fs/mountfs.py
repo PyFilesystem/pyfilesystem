@@ -46,6 +46,7 @@ from fs.base import *
 from fs.errors import *
 from fs.path import *
 from fs import _thread_synchronize_default
+from fs import iotools
 
 
 class DirMount(object):
@@ -286,7 +287,7 @@ class MountFS(FS):
     def makedir(self, path, recursive=False, allow_recreate=False):
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
-            raise UnsupportedError("make directory", msg="Can only makedir for mounted paths" )
+            raise UnsupportedError("make directory", msg="Can only makedir for mounted paths")
         if not delegate_path:
             if allow_recreate:
                 return
@@ -295,7 +296,7 @@ class MountFS(FS):
         return fs.makedir(delegate_path, recursive=recursive, allow_recreate=allow_recreate)
 
     @synchronize
-    def open(self, path, mode="r", **kwargs):
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         obj = self.mount_tree.get(path, None)
         if type(obj) is MountFS.FileMount:
             callable = obj.open_callable
@@ -309,20 +310,24 @@ class MountFS(FS):
         return fs.open(delegate_path, mode, **kwargs)
 
     @synchronize
-    def setcontents(self, path, data, chunk_size=64*1024):
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64*1024):
         obj = self.mount_tree.get(path, None)
         if type(obj) is MountFS.FileMount:
-            return super(MountFS,self).setcontents(path, data, chunk_size=chunk_size)
+            return super(MountFS, self).setcontents(path,
+                                                    data,
+                                                    encoding=encoding,
+                                                    errors=errors,
+                                                    chunk_size=chunk_size)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
-        return fs.setcontents(delegate_path, data, chunk_size)
+        return fs.setcontents(delegate_path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
 
     @synchronize
     def createfile(self, path, wipe=False):
         obj = self.mount_tree.get(path, None)
         if type(obj) is MountFS.FileMount:
-            return super(MountFS,self).createfile(path, wipe=wipe)
+            return super(MountFS, self).createfile(path, wipe=wipe)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is self or fs is None:
             raise ParentDirectoryMissingError(path)
@@ -430,7 +435,7 @@ class MountFS(FS):
         """Unmounts a path.
 
         :param path: Path to unmount
-        :return: True if a dir was unmounted, False if the path was already unmounted
+        :return: True if a path was unmounted, False if the path was already unmounted
         :rtype: bool
 
         """

@@ -13,6 +13,7 @@ from fs.base import *
 from fs.path import *
 from fs.errors import *
 from fs.filelike import StringIO
+from fs import iotools
 
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED, BadZipfile, LargeZipFile
 from memoryfs import MemoryFS
@@ -20,6 +21,7 @@ from memoryfs import MemoryFS
 import tempfs
 
 from six import PY3
+
 
 class ZipOpenError(CreateFailedError):
     """Thrown when the zip file could not be opened"""
@@ -76,13 +78,13 @@ class _ExceptionProxy(object):
 class ZipFS(FS):
     """A FileSystem that represents a zip file."""
 
-    _meta = { 'thread_safe' : True,
-              'virtual' : False,
-              'read_only' : False,
-              'unicode_paths' : True,
-              'case_insensitive_paths' : False,
-              'network' : False,
-              'atomic.setcontents' : False
+    _meta = {'thread_safe': True,
+             'virtual': False,
+             'read_only': False,
+             'unicode_paths': True,
+             'case_insensitive_paths': False,
+             'network': False,
+             'atomic.setcontents': False
              }
 
     def __init__(self, zip_file, mode="r", compression="deflated", allow_zip_64=False, encoding="CP437", thread_synchronize=True):
@@ -129,7 +131,7 @@ class ZipFS(FS):
                 raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                    details=ioe)
             raise ZipNotFoundError("Zip file not found (%s)" % str(zip_file),
-                                  details=ioe)
+                                   details=ioe)
 
         self.zip_path = str(zip_file)
         self.temp_fs = None
@@ -189,7 +191,8 @@ class ZipFS(FS):
             self.zf = _ExceptionProxy()
 
     @synchronize
-    def open(self, path, mode="r", **kwargs):
+    @iotools.filelike_to_stream
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         path = normpath(relpath(path))
 
         if 'r' in mode:
@@ -222,7 +225,7 @@ class ZipFS(FS):
         raise ValueError("Mode must contain be 'r' or 'w'")
 
     @synchronize
-    def getcontents(self, path, mode="rb"):
+    def getcontents(self, path, mode="rb", encoding=None, errors=None, newline=None):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
         path = normpath(relpath(path))
@@ -232,7 +235,9 @@ class ZipFS(FS):
             raise ResourceNotFoundError(path)
         except RuntimeError:
             raise OperationFailedError("read file", path=path, msg="3 Zip file must be opened with 'r' or 'a' to read")
-        return contents
+        if 'b' in mode:
+            return contents
+        return iotools.decode_binary(contents, encoding=encoding, errors=errors, newline=newline)
 
     @synchronize
     def _on_write_close(self, filename):

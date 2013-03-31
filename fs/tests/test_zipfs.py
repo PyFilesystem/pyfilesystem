@@ -17,6 +17,7 @@ from fs import zipfs
 
 from six import PY3, b
 
+
 class TestReadZipFS(unittest.TestCase):
 
     def setUp(self):
@@ -46,20 +47,22 @@ class TestReadZipFS(unittest.TestCase):
 
     def test_reads(self):
         def read_contents(path):
-            f = self.fs.open(path)
+            f = self.fs.open(path, 'rb')
             contents = f.read()
             return contents
+
         def check_contents(path, expected):
-            self.assert_(read_contents(path)==expected)
+            self.assert_(read_contents(path) == expected)
         check_contents("a.txt", b("Hello, World!"))
         check_contents("1.txt", b("1"))
         check_contents("foo/bar/baz.txt", b("baz"))
 
     def test_getcontents(self):
         def read_contents(path):
-            return self.fs.getcontents(path)
+            return self.fs.getcontents(path, 'rb')
+
         def check_contents(path, expected):
-            self.assert_(read_contents(path)==expected)
+            self.assert_(read_contents(path) == expected)
         check_contents("a.txt", b("Hello, World!"))
         check_contents("1.txt", b("1"))
         check_contents("foo/bar/baz.txt", b("baz"))
@@ -82,7 +85,7 @@ class TestReadZipFS(unittest.TestCase):
             dir_list = self.fs.listdir(path)
             self.assert_(sorted(dir_list) == sorted(expected))
             for item in dir_list:
-                self.assert_(isinstance(item,unicode))
+                self.assert_(isinstance(item, unicode))
         check_listing('/', ['a.txt', '1.txt', 'foo', 'b.txt'])
         check_listing('foo', ['second.txt', 'bar'])
         check_listing('foo/bar', ['baz.txt'])

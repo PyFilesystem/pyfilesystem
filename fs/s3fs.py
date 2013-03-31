@@ -26,7 +26,9 @@ from fs.path import *
 from fs.errors import *
 from fs.remote import *
 from fs.filelike import LimitBytesFile
+from fs import iotools
 
+import six
 
 # Boto is not thread-safe, so we need to use a per-thread S3 connection.
 if hasattr(threading,"local"):
@@ -246,19 +248,19 @@ class S3FS(FS):
         s3path = self._s3path(path)
         k = self._s3bukt.get_key(s3path)
         k.make_public()
-        
+
     def getpathurl(self, path, allow_none=False, expires=3600):
         """Returns a url that corresponds to the given path."""
         s3path = self._s3path(path)
         k = self._s3bukt.get_key(s3path)
 
         # Is there AllUsers group with READ permissions?
-        is_public = True in [grant.permission == 'READ' and \
+        is_public = True in [grant.permission == 'READ' and
                 grant.uri == 'http://acs.amazonaws.com/groups/global/AllUsers'
-                for grant in k.get_acl().acl.grants ]
-           
+                for grant in k.get_acl().acl.grants]
+
         url = k.generate_url(expires, force_http=is_public)
-        
+
         if url == None:
             if not allow_none:
                 raise NoPathURLError(path=path)
@@ -267,14 +269,17 @@ class S3FS(FS):
         if is_public:
             # Strip time token; it has no sense for public resource
             url = url.split('?')[0]
-        
+
         return url
 
-    def setcontents(self, path, data, chunk_size=64*1024):
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64*1024):
         s3path = self._s3path(path)
+        if isinstance(data, six.text_type):
+            data = data.encode(encoding=encoding, errors=errors)
         self._sync_set_contents(s3path, data)
 
-    def open(self,path,mode="r"):
+    @iotools.filelike_to_stream
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         """Open the named file in the given mode.
 
         This method downloads the file contents into a local temporary file
@@ -504,7 +509,7 @@ class S3FS(FS):
     def removedir(self,path,recursive=False,force=False):
         """Remove the directory at the given path."""
         if normpath(path) in ('', '/'):
-            raise RemoveRootError(path) 
+            raise RemoveRootError(path)
         s3path = self._s3path(path)
         if s3path != self._prefix:
             s3path = s3path + self._separator
@@ -654,7 +659,7 @@ class S3FS(FS):
                 yield item
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix): 
+            for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
@@ -682,7 +687,7 @@ class S3FS(FS):
                 yield (item,self.getinfo(item))
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix): 
+            for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):
@@ -709,7 +714,7 @@ class S3FS(FS):
                 yield (item,self.getinfo(item))
         else:
             prefix = self._s3path(path)
-            for k in self._s3bukt.list(prefix=prefix): 
+            for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
                     if not isinstance(name,unicode):

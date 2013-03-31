@@ -72,6 +72,7 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
         if src_lock is not None:
             src_lock.release()
 
+
 def copyfile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """A non atomic version of copyfile (will not block other threads using src_fs or dst_fst)
 

@@ -112,11 +112,11 @@ class ArchiveFS(FS):
             return SizeUpdater(entry, self.archive.writestream(path))
 
     @synchronize
-    def getcontents(self, path, mode="rb"):
+    def getcontents(self, path, mode="rb", encoding=None, errors=None, newline=None):
         if not self.exists(path):
             raise ResourceNotFoundError(path)
-        f = self.open(path)
-        return f.read()
+        with self.open(path, mode, encoding=encoding, errors=errors, newline=newline) as f:
+            return f.read()
 
     def desc(self, path):
         return "%s in zip file" % path

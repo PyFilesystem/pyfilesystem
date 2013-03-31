@@ -8,10 +8,11 @@ Not for general usage, the functionality in this file is exposed elsewhere
 import six
 from six import PY3
 
+
 def copy_file_to_fs(data, dst_fs, dst_path, chunk_size=64 * 1024, progress_callback=None, finished_callback=None):
     """Copy data from a string or a file-like object to a given fs/path"""
     if progress_callback is None:
-        progress_callback = lambda bytes_written:None
+        progress_callback = lambda bytes_written: None
     bytes_written = 0
     f = None
     try:
@@ -19,7 +20,7 @@ def copy_file_to_fs(data, dst_fs, dst_path, chunk_size=64 * 1024, progress_callb
         if hasattr(data, "read"):
             read = data.read
             chunk = read(chunk_size)
-            if PY3 and isinstance(chunk, six.text_type):
+            if isinstance(chunk, six.text_type):
                 f = dst_fs.open(dst_path, 'w')
             else:
                 f = dst_fs.open(dst_path, 'wb')
@@ -30,7 +31,7 @@ def copy_file_to_fs(data, dst_fs, dst_path, chunk_size=64 * 1024, progress_callb
                 progress_callback(bytes_written)
                 chunk = read(chunk_size)
         else:
-            if PY3 and isinstance(data, six.text_type):
+            if isinstance(data, six.text_type):
                 f = dst_fs.open(dst_path, 'w')
             else:
                 f = dst_fs.open(dst_path, 'wb')

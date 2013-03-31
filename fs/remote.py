@@ -41,6 +41,7 @@ _SENTINAL = object()
 
 from six import PY3, b
 
+
 class RemoteFileBuffer(FileWrapper):
     """File-like object providing buffer for local file operations.
 
@@ -79,24 +80,24 @@ class RemoteFileBuffer(FileWrapper):
         self.path = path
         self.write_on_flush = write_on_flush
         self._changed = False
-        self._readlen = 0 # How many bytes already loaded from rfile
-        self._rfile = None # Reference to remote file object 
-        self._eof = False # Reached end of rfile?
-        if getattr(fs,"_lock",None) is not None:
+        self._readlen = 0  # How many bytes already loaded from rfile
+        self._rfile = None  # Reference to remote file object
+        self._eof = False  # Reached end of rfile?
+        if getattr(fs, "_lock", None) is not None:
             self._lock = fs._lock.__class__()
         else:
             self._lock = threading.RLock()
-        
+
         if "r" in mode or "+" in mode or "a" in mode:
             if rfile is None:
                 # File was just created, force to write anything
                 self._changed = True
                 self._eof = True
-                
+
             if not hasattr(rfile, "read"):
                 #rfile = StringIO(unicode(rfile))
                 rfile = StringIO(rfile)
-                
+
             self._rfile = rfile
         else:
             # Do not use remote file object
@@ -141,27 +142,27 @@ class RemoteFileBuffer(FileWrapper):
                 toread = length - bytes_read
             if not toread:
                 break
-             
+
             data = self._rfile.read(toread)
             datalen = len(data)
             if not datalen:
                 self._eof = True
                 break
-            
-            bytes_read += datalen 
+
+            bytes_read += datalen
             self.wrapped_file.write(data)
-            
+
             if datalen < toread:
                 # We reached EOF,
                 # no more reads needed
                 self._eof = True
                 break
-        
+
         if self._eof and self._rfile is not None:
             self._rfile.close()
         self._readlen += bytes_read
-    
-    def _fillbuffer(self, length=None):  
+
+    def _fillbuffer(self, length=None):
         """Fill the local buffer, leaving file position unchanged.
 
         This method is used for on-demand loading of data from the remote file
@@ -177,7 +178,7 @@ class RemoteFileBuffer(FileWrapper):
                 self._read_remote()
                 self._eof = True
                 self.wrapped_file.seek(curpos)
-               
+
         elif not self._eof:
             if curpos + length > self._readlen:
                 # Read all data and we didn't reached EOF
@@ -186,7 +187,7 @@ class RemoteFileBuffer(FileWrapper):
                 self.wrapped_file.seek(0, SEEK_END)
                 self._read_remote(toload)
                 self.wrapped_file.seek(curpos)
-        
+
     def _read(self, length=None):
         if length is not None and length < 0:
             length = None
@@ -209,7 +210,7 @@ class RemoteFileBuffer(FileWrapper):
                     abspos = None
                 else:
                     raise IOError(EINVAL, 'Invalid whence')
-            
+
                 if abspos != None:
                     toread = abspos - self._readlen
                     if toread > 0:
@@ -218,7 +219,7 @@ class RemoteFileBuffer(FileWrapper):
                 else:
                     self.wrapped_file.seek(self._readlen)
                     self._fillbuffer()
-                
+
             self.wrapped_file.seek(offset, whence)
 
     def _truncate(self,size):
@@ -227,7 +228,7 @@ class RemoteFileBuffer(FileWrapper):
                 # Read the rest of file
                 self._fillbuffer(size - self._readlen)
                 # Lock rfile
-                self._eof = True  
+                self._eof = True
             elif self._readlen >= size:
                 # Crop rfile metadata
                 self._readlen = size if size != None else 0
@@ -236,7 +237,7 @@ class RemoteFileBuffer(FileWrapper):
 
             self.wrapped_file.truncate(size)
             self._changed = True
-                
+
             self.flush()
             if self._rfile is not None:
                 self._rfile.close()
@@ -251,17 +252,17 @@ class RemoteFileBuffer(FileWrapper):
         if not self._changed:
             # Nothing changed, no need to write data back
             return
-        
+
         # If not all data loaded, load until eof
         if not self._eof:
             self._fillbuffer()
-            
+
         if "w" in self.mode or "a" in self.mode or "+" in self.mode:
             pos = self.wrapped_file.tell()
             self.wrapped_file.seek(0)
             self.fs.setcontents(self.path, self.wrapped_file)
             self.wrapped_file.seek(pos)
-    
+
     def close(self):
         with self._lock:
             if not self.closed:
@@ -315,8 +316,8 @@ class ConnectionManagerFS(LazyFS):
         self._poll_sleeper = threading.Event()
         self.connected = connected
 
-    def setcontents(self, path, data, chunk_size=64*1024):
-        return self.wrapped_fs.setcontents(path, data, chunk_size=chunk_size)
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64*1024):
+        return self.wrapped_fs.setcontents(path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
 
     def __getstate__(self):
         state = super(ConnectionManagerFS,self).__getstate__()
@@ -329,7 +330,7 @@ class ConnectionManagerFS(LazyFS):
         super(ConnectionManagerFS,self).__setstate__(state)
         self._connection_cond = threading.Condition()
         self._poll_sleeper = threading.Event()
-        
+
     def wait_for_connection(self,timeout=None,force_wait=False):
         self._connection_cond.acquire()
         try:
@@ -397,7 +398,7 @@ def _ConnectionManagerFS_method_wrapper(func):
             self.connected = True
             return result
     return wrapper
- 
+
 wrap_fs_methods(_ConnectionManagerFS_method_wrapper,ConnectionManagerFS)
 
 
@@ -536,12 +537,12 @@ class CacheFSMixin(FS):
             except KeyError:
                 pass
 
-    def open(self,path,mode="r",**kwds):
+    def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         #  Try to validate the entry using the cached info
         try:
             ci = self.__get_cached_info(path)
         except KeyError:
-            if path in ("","/"):
+            if path in ("", "/"):
                 raise ResourceInvalidError(path)
             try:
                 ppath = dirname(path)
@@ -549,38 +550,38 @@ class CacheFSMixin(FS):
             except KeyError:
                 pass
             else:
-                if not fs.utils.isdir(super(CacheFSMixin,self),ppath,pci.info):
+                if not fs.utils.isdir(super(CacheFSMixin, self), ppath, pci.info):
                     raise ResourceInvalidError(path)
                 if pci.has_full_children:
                     raise ResourceNotFoundError(path)
         else:
-            if not fs.utils.isfile(super(CacheFSMixin,self),path,ci.info):
+            if not fs.utils.isfile(super(CacheFSMixin, self), path, ci.info):
                 raise ResourceInvalidError(path)
-        f = super(CacheFSMixin,self).open(path,mode,**kwds)
+        f = super(CacheFSMixin, self).open(path, mode=mode, buffering=buffering, encoding=encoding, errors=errors, newline=newline, line_buffering=line_buffering, **kwargs)
         if "w" in mode or "a" in mode or "+" in mode:
             with self.__cache_lock:
                 self.__cache.clear(path)
-            f = self._CacheInvalidatingFile(self,path,f,mode)
+            f = self._CacheInvalidatingFile(self, path, f, mode)
         return f
 
     class _CacheInvalidatingFile(FileWrapper):
-        def __init__(self,owner,path,wrapped_file,mode=None):
+        def __init__(self, owner, path, wrapped_file, mode=None):
             self.path = path
-            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
-            sup.__init__(wrapped_file,mode)
+            sup = super(CacheFSMixin._CacheInvalidatingFile, self)
+            sup.__init__(wrapped_file, mode)
             self.owner = owner
-        def _write(self,string,flushing=False):
+        def _write(self, string, flushing=False):
             with self.owner._CacheFSMixin__cache_lock:
                 self.owner._CacheFSMixin__cache.clear(self.path)
-            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
-            return sup._write(string,flushing=flushing)
-        def _truncate(self,size):
+            sup = super(CacheFSMixin._CacheInvalidatingFile, self)
+            return sup._write(string, flushing=flushing)
+        def _truncate(self, size):
             with self.owner._CacheFSMixin__cache_lock:
                 self.owner._CacheFSMixin__cache.clear(self.path)
-            sup = super(CacheFSMixin._CacheInvalidatingFile,self)
+            sup = super(CacheFSMixin._CacheInvalidatingFile, self)
             return sup._truncate(size)
 
-    def exists(self,path):
+    def exists(self, path):
         try:
             self.getinfo(path)
         except ResourceNotFoundError:
@@ -588,7 +589,7 @@ class CacheFSMixin(FS):
         else:
             return True
 
-    def isdir(self,path):
+    def isdir(self, path):
         try:
             self.__cache.iternames(path).next()
             return True
@@ -601,9 +602,9 @@ class CacheFSMixin(FS):
         except ResourceNotFoundError:
             return False
         else:
-            return fs.utils.isdir(super(CacheFSMixin,self),path,info)
+            return fs.utils.isdir(super(CacheFSMixin, self), path, info)
 
-    def isfile(self,path):
+    def isfile(self, path):
         try:
             self.__cache.iternames(path).next()
             return False
@@ -616,17 +617,17 @@ class CacheFSMixin(FS):
         except ResourceNotFoundError:
             return False
         else:
-            return fs.utils.isfile(super(CacheFSMixin,self),path,info)
+            return fs.utils.isfile(super(CacheFSMixin, self), path, info)
 
-    def getinfo(self,path):
+    def getinfo(self, path):
         try:
             ci = self.__get_cached_info(path)
             if not ci.has_full_info:
                 raise KeyError
             info = ci.info
         except KeyError:
-            info = super(CacheFSMixin,self).getinfo(path)
-            self.__set_cached_info(path,CachedInfo(info))
+            info = super(CacheFSMixin, self).getinfo(path)
+            self.__set_cached_info(path, CachedInfo(info))
         return info
 
     def listdir(self,path="",*args,**kwds):
@@ -670,9 +671,9 @@ class CacheFSMixin(FS):
     def getsize(self,path):
         return self.getinfo(path)["size"]
 
-    def setcontents(self, path, contents=b(""), chunk_size=64*1024):
-        supsc =  super(CacheFSMixin,self).setcontents
-        res = supsc(path, contents, chunk_size=chunk_size)
+    def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64*1024):
+        supsc = super(CacheFSMixin, self).setcontents
+        res = supsc(path, data, encoding=None, errors=None, chunk_size=chunk_size)
         with self.__cache_lock:
             self.__cache.clear(path)
             self.__cache[path] = CachedInfo.new_file_stub()
