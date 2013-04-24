@@ -28,6 +28,7 @@ from fs.osfs import OSFS
 from fs.errors import convert_fs_errors
 from fs import iotools
 
+from six import unicode
 
 # Get these once so we can reuse them:
 UID = os.getuid()
@@ -105,7 +106,12 @@ class FTPFS(ftpserver.AbstractedFS):
     def chdir(self, path):
         # We dont' use the decorator here, we actually decode a version of the
         # path for use with pyfs, but keep the original for use with pyftpdlib.
-        unipath = unicode(path, self.encoding)
+        if not isinstance(path, unicode):
+            # pyftpdlib 0.7.x
+            unipath = unicode(path, self.encoding)
+        else:
+            # pyftpdlib 1.x
+            unipath = path
         # TODO: can the following conditional checks be farmed out to the fs?
         # If we don't raise an error here for files, then the FTP server will
         # happily allow the client to CWD into a file. We really only want to
