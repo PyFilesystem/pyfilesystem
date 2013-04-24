@@ -28,7 +28,8 @@ from fs.osfs import OSFS
 from fs.errors import convert_fs_errors
 from fs import iotools
 
-from six import unicode
+from six import text_type as unicode
+
 
 # Get these once so we can reuse them:
 UID = os.getuid()
