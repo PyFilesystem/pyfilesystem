@@ -150,6 +150,21 @@ class TestPathFunctions(unittest.TestCase):
         self.assertFalse(iswildcard('img.jpg'))
         self.assertFalse(iswildcard('foo/bar'))
 
+    def test_realtivefrom(self):
+        tests = [('/', '/foo.html', 'foo.html'),
+                 ('/foo', '/foo/bar.html', 'bar.html'),
+                 ('/foo/bar/', '/egg.html', '../../egg.html'),
+                 ('/a/b/c/d', 'e', '../../../../e'),
+                 ('/a/b/c/d', 'a/d', '../../../d'),
+                 ('/docs/', 'tags/index.html', '../tags/index.html'),
+                 ('foo/bar', 'baz/index.html', '../../baz/index.html'),
+                 ('', 'a', 'a'),
+                 ('a', 'b/c', '../b/c')
+                 ]
+
+        for base, path, result in tests:
+            self.assertEqual(relativefrom(base, path), result)
+
 
 class Test_PathMap(unittest.TestCase):
 

@@ -396,6 +396,29 @@ def frombase(path1, path2):
     return path2[len(path1):]
 
 
+def relativefrom(base, path):
+    """Return a path relative from a given base path,
+    i.e. insert backrefs as appropriate to reach the path from the base.
+
+    :param base_path: Path to a directory
+    :param path: Path you wish to make relative
+
+
+    >>> relativefrom("foo/bar", "baz/index.html")
+    '../baz/index.html'
+
+    """
+    base = list(iteratepath(base))
+    path = list(iteratepath(path))
+
+    while base and path and base[0] == path[0]:
+        base.pop(0)
+        path.pop(0)
+
+    # If you multiply a list by a negative number, you get an empty list!
+    return u'/'.join([u'..'] * len(base) + path)
+
+
 class PathMap(object):
     """Dict-like object with paths for keys.
 
@@ -626,3 +649,8 @@ def iswildcard(path):
 
 if __name__ == "__main__":
     print recursepath('a/b/c')
+
+    print relativefrom('/', '/foo')
+    print relativefrom('/foo/bar', '/foo/baz')
+    print relativefrom('/foo/bar/baz', '/foo/egg')
+    print relativefrom('/foo/bar/baz/egg', '/foo/egg')

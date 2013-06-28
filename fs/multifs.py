@@ -127,7 +127,7 @@ class MultiFS(FS):
 
     def _priority_sort(self):
         """Sort filesystems by priority order"""
-        priority_order = sorted(self.fs_lookup.keys(), key=lambda n:self.fs_priorities[n], reverse=True)
+        priority_order = sorted(self.fs_lookup.keys(), key=lambda n: self.fs_priorities[n], reverse=True)
         self.fs_sequence = [self.fs_lookup[name] for name in priority_order]
 
     @synchronize
@@ -181,7 +181,7 @@ class MultiFS(FS):
 
         """
         if name not in self.fs_lookup:
-            raise ValueError("No filesystem called '%s'"%name)
+            raise ValueError("No filesystem called '%s'" % name)
         fs = self.fs_lookup[name]
         self.fs_sequence.remove(fs)
         del self.fs_lookup[name]
