@@ -411,12 +411,13 @@ def relativefrom(base, path):
     base = list(iteratepath(base))
     path = list(iteratepath(path))
 
-    while base and path and base[0] == path[0]:
-        base.pop(0)
-        path.pop(0)
+    common = 0
+    for a, b in zip(base, path):
+        if a != b:
+            break
+        common += 1
 
-    # If you multiply a list by a negative number, you get an empty list!
-    return u'/'.join([u'..'] * len(base) + path)
+    return u'/'.join([u'..'] * (len(base) - common) + path[common:])
 
 
 class PathMap(object):
