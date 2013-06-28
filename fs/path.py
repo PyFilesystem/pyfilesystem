@@ -405,7 +405,7 @@ def relativefrom(base, path):
 
 
     >>> relativefrom("foo/bar", "baz/index.html")
-    '../baz/index.html'
+    '../../baz/index.html'
 
     """
     base = list(iteratepath(base))
