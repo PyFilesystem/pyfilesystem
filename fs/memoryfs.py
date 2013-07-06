@@ -354,7 +354,7 @@ class MemoryFS(FS):
             if allow_recreate:
                 return
             raise DestinationExistsError(dirname)
-        dirpath, dirname = pathsplit(dirname)
+        dirpath, dirname = pathsplit(dirname.rstrip('/'))
 
         if recursive:
             parent_dir = self._get_dir_entry(dirpath)
