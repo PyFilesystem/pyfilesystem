@@ -165,7 +165,10 @@ class ArchiveFS(FS):
             elif attr == 'mode':
                 info['st_mode'] = entry.mode
             else:
-                info[attr] = getattr(entry, attr)
+                value = getattr(entry, attr)
+                if callable(value):
+                    continue
+                info[attr] = value
         return info
 
     def getsize(self, path):
