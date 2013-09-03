@@ -6,15 +6,16 @@ template = """
 <style type="text/css">
 
 body {
-    font-family:Arial, Verdana;   
+    font-family:Arial, Verdana;
     margin:0px;
-    padding:0px; 
+    padding:0px;
 }
 
 table.dirlist {
-    margin:0 auto;    
+    margin:0 auto;
     font-size:13px;
     color:#666;
+    min-width:960px;
 }
 
 table.dirlist tr.r1 {
@@ -31,7 +32,7 @@ table.dirlist td a.link-dir {
 }
 
 table.dirlist td a {
-    text-decoration:none;    
+    text-decoration:none;
 }
 
 table.dirlist td a:hover {
@@ -57,20 +58,22 @@ table.dirlist tr:hover {
 <div class="dirlist-container">
 
 <table class="dirlist">
-        
+
+    <thead>
+        <tr>
+            <th>File/Directory</th>
+            <th>Size</th>
+            <th>Created Date</th>
+        </tr>
+    </thead>
     <tbody>
-    
         % for i, entry in enumerate(dirlist):
-        
         <tr class="${entry['type']} r${i%2}">
-                    
             <td><a class="link-${entry['type']}" href="${ entry['path'] }">${entry['name']}</a></td>
             <td>${entry['size']}</td>
             <td>${entry['created_time']}</td>
-        
         </tr>
         % endfor
-    
     </tbody>
 
 </table>

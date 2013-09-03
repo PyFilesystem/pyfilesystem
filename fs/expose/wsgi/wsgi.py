@@ -62,22 +62,24 @@ class WSGIServer(object):
                 serving_file.close()
             return self.serve_500(request, str(e))
 
-        mime_type = mimetypes.guess_type(basename(path))
+        mime_type = mimetypes.guess_type(basename(path))[0] or b'text/plain'
         file_size = self.serve_fs.getsize(path)
-        headers = [('Content-Type', mime_type),
-                   ('Content-Length', str(file_size))]
+        headers = [(b'Content-Type', bytes(mime_type)),
+                   (b'Content-Length', bytes(file_size))]
 
         def gen_file():
+            chunk_size = self.chunk_size
+            read = serving_file.read
             try:
-                while True:
-                    data = serving_file.read(self.chunk_size)
+                while 1:
+                    data = read(chunk_size)
                     if not data:
                         break
                     yield data
             finally:
                 serving_file.close()
 
-        request.start_response('200 OK',
+        request.start_response(b'200 OK',
                                headers)
         return gen_file()
 
@@ -121,22 +123,21 @@ class WSGIServer(object):
         # Render the mako template
         html = self.dir_template.render(**dict(fs=self.serve_fs,
                                                path=path,
-                                               dirlist=entries))
-
-        request.start_response('200 OK', [('Content-Type', 'text/html'),
-                                          ('Content-Length', '%i' % len(html))])
+                                               dirlist=entries)).encode('utf-8')
+        request.start_response(b'200 OK', [(b'Content-Type', b'text/html'),
+                                           (b'Content-Length', b'%i' % len(html))])
 
         return [html]
 
 
     def serve_404(self, request, msg='Not found'):
         """Serves a Not found page"""
-        request.start_response('404 NOT FOUND', [('Content-Type', 'text/html')])
+        request.start_response(b'404 NOT FOUND', [(b'Content-Type', b'text/html')])
         return [msg]
 
     def serve_500(self, request, msg='Unable to complete request'):
         """Serves an internal server error page"""
-        request.start_response('500 INTERNAL SERVER ERROR', [('Content-Type', 'text/html')])
+        request.start_response(b'500 INTERNAL SERVER ERROR', [(b'Content-Type', b'text/html')])
         return [msg]
 
 
