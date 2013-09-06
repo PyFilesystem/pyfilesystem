@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
+import os
 import io
 from functools import wraps
 
@@ -35,7 +36,7 @@ class RawWrapper(object):
     def isatty(self):
         return self._f.isatty()
 
-    def seek(self, offset, whence=io.SEEK_SET):
+    def seek(self, offset, whence=os.SEEK_SET):
         return self._f.seek(offset, whence)
 
     def readable(self):
@@ -52,7 +53,7 @@ class RawWrapper(object):
         if hasattr(self._f, 'seekable'):
             return self._f.seekable()
         try:
-            self.seek(0, io.SEEK_CUR)
+            self.seek(0, os.SEEK_CUR)
         except IOError:
             return False
         else:
