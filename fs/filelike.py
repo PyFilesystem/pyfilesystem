@@ -443,7 +443,7 @@ class FileLikeBase(object):
                 s -= self._bufsize
             self._do_read(s)
         # Should the entire file be read?
-        if size <= 0:
+        if size < 0:
             if self._rbuffer:
                 data = [self._rbuffer]
             else:
