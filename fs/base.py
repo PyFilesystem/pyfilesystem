@@ -790,7 +790,7 @@ class FS(object):
 
         if not data:
             progress_callback(0)
-            self.createfile(path)
+            self.createfile(path, wipe=True)
             finished_callback()
             return 0
 

@@ -152,6 +152,8 @@ class FSTestCases(object):
             b("to you, good sir!")), chunk_size=2)
         self.assertEquals(self.fs.getcontents(
             "hello", "rb"), b("to you, good sir!"))
+        self.fs.setcontents("hello", "", "wb")
+        self.assertEquals(self.fs.getcontents("hello", "rb"), "")
 
     def test_setcontents_async(self):
         #  setcontents() should accept both a string...
