@@ -434,7 +434,7 @@ examples:
         dirpath, resourcepath = pathsplit(path)
         url = netloc
 
-        ftpfs = FTPFS(url, user=username or '', passwd=password or '')
+        ftpfs = FTPFS(url, user=username or '', passwd=password or '', follow_symlinks=(fs_name_params == "symlinks"))
         ftpfs.cache_hint(True)
 
         if create_dir and path:

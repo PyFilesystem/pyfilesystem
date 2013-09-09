@@ -337,6 +337,7 @@ class FTPListDataParser(object):
             i = 0
             while (i + 3) < len(result.name):
                 if result.name[i:i+4] == ' -> ':
+                    result.target = result.name[i+4:]
                     result.name = result.name[:i]
                     break
                 i += 1
@@ -891,7 +892,7 @@ class FTPFS(FS):
               'file.read_and_write' : False,
               }
 
-    def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT, port=21, dircache=True):
+    def __init__(self, host='', user='', passwd='', acct='', timeout=_GLOBAL_DEFAULT_TIMEOUT, port=21, dircache=True, follow_symlinks=False):
         """Connect to a FTP server.
 
         :param host: Host to connect to
@@ -917,6 +918,7 @@ class FTPFS(FS):
         self.timeout = timeout
         self.default_timeout = timeout is _GLOBAL_DEFAULT_TIMEOUT
         self.use_dircache = dircache
+        self.follow_symlinks = follow_symlinks
 
         self.use_mlst = False
         self._lock = threading.RLock()
@@ -1017,6 +1019,30 @@ class FTPFS(FS):
         except error_reply:
             pass
         self.dircache[path] = dirlist
+
+        def is_symlink(info):
+            return info['try_retr'] and info['try_cwd'] and info.has_key('target')
+
+        def resolve_symlink(linkpath):
+            linkinfo = self.getinfo(linkpath)
+            if not linkinfo.has_key('resolved'):
+                linkinfo['resolved'] = linkpath
+            if is_symlink(linkinfo):
+                target = linkinfo['target']
+                base, fname = pathsplit(linkpath)
+                return resolve_symlink(pathjoin(base, target))
+            else:
+                return linkinfo
+
+        if self.follow_symlinks:
+            for name in dirlist:
+                if is_symlink(dirlist[name]):
+                    target = dirlist[name]['target']
+                    linkinfo = resolve_symlink(pathjoin(path, target))
+                    for key in linkinfo:
+                        if key != 'name':
+                            dirlist[name][key] = linkinfo[key]
+                    del dirlist[name]['target']
 
         return dirlist
 
