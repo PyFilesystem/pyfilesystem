@@ -73,3 +73,11 @@ class TestMountFS(unittest.TestCase):
 
         # Check unount a second time is a null op, and returns False
         self.assertFalse(mount_fs.unmount("bar.txt"))
+
+    def test_empty(self):
+        """Test MountFS with nothing mounted."""
+        mount_fs = MountFS()
+        self.assertEqual(mount_fs.getinfo(''), {})
+        self.assertEqual(mount_fs.getxattr('', 'yo'), None)
+        self.assertEqual(mount_fs.listdir(), [])
+        self.assertEqual(list(mount_fs.ilistdir()), [])
