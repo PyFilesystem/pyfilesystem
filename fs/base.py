@@ -28,6 +28,7 @@ import shutil
 import fnmatch
 import datetime
 import time
+import errno
 try:
     import threading
 except ImportError:
@@ -747,8 +748,8 @@ class FS(object):
         :rtype: str
 
         """
-        if not self.exists(path):
-            return ''
+        #if not self.exists(path):
+        #    return ''
         try:
             sys_path = self.getsyspath(path)
         except NoSysPathError:
@@ -1136,7 +1137,7 @@ class FS(object):
             shutil.copyfile(src_syspath, dst_syspath)
         except IOError, e:
             #  shutil reports ENOENT when a parent directory is missing
-            if getattr(e, "errno", None) == 2:
+            if getattr(e, "errno", None) == errno.ENOENT:
                 if not os.path.exists(dirname(dst_syspath)):
                     raise ParentDirectoryMissingError(dst_syspath)
             raise
