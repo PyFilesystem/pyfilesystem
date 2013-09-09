@@ -5,6 +5,7 @@ import sys
 from fs.opener import opener
 from fs.commands.runner import Command
 from fs.utils import print_fs
+import errno
 
 
 class FSServe(Command):
@@ -13,13 +14,13 @@ class FSServe(Command):
 Serves the contents of PATH with one of a number of methods"""
 
     def get_optparse(self):
-        optparse = super(FSServe, self).get_optparse()                
+        optparse = super(FSServe, self).get_optparse()
         optparse.add_option('-t', '--type', dest='type', type="string", default="http",
                             help="Server type to create (http, rpc, sftp)", metavar="TYPE")
         optparse.add_option('-a', '--addr', dest='addr', type="string", default="127.0.0.1",
                             help="Server address", metavar="ADDR")
         optparse.add_option('-p', '--port', dest='port', type="int",
-                            help="Port number", metavar="")        
+                            help="Port number", metavar="")
         return optparse
 
     def do_run(self, options, args):
@@ -90,10 +91,10 @@ Serves the contents of PATH with one of a number of methods"""
                 self.error("Server type '%s' not recognised\n" % options.type)
 
         except IOError, e:
-            if e.errno == 13:
+            if e.errno == errno.EACCES:
                 self.error('Permission denied\n')
                 return 1
-            else:                                        
+            else:
                 self.error(str(e) + '\n')
                 return 1
 
