@@ -246,6 +246,8 @@ class MountFS(FS):
         fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
+            if path in ("/", ""):
+                return
             raise ResourceNotFoundError(path)
 
         if fs is self:
@@ -465,6 +467,8 @@ class MountFS(FS):
         fs, _mount_path, delegate_path = self._delegate(path)
 
         if fs is None:
+            if path in ("/", ""):
+                return {}
             raise ResourceNotFoundError(path)
 
         if fs is self:
@@ -499,6 +503,8 @@ class MountFS(FS):
         path = normpath(path)
         fs, _mount_path, delegate_path = self._delegate(path)
         if fs is None:
+            if path in ("/", ""):
+                return default
             raise ResourceNotFoundError(path)
         if fs is self:
             return default
