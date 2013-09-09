@@ -14,6 +14,7 @@ import threading
 import os
 import paramiko
 from getpass import getuser
+import errno
 
 from fs.base import *
 from fs.path import *
@@ -22,8 +23,12 @@ from fs.utils import isdir, isfile
 from fs import iotools
 
 
+ENOENT = errno.ENOENT
+
+
 class WrongHostKeyError(RemoteConnectionError):
     pass
+
 
 # SFTPClient appears to not be thread-safe, so we use an instance per thread
 if hasattr(threading, "local"):
@@ -364,7 +369,7 @@ class SFTPFS(FS):
         try:
             self.client.stat(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 return False
             raise
         return True
@@ -378,7 +383,7 @@ class SFTPFS(FS):
         try:
             stat = self.client.stat(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 return False
             raise
         return statinfo.S_ISDIR(stat.st_mode) != 0
@@ -390,7 +395,7 @@ class SFTPFS(FS):
         try:
             stat = self.client.stat(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 return False
             raise
         return statinfo.S_ISREG(stat.st_mode) != 0
@@ -408,7 +413,7 @@ class SFTPFS(FS):
             else:
                 paths = self.client.listdir(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
                 raise ResourceNotFoundError(path)
@@ -445,7 +450,7 @@ class SFTPFS(FS):
             attrs_map = dict((a.filename, a) for a in attrs)
             paths = attrs_map.keys()
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't list directory contents of a file: %(path)s")
                 raise ResourceNotFoundError(path)
@@ -515,7 +520,7 @@ class SFTPFS(FS):
         try:
             self.client.remove(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 raise ResourceNotFoundError(path)
             elif self.isdir(path):
                 raise ResourceInvalidError(path,msg="Cannot use remove() on a directory: %(path)s")
@@ -538,7 +543,7 @@ class SFTPFS(FS):
         try:
             self.client.rmdir(npath)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 if self.isfile(path):
                     raise ResourceInvalidError(path,msg="Can't use removedir() on a file: %(path)s")
                 raise ResourceNotFoundError(path)
@@ -561,7 +566,7 @@ class SFTPFS(FS):
         try:
             self.client.rename(nsrc,ndst)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 raise ResourceNotFoundError(src)
             if not self.isdir(dirname(dst)):
                 raise ParentDirectoryMissingError(dst)
@@ -577,7 +582,7 @@ class SFTPFS(FS):
         try:
             self.client.rename(nsrc,ndst)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 raise ResourceNotFoundError(src)
             if self.exists(dst):
                 raise DestinationExistsError(dst)
@@ -595,7 +600,7 @@ class SFTPFS(FS):
         try:
             self.client.rename(nsrc,ndst)
         except IOError, e:
-            if getattr(e,"errno",None) == 2:
+            if getattr(e,"errno",None) == ENOENT:
                 raise ResourceNotFoundError(src)
             if self.exists(dst):
                 raise DestinationExistsError(dst)
