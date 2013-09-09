@@ -323,9 +323,9 @@ class WatchableFS(WatchableFSMixin,WrapFS):
             self.notify_watchers(MODIFIED, path, True)
         return ret
 
-    def createfile(self, path):
+    def createfile(self, path, wipe=False):
         existed = self.wrapped_fs.isfile(path)
-        ret = super(WatchableFS, self).createfile(path)
+        ret = super(WatchableFS, self).createfile(path, wipe=False)
         if not existed:
             self.notify_watchers(CREATED,path)
         self.notify_watchers(ACCESSED,path)

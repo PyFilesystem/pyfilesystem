@@ -167,8 +167,8 @@ class WrapFS(FS):
             return super(WrapFS, self).setcontents(path, data, encoding=encoding, errors=errors, chunk_size=chunk_size)
 
     @rewrite_errors
-    def createfile(self, path):
-        return self.wrapped_fs.createfile(self._encode(path))
+    def createfile(self, path, wipe=False):
+        return self.wrapped_fs.createfile(self._encode(path), wipe=wipe)
 
     @rewrite_errors
     def exists(self, path):

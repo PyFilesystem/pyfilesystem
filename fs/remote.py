@@ -679,8 +679,8 @@ class CacheFSMixin(FS):
             self.__cache[path] = CachedInfo.new_file_stub()
         return res
 
-    def createfile(self, path):
-        super(CacheFSMixin,self).createfile(path)
+    def createfile(self, path, wipe=False):
+        super(CacheFSMixin,self).createfile(path, wipe=wipe)
         with self.__cache_lock:
             self.__cache.clear(path)
             self.__cache[path] = CachedInfo.new_file_stub()

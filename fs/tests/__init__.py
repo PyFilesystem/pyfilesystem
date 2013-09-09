@@ -136,6 +136,18 @@ class FSTestCases(object):
         self.assertEquals(f.read(), b("test file overwrite"))
         f.close()
 
+    def test_createfile(self):
+        """Test createfile"""
+        test = b('now with content')
+        self.fs.createfile("test.txt")
+        self.assert_(self.fs.exists("test.txt"))
+        self.assertEqual(self.fs.getcontents("test.txt", "rb"), b(''))
+        self.fs.setcontents("test.txt", test)
+        self.fs.createfile("test.txt")
+        self.assertEqual(self.fs.getcontents("test.txt", "rb"), test)
+        self.fs.createfile("test.txt", wipe=True)
+        self.assertEqual(self.fs.getcontents("test.txt", "rb"), b(''))
+
     def test_setcontents(self):
         #  setcontents() should accept both a string...
         self.fs.setcontents("hello", b("world"))
@@ -152,7 +164,7 @@ class FSTestCases(object):
             b("to you, good sir!")), chunk_size=2)
         self.assertEquals(self.fs.getcontents(
             "hello", "rb"), b("to you, good sir!"))
-        self.fs.setcontents("hello", "", "wb")
+        self.fs.setcontents("hello", b"")
         self.assertEquals(self.fs.getcontents("hello", "rb"), "")
 
     def test_setcontents_async(self):
@@ -888,7 +900,7 @@ class FSTestCases(object):
 
     def test_zero_read(self):
         """Test read(0) returns empty string"""
-        self.fs.setcontents('foo.txt', b('Hello, World'), 'wb')
+        self.fs.setcontents('foo.txt', b('Hello, World') )
         with self.fs.open('foo.txt', 'rb') as f:
             self.assert_(len(f.read(0)) == 0)
         with self.fs.open('foo.txt', 'rt') as f:
