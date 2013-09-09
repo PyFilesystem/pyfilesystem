@@ -884,6 +884,14 @@ class FSTestCases(object):
     def test_removeroot(self):
         self.assertRaises(RemoveRootError, self.fs.removedir, "/")
 
+    def test_zero_read(self):
+        """Test read(0) returns empty string"""
+        self.fs.setcontents('foo.txt', b('Hello, World'), 'wb')
+        with self.fs.open('foo.txt', 'rb') as f:
+            self.assert_(len(f.read(0)) == 0)
+        with self.fs.open('foo.txt', 'rt') as f:
+            self.assert_(len(f.read(0)) == 0)
+
 # May be disabled - see end of file
 
 
