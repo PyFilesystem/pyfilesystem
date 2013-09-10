@@ -93,6 +93,12 @@ class RawWrapper(object):
         b[:len(data)] = data
         return bytes_read
 
+    def readline(self, limit=-1):
+        return self._f.readline(limit)
+
+    def readlines(self, hint=-1):
+        return self._f.readlines(hint)
+
     def writelines(self, sequence):
         return self._f.writelines(sequence)
 
