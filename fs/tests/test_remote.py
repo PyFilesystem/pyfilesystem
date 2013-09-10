@@ -30,6 +30,9 @@ class RemoteTempFS(TempFS):
         Simple filesystem implementing setfilecontents
         for RemoteFileBuffer tests
     """
+    def __repr__(self):
+        return '<RemoteTempFS: %s>' % self._temp_dir
+
     def open(self, path, mode='rb', write_on_flush=True, **kwargs):
         if 'a' in mode or 'r' in mode or '+' in mode:
             f = super(RemoteTempFS, self).open(path, mode='rb', **kwargs)

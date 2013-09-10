@@ -103,6 +103,7 @@ class RemoteFileBuffer(FileWrapper):
             # Do not use remote file object
             self._eof = True
             self._rfile = None
+            self._changed = True
             if rfile is not None and hasattr(rfile,"close"):
                 rfile.close()
         super(RemoteFileBuffer,self).__init__(wrapped_file,mode)

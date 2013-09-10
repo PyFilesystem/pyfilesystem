@@ -895,15 +895,15 @@ class FS(object):
         :param wipe: if True, the contents of the file will be erased
 
         """
-        if not wipe and self.isfile(path):
-            return
-
-        f = None
-        try:
-            f = self.open(path, 'w')
-        finally:
-            if f is not None:
-                f.close()
+        with self._lock:
+            if not wipe and self.isfile(path):
+                return
+            f = None
+            try:
+                f = self.open(path, 'wb')
+            finally:
+                if f is not None:
+                    f.close()
 
     def opendir(self, path):
         """Opens a directory and returns a FS object representing its contents.

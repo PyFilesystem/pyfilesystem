@@ -192,6 +192,8 @@ def pathcombine(path1, path2):
     'foo/bar/baz'
 
     """
+    if not path1:
+        return path2.lstrip()
     return "%s/%s" % (path1.rstrip('/'), path2.lstrip('/'))
 
 
