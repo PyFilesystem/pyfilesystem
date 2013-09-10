@@ -55,6 +55,9 @@ class _TempWriteFile(object):
     def flush(self):
         self._file.flush()
 
+    def seek(self, offset, whence):
+        return self._file.seek(offset, whence)
+
     def __enter__(self):
         return self
 
