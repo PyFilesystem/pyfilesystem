@@ -39,6 +39,7 @@ __all__ = ['FSError',
 
 import sys
 import errno
+import six
 
 from fs.path import *
 from fs.local_functools import wraps
@@ -63,7 +64,12 @@ class FSError(Exception):
         return str(self.msg % keys)
 
     def __unicode__(self):
-        return unicode(self.msg) % self.__dict__
+        keys = {}
+        for k,v in self.__dict__.iteritems():
+            if isinstance(v, six.binary_type):
+                v = v.decode(sys.getfilesystemencoding(), errors='replace')
+            keys[k] = v
+        return unicode(self.msg, encoding=sys.getfilesystemencoding(), errors='replace') % keys
 
     def __reduce__(self):
         return (self.__class__,(),self.__dict__.copy(),)
