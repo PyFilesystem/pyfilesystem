@@ -744,7 +744,7 @@ class _FTPFile(object):
             self.ftp = self.ftpfs._open_ftp()
             self.ftp.sendcmd('TYPE I')
             self.ftp.sendcmd('REST %i' % (new_pos))
-            self.__init__(self.ftpfs, self.ftp, _encode(self.path), self.mode)
+            self.__init__(self.ftpfs, self.ftp, self.path, self.mode)
             self.read_pos = new_pos
         finally:
             self._lock.release()
