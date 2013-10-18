@@ -514,8 +514,23 @@ class FSTestCases(object):
         self.assertRaises(
             ResourceNotFoundError, self.fs.getinfo, "info.txt/inval")
 
+    def test_infokeys(self):
+        test_str = b("Hello, World!")
+        self.fs.setcontents("info.txt", test_str)
+        info = self.fs.getinfo("info.txt")
+        for k, v in info.iteritems():
+            self.assertEqual(self.fs.getinfokeys('info.txt', k), {k: v})
+
+        test_info = {}
+        if 'modified_time' in info:
+            test_info['modified_time'] = info['modified_time']
+        if 'size' in info:
+            test_info['size'] = info['size']
+        self.assertEqual(self.fs.getinfokeys('info.txt', 'size', 'modified_time'), test_info)
+        self.assertEqual(self.fs.getinfokeys('info.txt', 'thiscantpossiblyexistininfo'), {})
+
     def test_getsize(self):
-        test_str = b("*")*23
+        test_str = b("*") * 23
         self.fs.setcontents("info.txt", test_str)
         size = self.fs.getsize("info.txt")
         self.assertEqual(size, len(test_str))
@@ -900,7 +915,7 @@ class FSTestCases(object):
 
     def test_zero_read(self):
         """Test read(0) returns empty string"""
-        self.fs.setcontents('foo.txt', b('Hello, World') )
+        self.fs.setcontents('foo.txt', b('Hello, World'))
         with self.fs.open('foo.txt', 'rb') as f:
             self.assert_(len(f.read(0)) == 0)
         with self.fs.open('foo.txt', 'rt') as f:
