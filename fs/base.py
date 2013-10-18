@@ -740,6 +740,22 @@ class FS(object):
         """
         raise UnsupportedError("get resource info")
 
+    def getinfokeys(self, path, *keys):
+        """Get specified keys from info dict, as returned from `getinfo`. The returned dictionary may
+        not contain all the keys that were asked for, if they aren't available.
+
+        This method allows a filesystem to potentially provide a faster way of retrieving these info values if you
+        are only interested in a subset of them.
+
+        :param path: a path to retrieve information for
+        :param keys: the info keys you would like to retrieve
+
+        :rtype: dict
+
+        """
+        info = self.getinfo(path)
+        return {k: info[k] for k in keys if k in info}
+
     def desc(self, path):
         """Returns short descriptive text regarding a path. Intended mainly as
         a debugging aid.
@@ -760,8 +776,13 @@ class FS(object):
         """Returns the contents of a file as a string.
 
         :param path: A path of file to read
+        :param mode: Mode to open file with (should be 'rb' for binary or 't' for text)
+        :param encoding: Encoding to use when reading contents in text mode
+        :param errors: Unicode errors parameter if text mode is use
+        :param newline: Newlines parameter for text mode decoding
         :rtype: str
         :returns: file contents
+
         """
         if 'r' not in mode:
             raise ValueError("mode must contain 'r' to be readable")

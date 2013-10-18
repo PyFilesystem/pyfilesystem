@@ -343,16 +343,39 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         info = dict((k, getattr(stats, k)) for k in dir(stats) if k.startswith('st_'))
         info['size'] = info['st_size']
         #  TODO: this doesn't actually mean 'creation time' on unix
+        fromtimestamp = datetime.datetime.fromtimestamp
         ct = info.get('st_ctime', None)
         if ct is not None:
-            info['created_time'] = datetime.datetime.fromtimestamp(ct)
+            info['created_time'] = fromtimestamp(ct)
         at = info.get('st_atime', None)
         if at is not None:
-            info['accessed_time'] = datetime.datetime.fromtimestamp(at)
+            info['accessed_time'] = fromtimestamp(at)
         mt = info.get('st_mtime', None)
         if mt is not None:
-            info['modified_time'] = datetime.datetime.fromtimestamp(mt)
+            info['modified_time'] = fromtimestamp(mt)
         return info
+
+    @convert_os_errors
+    def getinfokeys(self, path, *keys):
+        info = {}
+        stats = self._stat(path)
+        fromtimestamp = datetime.datetime.fromtimestamp
+        for key in keys:
+            try:
+                if key == 'size':
+                    info[key] = stats.st_size
+                elif key == 'modified_time':
+                    info[key] = fromtimestamp(stats.st_mtime)
+                elif key == 'created_time':
+                    info[key] = fromtimestamp(stats.st_ctime)
+                elif key == 'accessed_time':
+                    info[key] = fromtimestamp(stats.st_atime)
+                else:
+                    info[key] = getattr(stats, key)
+            except AttributeError:
+                continue
+        return info
+
 
     @convert_os_errors
     def getsize(self, path):

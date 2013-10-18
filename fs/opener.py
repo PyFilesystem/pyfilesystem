@@ -271,7 +271,7 @@ class OpenerRegistry(object):
         file_object.fs = fs
         return file_object
 
-    def getcontents(self, fs_url, node='rb', encoding=None, errors=None, newline=None):
+    def getcontents(self, fs_url, mode='rb', encoding=None, errors=None, newline=None):
         """Gets the contents from a given FS url (if it references a file)
 
         :param fs_url: a FS URL e.g. ftp://ftp.mozilla.org/README
