@@ -161,7 +161,7 @@ class MountFS(FS):
                 return "Mount dir"
             else:
                 return "Mounted file"
-        return "Mounted dir, maps to path %s on %s" % (delegate_path or '/', str(fs))
+        return "Mounted dir, maps to path %s on %s" % (abspath(delegate_path) or '/', str(fs))
 
     @synchronize
     def isdir(self, path):

@@ -235,7 +235,7 @@ class MultiFS(FS):
         name, fs = self.which(path)
         if name is None:
             return ""
-        return "%s, on %s (%s)" % (fs.desc(path), name, fs)
+        return "%s (in %s)" % (fs.desc(path), name)
 
     @synchronize
     def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):

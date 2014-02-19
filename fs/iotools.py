@@ -79,7 +79,7 @@ class RawWrapper(object):
 
     def read1(self, n=-1):
         if self.is_io:
-            return self.read1(n)
+            return self._f.read1(n)
         return self.read(n)
 
     def readall(self):
