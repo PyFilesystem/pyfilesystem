@@ -266,6 +266,10 @@ def convert_os_errors(func):
                 raise OperationFailedError(opname,details=e),None,tb
             if e.errno == errno.ENOENT:
                 raise ResourceNotFoundError(path,opname=opname,details=e),None,tb
+            if e.errno == errno.EFAULT:
+                # This can happen when listdir a directory that is deleted by another thread
+                # Best to interpret it as a resource not found
+                raise ResourceNotFoundError(path,opname=opname,details=e),None,tb
             if e.errno == errno.ESRCH:
                 raise ResourceNotFoundError(path,opname=opname,details=e),None,tb
             if e.errno == errno.ENOTEMPTY:

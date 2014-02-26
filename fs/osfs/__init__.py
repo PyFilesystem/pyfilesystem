@@ -21,6 +21,7 @@ import errno
 import datetime
 import platform
 import io
+import shutil
 
 from fs.base import *
 from fs.path import *
@@ -246,7 +247,9 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     @convert_os_errors
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         _decode_path = self._decode_path
-        paths = [_decode_path(p) for p in os.listdir(self.getsyspath(path))]
+        sys_path = self.getsyspath(path)
+        listing = os.listdir(sys_path)
+        paths = [_decode_path(p) for p in listing]
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @convert_os_errors
@@ -283,22 +286,15 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
 
     @convert_os_errors
     def removedir(self, path, recursive=False, force=False):
-        sys_path = self.getsyspath(path)
-        if force:
-            for path2 in self.listdir(path, absolute=True, files_only=True):
-                try:
-                    self.remove(path2)
-                except ResourceNotFoundError:
-                    pass
-            for path2 in self.listdir(path, absolute=True, dirs_only=True):
-                try:
-                    self.removedir(path2, force=True)
-                except ResourceNotFoundError:
-                    pass
         #  Don't remove the root directory of this FS
         if path in ('', '/'):
             raise RemoveRootError(path)
-        os.rmdir(sys_path)
+        sys_path = self.getsyspath(path)
+        if force:
+            # shutil implementation handles concurrency better
+            shutil.rmtree(sys_path, ignore_errors=True)
+        else:
+            os.rmdir(sys_path)
         #  Using os.removedirs() for this can result in dirs being
         #  removed outside the root of this FS, so we recurse manually.
         if recursive:

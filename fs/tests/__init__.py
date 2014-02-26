@@ -137,7 +137,6 @@ class FSTestCases(object):
         f.close()
 
     def test_createfile(self):
-        """Test createfile"""
         test = b('now with content')
         self.fs.createfile("test.txt")
         self.assert_(self.fs.exists("test.txt"))
@@ -396,8 +395,8 @@ class FSTestCases(object):
         alpha = u"\N{GREEK SMALL LETTER ALPHA}"
         beta = u"\N{GREEK SMALL LETTER BETA}"
         self.fs.makedir(alpha)
-        self.fs.setcontents(alpha+"/a", b(''))
-        self.fs.setcontents(alpha+"/"+beta, b(''))
+        self.fs.setcontents(alpha + "/a", b(''))
+        self.fs.setcontents(alpha + "/" + beta, b(''))
         self.assertTrue(self.check(alpha))
         self.assertEquals(sorted(self.fs.listdir(alpha)), ["a", beta])
 

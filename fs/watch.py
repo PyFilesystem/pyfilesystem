@@ -315,7 +315,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
 
     def setcontents(self, path, data=b'', encoding=None, errors=None, chunk_size=64*1024):
         existed = self.wrapped_fs.isfile(path)
-        ret = super(WatchableFS, self).setcontents(path, data, chunk_size=chunk_size)
+        ret = super(WatchableFS, self).setcontents(path, data=data, encoding=encoding, errors=errors, chunk_size=chunk_size)
         if not existed:
             self.notify_watchers(CREATED, path)
         self.notify_watchers(ACCESSED, path)
@@ -325,7 +325,7 @@ class WatchableFS(WatchableFSMixin,WrapFS):
 
     def createfile(self, path, wipe=False):
         existed = self.wrapped_fs.isfile(path)
-        ret = super(WatchableFS, self).createfile(path, wipe=False)
+        ret = super(WatchableFS, self).createfile(path, wipe=wipe)
         if not existed:
             self.notify_watchers(CREATED,path)
         self.notify_watchers(ACCESSED,path)
