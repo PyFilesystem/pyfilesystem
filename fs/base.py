@@ -754,7 +754,7 @@ class FS(object):
 
         """
         info = self.getinfo(path)
-        return {k: info[k] for k in keys if k in info}
+        return dict((k, info[k]) for k in keys if k in info)
 
     def desc(self, path):
         """Returns short descriptive text regarding a path. Intended mainly as

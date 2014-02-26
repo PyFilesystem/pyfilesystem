@@ -67,7 +67,7 @@ class FSError(Exception):
         keys = {}
         for k,v in self.__dict__.iteritems():
             if isinstance(v, six.binary_type):
-                v = v.decode(sys.getfilesystemencoding(), errors='replace')
+                v = v.decode(sys.getfilesystemencoding(), 'replace')
             keys[k] = v
         return unicode(self.msg, encoding=sys.getfilesystemencoding(), errors='replace') % keys
 
