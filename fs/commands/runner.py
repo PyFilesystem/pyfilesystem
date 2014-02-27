@@ -8,7 +8,7 @@ from fs.errors import FSError
 from fs.path import splitext, pathsplit, isdotfile, iswildcard
 import platform
 from collections import defaultdict
-import re
+import six
 
 if platform.system() == 'Windows':
 
@@ -76,8 +76,12 @@ class Command(object):
     version = ''
 
     def __init__(self, usage='', version=''):
-        self.output_file = sys.stdout
-        self.error_file = sys.stderr
+        if six.PY3:
+            self.output_file = sys.stdout.buffer
+            self.error_file = sys.stderr.buffer
+        else:
+            self.output_file = sys.stdout
+            self.error_file = sys.stderr
         self.encoding = getattr(self.output_file, 'encoding', 'utf-8') or 'utf-8'
         self.verbosity_level = 0
         self.terminal_colors = not sys.platform.startswith('win') and self.is_terminal()
@@ -210,11 +214,9 @@ class Command(object):
         return raw_input('%s: %s ' % (self.name, msg))
 
     def text_encode(self, text):
-
         if not isinstance(text, unicode):
             text = text.decode('ascii', 'replace')
         text = text.encode(self.encoding, 'replace')
-
         return text
 
     def output(self, msgs, verbose=False):
@@ -226,10 +228,8 @@ class Command(object):
             self.output_file.write(self.text_encode(msg))
 
     def output_table(self, table, col_process=None, verbose=False):
-
         if verbose and not self.verbose:
             return
-
         if col_process is None:
             col_process = {}
 
@@ -248,7 +248,9 @@ class Command(object):
                     td = col_process[col_no](td)
                 out_col.append(td)
             lines.append(self.text_encode('%s\n' % '  '.join(out_col).rstrip()))
-        self.output(''.join(lines))
+        for l in lines:
+            self.output_file.write(l)
+        #self.output(''.join(lines))
 
     def error(self, *msgs):
         for msg in msgs:
@@ -275,7 +277,7 @@ class Command(object):
             desc = getattr(fs_opener, 'desc', '')
             opener_table.append((names, desc))
 
-        opener_table.sort(key = lambda r:r[0])
+        opener_table.sort(key=lambda r: r[0])
 
         def wrap_line(text):
 
@@ -298,13 +300,12 @@ class Command(object):
 
         for names, desc in opener_table:
             self.output(('-' * self.terminal_width, '\n'))
-            proto = ', '.join([n+'://' for n in names])
+            proto = ', '.join([n + '://' for n in names])
             self.output((self.wrap_dirname('[%s]' % proto), '\n\n'))
             if not desc.strip():
                 desc = "No information available"
             wrap_line(desc)
             self.output('\n')
-
 
     def run(self):
         parser = self.get_optparse()
@@ -340,7 +341,8 @@ class Command(object):
 
                 opener.add(new_opener)
 
-        args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]
+        if not six.PY3:
+            args = [unicode(arg, sys.getfilesystemencoding()) for arg in args]
         self.verbose = options.verbose
         try:
             return self.do_run(options, args) or 0

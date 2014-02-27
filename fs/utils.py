@@ -18,14 +18,15 @@ __all__ = ['copyfile',
            'find_duplicates',
            'print_fs']
 
-import os
 import sys
 import stat
+import six
 
 from fs.mountfs import MountFS
 from fs.path import pathjoin
 from fs.errors import DestinationExistsError, RemoveRootError
 from fs.base import FS
+
 
 def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1024):
     """Copy a file from one filesystem to another. Will use system copyfile, if both files have a syspath.
@@ -491,7 +492,7 @@ def print_fs(fs,
             terminal_colors = hasattr(file_out, 'isatty') and file_out.isatty()
 
     def write(line):
-        file_out.write(line.encode(file_encoding, 'replace')+'\n')
+        file_out.write(line.encode(file_encoding, 'replace') + b'\n')
 
     def wrap_prefix(prefix):
         if not terminal_colors:
@@ -511,11 +512,7 @@ def print_fs(fs,
     def wrap_filename(fname):
         if not terminal_colors:
             return fname
-#        if '.' in fname:
-#            name, ext = os.path.splitext(fname)
-#            fname = '%s\x1b[36m%s\x1b[0m' % (name, ext)
         if fname.startswith('.'):
-            #fname = '\x1b[2m%s\x1b[0m' % fname
             fname = '\x1b[33m%s\x1b[0m' % fname
         return fname
     dircount = [0]
