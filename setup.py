@@ -52,7 +52,7 @@ setup(install_requires=['distribute', 'six'],
       author_email="will@willmcgugan.com",
       #url="http://code.google.com/p/pyfilesystem/",
       #download_url="http://code.google.com/p/pyfilesystem/downloads/list",
-      url="http://pypi.python.org/pypi/fs/"
+      url="http://pypi.python.org/pypi/fs/",
       platforms=['any'],
       packages=['fs',
                 'fs.expose',

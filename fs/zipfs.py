@@ -205,7 +205,8 @@ class ZipFS(FS):
                                            msg="1 Zip file must be opened for reading ('r') or appending ('a')")
             try:
                 if hasattr(self.zf, 'open') and self._zip_file_string:
-                    return self.zf.open(self._encode_path(path), "r")
+                    #return self.zf.open(self._encode_path(path), "r")
+                    return self.zf.open(self._encode_path(path), 'rU' if 'U' in mode else 'r')
                 else:
                     contents = self.zf.read(self._encode_path(path))
             except KeyError:
