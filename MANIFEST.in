@@ -1,2 +1,5 @@
 
 include AUTHORS
+include README.txt
+include LICENSE.txt
+include CHANGES.txt

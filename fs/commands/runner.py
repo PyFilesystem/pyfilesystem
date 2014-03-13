@@ -1,17 +1,19 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import sys
-from optparse import OptionParser
 from fs.opener import opener, OpenerError, Opener
 from fs.errors import FSError
 from fs.path import splitext, pathsplit, isdotfile, iswildcard
+
+import re
+import sys
 import platform
-from collections import defaultdict
 import six
+from optparse import OptionParser
+from collections import defaultdict
+
 
 if platform.system() == 'Windows':
-
     def getTerminalSize():
         try:
             ## {{{ http://code.activestate.com/recipes/440694/ (r3)
@@ -32,13 +34,12 @@ if platform.system() == 'Windows':
                 sizex = right - left + 1
                 sizey = bottom - top + 1
             else:
-                sizex, sizey = 80, 25 # can't determine actual size - return default values
+                sizex, sizey = 80, 25  # can't determine actual size - return default values
             return sizex, sizey
         except:
             return 80, 25
 
 else:
-
     def getTerminalSize():
         def ioctl_GWINSZ(fd):
             try:
@@ -65,10 +66,12 @@ else:
             pass
         return 80, 25
 
+
 def _unicode(text):
     if not isinstance(text, unicode):
         return text.decode('ascii', 'replace')
     return text
+
 
 class Command(object):
 
@@ -146,6 +149,7 @@ class Command(object):
         if not self.terminal_colors:
             return text
         re_fs = r'(\S*?://\S*)'
+
         def repl(matchobj):
             fs_url = matchobj.group(0)
             return self.wrap_link(fs_url)

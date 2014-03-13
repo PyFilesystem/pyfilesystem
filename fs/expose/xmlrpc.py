@@ -31,6 +31,16 @@ class RPCFSInterface(object):
     the contents of files.
     """
 
+    # info keys are restricted to a subset known to work over xmlrpc
+    # This fixes an issue with transporting Longs on Py3
+    _allowed_info = ["size",
+                     "created_time",
+                     "modified_time",
+                     "accessed_time",
+                     "st_size",
+                     "st_mode",
+                     "type"]
+
     def __init__(self, fs):
         super(RPCFSInterface, self).__init__()
         self.fs = fs
@@ -118,6 +128,8 @@ class RPCFSInterface(object):
     def getinfo(self, path):
         path = self.decode_path(path)
         info = self.fs.getinfo(path)
+        info = dict((k, v) for k, v in info.iteritems()
+                    if k in self._allowed_info)
         return info
 
     def desc(self, path):

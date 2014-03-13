@@ -7,7 +7,7 @@ from setuptools import setup
 import sys
 PY3 = sys.version_info >= (3,)
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 
 COMMANDS = ['fscat',
             'fscp',
@@ -34,10 +34,9 @@ classifiers = [
     'Topic :: System :: Filesystems',
 ]
 
-long_desc = """Pyfilesystem is a module that provides a simplified common interface to many types of filesystem. Filesystems exposed via Pyfilesystem can also be served over the network, or 'mounted' on the native filesystem.
+with open('README.txt', 'r') as f:
+    long_desc = f.read()
 
-Even if you only need to work with file and directories on the local hard-drive, Pyfilesystem can simplify your code and make it more robust -- with the added advantage that you can change where the files are located by changing a single line of code.
-"""
 
 extra = {}
 if PY3:
@@ -46,13 +45,14 @@ if PY3:
 setup(install_requires=['distribute', 'six'],
       name='fs',
       version=VERSION,
-      description="Filesystem abstraction",
+      description="Filesystem abstraction layer",
       long_description=long_desc,
       license="BSD",
       author="Will McGugan",
       author_email="will@willmcgugan.com",
-      url="http://code.google.com/p/pyfilesystem/",
-      download_url="http://code.google.com/p/pyfilesystem/downloads/list",
+      #url="http://code.google.com/p/pyfilesystem/",
+      #download_url="http://code.google.com/p/pyfilesystem/downloads/list",
+      url="http://pypi.python.org/pypi/fs/"
       platforms=['any'],
       packages=['fs',
                 'fs.expose',

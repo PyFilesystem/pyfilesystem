@@ -31,6 +31,7 @@ def _check_mode(mode, mode_chars):
             return False
     return True
 
+
 class MemoryFile(object):
 
     def seek_and_lock(f):
@@ -70,7 +71,6 @@ class MemoryFile(object):
                 self.mem_file.truncate()
             finally:
                 lock.release()
-
 
         assert self.mem_file is not None, "self.mem_file should have a value"
 
@@ -163,7 +163,7 @@ class MemoryFile(object):
     def __enter__(self):
         return self
 
-    def __exit__(self,exc_type,exc_value,traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.close()
         return False
 
@@ -218,7 +218,7 @@ class DirEntry(object):
         if self.isfile():
             return "<file %s>" % self.name
         elif self.isdir():
-            return "<dir %s>" % "".join( "%s: %s" % (k, v.desc_contents()) for k, v in self.contents.iteritems())
+            return "<dir %s>" % "".join("%s: %s" % (k, v.desc_contents()) for k, v in self.contents.iteritems())
 
     def isdir(self):
         return self.type == "dir"
@@ -248,24 +248,23 @@ class DirEntry(object):
             self.mem_file = StringIO()
             self.mem_file.write(data)
 
-class MemoryFS(FS):
 
+class MemoryFS(FS):
     """An in-memory filesystem.
 
     """
 
-    _meta = {'thread_safe' : True,
-             'network' : False,
+    _meta = {'thread_safe': True,
+             'network': False,
              'virtual': False,
-             'read_only' : False,
-             'unicode_paths' : True,
-             'case_insensitive_paths' : False,
-             'atomic.move' : False,
-             'atomic.copy' : False,
-             'atomic.makedir' : True,
-             'atomic.rename' : True,
-             'atomic.setcontents' : False,
-              }
+             'read_only': False,
+             'unicode_paths': True,
+             'case_insensitive_paths': False,
+             'atomic.move': False,
+             'atomic.copy': False,
+             'atomic.makedir': True,
+             'atomic.rename': True,
+             'atomic.setcontents': False}
 
     def _make_dir_entry(self, *args, **kwargs):
         return self.dir_entry_factory(*args, **kwargs)

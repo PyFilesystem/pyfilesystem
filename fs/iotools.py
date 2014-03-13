@@ -188,8 +188,6 @@ def make_bytes_io(data, encoding=None, errors=None):
     return io.BytesIO(data)
 
 
-
-
 def copy_file_to_fs(f, fs, path, encoding=None, errors=None, progress_callback=None, chunk_size=64 * 1024):
     """Copy an open file to a path on an FS"""
     if progress_callback is None:

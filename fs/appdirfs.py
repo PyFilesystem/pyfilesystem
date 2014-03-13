@@ -21,6 +21,7 @@ __all__ = ['UserDataFS',
            'UserCacheFS',
            'UserLogFS']
 
+
 class UserDataFS(OSFS):
     """A filesystem for per-user application data."""
     def __init__(self, appname, appauthor=None, version=None, roaming=False, create=True):

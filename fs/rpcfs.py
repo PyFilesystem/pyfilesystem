@@ -305,7 +305,8 @@ class RPCFS(FS):
     @synchronize
     def getinfo(self, path):
         path = self.encode_path(path)
-        return self.proxy.getinfo(path)
+        info = self.proxy.getinfo(path)
+        return info
 
     @synchronize
     def desc(self, path):
