@@ -25,13 +25,14 @@ Guide
    utilities.rst
    commands.rst
    implementersguide.rst
-   
+   releasenotes.rst
+
 Code Documentation
 ------------------
-   
+
 .. toctree::
    :maxdepth: 3
-   
+
    appdirfs.rst
    base.rst
    browsewin.rst
@@ -55,8 +56,8 @@ Code Documentation
    utils.rst
    watch.rst
    wrapfs/index.rst
-   zipfs.rst   
-   
+   zipfs.rst
+
 
 Indices and tables
 ==================
