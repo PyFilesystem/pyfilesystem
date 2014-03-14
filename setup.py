@@ -42,7 +42,7 @@ extra = {}
 if PY3:
     extra["use_2to3"] = True
 
-setup(install_requires=['distribute', 'six'],
+setup(install_requires=['setuptools', 'six'],
       name='fs',
       version=VERSION,
       description="Filesystem abstraction layer",
