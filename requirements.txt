@@ -1,0 +1,6 @@
+boto
+paramiko
+six
+django
+dexml
+wx
