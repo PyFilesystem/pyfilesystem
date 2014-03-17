@@ -1,3 +1,5 @@
+.. _commands:
+
 Command Line Applications
 =========================
 
@@ -17,8 +19,8 @@ You can also 'point' the command line applications at an opener to add it to a l
 For example, the following uses a custom opener to list the contents of a directory served with the 'myfs' protocol::
 
 	fsls --fs mypackage.mymodule.myfs.MyFSOpener myfs://127.0.0.1
-	
-	
+
+
 Listing Supported Filesystems
 -----------------------------
 
@@ -32,7 +34,7 @@ fsls
 
 Lists the contents of a directory, similar to the ``ls`` command, e.g.::
 
-	fsls	
+	fsls
 	fsls ../
 	fsls ftp://example.org/pub
 	fsls zip://photos.zip
@@ -55,7 +57,7 @@ Writes a file to stdout, e.g::
 	fscat ~/.bashrc
 	fscat http://www.willmcgugan.com
 	fscat ftp://ftp.mozilla.org/pub/README
-	
+
 fsinfo
 ------
 
@@ -63,7 +65,7 @@ Displays information regarding a file / directory, e.g::
 
 	fsinfo C:\autoexec.bat
 	fsinfo ftp://ftp.mozilla.org/pub/README
-	
+
 fsmv
 ----
 
@@ -71,7 +73,7 @@ Moves a file from one location to another, e.g::
 
 	fsmv foo bar
 	fsmv *.jpg zip://photos.zip
-	
+
 fsmkdir
 -------
 
@@ -100,11 +102,11 @@ Removes (deletes) a file from a filesystem, e.g::
 fsserve
 -------
 
-Serves the contents of a filesystem over a network with one of a number of methods; HTTP, RPC or SFTP, e.g:: 
+Serves the contents of a filesystem over a network with one of a number of methods; HTTP, RPC or SFTP, e.g::
 
 	fsserve
 	fsserve --type rpc
-	fsserve --type http zip://photos.zip	
+	fsserve --type http zip://photos.zip
 
 fsmount
 -------

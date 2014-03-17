@@ -6,7 +6,7 @@ PyFilesystem is a Python-only module and can be installed from source or with `p
 Installing
 ----------
 
-To install with pip, use the following
+To install with pip, use the following::
 
 	pip install fs
 
@@ -25,6 +25,16 @@ Whichever method you use, you should now have the `fs` module on your path (vers
     >>> import fs
     >>> fs.__version__
     '0.5.0'
+
+You should also have the command line applications installed. If you enter the following in the command line, you should see a tree display of the current working directory::
+
+    fstree -l 2
+
+Because the command line utilities use PyFilesystem, they also work with any of the supported filesystems. For example::
+
+    fstree ftp://ftp.mozilla.org -l 2
+
+See :doc:`commands` for more information on the command line applications.
 
 Prerequisites
 -------------

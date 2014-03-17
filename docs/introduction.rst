@@ -10,7 +10,15 @@ Even if you only want to work with the local filesystem, PyFilesystem simplifies
 About PyFilesystem
 ------------------
 
-PyFilesystem was initially created by Will McGugan (http://www.willmcgugan.com) and is now a joint effort with Ryan Kelly (http://www.rfk.id.au/).
+PyFilesystem was initially created by Will McGugan and is now a joint effort from the following contributors:
+
+
+- Will McGugan (http://www.willmcgugan.com)
+- Ryan Kelly (http://www.rfx.id.au)
+- Andrew Scheller
+- Ben Timby
+
+And many others who have contributed bug reports and patches.
 
 
 Need Help?
