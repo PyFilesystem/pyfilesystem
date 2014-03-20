@@ -274,10 +274,10 @@ def isdotfile(path):
     >>> isdotfile('.baz')
     True
 
-    >>> isdotfile('foo/bar/baz')
+    >>> isdotfile('foo/bar/.baz')
     True
 
-    >>> isdotfile('foo/bar.baz').
+    >>> isdotfile('foo/bar.baz')
     False
 
     """
