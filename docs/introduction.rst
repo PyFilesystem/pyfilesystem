@@ -14,7 +14,7 @@ PyFilesystem was initially created by Will McGugan and is now a joint effort fro
 
 
 - Will McGugan (http://www.willmcgugan.com)
-- Ryan Kelly (http://www.rfx.id.au)
+- Ryan Kelly (http://www.rfk.id.au)
 - Andrew Scheller (http://www.andrewscheller.co.uk/)
 - Ben Timby (http://ben.timby.com/)
 
