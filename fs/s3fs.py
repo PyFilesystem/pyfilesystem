@@ -59,18 +59,18 @@ class S3FS(FS):
     or flushed.
     """
 
-    _meta = { 'thread_safe' : True,
-              'virtual': False,
-              'read_only' : False,
-              'unicode_paths' : True,
-              'case_insensitive_paths' : False,
-              'network' : True,
-              'atomic.move' : True,
-              'atomic.copy' : True,
-              'atomic.makedir' : True,
-              'atomic.rename' : False,
-              'atomic.setconetns' : True
-              }
+    _meta = {'thread_safe': True,
+             'virtual': False,
+             'read_only': False,
+             'unicode_paths': True,
+             'case_insensitive_paths': False,
+             'network': True,
+             'atomic.move': True,
+             'atomic.copy': True,
+             'atomic.makedir': True,
+             'atomic.rename': False,
+             'atomic.setcontent': True
+             }
 
     class meta:
         PATH_MAX = None
