@@ -79,7 +79,7 @@
     * Removed obsolete module fs.objectree; use fs.path.PathMap instead.
     * Added setcontents_async method to base
     * Added `appdirfs` module to abstract per-user application directories
-    
+
 0.5:
 
     * Ported to Python 3.X
@@ -88,3 +88,8 @@
     * Added sqlitefs to fs.contrib, contributed by Nitin Bhide
     * Added archivefs to fs.contrib, contributed by btimby
     * Added some polish to fstree command and unicode box lines rather than ascii art
+
+0.5:
+
+    * Fixed a hang bug in readline
+

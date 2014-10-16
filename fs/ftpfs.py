@@ -804,40 +804,15 @@ class _FTPFile(object):
                 pass
         self.closed = True
 
-    def __iter__(self):
-        return self.next()
-
-    @synchronize
     def next(self):
-        """ Line iterator
+        return self.readline()
 
-        This isn't terribly efficient. It would probably be better to do
-        a read followed by splitlines.
-        """
-        endings = b('\r\n')
-        chars = []
-        append = chars.append
-        read = self.read
-        join = b('').join
-        while True:
-            char = read(1)
-            if not char:
-                if chars:
-                    yield join(chars)
-                break
-            append(char)
-            if char in endings:
-                line = join(chars)
-                del chars[:]
-                c = read(1)
-                if not char:
-                    yield line
-                    break
-                if c in endings and c != char:
-                    yield line + c
-                else:
-                    yield line
-                    append(c)
+    def readline(self, size=None):
+        return next(iotools.line_iterator(self, size))
+
+    def __iter__(self):
+        return iotools.line_iterator(self)
+
 
 def ftperrors(f):
     @wraps(f)

@@ -376,7 +376,7 @@ def isprefix(path1, path2):
 
 
 def forcedir(path):
-    """Ensure the path ends with a trailing /
+    """Ensure the path ends with a trailing formward slash
 
     :param path: An FS path
 

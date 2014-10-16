@@ -258,7 +258,7 @@ class Command(object):
 
     def error(self, *msgs):
         for msg in msgs:
-            self.error_file.write('%s: %s' % (self.name, self.text_encode(msg)))
+            self.error_file.write("{}: {}".format(self.name, msg).encode(self.encoding))
 
     def get_optparse(self):
         optparse = OptionParser(usage=self.usage, version=self.version)

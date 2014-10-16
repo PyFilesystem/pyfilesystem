@@ -147,6 +147,13 @@ class FSTestCases(object):
         self.fs.createfile("test.txt", wipe=True)
         self.assertEqual(self.fs.getcontents("test.txt", "rb"), b(''))
 
+    def test_readline(self):
+        text = b"Hello\nWorld\n"
+        self.fs.setcontents('a.txt', text)
+        with self.fs.open('a.txt', 'rb') as f:
+            line = f.readline()
+        self.assertEqual(line, b"Hello\n")
+
     def test_setcontents(self):
         #  setcontents() should accept both a string...
         self.fs.setcontents("hello", b("world"))

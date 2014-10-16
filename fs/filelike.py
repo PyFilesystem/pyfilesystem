@@ -494,7 +494,7 @@ class FileLikeBase(object):
             nextBit = self.read(self._bufsize)
             bits.append(nextBit)
             sizeSoFar += len(nextBit)
-            if nextBit == b(""):
+            if not nextBit:
                 break
             if size > 0 and sizeSoFar >= size:
                 break

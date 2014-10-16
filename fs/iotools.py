@@ -211,6 +211,30 @@ def copy_file_to_fs(f, fs, path, encoding=None, errors=None, progress_callback=N
     return bytes_written
 
 
+def line_iterator(f, size=None):
+    """A not terribly efficient char by char line iterator"""
+    read = f.read
+    line = []
+    append = line.append
+    c = 1
+    if size is None or size < 0:
+        while c:
+            c = read(1)
+            if c:
+                append(c)
+            if c in (b'\n', b''):
+                yield b''.join(line)
+                del line[:]
+    else:
+        while c:
+            c = read(1)
+            if c:
+                append(c)
+            if c in (b'\n', b'') or len(line) >= size:
+                yield b''.join(line)
+                del line[:]
+
+
 if __name__ == "__main__":
     print("Reading a binary file")
     bin_file = open('tests/data/UTF-8-demo.txt', 'rb')
