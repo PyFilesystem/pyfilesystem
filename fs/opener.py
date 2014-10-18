@@ -121,14 +121,19 @@ def _split_url_path(url):
     url = '%s://%s' % (scheme, netloc)
     return url, path
 
-class _FSClosingFile(FileWrapper):
-    """A file like object that closes its parent FS when closed itself"""
-    def close(self):
-        fs = getattr(self, '_closefs', None)
-        ret = super(_FSClosingFile, self).close()
-        if fs is not None:
-            fs.close
-        return ret
+
+def _FSClosingFile(fs, file_object, mode):
+    original_close = file_object.close
+
+    def close():
+        try:
+            fs.close()
+        except:
+            pass
+        return original_close()
+    file_object.close = close
+    return file_object
+
 
 class OpenerRegistry(object):
 
@@ -267,8 +272,8 @@ class OpenerRegistry(object):
         fs, path = self.parse(fs_url, writeable=writeable)
         file_object = fs.open(path, mode)
 
-        file_object = _FSClosingFile(file_object, mode)
-        file_object.fs = fs
+        file_object = _FSClosingFile(fs, file_object, mode)
+        #file_object.fs = fs
         return file_object
 
     def getcontents(self, fs_url, mode='rb', encoding=None, errors=None, newline=None):

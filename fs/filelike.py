@@ -465,7 +465,7 @@ class FileLikeBase(object):
             sizeSoFar = len(newData)
             while sizeSoFar < size:
                 newData = self._read(size-sizeSoFar)
-                if newData is None:
+                if not newData:
                     break
                 data.append(newData)
                 sizeSoFar += len(newData)
