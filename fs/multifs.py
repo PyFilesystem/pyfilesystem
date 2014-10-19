@@ -34,8 +34,9 @@ they don't exist in `theme`. We can do this with the following code::
     from fs.osfs import OSFS
     from fs.multifs import MultiFS
 
+    themed_template_fs = MultiFS()
     themed_template_fs.addfs('templates', OSFS('templates'))
-    themed_template_fs.addfs('theme', OSFS('themes'))
+    themed_template_fs.addfs('theme', OSFS('theme'))
 
 
 Now we have a `themed_template_fs` FS object presents a single view of both
