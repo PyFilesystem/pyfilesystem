@@ -69,7 +69,7 @@ class S3FS(FS):
              'atomic.copy': True,
              'atomic.makedir': True,
              'atomic.rename': False,
-             'atomic.setcontent': True
+             'atomic.setcontents': True
              }
 
     class meta:
