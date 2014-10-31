@@ -201,7 +201,7 @@ class FSImportHook(object):
         (path,type,ispkg) = info
         return ispkg
 
-    def get_code(self,path,info=None):
+    def get_code(self,fullname,info=None):
         """Get the bytecode for the specified module."""
         if info is None:
             info = self._get_module_info(fullname)
