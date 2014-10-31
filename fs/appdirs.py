@@ -319,7 +319,6 @@ if sys.platform == "win32":
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
         try:
-            import ctypes
             _get_win_folder = _get_win_folder_with_ctypes
         except ImportError:
             _get_win_folder = _get_win_folder_from_registry
