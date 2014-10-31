@@ -19,7 +19,7 @@ from django.core.files.storage import Storage
 from django.core.files import File
 
 from fs.path import abspath, dirname
-from fs.errors import convert_fs_errors
+from fs.errors import convert_fs_errors, ResourceNotFoundError
 
 class FSStorage(Storage):
     """Expose an FS object as a Django File Storage object."""
