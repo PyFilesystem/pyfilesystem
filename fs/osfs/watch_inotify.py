@@ -183,7 +183,7 @@ class OSFSWatchMixin(WatchableFSMixin):
         if inevt.mask & pyinotify.IN_Q_OVERFLOW:
             watcher.handle_event(OVERFLOW(self))
         if inevt.mask & pyinotify.IN_UNMOUNT:
-            watcher.handle_event(CLOSE(self))
+            watcher.handle_event(CLOSED(self))
 
     def __get_watch_thread(self):
         """Get the shared watch thread, initializing if necessary.
