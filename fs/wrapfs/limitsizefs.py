@@ -26,7 +26,7 @@ class LimitSizeFS(WrapFS):
         if max_size < 0:
             try:
                 max_size = fs.getmeta("total_space") + max_size
-            except NotMetaError:
+            except NoMetaError:
                 msg = "FS doesn't report total_size; "\
                       "can't use negative max_size"
                 raise ValueError(msg)
