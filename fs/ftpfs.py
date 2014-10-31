@@ -1435,38 +1435,38 @@ class FTPFS(FS):
 
 if __name__ == "__main__":
 
-        ftp_fs = FTPFS('ftp.ncsa.uiuc.edu')
-        ftp_fs.cache_hint(True)
-        from fs.browsewin import browse
-        browse(ftp_fs)
+    ftp_fs = FTPFS('ftp.ncsa.uiuc.edu')
+    ftp_fs.cache_hint(True)
+    from fs.browsewin import browse
+    browse(ftp_fs)
 
-        #ftp_fs = FTPFS('127.0.0.1', 'user', '12345', dircache=True)
-        #f = ftp_fs.open('testout.txt', 'w')
-        #f.write("Testing writing to an ftp file!")
-        #f.write("\nHai!")
-        #f.close()
+    #ftp_fs = FTPFS('127.0.0.1', 'user', '12345', dircache=True)
+    #f = ftp_fs.open('testout.txt', 'w')
+    #f.write("Testing writing to an ftp file!")
+    #f.write("\nHai!")
+    #f.close()
 
-        #ftp_fs.createfile(u"\N{GREEK CAPITAL LETTER KAPPA}", 'unicode!')
+    #ftp_fs.createfile(u"\N{GREEK CAPITAL LETTER KAPPA}", 'unicode!')
 
-        #kappa = u"\N{GREEK CAPITAL LETTER KAPPA}"
-        #ftp_fs.makedir(kappa)
+    #kappa = u"\N{GREEK CAPITAL LETTER KAPPA}"
+    #ftp_fs.makedir(kappa)
 
-        #print repr(ftp_fs.listdir())
+    #print repr(ftp_fs.listdir())
 
-        #print repr(ftp_fs.listdir())
+    #print repr(ftp_fs.listdir())
 
-        #ftp_fs.makedir('a/b/c/d', recursive=True)
-        #print ftp_fs.getsize('/testout.txt')
+    #ftp_fs.makedir('a/b/c/d', recursive=True)
+    #print ftp_fs.getsize('/testout.txt')
 
 
-        #print f.read()
-        #for p in ftp_fs:
-        #    print p
+    #print f.read()
+    #for p in ftp_fs:
+    #    print p
 
-        #from fs.utils import print_fs
-        #print_fs(ftp_fs)
+    #from fs.utils import print_fs
+    #print_fs(ftp_fs)
 
-        #print ftp_fs.getsize('test.txt')
+    #print ftp_fs.getsize('test.txt')
 
-        #from fs.browsewin import browse
-        #browse(ftp_fs)
+    #from fs.browsewin import browse
+    #browse(ftp_fs)
