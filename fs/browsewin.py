@@ -106,9 +106,9 @@ class BrowseFrame(wx.Frame):
             paths = ( [(True, p) for p in self.fs.listdir(path, absolute=True, dirs_only=True)] +
                       [(False, p) for p in self.fs.listdir(path, absolute=True, files_only=True)] )
         except FSError, e:
-                msg = "Failed to get directory listing for %s\n\nThe following error was reported:\n\n%s" % (path, e)
-                wx.MessageDialog(self, msg, "Error listing directory", wx.OK).ShowModal()
-                paths = []
+            msg = "Failed to get directory listing for %s\n\nThe following error was reported:\n\n%s" % (path, e)
+            wx.MessageDialog(self, msg, "Error listing directory", wx.OK).ShowModal()
+            paths = []
             
                 
         #paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
