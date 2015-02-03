@@ -542,7 +542,7 @@ class MemoryFS(FS):
     @synchronize
     def _on_close_memory_file(self, open_file, path):
         dir_entry = self._get_dir_entry(path)
-        if dir_entry is not None:
+        if dir_entry is not None and open_file in dir_entry.open_files:
             dir_entry.open_files.remove(open_file)
 
 

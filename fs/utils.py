@@ -258,6 +258,56 @@ def copydir(fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=6
                      chunk_size=chunk_size)
 
 
+def copydir_progress(progress_callback, fs1, fs2, create_destination=True, ignore_errors=False, chunk_size=64*1024):
+    """
+    Copies the contents of a directory from one fs to another, with a callback function to display progress.
+
+    `progress_callback` should be a function with two parameters; `step` and `num_steps`.
+
+    `num_steps` is the number of steps in the copy process, and `step` is the current step. `num_steps` may be None if the number
+    of steps is still being calculated.
+
+    """
+    if isinstance(fs1, tuple):
+        fs1, dir1 = fs1
+        fs1 = fs1.opendir(dir1)
+    if isinstance(fs2, tuple):
+        fs2, dir2 = fs2
+        if create_destination:
+            fs2.makedir(dir2, allow_recreate=True, recursive=True)
+        fs2 = fs2.opendir(dir2)
+
+    def do_callback(step, num_steps):
+        try:
+            progress_callback(step, num_steps)
+        except:
+            pass
+
+    do_callback(0, None)
+
+    file_count = 0
+    copy_paths = []
+    for dir_path, file_paths in fs1.walk():
+        copy_paths.append((dir_path, file_paths))
+        file_count += len(file_paths)
+        do_callback(0, file_count)
+
+    step = 0
+    for i, (dir_path, file_paths) in enumerate(copy_paths):
+        try:
+            fs2.makedir(dir_path, allow_recreate=True)
+            for path in file_paths:
+                copy_path = pathjoin(dir_path, path)
+                with fs1.open(copy_path, 'rb') as src_file:
+                    fs2.setcontents(copy_path, src_file, chunk_size=chunk_size)
+                step += 1
+        except:
+            if ignore_errors:
+                continue
+            raise
+        do_callback(step, file_count)
+
+
 def remove_all(fs, path):
     """Remove everything in a directory. Returns True if successful.
 

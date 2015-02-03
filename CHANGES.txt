@@ -89,7 +89,8 @@
     * Added archivefs to fs.contrib, contributed by btimby
     * Added some polish to fstree command and unicode box lines rather than ascii art
 
-0.5:
+0.5.1:
 
     * Fixed a hang bug in readline
+    * Added copydir_progress to fs.utils
 
