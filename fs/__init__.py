@@ -15,7 +15,7 @@ implementations of this interface such as:
 
 """
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
 #  provide these by default so people can use 'fs.path.basename' etc.
