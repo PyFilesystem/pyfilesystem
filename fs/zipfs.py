@@ -284,10 +284,10 @@ class ZipFS(FS):
                 if callable(v):
                     zinfo[k] = v()
         except KeyError:
-            zinfo = {'file_size':0}
-        info = {'size' : zinfo['file_size']}
+            zinfo = {'file_size': 0}
+        info = {'size': zinfo['file_size']}
         if 'date_time' in zinfo:
-            info['created_time'] = datetime.datetime(*zinfo['date_time'])
+            info['modified_time'] = info['created_time'] = datetime.datetime(*zinfo['date_time'])
         info.update(zinfo)
         if 'FileHeader' in info:
             del info['FileHeader']
