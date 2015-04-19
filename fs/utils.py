@@ -16,8 +16,10 @@ __all__ = ['copyfile',
            'isfile',
            'isdir',
            'find_duplicates',
-           'print_fs']
+           'print_fs',
+           'open_atomic_write']
 
+import os
 import sys
 import stat
 import six
@@ -626,6 +628,46 @@ def print_fs(fs,
 
     print_dir(fs, path)
     return dircount[0], filecount[0]
+
+
+class AtomicWriter(object):
+    """Context manager to perform atomic writes"""
+
+    def __init__(self, fs, path, mode='w'):
+        self.fs = fs
+        self.path = path
+        self.mode = mode
+        self.tmp_path = path + '~'
+        self._f = None
+
+    def __enter__(self):
+        self._f = self.fs.open(self.tmp_path, self.mode)
+        return self._f
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            if self._f is not None:
+                if hasattr('_f', 'flush'):
+                    self._f.flush()
+                if hasattr(self._f, 'fileno'):
+                    os.fsync(self._f.fileno())
+                self._f.close()
+                self._f = None
+                self.fs.rename(self.tmp_path, self.path)
+        else:
+            if self._f is not None:
+                self._f.close()
+
+
+def open_atomic_write(fs, path, mode='w'):
+    """Open a file for 'atomic' writing
+
+    This returns a context manager which ensures that a file is written in its entirety or not at all.
+
+    """
+    return AtomicWriter(fs, path, mode=mode)
+
+
 
 
 if __name__ == "__main__":
