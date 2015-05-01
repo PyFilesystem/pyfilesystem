@@ -4,7 +4,7 @@ from setuptools import setup
 import sys
 PY3 = sys.version_info >= (3,)
 
-VERSION = "0.5.2"
+VERSION = "0.5.3a0"
 
 COMMANDS = ['fscat',
             'fsinfo',

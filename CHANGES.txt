@@ -98,3 +98,7 @@
 
     * Added utils.open_atomic_write
 
+0.5.3:
+
+
+
