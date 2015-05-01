@@ -94,3 +94,7 @@
     * Fixed a hang bug in readline
     * Added copydir_progress to fs.utils
 
+0.5.2:
+
+    * Added utils.open_atomic_write
+
