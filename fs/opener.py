@@ -655,7 +655,7 @@ example:
         return fs, ''
 
 class HTTPOpener(Opener):
-    names = ['http']
+    names = ['http', 'https']
     desc = """HTTP file opener. HTTP only supports reading files, and not much else.
 
 example:
