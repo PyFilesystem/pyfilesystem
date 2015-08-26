@@ -1008,14 +1008,14 @@ class FS(object):
                 paths = []
                 paths_append = paths.append
                 try:
-                    for filename in listdir(current_path):
+                    for filename in listdir(current_path, dirs_only=True):
                         path = pathcombine(current_path, filename)
-                        if isdir(path):
-                            if dir_wildcard(path):
-                                dirs_append(path)
-                        else:
-                            if wildcard(filename):
-                                paths_append(filename)
+                        if dir_wildcard(path):
+                            dirs_append(path)
+                    for filename in listdir(current_path, files_only=True):
+                        path = pathcombine(current_path, filename)
+                        if wildcard(filename):
+                            paths_append(filename)
                 except ResourceNotFoundError:
                     # Could happen if another thread / process deletes something whilst we are walking
                     pass

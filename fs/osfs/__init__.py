@@ -23,6 +23,15 @@ import platform
 import io
 import shutil
 
+scandir = None
+try:
+    scandir = os.scandir
+except AttributeError:
+    try:
+        from scandir import scandir
+    except ImportError:
+        pass
+
 from fs.base import *
 from fs.path import *
 from fs.errors import *
@@ -248,9 +257,24 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def listdir(self, path="./", wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
         _decode_path = self._decode_path
         sys_path = self.getsyspath(path)
-        listing = os.listdir(sys_path)
-        paths = [_decode_path(p) for p in listing]
-        return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
+
+        if scandir is None:
+            listing = os.listdir(sys_path)
+            paths = [_decode_path(p) for p in listing]
+            return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
+        else:
+            if dirs_only and files_only:
+                raise ValueError("dirs_only and files_only can not both be True")
+            # Use optimized scandir if present
+            scan = scandir(sys_path)
+            if dirs_only:
+                paths = [_decode_path(dir_entry.name) for dir_entry in scan if dir_entry.is_dir()]
+            elif files_only:
+                paths = [_decode_path(dir_entry.name) for dir_entry in scan if dir_entry.is_file()]
+            else:
+                paths = [_decode_path(dir_entry.name) for dir_entry in scan]
+
+            return self._listdir_helper(path, paths, wildcard, full, absolute, False, False)
 
     @convert_os_errors
     def makedir(self, path, recursive=False, allow_recreate=False):
