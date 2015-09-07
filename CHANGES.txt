@@ -101,6 +101,6 @@
 0.5.3:
 
     * Implemented scandir in listdir if available
-
+    * Fix for issue where local.getpreferredencoding returns empty string
 
 
