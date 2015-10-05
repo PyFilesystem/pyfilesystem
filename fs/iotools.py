@@ -160,7 +160,7 @@ def make_stream(name,
 
     if not binary:
         io_object = io.TextIOWrapper(io_object,
-                                     encoding=encoding,
+                                     encoding=encoding or 'utf-8',
                                      errors=errors,
                                      newline=newline,
                                      line_buffering=line_buffering,)
@@ -170,7 +170,7 @@ def make_stream(name,
 
 def decode_binary(data, encoding=None, errors=None, newline=None):
     """Decode bytes as though read from a text file"""
-    return io.TextIOWrapper(io.BytesIO(data), encoding=encoding, errors=errors, newline=newline).read()
+    return io.TextIOWrapper(io.BytesIO(data), encoding=encoding or 'utf-8', errors=errors, newline=newline).read()
 
 
 def make_bytes_io(data, encoding=None, errors=None):
