@@ -533,9 +533,9 @@ def print_fs(fs,
     """
 
     if file_out is None:
-        file_out = sys.stdout.buffer if PY3 else sys.stdout
+        file_out = sys.stdout
 
-    file_encoding = getattr(file_out, 'encoding', 'utf-8') or 'utf-8'
+    file_encoding = getattr(file_out, 'encoding', u'utf-8') or u'utf-8'
     file_encoding = file_encoding.upper()
 
     if terminal_colors is None:
@@ -545,28 +545,31 @@ def print_fs(fs,
             terminal_colors = hasattr(file_out, 'isatty') and file_out.isatty()
 
     def write(line):
-        file_out.write(line.encode(file_encoding, 'replace') + b'\n')
+        if PY3:
+            file_out.write((line + u'\n'))
+        else:
+            file_out.write((line + u'\n').encode(file_encoding, 'replace'))
 
     def wrap_prefix(prefix):
         if not terminal_colors:
             return prefix
-        return '\x1b[32m%s\x1b[0m' % prefix
+        return u'\x1b[32m%s\x1b[0m' % prefix
 
     def wrap_dirname(dirname):
         if not terminal_colors:
             return dirname
-        return '\x1b[1;34m%s\x1b[0m' % dirname
+        return u'\x1b[1;34m%s\x1b[0m' % dirname
 
     def wrap_error(msg):
         if not terminal_colors:
             return msg
-        return '\x1b[31m%s\x1b[0m' % msg
+        return u'\x1b[31m%s\x1b[0m' % msg
 
     def wrap_filename(fname):
         if not terminal_colors:
             return fname
-        if fname.startswith('.'):
-            fname = '\x1b[33m%s\x1b[0m' % fname
+        if fname.startswith(u'.'):
+            fname = u'\x1b[33m%s\x1b[0m' % fname
         return fname
     dircount = [0]
     filecount = [0]
@@ -577,10 +580,10 @@ def print_fs(fs,
             char_line = u'──'
             char_corner = u'╰'
         else:
-            char_vertline = '|'
-            char_newnode = '|'
-            char_line = '--'
-            char_corner = '`'
+            char_vertline = u'|'
+            char_newnode = u'|'
+            char_line = u'--'
+            char_corner = u'`'
 
         try:
             dirs = fs.listdir(path, dirs_only=True)
@@ -592,7 +595,7 @@ def print_fs(fs,
                             [(False, p) for p in files] )
         except Exception, e:
             prefix = ''.join([(char_vertline + '   ', '    ')[last] for last in levels]) + '   '
-            write(wrap_prefix(prefix[:-1] + '    ') + wrap_error("unable to retrieve directory list (%s) ..." % str(e)))
+            write(wrap_prefix(prefix[:-1] + '    ') + wrap_error(u"unable to retrieve directory list (%s) ..." % str(e)))
             return 0
 
         if hide_dotfiles:

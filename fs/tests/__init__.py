@@ -63,6 +63,12 @@ class FSTestCases(object):
         self.assertEqual(self.fs.validatepath('foo/bar'), None)
         self.assert_(self.fs.isvalidpath('foo/bar'))
 
+    def test_tree(self):
+        """Test tree print"""
+        self.fs.makedir('foo')
+        self.fs.createfile('foo/bar.txt')
+        self.fs.tree()
+
     def test_meta(self):
         """Checks getmeta / hasmeta are functioning"""
         # getmeta / hasmeta are hard to test, since there is no way to validate
