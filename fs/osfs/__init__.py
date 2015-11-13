@@ -115,7 +115,7 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
         """
 
         super(OSFS, self).__init__(thread_synchronize=thread_synchronize)
-        self.encoding = encoding or sys.getfilesystemencoding()
+        self.encoding = encoding or sys.getfilesystemencoding() or 'utf-8'
         self.dir_mode = dir_mode
         self.use_long_paths = use_long_paths
         root_path = os.path.expanduser(os.path.expandvars(root_path))
@@ -228,6 +228,8 @@ class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
     def open(self, path, mode='r', buffering=-1, encoding=None, errors=None, newline=None, line_buffering=False, **kwargs):
         mode = ''.join(c for c in mode if c in 'rwabt+')
         sys_path = self.getsyspath(path)
+        if not encoding and 'b' not in mode:
+            encoding = encoding or 'utf-8'
         try:
             return io.open(sys_path, mode=mode, buffering=buffering, encoding=encoding, errors=errors, newline=newline)
         except EnvironmentError, e:

@@ -551,9 +551,9 @@ example:
 
 class TempOpener(Opener):
     names = ['temp']
-    desc = """Creates a temporary filesystem, that is erased on exit.
+    desc = """Creates a temporary filesystem that is erased on exit.
 Probably only useful for mounting or serving.
-NB: If you user fscp or fsmv to copy/move files here, you are effectively deleting them!
+NB: If you use fscp or fsmv to copy/move files here, you are effectively deleting them!
 
 example:
 * temp://"""
@@ -565,20 +565,24 @@ example:
         fs = LazyFS((TempFS,(),{"identifier":fs_name_params}))
         return fs, fs_path
 
+
 class S3Opener(Opener):
     names = ['s3']
     desc = """Opens a filesystem stored on Amazon S3 storage
     The environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY should be set"""
+
     @classmethod
     def get_fs(cls, registry, fs_name, fs_name_params, fs_path, writeable, create_dir):
         from fs.s3fs import S3FS
 
-        bucket = fs_path
-        path =''
-        if '/' in fs_path:
+        username, password, bucket = _parse_credentials(fs_path)
+        path = ''
+        if '/' in bucket:
             bucket, path = fs_path.split('/', 1)
 
-        fs = S3FS(bucket)
+        fs = S3FS(bucket,
+                  aws_access_key=username or None,
+                  aws_secret_key=password or None)
 
         if path:
             dirpath, resourcepath = pathsplit(path)
@@ -587,6 +591,7 @@ class S3Opener(Opener):
             path = resourcepath
 
         return fs, path
+
 
 class TahoeOpener(Opener):
     names = ['tahoe']

@@ -487,7 +487,8 @@ class S3FS(FS):
                 msg = "Parent directory does not exist: %(path)s"
                 raise ParentDirectoryMissingError(path, msg=msg)
         # Create an empty file representing the directory
-        self._sync_set_contents(s3pathD,"")
+        if s3pathD not in ('/', ''):
+            self._sync_set_contents(s3pathD,"")
 
     def remove(self,path):
         """Remove the file at the given path."""
