@@ -23,6 +23,7 @@ import os
 import sys
 import stat
 import six
+from six import PY3
 
 from fs.mountfs import MountFS
 from fs.path import pathjoin
@@ -532,7 +533,7 @@ def print_fs(fs,
     """
 
     if file_out is None:
-        file_out = sys.stdout
+        file_out = sys.stdout.buffer if PY3 else sys.stdout
 
     file_encoding = getattr(file_out, 'encoding', 'utf-8') or 'utf-8'
     file_encoding = file_encoding.upper()
@@ -687,4 +688,3 @@ if __name__ == "__main__":
     print t2.listdir()
     t1.tree()
     t2.tree()
-
