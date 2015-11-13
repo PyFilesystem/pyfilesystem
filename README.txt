@@ -14,7 +14,7 @@ Here are a few of the filesystems that can be accessed with Pyfilesystem:
 * **FTPFS** access files & directories on an FTP server
 * **MemoryFS** access files & directories stored in memory (non-permanent but very fast)
 * **MountFS** creates a virtual directory structure built from other filesystems
-* **MultiFS** a virtual filesystem that combines a list of filesystems in to one, and checks them in order when opening files
+* **MultiFS** a virtual filesystem that combines a list of filesystems into one, and checks them in order when opening files
 * **OSFS** the native filesystem
 * **SFTPFS** access files & directores stored on a Secure FTP server
 * **S3FS** access files & directories stored on Amazon S3 storage
@@ -42,7 +42,7 @@ If you later want to display the total size of Python files stored in a zip file
 
 In fact, you could use any of the supported filesystems above, and the code would continue to work as before.
 
-An alternative to explicity importing the filesystem class you want, is to use an FS opener which opens a filesystem from a URL-like syntax::
+An alternative to explicitly importing the filesystem class you want, is to use an FS opener which opens a filesystem from a URL-like syntax::
 
     from fs.opener import fsopendir
     projects_fs = fsopendir('C:/projects')
