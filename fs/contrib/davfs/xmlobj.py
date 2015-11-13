@@ -26,6 +26,7 @@ class _davbase(dexml.Model):
     class meta:
         namespace = "DAV:"
         namespace_prefix = "D"
+        order_sensitive = False
 
 
 class HrefField(fields.String):
