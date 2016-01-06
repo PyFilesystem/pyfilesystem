@@ -33,7 +33,7 @@ classifiers = [
     'Topic :: System :: Filesystems',
 ]
 
-with open('README.txt', 'r') as f:
+with open('README.md', 'r') as f:
     long_desc = f.read()
 
 
