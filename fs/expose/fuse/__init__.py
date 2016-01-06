@@ -41,7 +41,7 @@ to subprocess.Popen::
 The binding to FUSE is created via ctypes, using a custom version of the
 fuse.py code from Giorgos Verigakis:
 
-    http://code.google.com/p/fusepy/
+    https://github.com/terencehonles/fusepy
 
 """
 
