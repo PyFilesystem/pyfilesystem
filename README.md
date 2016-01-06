@@ -49,6 +49,11 @@ An alternative to explicitly importing the filesystem class you want, is to use 
 
 You could change ``C:/projects`` to ``zip://source.zip`` to open the zip file, or even ``ftp://ftp.example.org/code/projects/`` to sum up the bytes of Python stored on an ftp server.
 
+Documentation
+-------------
+
+http://docs.pyfilesystem.org
+
 Screencast
 ----------
 
