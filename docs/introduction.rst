@@ -29,7 +29,7 @@ If you have any problems or questions, please contact the developers through one
 Bugs
 ####
 
-If you find a bug in PyFilesystem, please file an issue: http://code.google.com/p/pyfilesystem/issues/list
+If you find a bug in PyFilesystem, please file an issue: https://github.com/PyFilesystem/pyfilesystem/issues
 
 Discussion Group
 ################

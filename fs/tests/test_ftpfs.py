@@ -21,7 +21,7 @@ try:
     from pyftpdlib.servers import FTPServer
 except ImportError:
     if not PY3:
-        raise ImportError("Requires pyftpdlib <http://code.google.com/p/pyftpdlib/>")
+        raise ImportError("Requires pyftpdlib <https://github.com/giampaolo/pyftpdlib>")
 
 from fs.path import *
 
