@@ -5,7 +5,7 @@ PyFilesystem is an abstraction layer for *filesystems*. In the same way that Pyt
 
 Pyfilesystem works with Linux, Windows and Mac.
 
-Suported Filesystems
+Supported Filesystems
 ---------------------
 
 Here are a few of the filesystems that can be accessed with Pyfilesystem:
