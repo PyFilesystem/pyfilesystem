@@ -3,4 +3,3 @@ paramiko
 six
 django
 dexml
-wx
