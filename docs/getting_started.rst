@@ -14,10 +14,10 @@ Or to upgrade to the most recent version::
 
 	pip install fs --upgrade
 
-You can also install the cutting edge release by checking out the source via SVN::
+You can also install the cutting edge release by cloning the source from GIT::
 
-    svn checkout http://pyfilesystem.googlecode.com/svn/trunk/ pyfilesystem-read-only
-    cd pyfilesystem-read-only
+    git clone https://github.com/PyFilesystem/pyfilesystem.git
+    cd pyfilesystem
     python setup.py install
 
 Whichever method you use, you should now have the `fs` module on your path (version number may vary)::
