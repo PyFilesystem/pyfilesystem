@@ -45,7 +45,7 @@ PyFilesystem will catch any attempts to read outside of the root directory. For 
 Paths
 -----
 
-Paths used within an FS object use the same common format, regardless of the underlaying file system it represents (or the platform it resides on). 
+Paths used within an FS object use the same common format, regardless of the underlying file system it represents (or the platform it resides on). 
 
 When working with paths in FS objects, keep in mind the following:
 

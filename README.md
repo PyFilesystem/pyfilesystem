@@ -16,7 +16,7 @@ Here are a few of the filesystems that can be accessed with Pyfilesystem:
 * **MountFS** creates a virtual directory structure built from other filesystems
 * **MultiFS** a virtual filesystem that combines a list of filesystems into one, and checks them in order when opening files
 * **OSFS** the native filesystem
-* **SFTPFS** access files & directores stored on a Secure FTP server
+* **SFTPFS** access files & directories stored on a Secure FTP server
 * **S3FS** access files & directories stored on Amazon S3 storage
 * **TahoeLAFS** access files & directories stored on a Tahoe distributed filesystem
 * **ZipFS** access files and directories contained in a zip file

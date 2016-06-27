@@ -53,7 +53,7 @@
     * OSFSWatchMixin improvements:
         * watch_inotify:  allow more than one watcher on a single path.
         * watch_win32:  don't create immortal reference cycles.
-        * watch_win32:  report errors if the filesystem does't support
+        * watch_win32:  report errors if the filesystem doesn't support
                         ReadDirectoryChangesW.
     * MountFS: added support for mounting at the root directory, and for
       mounting over an existing mount.
@@ -76,7 +76,7 @@
     * Added a concept of a writeable FS to MultiFS
     * Added ilistdir() and ilistdirinfo() methods, which are generator-based
       variants of listdir() and listdirinfo().
-    * Removed obsolete module fs.objectree; use fs.path.PathMap instead.
+    * Removed obsolete module fs.objecttree; use fs.path.PathMap instead.
     * Added setcontents_async method to base
     * Added `appdirfs` module to abstract per-user application directories
 

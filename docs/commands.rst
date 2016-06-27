@@ -42,7 +42,7 @@ Lists the contents of a directory, similar to the ``ls`` command, e.g.::
 fstree
 ------
 
-Displays an ASCII tree of a directory. e.g::
+Displays an ASCII tree of a directory. e.g.::
 
 	fstree
 	fstree -g
@@ -52,7 +52,7 @@ Displays an ASCII tree of a directory. e.g::
 fscat
 -----
 
-Writes a file to stdout, e.g::
+Writes a file to stdout, e.g.::
 
 	fscat ~/.bashrc
 	fscat http://www.willmcgugan.com
@@ -61,7 +61,7 @@ Writes a file to stdout, e.g::
 fsinfo
 ------
 
-Displays information regarding a file / directory, e.g::
+Displays information regarding a file / directory, e.g.::
 
 	fsinfo C:\autoexec.bat
 	fsinfo ftp://ftp.mozilla.org/pub/README
@@ -69,7 +69,7 @@ Displays information regarding a file / directory, e.g::
 fsmv
 ----
 
-Moves a file from one location to another, e.g::
+Moves a file from one location to another, e.g.::
 
 	fsmv foo bar
 	fsmv *.jpg zip://photos.zip
@@ -77,7 +77,7 @@ Moves a file from one location to another, e.g::
 fsmkdir
 -------
 
-Makes a directory on a filesystem, e.g::
+Makes a directory on a filesystem, e.g.::
 
 	fsmkdir foo
 	fsmkdir ftp://ftp.mozilla.org/foo
@@ -86,7 +86,7 @@ Makes a directory on a filesystem, e.g::
 fscp
 ----
 
-Copies a file from one location to another, e.g::
+Copies a file from one location to another, e.g.::
 
 	fscp foo bar
 	fscp ftp://ftp.mozilla.org/pub/README readme.txt
@@ -94,7 +94,7 @@ Copies a file from one location to another, e.g::
 fsrm
 ----
 
-Removes (deletes) a file from a filesystem, e.g::
+Removes (deletes) a file from a filesystem, e.g.::
 
 	fsrm foo
 	fsrm -r mydir
@@ -102,7 +102,7 @@ Removes (deletes) a file from a filesystem, e.g::
 fsserve
 -------
 
-Serves the contents of a filesystem over a network with one of a number of methods; HTTP, RPC or SFTP, e.g::
+Serves the contents of a filesystem over a network with one of a number of methods; HTTP, RPC or SFTP, e.g.::
 
 	fsserve
 	fsserve --type rpc
@@ -111,7 +111,7 @@ Serves the contents of a filesystem over a network with one of a number of metho
 fsmount
 -------
 
-Mounts a filesystem with FUSE (on Linux) and Dokan (on Windows), e.g::
+Mounts a filesystem with FUSE (on Linux) and Dokan (on Windows), e.g.::
 
 	fsmount mem:// ram
 	fsserve mem:// M

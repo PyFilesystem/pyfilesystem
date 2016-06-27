@@ -62,7 +62,7 @@ Thread Safety
 All PyFilesystem methods, other than the constructor, should be thread-safe where-ever possible.
 One way to do this is to pass ``threads_synchronize=True`` to the base constructor and use the :func:`~fs.base.synchronize` decorator to lock the FS object when a method is called.
 
-If the implementation can not be made thread-safe for technical reasons, ensure that ``getmeta("thread_safe")`` returns ``False``.
+If the implementation cannot be made thread-safe for technical reasons, ensure that ``getmeta("thread_safe")`` returns ``False``.
 
 
 Meta Values
