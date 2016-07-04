@@ -11,7 +11,7 @@ from fs.path import *
 from fs.errors import *
 from fs.tests import FSTestCases
 
-from six import b 
+from six import b
 
 class XAttrTestCases:
     """Testcases for filesystems providing extended attribute support.
@@ -108,7 +108,7 @@ class XAttrTestCases:
         #  Check that removing a file without xattrs still works
         self.fs.createfile("myfile2")
         self.fs.remove("myfile2")
- 
+
     def test_remove_dir(self):
         def listxattrs(path):
             return list(self.fs.listxattrs(path))

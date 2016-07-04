@@ -48,14 +48,14 @@ class SqliteFsFileBase(object):
         self.closed = False
         #real file like object. Most of the methods are passed to this object
         self.real_stream= real_file
-        
+
     def close(self):
         if not self.closed and self.real_stream is not None:
             self._do_close()
             self.fs._on_close(self)
             self.real_stream.close()
             self.closed = True
-        
+
     def __str__(self):
         return "<SqliteFS File in %s %s>" % (self.fs, self.path)
 
@@ -70,18 +70,18 @@ class SqliteFsFileBase(object):
 
     def flush(self):
         self.real_stream.flush()
-        
+
     def __iter__(self):
         raise OperationFailedError('__iter__', self.path)
-        
+
     def next(self):
         raise OperationFailedError('next', self.path)
-        
+
     def readline(self, *args, **kwargs):
-        raise OperationFailedError('readline', self.path)        
-    
+        raise OperationFailedError('readline', self.path)
+
     def read(self, size=None):
-        raise OperationFailedError('read', self.path)                
+        raise OperationFailedError('read', self.path)
 
     def seek(self, *args, **kwargs):
         return self.real_stream.seek(*args, **kwargs)
@@ -91,20 +91,20 @@ class SqliteFsFileBase(object):
 
     def truncate(self, *args, **kwargs):
         raise OperationFailedError('truncate', self.path)
-        
+
     def write(self, data):
         raise OperationFailedError('write', self.path)
-        
+
     def writelines(self, *args, **kwargs):
         raise OperationFailedError('writelines', self.path)
-        
+
     def __enter__(self):
         return self
 
     def __exit__(self,exc_type,exc_value,traceback):
         self.close()
         return False
-    
+
 class SqliteWritableFile(SqliteFsFileBase):
     '''
     represents an sqlite file. Usually used for 'writing'. OnClose will
@@ -114,28 +114,28 @@ class SqliteWritableFile(SqliteFsFileBase):
         super(SqliteWritableFile, self).__init__(fs, path, id)
         #open a temp file and return that.
         self.real_stream = tempfile.SpooledTemporaryFile(max_size='128*1000')
-        
+
     def _do_close(self):
         #push the contents of the file to blob
         self.fs._writeblob(self.id, self.real_stream)
-        
+
     def truncate(self, *args, **kwargs):
         return self.real_stream.truncate(*args, **kwargs)
-        
+
     def write(self, data):
         return self.real_stream.write(data)
 
     def writelines(self, *args, **kwargs):
         return self.real_stream.writelines(*args, **kwargs)
-        
+
 class SqliteReadableFile(SqliteFsFileBase):
     def __init__(self,fs, path, id, real_file):
         super(SqliteReadableFile, self).__init__(fs, path, id, real_file)
-        assert(self.real_stream != None)        
-        
+        assert(self.real_stream != None)
+
     def _do_close(self):
         pass
-    
+
     def __iter__(self):
         return iter(self.real_stream)
 
@@ -144,13 +144,13 @@ class SqliteReadableFile(SqliteFsFileBase):
 
     def readline(self, *args, **kwargs):
         return self.real_stream.readline(*args, **kwargs)
-    
+
     def read(self, size=None):
         if( size==None):
             size=-1
         return self.real_stream.read(size)
 
-            
+
 class SqliteFS(FS):
     '''
     sqlite based file system to store the files in sqlite database as 'blobs'
@@ -161,12 +161,12 @@ class SqliteFS(FS):
         id : file id
         name : name of file
         parent : id of parent directory for the file.
-        
+
     FsDirMetaData table:
         name : name of the directory (wihtout parent directory names)
         fullpath : full path of the directory including the parent directory name
         parent_id : id of the parent directory
-                
+
     FsFileTable:
         size : file size in bytes (this is actual file size). Blob size may be
            different if compressed
@@ -176,49 +176,49 @@ class SqliteFS(FS):
         last_modified : timestamp of last modification
         author : who changed it last
         content : blob where actual file contents are stored.
-        
+
     TODO : Need an open files table or a flag in sqlite database. To avoid
     opening the file twice. (even from the different process or thread)
     '''
-    
+
     def __init__(self, sqlite_filename):
         super(SqliteFS, self).__init__()
         self.dbpath =sqlite_filename
-        self.dbcon =None        
+        self.dbcon =None
         self.__actual_query_cur = None
         self.__actual_update_cur =None
         self.open_files = []
-        
+
     def close(self):
         '''
         unlock all files. and close all open connections.
         '''
-        self.close_all()        
+        self.close_all()
         self._closedb()
         super(SqliteFS,self).close()
-        
+
     def _initdb(self):
         if( self.dbcon is None):
-            self.dbcon = apsw.Connection(self.dbpath)        
+            self.dbcon = apsw.Connection(self.dbpath)
             self._create_tables()
-    
+
     @property
     def _querycur(self):
         assert(self.dbcon != None)
         if( self.__actual_query_cur == None):
             self.__actual_query_cur = self.dbcon.cursor()
         return(self.__actual_query_cur)
-    
+
     @property
     def _updatecur(self):
         assert(self.dbcon != None)
         if( self.__actual_update_cur == None):
             self.__actual_update_cur = self.dbcon.cursor()
         return(self.__actual_update_cur)
-        
+
     def _closedb(self):
         self.dbcon.close()
-        
+
     def close_all(self):
         '''
         close all open files
@@ -226,7 +226,7 @@ class SqliteFS(FS):
         openfiles = list(self.open_files)
         for fileobj in openfiles:
             fileobj.close()
-        
+
     def _create_tables(self):
         cur = self._updatecur
         cur.execute("CREATE TABLE IF NOT EXISTS FsFileMetaData(name text, fileid INTEGER, parent INTEGER)")
@@ -235,12 +235,12 @@ class SqliteFS(FS):
         cur.execute("CREATE TABLE IF NOT EXISTS FsFileTable(type text, compression text, author TEXT, \
                     created timestamp, last_modified timestamp, last_accessed timestamp, \
                     locked BOOL, size INTEGER, contents BLOB)")
-        
+
         #if the root directory name is created
         rootid = self._get_dir_id('/')
         if( rootid is None):
             cur.execute("INSERT INTO FsDirMetaData (name, fullpath) VALUES ('/','/')")
-            
+
     def _get_dir_id(self, dirpath):
         '''
         get the id for given directory path.
@@ -248,15 +248,15 @@ class SqliteFS(FS):
         dirpath = remove_end_slash(dirpath)
         if( dirpath== None or len(dirpath)==0):
             dirpath = '/'
-            
+
         self._querycur.execute("SELECT rowid from FsDirMetaData where fullpath=?",(dirpath,))
         dirid = None
         dirrow = fetchone(self._querycur)
         if( dirrow):
             dirid = dirrow[0]
-        
+
         return(dirid)
-        
+
     def _get_file_id(self, dir_id, filename):
         '''
         get the file id from the path
@@ -269,10 +269,10 @@ class SqliteFS(FS):
         if( row ):
             file_id = row[0]
         return(file_id)
-        
+
     def _get_file_contentid(self, file_id):
         '''
-        return the file content id from the 'content' table (i.e. FsFileTable)        
+        return the file content id from the 'content' table (i.e. FsFileTable)
         '''
         assert(file_id != None)
         content_id = None
@@ -281,7 +281,7 @@ class SqliteFS(FS):
         assert(row != None)
         content_id = row[0]
         return(content_id)
-        
+
     def _create_file_entry(self, dirid, filename, **kwargs):
         '''
         create file entry in the file table
@@ -302,7 +302,7 @@ class SqliteFS(FS):
         #self.dbcon.commit()
         fileid = self.dbcon.last_insert_rowid()
         return(fileid)
-            
+
     def _writeblob(self, fileid, stream):
         '''
         extract the data from stream and write it as blob.
@@ -314,15 +314,15 @@ class SqliteFS(FS):
         blob_stream=self.dbcon.blobopen("main", "FsFileTable", "contents", fileid, True) # 1 is for read/write
         stream.seek(0)
         blob_stream.write(stream.read())
-        blob_stream.close()        
-        
-    def _on_close(self, fileobj):        
+        blob_stream.close()
+
+    def _on_close(self, fileobj):
         #Unlock file on close.
         assert(fileobj != None and fileobj.id != None)
         self._lockfileentry(fileobj.id, lock=False)
         #Now remove it from openfile list.
         self.open_files.remove(fileobj)
-            
+
     def _islocked(self, fileid):
         '''
         check if the file is locked.
@@ -336,7 +336,7 @@ class SqliteFS(FS):
             assert(row != None)
             locked = row[0]
         return(locked)
-        
+
     def _lockfileentry(self, contentid, lock=True):
         '''
         lock the file entry in the database.
@@ -345,18 +345,18 @@ class SqliteFS(FS):
         last_accessed=datetime.datetime.now().isoformat()
         self._updatecur.execute('UPDATE FsFileTable SET locked=?, last_accessed=? where rowid=?',
                     (lock, last_accessed, contentid))
-        
-    def _makedir(self, parent_id, dname):        
+
+    def _makedir(self, parent_id, dname):
         self._querycur.execute("SELECT fullpath from FsDirMetaData where rowid=?",(parent_id,))
         row = fetchone(self._querycur)
         assert(row != None)
-        parentpath = row[0]        
+        parentpath = row[0]
         fullpath= pathjoin(parentpath, dname)
-        fullpath= remove_end_slash(fullpath)        
+        fullpath= remove_end_slash(fullpath)
         created = datetime.datetime.now().isoformat()
         self._updatecur.execute('INSERT INTO FsDirMetaData(name, fullpath, parentid,created) \
                     VALUES(?,?,?,?)', (dname, fullpath, parent_id,created))
-        
+
     def _rename_file(self, src, dst):
         '''
         rename source file 'src' to destination file 'dst'
@@ -374,8 +374,8 @@ class SqliteFS(FS):
         if( dstfile_id != None):
             raise DestinationExistsError(dst)
         #All checks are done. Delete the entry for the source file.
-        #Create an entry for the destination file.            
-        
+        #Create an entry for the destination file.
+
         srcdir_id = self._get_dir_id(srcdir)
         assert(srcdir_id != None)
         srcfile_id = self._get_file_id(srcdir_id, srcfname)
@@ -384,7 +384,7 @@ class SqliteFS(FS):
         self._updatecur.execute('DELETE FROM FsFileMetaData where ROWID=?',(srcfile_id,))
         self._updatecur.execute("INSERT INTO FsFileMetaData(name, parent, fileid) \
                             VALUES(?,?,?)",(dstfname, dstdirid, srccontent_id))
-        
+
     def _rename_dir(self, src, dst):
         src = remove_end_slash(src)
         dst = remove_end_slash(dst)
@@ -397,27 +397,27 @@ class SqliteFS(FS):
             raise ParentDirectoryMissingError(dst)
         srcdirid = self._get_dir_id(src)
         assert(srcdirid != None)
-        dstdname = basename(dst)        
+        dstdname = basename(dst)
         self._updatecur.execute('UPDATE FsDirMetaData SET name=?, fullpath=?, \
                     parentid=? where ROWID=?',(dstdname, dst, dstparentid, srcdirid,))
-        
+
     def _get_dir_list(self, dirid, path, full):
         assert(dirid != None)
         assert(path != None)
         if( full==True):
             dirsearchpath = path + r'%'
             self._querycur.execute('SELECT fullpath FROM FsDirMetaData where fullpath LIKE ?',
-                                   (dirsearchpath,))            
+                                   (dirsearchpath,))
         else:
             #search inside this directory only
             self._querycur.execute('SELECT fullpath FROM FsDirMetaData where parentid=?',
                                    (dirid,))
-        dirlist = [row[0] for row in self._querycur]        
+        dirlist = [row[0] for row in self._querycur]
         return dirlist
-            
+
     def _get_file_list(self, dirpath, full):
         assert(dirpath != None)
-                
+
         if( full==True):
             searchpath = dirpath + r"%"
             self._querycur.execute('SELECT FsFileMetaData.name, FsDirMetaData.fullpath \
@@ -429,10 +429,10 @@ class SqliteFS(FS):
             self._querycur.execute('SELECT FsFileMetaData.name, FsDirMetaData.fullpath \
                 FROM FsFileMetaData, FsDirMetaData where FsFileMetaData.parent=FsDirMetaData.ROWID \
                     and FsFileMetaData.parent =?',(parentid,))
-            
-        filelist = [pathjoin(row[1],row[0]) for row in self._querycur]        
+
+        filelist = [pathjoin(row[1],row[0]) for row in self._querycur]
         return(filelist)
-        
+
     def _get_dir_info(self, path):
         '''
         get the directory information dictionary.
@@ -440,7 +440,7 @@ class SqliteFS(FS):
         info = dict()
         info['st_mode'] = 0755
         return info
-        
+
     def _get_file_info(self, path):
         filedir = dirname(path)
         filename = basename(path)
@@ -462,36 +462,36 @@ class SqliteFS(FS):
         info['last_accessed'] = row[4]
         info['st_mode'] = 0666
         return(info)
-        
+
     def _isfile(self,path):
         path = normpath(path)
         filedir = dirname(path)
         filename = basename(path)
-        dirid = self._get_dir_id(filedir)        
+        dirid = self._get_dir_id(filedir)
         return(dirid is not None and self._get_file_id(dirid, filename) is not None)
-        
+
     def _isdir(self,path):
-        path = normpath(path)        
+        path = normpath(path)
         return(self._get_dir_id(path) is not None)
-        
+
     def _isexist(self,path):
         return self._isfile(path) or self._isdir(path)
-        
+
     @synchronize
     def open(self, path, mode='r', **kwargs):
         self._initdb()
         path = normpath(path)
         filedir = dirname(path)
         filename = basename(path)
-        
+
         dir_id = self._get_dir_id(filedir)
         if( dir_id == None):
             raise ResourceNotFoundError(filedir)
-            
-        file_id = self._get_file_id(dir_id, filename)        
+
+        file_id = self._get_file_id(dir_id, filename)
         if( self._islocked(file_id)):
-                raise ResourceLockedError(path)            
-            
+                raise ResourceLockedError(path)
+
         sqfsfile=None
         if 'r' in mode:
             if file_id is None:
@@ -500,74 +500,74 @@ class SqliteFS(FS):
             #make sure lock status is updated before the blob is opened
             self._lockfileentry(content_id, lock=True)
             blob_stream=self.dbcon.blobopen("main", "FsFileTable", "contents", file_id, False) # 1 is for read/write
-            sqfsfile = SqliteReadableFile(self, path, content_id, blob_stream)            
-                    
+            sqfsfile = SqliteReadableFile(self, path, content_id, blob_stream)
+
         elif 'w' in mode or 'a' in mode:
             if( file_id is None):
                 file_id= self._create_file_entry(dir_id, filename)
                 assert(file_id != None)
-            
+
             content_id = self._get_file_contentid(file_id)
-            #file_dir_entry.accessed_time = datetime.datetime.now()                        
+            #file_dir_entry.accessed_time = datetime.datetime.now()
             self._lockfileentry(content_id, lock=True)
-            sqfsfile = SqliteWritableFile(self, path, content_id)            
-            
+            sqfsfile = SqliteWritableFile(self, path, content_id)
+
         if( sqfsfile):
             self.open_files.append(sqfsfile)
             return sqfsfile
-        
-        raise ResourceNotFoundError(path)        
-    
+
+        raise ResourceNotFoundError(path)
+
     @synchronize
     def isfile(self, path):
         self._initdb()
         return self._isfile(path)
-        
+
     @synchronize
     def isdir(self, path):
         self._initdb()
         return self._isdir(path)
-    
+
     @synchronize
     def listdir(self, path='/', wildcard=None, full=False, absolute=False, dirs_only=False, files_only=False):
-        path = normpath(path)        
+        path = normpath(path)
         dirid = self._get_dir_id(path)
         if( dirid == None):
             raise ResourceInvalidError(path)
-        
+
         dirlist = self._get_dir_list(dirid, path,full)
         if( dirs_only):
             pathlist = dirlist
-        else:            
+        else:
             filelist = self._get_file_list(path, full)
-            
+
             if( files_only == True):
                 pathlist = filelist
             else:
                 pathlist = filelist + dirlist
-                
-            
+
+
         if( wildcard and dirs_only == False):
             pass
-        
+
         if( absolute == False):
             pathlist = map(lambda dpath:frombase(path,dpath), pathlist)
-            
+
         return(pathlist)
-        
-    
+
+
     @synchronize
     def makedir(self, path, recursive=False, allow_recreate=False):
         self._initdb()
         path = remove_end_slash(normpath(path))
-            
+
         if(self._isexist(path)==False):
             parentdir = dirname(path)
             dname = basename(path)
-            
+
             parent_id = self._get_dir_id(parentdir)
             if( parent_id ==None):
-                if( recursive == False):                
+                if( recursive == False):
                     raise ParentDirectoryMissingError(path)
                 else:
                     self.makedir(parentdir, recursive,allow_recreate)
@@ -575,7 +575,7 @@ class SqliteFS(FS):
             self._makedir(parent_id,dname)
         else:
             raise DestinationExistsError(path)
-    
+
     @synchronize
     def remove(self, path):
         self._initdb()
@@ -583,16 +583,16 @@ class SqliteFS(FS):
         if( self.isdir(path)==True):
             #path is actually a directory
             raise ResourceInvalidError(path)
-        
+
         filedir = dirname(path)
         filename = basename(path)
         dirid = self._get_dir_id(filedir)
         fileid = self._get_file_id(dirid, filename)
         if( fileid == None):
             raise ResourceNotFoundError(path)
-        
+
         content_id = self._get_file_contentid(fileid)
-        
+
         self._updatecur.execute("DELETE FROM FsFileMetaData where ROWID=?",(fileid,))
         #check there is any other file pointing to same location. If not
         #delete the content as well.
@@ -600,8 +600,8 @@ class SqliteFS(FS):
                     (content_id,))
         row = fetchone(self._querycur)
         if( row == None or row[0] == 0):
-            self._updatecur.execute("DELETE FROM FsFileTable where ROWID=?",(content_id,))            
-    
+            self._updatecur.execute("DELETE FROM FsFileTable where ROWID=?",(content_id,))
+
     @synchronize
     def removedir(self,path, recursive=False, force=False):
         self._initdb()
@@ -617,36 +617,36 @@ class SqliteFS(FS):
         row = fetchone(self._qurycur)
         if( row[0] > 0):
             raise DirectoryNotEmptyError(path)
-        self._updatecur.execute("DELETE FROM FsDirMetaData where ROWID=?",(dirid,))            
-    
+        self._updatecur.execute("DELETE FROM FsDirMetaData where ROWID=?",(dirid,))
+
     @synchronize
     def rename(self,src, dst):
         self._initdb()
         src = normpath(src)
         dst = normpath(dst)
         if self._isexist(dst)== False:
-            #first check if this is a directory rename or a file rename        
+            #first check if this is a directory rename or a file rename
             if( self.isfile(src)):
                 self._rename_file(src, dst)
             elif self.isdir(src):
                 self._rename_dir(src, dst)
             else:
                 raise ResourceNotFoundError(path)
-        else:            
+        else:
             raise DestinationExistsError(dst)
-            
+
     @synchronize
     def getinfo(self, path):
-        self._initdb()        
+        self._initdb()
         path = normpath(path)
         isfile = False
         isdir = self.isdir(path)
         if( isdir == False):
             isfile=self.isfile(path)
-        
+
         if( not isfile and not isdir):
             raise ResourceNotFoundError(path)
-                    
+
         if isdir:
             info= self._get_dir_info(path)
         else:
@@ -664,7 +664,7 @@ class SqliteFS(FS):
 #    #mp = dokan.mount(sqfs,driveletter,foreground=True)
 #    #mp.unmount()
 #    sqfs.close()
-#    
+#
 #def run_tests(sqlfilename):
 #    fs = SqliteFS(sqlfilename)
 #    fs.makedir('/test')
@@ -691,15 +691,15 @@ class SqliteFS(FS):
 #    flist = fs.listdir('/', full=True,absolute=True,files_only=True)
 #    print flist
 #    fs.close()
-#    
+#
 #if __name__ == '__main__':
 #    run_tests("sqfs.sqlite")
 #    mount_windows("sqfs.sqlite", 'm')
-#    
+#
 #    #fs.remove('/test1/test1.txt')
 #    #try:
 #    #    f = fs.open('/test1/test1.txt', "r")
 #    #except ResourceNotFoundError:
 #    #    print "Success : file doesnot exist"
 #    #fs.browse()
-#    
+#

@@ -28,7 +28,7 @@ class FSStorage(Storage):
         """
         :param fs: an FS object
         :param base_url: The url to prepend to the path
-         
+
         """
         if fs is None:
             fs = settings.DEFAULT_FILE_STORAGE_FS

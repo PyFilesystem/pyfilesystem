@@ -42,7 +42,7 @@ def get_filesize(file):
            raise AttributeError
     return file.size
 
-    
+
 def file_chunks(f,chunk_size=1024*64):
     """Generator yielding chunks of a file.
 
@@ -108,7 +108,7 @@ class FakeReq:
 
     def add_unredirected_header(self,header,value):
         self.connection.putheader(header,value)
-    
+
 
 class FakeResp:
     """Compatability interface to use cookielib with raw httplib objects."""
@@ -178,5 +178,5 @@ if len(cookielib.parse_ns_headers([_test_cookie])) != 2:
             result.append(pairs)
       return result
     cookielib.parse_ns_headers = parse_ns_headers
-    assert len(cookielib.parse_ns_headers([_test_cookie])) == 2 
+    assert len(cookielib.parse_ns_headers([_test_cookie])) == 2
 

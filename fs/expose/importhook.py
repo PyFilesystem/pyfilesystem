@@ -240,4 +240,4 @@ class FSImportHook(object):
             info = self._get_module_info(fullname)
         (path,type,ispkg) = info
         return path
- 
+

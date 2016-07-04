@@ -39,7 +39,7 @@ def ensure_xattrs(fs):
     Given an FS object, this function returns an equivalent FS that has support
     for extended attributes.  This may be the original object if they are
     supported natively, or a wrapper class is they must be simulated.
-    
+
     :param fs: An FS object that must have xattrs
     """
     try:
@@ -59,7 +59,7 @@ class SimulateXAttr(WrapFS):
         * setxattr:  set an xattr of a path by name
         * delxattr:  delete an xattr of a path by name
 
-    For each file in the underlying FS, this class maintains a corresponding 
+    For each file in the underlying FS, this class maintains a corresponding
     '.xattrs.FILENAME' file containing its extended attributes.  Extended
     attributes of a directory are stored in the file '.xattrs' within the
     directory itself.
@@ -202,4 +202,4 @@ class SimulateXAttr(WrapFS):
         except ResourceNotFoundError:
             pass
 
- 
+

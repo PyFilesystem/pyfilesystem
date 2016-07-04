@@ -1,9 +1,9 @@
 # Copyright (c) 2008 Giorgos Verigakis <verigak@gmail.com>
-# 
+#
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 # WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -104,7 +104,7 @@ if _system in ('Darwin', 'Darwin-MacFuse', 'FreeBSD'):
             ('st_size', c_off_t),
             ('st_blocks', c_int64),
             ('st_blksize', c_int32)]
- 
+
 elif _system == 'Linux':
     ENOTSUP = 95
     c_dev_t = c_ulonglong
@@ -117,7 +117,7 @@ elif _system == 'Linux':
     c_uid_t = c_uint
     setxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte), c_size_t, c_int)
     getxattr_t = CFUNCTYPE(c_int, c_char_p, c_char_p, POINTER(c_byte), c_size_t)
-    
+
     _machine = machine()
     if _machine == 'x86_64':
         c_stat._fields_ = [
@@ -296,12 +296,12 @@ class FUSE(object):
     """This class is the lower level interface and should not be subclassed
        under normal use. Its methods are called by fuse.
        Assumes API version 2.6 or later."""
-    
+
     def __init__(self, operations, mountpoint, raw_fi=False, **kwargs):
         """Setting raw_fi to True will cause FUSE to pass the fuse_file_info
            class as is to Operations, instead of just the fh field.
            This gives you access to direct_io, keep_cache, etc."""
-        
+
         self.operations = operations
         self.raw_fi = raw_fi
         args = ['fuse']
@@ -317,7 +317,7 @@ class FUSE(object):
             for key, val in kwargs.items()))
         args.append(mountpoint)
         argv = (c_char_p * len(args))(*args)
-        
+
         fuse_ops = fuse_operations()
         for name, prototype in fuse_operations._fields_:
             if prototype != c_voidp and getattr(operations, name, None):
@@ -326,7 +326,7 @@ class FUSE(object):
         _libfuse.fuse_main_real(len(args), argv, pointer(fuse_ops),
             sizeof(fuse_ops), None)
         del self.operations     # Invoke the destructor
-    
+
     def _wrapper_(self, func, *args, **kwargs):
         """Decorator for the methods that follow"""
         try:
@@ -336,46 +336,46 @@ class FUSE(object):
         except:
             print_exc()
             return -EFAULT
-    
+
     def getattr(self, path, buf):
         return self.fgetattr(path, buf, None)
-    
+
     def readlink(self, path, buf, bufsize):
         ret = self.operations('readlink', path)
         data = create_string_buffer(ret[:bufsize - 1])
         memmove(buf, data, len(data))
         return 0
-    
+
     def mknod(self, path, mode, dev):
         return self.operations('mknod', path, mode, dev)
-    
+
     def mkdir(self, path, mode):
         return self.operations('mkdir', path, mode)
-    
+
     def unlink(self, path):
         return self.operations('unlink', path)
-    
+
     def rmdir(self, path):
         return self.operations('rmdir', path)
-    
+
     def symlink(self, source, target):
         return self.operations('symlink', target, source)
-    
+
     def rename(self, old, new):
         return self.operations('rename', old, new)
-    
+
     def link(self, source, target):
         return self.operations('link', target, source)
-    
+
     def chmod(self, path, mode):
         return self.operations('chmod', path, mode)
-    
+
     def chown(self, path, uid, gid):
         return self.operations('chown', path, uid, gid)
-    
+
     def truncate(self, path, length):
         return self.operations('truncate', path, length)
-    
+
     def open(self, path, fip):
         fi = fip.contents
         if self.raw_fi:
@@ -383,7 +383,7 @@ class FUSE(object):
         else:
             fi.fh = self.operations('open', path, fi.flags)
             return 0
-    
+
     def read(self, path, buf, size, offset, fip):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         ret = self.operations('read', path, size, offset, fh)
@@ -391,12 +391,12 @@ class FUSE(object):
             strbuf = create_string_buffer(ret)
             memmove(buf, strbuf, len(strbuf))
         return len(ret)
-    
+
     def write(self, path, buf, size, offset, fip):
         data = string_at(buf, size)
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('write', path, data, offset, fh)
-    
+
     def statfs(self, path, buf):
         stv = buf.contents
         attrs = self.operations('statfs', path)
@@ -404,23 +404,23 @@ class FUSE(object):
             if hasattr(stv, key):
                 setattr(stv, key, val)
         return 0
-    
+
     def flush(self, path, fip):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('flush', path, fh)
-    
+
     def release(self, path, fip):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('release', path, fh)
-    
+
     def fsync(self, path, datasync, fip):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('fsync', path, datasync, fh)
-    
+
     def setxattr(self, path, name, value, size, options, *args):
         data = string_at(value, size)
         return self.operations('setxattr', path, name, data, options, *args)
-    
+
     def getxattr(self, path, name, value, size, *args):
         ret = self.operations('getxattr', path, name, *args)
         retsize = len(ret)
@@ -430,7 +430,7 @@ class FUSE(object):
                 return -ERANGE
             memmove(value, buf, retsize)
         return retsize
-    
+
     def listxattr(self, path, namebuf, size):
         ret = self.operations('listxattr', path)
         if ret:
@@ -443,15 +443,15 @@ class FUSE(object):
                 return -ERANGE
             memmove(namebuf, buf, bufsize)
         return bufsize
-    
+
     def removexattr(self, path, name):
         return self.operations('removexattr', path, name)
-    
+
     def opendir(self, path, fip):
         # Ignore raw_fi
         fip.contents.fh = self.operations('opendir', path)
         return 0
-    
+
     def readdir(self, path, buf, filler, offset, fip):
         # Ignore raw_fi
         for item in self.operations('readdir', path, fip.contents.fh):
@@ -467,24 +467,24 @@ class FUSE(object):
             if filler(buf, name, st, offset) != 0:
                 break
         return 0
-    
+
     def releasedir(self, path, fip):
         # Ignore raw_fi
         return self.operations('releasedir', path, fip.contents.fh)
-    
+
     def fsyncdir(self, path, datasync, fip):
         # Ignore raw_fi
         return self.operations('fsyncdir', path, datasync, fip.contents.fh)
-    
+
     def init(self, conn):
         return self.operations('init', '/')
-    
+
     def destroy(self, private_data):
         return self.operations('destroy', '/')
-    
+
     def access(self, path, amode):
         return self.operations('access', path, amode)
-    
+
     def create(self, path, mode, fip):
         fi = fip.contents
         if self.raw_fi:
@@ -492,11 +492,11 @@ class FUSE(object):
         else:
             fi.fh = self.operations('create', path, mode)
             return 0
-    
+
     def ftruncate(self, path, length, fip):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('truncate', path, length, fh)
-    
+
     def fgetattr(self, path, buf, fip):
         memset(buf, 0, sizeof(c_stat))
         st = buf.contents
@@ -504,11 +504,11 @@ class FUSE(object):
         attrs = self.operations('getattr', path, fh)
         set_st_attrs(st, attrs)
         return 0
-    
+
     def lock(self, path, fip, cmd, lock):
         fh = fip.contents if self.raw_fi else fip.contents.fh
         return self.operations('lock', path, fh, cmd, lock)
-    
+
     def utimens(self, path, buf):
         if buf:
             atime = time_of_timespec(buf.contents.actime)
@@ -517,7 +517,7 @@ class FUSE(object):
         else:
             times = None
         return self.operations('utimens', path, times)
-    
+
     def bmap(self, path, blocksize, idx):
         return self.operations('bmap', path, blocksize, idx)
 
@@ -526,46 +526,46 @@ class Operations(object):
     """This class should be subclassed and passed as an argument to FUSE on
        initialization. All operations should raise an OSError exception on
        error.
-       
+
        When in doubt of what an operation should do, check the FUSE header
        file or the corresponding system call man page."""
-    
+
     def __call__(self, op, *args):
         if not hasattr(self, op):
             raise OSError(EFAULT, '')
         return getattr(self, op)(*args)
-        
+
     def access(self, path, amode):
         return 0
-    
+
     bmap = None
-    
+
     def chmod(self, path, mode):
         raise OSError(EROFS, '')
-    
+
     def chown(self, path, uid, gid):
         raise OSError(EROFS, '')
-    
+
     def create(self, path, mode, fi=None):
         """When raw_fi is False (default case), fi is None and create should
            return a numerical file handle.
            When raw_fi is True the file handle should be set directly by create
            and return 0."""
         raise OSError(EROFS, '')
-    
+
     def destroy(self, path):
         """Called on filesystem destruction. Path is always /"""
         pass
-    
+
     def flush(self, path, fh):
         return 0
-    
+
     def fsync(self, path, datasync, fh):
         return 0
-    
+
     def fsyncdir(self, path, datasync, fh):
         return 0
-    
+
     def getattr(self, path, fh=None):
         """Returns a dictionary with keys identical to the stat C structure
            of stat(2).
@@ -573,33 +573,33 @@ class Operations(object):
            NOTE: There is an incombatibility between Linux and Mac OS X concerning
            st_nlink of directories. Mac OS X counts all files inside the directory,
            while Linux counts only the subdirectories."""
-        
+
         if path != '/':
             raise OSError(ENOENT, '')
         return dict(st_mode=(S_IFDIR | 0755), st_nlink=2)
-    
+
     def getxattr(self, path, name, position=0):
         raise OSError(ENOTSUP, '')
-    
+
     def init(self, path):
         """Called on filesystem initialization. Path is always /
            Use it instead of __init__ if you start threads on initialization."""
         pass
-    
+
     def link(self, target, source):
         raise OSError(EROFS, '')
-    
+
     def listxattr(self, path):
         return []
-        
+
     lock = None
-    
+
     def mkdir(self, path, mode):
         raise OSError(EROFS, '')
-    
+
     def mknod(self, path, mode, dev):
         raise OSError(EROFS, '')
-    
+
     def open(self, path, flags):
         """When raw_fi is False (default case), open should return a numerical
            file handle.
@@ -607,60 +607,60 @@ class Operations(object):
                open(self, path, fi)
            and the file handle should be set directly."""
         return 0
-    
+
     def opendir(self, path):
         """Returns a numerical file handle."""
         return 0
-    
+
     def read(self, path, size, offset, fh):
         """Returns a string containing the data requested."""
         raise OSError(ENOENT, '')
-    
+
     def readdir(self, path, fh):
         """Can return either a list of names, or a list of (name, attrs, offset)
            tuples. attrs is a dict as in getattr."""
         return ['.', '..']
-    
+
     def readlink(self, path):
         raise OSError(ENOENT, '')
-    
+
     def release(self, path, fh):
         return 0
-    
+
     def releasedir(self, path, fh):
         return 0
-    
+
     def removexattr(self, path, name):
         raise OSError(ENOTSUP, '')
-    
+
     def rename(self, old, new):
         raise OSError(EROFS, '')
-    
+
     def rmdir(self, path):
         raise OSError(EROFS, '')
-    
+
     def setxattr(self, path, name, value, options, position=0):
         raise OSError(ENOTSUP, '')
-    
+
     def statfs(self, path):
         """Returns a dictionary with keys identical to the statvfs C structure
            of statvfs(3).
            On Mac OS X f_bsize and f_frsize must be a power of 2 (minimum 512)."""
         return {}
-    
+
     def symlink(self, target, source):
         raise OSError(EROFS, '')
-    
+
     def truncate(self, path, length, fh=None):
         raise OSError(EROFS, '')
-    
+
     def unlink(self, path):
         raise OSError(EROFS, '')
-    
+
     def utimens(self, path, times=None):
         """Times is a (atime, mtime) tuple. If None use current time."""
         return 0
-    
+
     def write(self, path, data, offset, fh):
         raise OSError(EROFS, '')
 

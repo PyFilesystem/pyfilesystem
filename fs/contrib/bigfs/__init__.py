@@ -2,7 +2,7 @@
 fs.contrib.bigfs
 ================
 
-A FS object that represents the contents of a BIG file 
+A FS object that represents the contents of a BIG file
 (C&C Generals, BfME C&C3, C&C Red Alert 3, C&C4 file format)
 
 Written by Koen van de Sande
@@ -34,14 +34,14 @@ class BIGEntry:
             return f
         else:
             return self.decompress(f, wrapAsFile=True)
-    
+
     def getcontents(self, baseFile):
         f = SubrangeFile(baseFile, self.offset, self.storedSize)
         if not self.isCompressed:
             return f.read()
         else:
             return self.decompress(f, wrapAsFile=False)
-    
+
     def decompress(self, g, wrapAsFile=True):
         buf = g.read(2)
         magic = unpack(">H", buf)[0]
@@ -55,7 +55,7 @@ class BIGEntry:
                 outputSize = unpack(">I", "\0" + g.read(3))[0]
                 if magic & 0x100:
                     unknown1 = unpack(">I", "\0" + g.read(3))[0]
-        
+
         output = []
         while True:
             opcode = unpack("B", g.read(1))[0]
@@ -63,36 +63,36 @@ class BIGEntry:
                 # read second opcode
                 opcode2 = unpack("B", g.read(1))[0]
                 #print "0x80", toBits(opcode), toBits(opcode2), opcode & 0x03, (((opcode & 0x60) << 3) | opcode2) + Q, ((opcode & 0x1C) >> 2) + 2 + R
-    
+
                 # copy at most 3 bytes to output stream (lowest 2 bits of opcode)
                 count = opcode & 0x03
                 for i in range(count):
                     output.append(g.read(1))
-                
+
                 # you always have to look at least one byte, hence the +1
                 # use bit6 and bit5 (bit7=0 to trigger the if-statement) of opcode, and 8 bits of opcode2 (10-bits)
                 lookback = (((opcode & 0x60) << 3) | opcode2) + 1
-                
+
                 # use bit4..2 of opcode
                 count = ((opcode & 0x1C) >> 2) + 3
-                
+
                 for i in range(count):
                     output.append(output[-lookback])
             elif not (opcode & 0x40):     # opcode: bit7..6==10 to get here
                 opcode2 = unpack("B", g.read(1))[0]
                 opcode3 = unpack("B", g.read(1))[0]
                 #print "0x40", toBits(opcode), toBits(opcode2), toBits(opcode3)
-                
+
                 # copy count bytes (upper 2 bits of opcode2)
                 count = opcode2 >> 6
                 for i in range(count):
                     output.append(g.read(1))
-                
+
                 # look back again (lower 6 bits of opcode2, all 8 bits of opcode3, total 14-bits)
                 lookback = (((opcode2 & 0x3F) << 8) | opcode3) + 1
                 # lower 6 bits of opcode are the count to copy
                 count = (opcode & 0x3F) + 4
-                
+
                 for i in range(count):
                     output.append(output[-lookback])
             elif not (opcode & 0x20):     # opcode: bit7..5=110 to get here
@@ -104,7 +104,7 @@ class BIGEntry:
                 count = opcode & 0x03
                 for i in range(count):
                     output.append(g.read(1))
-                
+
                 # look back: bit4 of opcode, all bits of opcode2 and opcode3, total 17-bits
                 lookback = (((opcode & 0x10) >> 4) << 16) | (opcode2 << 8) | (opcode3) + 1
                 # bit3..2 of opcode and the whole of opcode4
@@ -129,15 +129,15 @@ class BIGEntry:
                 for i in range(count):
                     output.append(g.read(1))
                 #print "0xLO", toBits(opcode), count
-        
+
         if wrapAsFile:
             return StringIO("".join(output))
         else:
             return "".join(output)
-        
+
     def __str__(self):
         return "<BIGEntry %s offset=%d storedSize=%d isCompressed=%s realSize=%d in %s" % (self.filename, self.offset, self.storedSize, str(self.isCompressed), self.realSize, self.filenameBIG)
-        
+
 
 class _ExceptionProxy(object):
 
@@ -156,12 +156,12 @@ class _ExceptionProxy(object):
 class BigFS(FS):
 
     """A FileSystem that represents a BIG file."""
-    
+
     _meta = { 'virtual' : False,
               'read_only' : True,
               'unicode_paths' : True,
               'case_insensitive_paths' : False,
-              'network' : False,                        
+              'network' : False,
              }
 
     def __init__(self, filename, mode="r", thread_synchronize=True):
@@ -260,7 +260,7 @@ class BigFS(FS):
 
     @synchronize
     def open(self, path, mode="r", **kwargs):
-        path = normpath(relpath(path))        
+        path = normpath(relpath(path))
 
         if 'r' in mode:
             if self.file_mode not in 'ra':

@@ -28,7 +28,7 @@ class SubrangeFile:
         self.startOffset = startOffset
         self.fileSize = fileSize
         self.seek(0)
-        
+
     def __str__(self):
         return "<SubrangeFile: %s@%d size=%d>" % (self.name, self.startOffset, self.fileSize)
 
@@ -48,7 +48,7 @@ class SubrangeFile:
                 offset = 0
             offset = self.startOffset + self.fileSize + offset
         self.f.seek(offset)
-        
+
     def tell(self):
         return self.f.tell() - self.startOffset
 
@@ -60,7 +60,7 @@ class SubrangeFile:
         if self.tell() + iSize > self.fileSize:
             iSize = self.fileSize - self.tell()
         return iSize
-            
+
     def readline(self,size=None):
         toRead = self.__maxSize(size)
         return self.f.readline(toRead)

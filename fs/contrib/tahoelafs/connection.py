@@ -17,12 +17,12 @@ class PutRequest(Request):
     def __init__(self, *args, **kwargs):
         self.get_method = lambda: u'PUT'
         Request.__init__(self, *args, **kwargs)
-         
+
 class DeleteRequest(Request):
     def __init__(self, *args, **kwargs):
         self.get_method = lambda: u'DELETE'
         Request.__init__(self, *args, **kwargs)
-              
+
 class Connection:
     def __init__(self, webapi):
         self.webapi = webapi
@@ -37,13 +37,13 @@ class Connection:
             size = len(f)
         elif getattr(f, 'read', None):
             if size == None:
-                # When size is already known, skip this           
+                # When size is already known, skip this
                 f.seek(0, SEEK_END)
                 size = f.tell()
                 f.seek(0)
         else:
             raise errors.UnsupportedError("Cannot handle type %s" % type(f))
-        
+
         headers = {'Content-Length': size}
         headers.update(self.headers)
         return headers
@@ -59,7 +59,7 @@ class Connection:
         if params:
             return u"%s?%s" % (q, self._urlencode(params))
         return q
-        
+
     def _urlopen(self, req):
         try:
             return urlopen(req)
@@ -74,17 +74,17 @@ class Connection:
                 # Standard not found
                 raise errors.ResourceNotFoundError(e.fp.read())
             raise errors.ResourceInvalidError(e.fp.read())
-        
+
     def post(self, path, data={}, params={}):
         data = self._urlencode(data)
         path = self._quotepath(path, params)
         req = Request(''.join([self.webapi, path]), data, headers=self.headers)
         return self._urlopen(req)
-    
+
     def get(self, path, data={}, offset=None, length=None):
         data = self._urlencode(data)
         path = self._quotepath(path)
-        if data: 
+        if data:
             path = u'?'.join([path, data])
 
         headers = {}
@@ -95,17 +95,17 @@ class Connection:
                                     (int(offset), int(offset+length))
             else:
                 headers['Range'] = 'bytes=%d-' % int(offset)
-            
+
         req = Request(''.join([self.webapi, path]), headers=headers)
         return self._urlopen(req)
 
     def put(self, path, data, size=None, params={}):
         path = self._quotepath(path, params)
         headers = self._get_headers(data, size=size)
-        req = PutRequest(''.join([self.webapi, path]), data, headers=headers)    
+        req = PutRequest(''.join([self.webapi, path]), data, headers=headers)
         return self._urlopen(req)
-    
-    def delete(self, path, data={}):   
+
+    def delete(self, path, data={}):
         path = self._quotepath(path)
         req = DeleteRequest(''.join([self.webapi, path]), data, headers=self.headers)
         return self._urlopen(req)

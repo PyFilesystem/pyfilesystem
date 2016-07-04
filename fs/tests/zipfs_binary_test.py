@@ -13,10 +13,10 @@ from six import b
 
 class ZipFsBinaryWriteRead(unittest.TestCase):
     test_content = b(chr(32) + chr(10))
-    
+
     def setUp(self):
         self.z = ZipFS('test.zip', 'w')
-    
+
     def tearDown(self):
         try:
             os.remove('test.zip')

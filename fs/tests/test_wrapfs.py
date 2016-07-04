@@ -13,7 +13,7 @@ import shutil
 import tempfile
 
 from fs import osfs
-from fs.errors import * 
+from fs.errors import *
 from fs.path import *
 from fs.utils import remove_all
 from fs import wrapfs
@@ -22,9 +22,9 @@ import six
 from six import PY3, b
 
 class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
-    
+
     #__test__ = False
-    
+
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(u"fstest")
         self.fs = wrapfs.WrapFS(osfs.OSFS(self.temp_dir))
@@ -39,7 +39,7 @@ class TestWrapFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
 
 from fs.wrapfs.lazyfs import LazyFS
 class TestLazyFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
-    
+
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(u"fstest")
         self.fs = LazyFS((osfs.OSFS,(self.temp_dir,)))
@@ -56,7 +56,7 @@ from fs.wrapfs.limitsizefs import LimitSizeFS
 class TestLimitSizeFS(TestWrapFS):
 
     _dont_retest = TestWrapFS._dont_retest + ("test_big_file",)
-    
+
     def setUp(self):
         super(TestLimitSizeFS,self).setUp()
         self.fs = LimitSizeFS(self.fs,1024*1024*2)  # 2MB limit
@@ -78,7 +78,7 @@ class TestLimitSizeFS(TestWrapFS):
                 self.assertTrue(total_written < 1024*1024*2 + 1030)
                 break
         else:
-            self.assertTrue(False,"StorageSpaceError not raised")           
+            self.assertTrue(False,"StorageSpaceError not raised")
 
 
 from fs.wrapfs.hidedotfilesfs import HideDotFilesFS

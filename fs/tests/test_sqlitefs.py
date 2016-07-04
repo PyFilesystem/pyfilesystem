@@ -10,8 +10,8 @@ import os
 if SqliteFS:
     class TestSqliteFS(unittest.TestCase, FSTestCases):
         def setUp(self):
-            self.fs = SqliteFS("sqlitefs.db")            
+            self.fs = SqliteFS("sqlitefs.db")
         def tearDown(self):
             os.remove('sqlitefs.db')
-        
-        
+
+

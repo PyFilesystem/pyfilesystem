@@ -7,18 +7,18 @@ from fs.commands.runner import Command
 from fs.utils import print_fs
 
 class FSTree(Command):
-    
+
     usage = """fstree [OPTION]... [PATH]
 Recursively display the contents of PATH in an ascii tree"""
-    
+
     def get_optparse(self):
-        optparse = super(FSTree, self).get_optparse()        
+        optparse = super(FSTree, self).get_optparse()
         optparse.add_option('-l', '--level', dest='depth', type="int", default=5,
                             help="Descend only LEVEL directories deep (-1 for infinite)", metavar="LEVEL")
         optparse.add_option('-g', '--gui', dest='gui', action='store_true', default=False,
                             help="browse the tree with a gui")
         optparse.add_option('-a', '--all', dest='all', action='store_true', default=False,
-                            help="do not hide dot files")        
+                            help="do not hide dot files")
         optparse.add_option('--dirsfirst', dest='dirsfirst', action='store_true', default=False,
                             help="List directories before files")
         optparse.add_option('-P', dest="pattern", default=None,
@@ -26,13 +26,13 @@ Recursively display the contents of PATH in an ascii tree"""
         optparse.add_option('-d', dest="dirsonly", default=False, action='store_true',
                             help="List directories only")
         return optparse
-        
-    def do_run(self, options, args):        
-        
+
+    def do_run(self, options, args):
+
         if not args:
             args = ['.']
-    
-        for fs, path, is_dir in self.get_resources(args, single=True):                            
+
+        for fs, path, is_dir in self.get_resources(args, single=True):
             if not is_dir:
                 self.error(u"'%s' is not a dir\n" % path)
                 return 1
@@ -62,13 +62,13 @@ Recursively display the contents of PATH in an ascii tree"""
                         return '%i %s' % (count, one)
                     else:
                         return '%i %s' % (count, many)
-                
+
                 self.output("%s, %s\n" % (pluralize('directory', 'directories', dircount),
                                   pluralize('file', 'files', filecount)))
-   
+
 def run():
-    return FSTree().run()          
-    
+    return FSTree().run()
+
 if __name__ == "__main__":
     sys.exit(run())
-   
+

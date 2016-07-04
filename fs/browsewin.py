@@ -37,7 +37,7 @@ class InfoFrame(wx.Frame):
 
         for key in sorted(keys, key=lambda k:k.lower()):
             self.list_ctrl.Append((key, unicode(info.get(key))))
-            
+
         self.Center()
 
 
@@ -109,10 +109,10 @@ class BrowseFrame(wx.Frame):
             msg = "Failed to get directory listing for %s\n\nThe following error was reported:\n\n%s" % (path, e)
             wx.MessageDialog(self, msg, "Error listing directory", wx.OK).ShowModal()
             paths = []
-            
-                
+
+
         #paths = [(self.fs.isdir(p), p) for p in self.fs.listdir(path, absolute=True)]
-        
+
         if self.hide_dotfiles:
             paths = [p for p in paths if not isdotfile(p[1])]
 
@@ -173,7 +173,7 @@ class BrowseFrame(wx.Frame):
         path = item_data["path"]
         info = self.fs.getinfo(path)
 
-        info_frame = InfoFrame(self, path, self.fs.desc(path), info)        
+        info_frame = InfoFrame(self, path, self.fs.desc(path), info)
         info_frame.Show()
         info_frame.CenterOnParent()
 
