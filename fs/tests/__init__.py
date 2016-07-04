@@ -837,27 +837,18 @@ class FSTestCases(object):
                 self.assertEquals(f.read(), b("\x00")*25 + b("EOF"))
 
     def test_with_statement(self):
-        #  This is a little tricky since 'with' is actually new syntax.
-        #  We use eval() to make this method safe for old python versions.
-        import sys
-        if sys.version_info[0] >= 2 and sys.version_info[1] >= 5:
-            #  A successful 'with' statement
-            contents = "testing the with statement"
-            code = "from __future__ import with_statement\n"
-            code += "with self.fs.open('f.txt','wb-') as testfile:\n"
-            code += "    testfile.write(contents)\n"
-            code += "self.assertEquals(self.fs.getcontents('f.txt', 'rb'),contents)"
-            code = compile(code, "<string>", 'exec')
-            eval(code)
-            # A 'with' statement raising an error
-            contents = "testing the with statement"
-            code = "from __future__ import with_statement\n"
-            code += "with self.fs.open('f.txt','wb-') as testfile:\n"
-            code += "    testfile.write(contents)\n"
-            code += "    raise ValueError\n"
-            code = compile(code, "<string>", 'exec')
-            self.assertRaises(ValueError, eval, code, globals(), locals())
-            self.assertEquals(self.fs.getcontents('f.txt', 'rb'), contents)
+        contents = b"testing the with statement"
+        #  A successful 'with' statement
+        with self.fs.open('f.txt','wb-') as testfile:
+            testfile.write(contents)
+        self.assertEquals(self.fs.getcontents('f.txt', 'rb'), contents)
+        # A 'with' statement raising an error
+        def with_error():
+            with self.fs.open('g.txt','wb-') as testfile:
+                testfile.write(contents)
+                raise ValueError
+        self.assertRaises(ValueError, with_error)
+        self.assertEquals(self.fs.getcontents('g.txt', 'rb'), contents)
 
     def test_pickling(self):
         if self.fs.getmeta('pickle_contents', True):
