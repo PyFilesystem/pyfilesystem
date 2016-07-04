@@ -531,7 +531,8 @@ class FSTestCases(object):
         self.fs.setcontents("info.txt", test_str)
         info = self.fs.getinfo("info.txt")
         for k, v in info.iteritems():
-            self.assertEqual(self.fs.getinfokeys('info.txt', k), {k: v})
+            if not (k == 'asbytes' and callable(v)):
+                self.assertEqual(self.fs.getinfokeys('info.txt', k), {k: v})
 
         test_info = {}
         if 'modified_time' in info:
