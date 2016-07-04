@@ -23,8 +23,8 @@ class TestFSImportHook(unittest.TestCase):
             if isinstance(mph,FSImportHook):
                 sys.meta_path.remove(mph)
         for ph in list(sys.path_hooks):
-            if issubclass(ph,FSImportHook):
-                sys.path_hooks.remove(mph)
+            if isinstance(ph, type) and issubclass(ph,FSImportHook):
+                sys.path_hooks.remove(ph)
         for (k,v) in sys.modules.items():
             if k.startswith("fsih_"):
                 del sys.modules[k]
