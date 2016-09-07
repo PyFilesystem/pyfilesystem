@@ -76,15 +76,18 @@ class S3FS(FS):
         PATH_MAX = None
         NAME_MAX = None
 
-    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_synchronize=True, key_sync_timeout=1):
+    def __init__(self, bucket, prefix="", aws_access_key=None, aws_secret_key=None, separator="/", thread_synchronize=True, key_sync_timeout=1, **conn_kwargs):
         """Constructor for S3FS objects.
 
         S3FS objects require the name of the S3 bucket in which to store
         files, and can optionally be given a prefix under which the files
-        should be stored.  The AWS public and private keys may be specified
-        as additional arguments; if they are not specified they will be
-        read from the two environment variables AWS_ACCESS_KEY_ID and
-        AWS_SECRET_ACCESS_KEY.
+        should be stored.  AWS connection arguments (e.g. aws_access_key_id,
+        aws_secret_access_key, etc) may be specified as additional keyword
+        arguments to be passed to boto.s3.connection.S3Connection; if they
+        are not specified boto will try to read them from various locations (
+        see http://boto.cloudhackers.com/en/latest/boto_config_tut.html). Note
+        that legacy arguments 'aws_access_key' and 'aws_secret_key' will be
+        passed to boto as 'aws_access_key_id' and 'aws_secret_access_key'.
 
         The keyword argument 'key_sync_timeout' specifies the maximum
         time in seconds that the filesystem will spend trying to confirm
@@ -97,7 +100,11 @@ class S3FS(FS):
         by specifying the keyword 'separator' in the constructor.
         """
         self._bucket_name = bucket
-        self._access_keys = (aws_access_key,aws_secret_key)
+        if aws_access_key is not None:
+            conn_kwargs['aws_access_key_id'] = aws_access_key
+        if aws_secret_key is not None:
+            conn_kwargs['aws_secret_access_key'] = aws_secret_key
+        self._conn_kwargs = conn_kwargs
         self._separator = separator
         self._key_sync_timeout = key_sync_timeout
         # Normalise prefix to this form: path/to/files/
@@ -108,12 +115,6 @@ class S3FS(FS):
             prefix = prefix + separator
         if isinstance(prefix,unicode):
             prefix = prefix.encode("utf8")
-        if aws_access_key is None:
-            if "AWS_ACCESS_KEY_ID" not in os.environ:
-                raise CreateFailedError("AWS_ACCESS_KEY_ID not set")
-        if aws_secret_key is None:
-            if "AWS_SECRET_ACCESS_KEY" not in os.environ:
-                raise CreateFailedError("AWS_SECRET_ACCESS_KEY not set")
         self._prefix = prefix
         self._tlocal = thread_local()
         super(S3FS, self).__init__(thread_synchronize=thread_synchronize)
@@ -128,7 +129,7 @@ class S3FS(FS):
                 raise AttributeError
             return c
         except AttributeError:
-            c = boto.s3.connection.S3Connection(*self._access_keys)
+            c = boto.s3.connection.S3Connection(**self._conn_kwargs)
             self._tlocal.s3conn = (c,time.time())
             return c
     _s3conn = property(_s3conn)
