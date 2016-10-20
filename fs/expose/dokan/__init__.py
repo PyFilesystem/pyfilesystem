@@ -61,7 +61,7 @@ systems with Dokan installed.
 #  Copyright (c) 2016-2016, Adrien J. <liryna.stark@gmail.com>.
 #  All rights reserved; available under the terms of the MIT License.
 
-from __future__ import with_statement
+from __future__ import with_statement, absolute_import
 
 import six
 import sys
@@ -86,9 +86,7 @@ from fs.local_functools import wraps
 from fs.wrapfs import WrapFS
 
 try:
-    if six.PY2: import libdokan
-    elif six.PY3: from . import libdokan
-    else: raise
+    from . import libdokan
 except (NotImplementedError, EnvironmentError, ImportError, NameError,):
     is_available = False
     sys.modules.pop("fs.expose.dokan.libdokan", None)
@@ -311,13 +309,14 @@ MIN_FH = 100
 class FSOperations(object):
     """Object delegating all DOKAN_OPERATIONS pointers to an FS object."""
 
-    def __init__(self, fs, fsname="NTFS", volname="Dokan Volume"):
+    def __init__(self, fs, fsname="NTFS", volname="Dokan Volume", securityfolder=os.path.expanduser('~')):
         if libdokan is None:
             msg = 'dokan library (http://dokan-dev.github.io/) is not available'
             raise OSError(msg)
         self.fs = fs
         self.fsname = fsname
         self.volname = volname
+        self.securityfolder = securityfolder
         self._files_by_handle = {}
         self._files_lock = threading.Lock()
         self._next_handle = MIN_FH
@@ -816,7 +815,7 @@ class FSOperations(object):
         path = self._dokanpath2pyfs(path)
         if self.fs.isdir(path):
             res = libdokan.GetFileSecurity(
-                os.path.expanduser('~'),
+                self.securityfolder,
                 ctypes.cast(securityinformation, libdokan.PSECURITY_INFORMATION)[0],
                 securitydescriptor,
                 securitydescriptorlength,
