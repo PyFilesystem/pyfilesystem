@@ -71,9 +71,9 @@ import time
 import stat as statinfo
 import subprocess
 try:
-    import pickle as pickle
+    import cPickle as pickle
 except ImportError:
-    pass
+    import pickle
 import datetime
 import ctypes
 from collections import deque
@@ -1069,7 +1069,7 @@ class MountProcess(subprocess.Popen):
             raise OSError("the dokan library is not available")
         _check_path_string(path)
         self.path = path
-        cmd = "try: import pickle;\nexcept ImportError: import pickle as pickle;\n"
+        cmd = "try: import cPickle as pickle; except ImportError: import pickle;\n"
         cmd = cmd + "data = pickle.loads(%s); "
         cmd = cmd + "from fs.expose.dokan import MountProcess; "
         cmd = cmd + "MountProcess._do_mount(data)"
