@@ -977,7 +977,7 @@ def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None
     def check_ready(mp=None):
         if ready_callback is not False:
             check_alive(mp)
-            for _ in xrange(100):
+            for _ in range(100):
                 try:
                     os.stat(path)
                 except EnvironmentError:
