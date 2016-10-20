@@ -33,7 +33,7 @@ can be controlled through the returned subprocess.Popen object.  To avoid
 spawning a new process, set the 'foreground' option::
 
     >>> #  This will block until the filesystem is unmounted
-    >>> dokan.mount(fs, "Q", foreground=True)
+    >>> dokan.mount(fs, "Q:\\", foreground=True)
 
 Any additional options for the Dokan process can be passed as keyword arguments
 to the 'mount' function.
@@ -77,6 +77,7 @@ except ImportError:
 import datetime
 import ctypes
 from collections import deque
+from six.moves import range
 
 from fs.base import threading
 from fs.errors import *
@@ -99,9 +100,6 @@ else:
 
 import logging
 logger = logging.getLogger("fs.expose.dokan")
-
-if six.PY3:
-    xrange = range
 
 
 #  Options controlling the behavior of the Dokan filesystem
