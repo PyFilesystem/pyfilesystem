@@ -71,9 +71,9 @@ import time
 import stat as statinfo
 import subprocess
 try:
-    import cPickle
+    import pickle as pickle
 except ImportError:
-    import pickle as cPickle
+    pass
 import datetime
 import ctypes
 from collections import deque
@@ -943,7 +943,7 @@ def _check_path_string(path):  # TODO Probably os.path has a better check for th
 
 
 def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
-    """Mount the given FS at the given path letter, using Dokan.
+    """Mount the given FS at the given path, using Dokan.
 
     By default, this function spawns a new background process to manage the
     Dokan event loop.  The return value in this case is an instance of the
@@ -1030,7 +1030,7 @@ def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None
 def unmount(path):
     """Unmount the given path.
 
-    This function unmounts the dokan path mounted at the given path letter.
+    This function unmounts the dokan path mounted at the given path.
     It works but may leave dangling processes; its better to use the "unmount"
     method on the MountProcess class if you have one.
     """
@@ -1069,11 +1069,11 @@ class MountProcess(subprocess.Popen):
             raise OSError("the dokan library is not available")
         _check_path_string(path)
         self.path = path
-        cmd = "try: import cPickle;\nexcept ImportError: import pickle as cPickle;\n"
-        cmd = cmd + "data = cPickle.loads(%s); "
+        cmd = "try: import pickle;\nexcept ImportError: import pickle as pickle;\n"
+        cmd = cmd + "data = pickle.loads(%s); "
         cmd = cmd + "from fs.expose.dokan import MountProcess; "
         cmd = cmd + "MountProcess._do_mount(data)"
-        cmd = cmd % (repr(cPickle.dumps((fs, path, dokan_opts, nowait), -1)),)
+        cmd = cmd % (repr(pickle.dumps((fs, path, dokan_opts, nowait), -1)),)
         cmd = [sys.executable, "-c", cmd]
         super(MountProcess, self).__init__(cmd, **kwds)
 
