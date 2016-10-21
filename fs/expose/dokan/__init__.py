@@ -958,6 +958,7 @@ def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None
         * numthreads:  number of threads to use for handling Dokan requests
         * fsname:  name to display in explorer etc
         * flags:   DOKAN_OPTIONS bitmask
+        * securityfolder:  folder path used to duplicate security rights on all folders 
         * FSOperationsClass:  custom FSOperations subclass to use
 
     """
