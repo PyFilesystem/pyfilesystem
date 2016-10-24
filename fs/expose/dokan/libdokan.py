@@ -7,6 +7,7 @@
 
 """
 
+import ctypes
 from ctypes import *
 
 try:
