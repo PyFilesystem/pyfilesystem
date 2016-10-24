@@ -7,26 +7,26 @@
 
 """
 
-import ctypes
+from ctypes import *
 
 try:
-    DokanMain = ctypes.windll.Dokan1.DokanMain
-    DokanVersion = ctypes.windll.Dokan1.DokanVersion
+    DokanMain = windll.Dokan1.DokanMain
+    DokanVersion = windll.Dokan1.DokanVersion
 except AttributeError:
     raise ImportError("Dokan DLL not found")
 
 
 from ctypes.wintypes import *
-ULONG64 = ctypes.c_ulonglong
-PULONGLONG = ctypes.POINTER(ctypes.c_ulonglong)
-PVOID = ctypes.c_void_p
-PULONG = ctypes.POINTER(ctypes.c_ulong)
-UCHAR = ctypes.c_ubyte
-LPDWORD = ctypes.POINTER(ctypes.c_ulong)
-LONGLONG = ctypes.c_longlong
-NTSTATUS = ctypes.c_long
-USHORT = ctypes.c_ushort
-WCHAR = ctypes.c_wchar
+ULONG64 = c_ulonglong
+PULONGLONG = POINTER(c_ulonglong)
+PVOID = c_void_p
+PULONG = POINTER(c_ulong)
+UCHAR = c_ubyte
+LPDWORD = POINTER(c_ulong)
+LONGLONG = c_longlong
+NTSTATUS = c_long
+USHORT = c_ushort
+WCHAR = c_wchar
 
 
 DokanVersion.restype = ULONG
@@ -38,22 +38,22 @@ if DokanVersion() < DOKAN_MINIMUM_COMPATIBLE_VERSION:
 
 MAX_PATH = 260
 
-class SECURITY_DESCRIPTOR(ctypes.Structure): pass
+class SECURITY_DESCRIPTOR(Structure): pass
 
-PSECURITY_DESCRIPTOR = ctypes.POINTER(SECURITY_DESCRIPTOR)
-PPSECURITY_DESCRIPTOR = ctypes.POINTER(PSECURITY_DESCRIPTOR)
+PSECURITY_DESCRIPTOR = POINTER(SECURITY_DESCRIPTOR)
+PPSECURITY_DESCRIPTOR = POINTER(PSECURITY_DESCRIPTOR)
 
 SECURITY_INFORMATION = DWORD
-PSECURITY_INFORMATION = ctypes.POINTER(SECURITY_INFORMATION)
+PSECURITY_INFORMATION = POINTER(SECURITY_INFORMATION)
 
-class FILETIME(ctypes.Structure):
+class FILETIME(Structure):
     _fields_ = [
         ("dwLowDateTime", DWORD),
         ("dwHighDateTime", DWORD),
     ]
 
 
-class WIN32_FIND_DATAW(ctypes.Structure):
+class WIN32_FIND_DATAW(Structure):
     _fields_ = [
         ("dwFileAttributes", DWORD),
         ("ftCreationTime", FILETIME),
@@ -68,7 +68,7 @@ class WIN32_FIND_DATAW(ctypes.Structure):
     ]
 
 
-class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+class BY_HANDLE_FILE_INFORMATION(Structure):
     _fields_ = [
         ('dwFileAttributes', DWORD),
         ('ftCreationTime', FILETIME),
@@ -83,7 +83,7 @@ class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
     ]
 
 
-class DOKAN_OPTIONS(ctypes.Structure):
+class DOKAN_OPTIONS(Structure):
     _fields_ = [
         ("Version", USHORT),
         ("ThreadCount", USHORT),
@@ -97,11 +97,11 @@ class DOKAN_OPTIONS(ctypes.Structure):
     ]
 
 
-class DOKAN_FILE_INFO(ctypes.Structure):
+class DOKAN_FILE_INFO(Structure):
     _fields_ = [
         ("Context", ULONG64),
         ("DokanContext", ULONG64),
-        ("DokanOptions", ctypes.POINTER(DOKAN_OPTIONS)),
+        ("DokanOptions", POINTER(DOKAN_OPTIONS)),
         ("ProcessId", ULONG),
         ("IsDirectory", UCHAR),
         ("DeleteOnClose", UCHAR),
@@ -112,13 +112,13 @@ class DOKAN_FILE_INFO(ctypes.Structure):
     ]
 
 
-PDOKAN_FILE_INFO = ctypes.POINTER(DOKAN_FILE_INFO)
-PFillFindData = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.POINTER(WIN32_FIND_DATAW), PDOKAN_FILE_INFO)
+PDOKAN_FILE_INFO = POINTER(DOKAN_FILE_INFO)
+PFillFindData = WINFUNCTYPE(c_int, POINTER(WIN32_FIND_DATAW), PDOKAN_FILE_INFO)
 
 
-class DOKAN_OPERATIONS(ctypes.Structure):
+class DOKAN_OPERATIONS(Structure):
     _fields_ = [
-        ("ZwCreateFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("ZwCreateFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,      # FileName
         PVOID,        # SecurityContext, see
                       # https://msdn.microsoft.com/en-us/library/windows/hardware/ff550613(v=vs.85).aspx
@@ -128,87 +128,87 @@ class DOKAN_OPERATIONS(ctypes.Structure):
         ULONG,        # CreateDisposition
         ULONG,        # CreateOptions
         PDOKAN_FILE_INFO)),
-        ("Cleanup", ctypes.WINFUNCTYPE(None,
+        ("Cleanup", WINFUNCTYPE(None,
         LPCWSTR,      # FileName
         PDOKAN_FILE_INFO)),
-        ("CloseFile", ctypes.WINFUNCTYPE(None,
+        ("CloseFile", WINFUNCTYPE(None,
         LPCWSTR,      # FileName
         PDOKAN_FILE_INFO)),
-        ("ReadFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("ReadFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         LPVOID,   # Buffer
         DWORD,    # NumberOfBytesToRead
         LPDWORD,  # NumberOfBytesRead
         LONGLONG, # Offset
         PDOKAN_FILE_INFO)),
-        ("WriteFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("WriteFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         LPCVOID,  # Buffer
         DWORD,    # NumberOfBytesToWrite
         LPDWORD,  # NumberOfBytesWritten
         LONGLONG, # Offset
         PDOKAN_FILE_INFO)),
-        ("FlushFileBuffers", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("FlushFileBuffers", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         PDOKAN_FILE_INFO)),
-        ("GetFileInformation", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("GetFileInformation", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
-        ctypes.POINTER(BY_HANDLE_FILE_INFORMATION), # Buffer
+        POINTER(BY_HANDLE_FILE_INFORMATION), # Buffer
         PDOKAN_FILE_INFO)),
-        ("FindFiles", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("FindFiles", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # PathName
         PFillFindData, # call this function with PWIN32_FIND_DATAW
         PDOKAN_FILE_INFO)),
-        ("FindFilesWithPattern", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("FindFilesWithPattern", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # PathName
         LPCWSTR,  # SearchPattern
         PFillFindData,  #call this function with PWIN32_FIND_DATAW
         PDOKAN_FILE_INFO)),
-        ("SetFileAttributes", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("SetFileAttributes", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
         DWORD,   # FileAttributes
         PDOKAN_FILE_INFO)),
-        ("SetFileTime", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("SetFileTime", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
-        ctypes.POINTER(FILETIME), # CreationTime
-        ctypes.POINTER(FILETIME), # LastAccessTime
-        ctypes.POINTER(FILETIME), # LastWriteTime
+        POINTER(FILETIME), # CreationTime
+        POINTER(FILETIME), # LastAccessTime
+        POINTER(FILETIME), # LastWriteTime
         PDOKAN_FILE_INFO)),
-        ("DeleteFile", ctypes.WINFUNCTYPE(NTSTATUS,
-        LPCWSTR, # FileName
-        PDOKAN_FILE_INFO)),
-        ("DeleteDirectory", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("DeleteFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
         PDOKAN_FILE_INFO)),
-        ("MoveFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("DeleteDirectory", WINFUNCTYPE(NTSTATUS,
+        LPCWSTR, # FileName
+        PDOKAN_FILE_INFO)),
+        ("MoveFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # ExistingFileName
         LPCWSTR, # NewFileName
         BOOL,    # ReplaceExisiting
         PDOKAN_FILE_INFO)),
-        ("SetEndOfFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("SetEndOfFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         LONGLONG, # Length
         PDOKAN_FILE_INFO)),
-        ("SetAllocationSize", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("SetAllocationSize", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         LONGLONG, # Length
         PDOKAN_FILE_INFO)),
-        ("LockFile", ctypes.WINFUNCTYPE(NTSTATUS,
-        LPCWSTR,  # FileName
-        LONGLONG, # ByteOffset
-        LONGLONG, # Length
-        PDOKAN_FILE_INFO)),
-        ("UnlockFile", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("LockFile", WINFUNCTYPE(NTSTATUS,
         LPCWSTR,  # FileName
         LONGLONG, # ByteOffset
         LONGLONG, # Length
         PDOKAN_FILE_INFO)),
-        ("GetDiskFreeSpace", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("UnlockFile", WINFUNCTYPE(NTSTATUS,
+        LPCWSTR,  # FileName
+        LONGLONG, # ByteOffset
+        LONGLONG, # Length
+        PDOKAN_FILE_INFO)),
+        ("GetDiskFreeSpace", WINFUNCTYPE(NTSTATUS,
         PULONGLONG, # FreeBytesAvailable
         PULONGLONG, # TotalNumberOfBytes
         PULONGLONG, # TotalNumberOfFreeBytes
         PDOKAN_FILE_INFO)),
-        ("GetVolumeInformation", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("GetVolumeInformation", WINFUNCTYPE(NTSTATUS,
         PVOID,  # VolumeNameBuffer
         DWORD,   # VolumeNameSize in num of chars
         LPDWORD, # VolumeSerialNumber
@@ -217,43 +217,43 @@ class DOKAN_OPERATIONS(ctypes.Structure):
         PVOID,  # FileSystemNameBuffer
         DWORD,   # FileSystemNameSize in num of chars
         PDOKAN_FILE_INFO)),
-        ("Mounted", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("Mounted", WINFUNCTYPE(NTSTATUS,
         PDOKAN_FILE_INFO)),
-        ("Unmounted", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("Unmounted", WINFUNCTYPE(NTSTATUS,
         DOKAN_FILE_INFO)),
-        ("GetFileSecurity", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("GetFileSecurity", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
         PULONG,   # A pointer to SECURITY_INFORMATION value being requested
         PVOID,   # A pointer to SECURITY_DESCRIPTOR buffer to be filled
         ULONG,   # Length of Security descriptor buffer
         PULONG,  # Length Needed
         PDOKAN_FILE_INFO)),
-        ("SetFileSecurity", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("SetFileSecurity", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
         PVOID,   # A pointer to SECURITY_INFORMATION value being
         PVOID,   # A pointer to SECURITY_DESCRIPTOR buffer
         ULONG,   # Length of Security descriptor buffer
         PDOKAN_FILE_INFO)),
-        ("FindStreams", ctypes.WINFUNCTYPE(NTSTATUS,
+        ("FindStreams", WINFUNCTYPE(NTSTATUS,
         LPCWSTR, # FileName
         PVOID,   # call this function with PWIN32_FIND_STREAM_DATA
         PDOKAN_FILE_INFO))
     ]
 
 
-DokanMain.restype = ctypes.c_int
+DokanMain.restype = c_int
 DokanMain.argtypes = (
-    ctypes.POINTER(DOKAN_OPTIONS),
-    ctypes.POINTER(DOKAN_OPERATIONS),
+    POINTER(DOKAN_OPTIONS),
+    POINTER(DOKAN_OPERATIONS),
 )
 
-DokanRemoveMountPoint = ctypes.windll.Dokan1.DokanRemoveMountPoint
+DokanRemoveMountPoint = windll.Dokan1.DokanRemoveMountPoint
 DokanRemoveMountPoint.restype = BOOL
 DokanRemoveMountPoint.argtypes = (
     LPCWSTR,
 )
 
-DokanIsNameInExpression = ctypes.windll.Dokan1.DokanIsNameInExpression
+DokanIsNameInExpression = windll.Dokan1.DokanIsNameInExpression
 DokanIsNameInExpression.restype = BOOL
 DokanIsNameInExpression.argtypes = (
     LPCWSTR,  # pattern
@@ -261,19 +261,19 @@ DokanIsNameInExpression.argtypes = (
     BOOL,     # ignore case
 )
 
-DokanDriverVersion = ctypes.windll.Dokan1.DokanDriverVersion
+DokanDriverVersion = windll.Dokan1.DokanDriverVersion
 DokanDriverVersion.restype = ULONG
 DokanDriverVersion.argtypes = (
 )
 
-DokanResetTimeout = ctypes.windll.Dokan1.DokanResetTimeout
+DokanResetTimeout = windll.Dokan1.DokanResetTimeout
 DokanResetTimeout.restype = BOOL
 DokanResetTimeout.argtypes = (
     ULONG,  #timeout
     PDOKAN_FILE_INFO,  # file info pointer
 )
 
-GetFileSecurity = ctypes.windll.advapi32.GetFileSecurityW
+GetFileSecurity = windll.advapi32.GetFileSecurityW
 GetFileSecurity.restype = BOOL
 GetFileSecurity.argtypes = (
     LPWSTR,                     # _In_ LPCTSTR lpFileName,
