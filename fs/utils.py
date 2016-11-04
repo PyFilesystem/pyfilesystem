@@ -36,9 +36,9 @@ def copyfile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     Otherwise file will be copied a chunk at a time.
 
     :param src_fs: Source filesystem object
-    :param src_path: -- Source path
+    :param src_path: Source path
     :param dst_fs: Destination filesystem object
-    :param dst_path: Destination filesystem object
+    :param dst_path: Destination path
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
@@ -81,9 +81,9 @@ def copyfile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chun
     """A non atomic version of copyfile (will not block other threads using src_fs or dst_fst)
 
     :param src_fs: Source filesystem object
-    :param src_path: -- Source path
+    :param src_path: Source path
     :param dst_fs: Destination filesystem object
-    :param dst_path: Destination filesystem object
+    :param dst_path: Destination path
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
@@ -116,7 +116,7 @@ def movefile(src_fs, src_path, dst_fs, dst_path, overwrite=True, chunk_size=64*1
     :param src_fs: Source filesystem object
     :param src_path: Source path
     :param dst_fs: Destination filesystem object
-    :param dst_path: Destination filesystem object
+    :param dst_path: Destination path
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
@@ -164,7 +164,7 @@ def movefile_non_atomic(src_fs, src_path, dst_fs, dst_path, overwrite=True, chun
     :param src_fs: Source filesystem object
     :param src_path: Source path
     :param dst_fs: Destination filesystem object
-    :param dst_path: Destination filesystem object
+    :param dst_path: Destination path
     :param chunk_size: Size of chunks to move if system copyfile is not available (default 64K)
 
     """
