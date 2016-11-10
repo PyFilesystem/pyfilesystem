@@ -214,9 +214,9 @@ def handle_fs_errors(func):
             res = func(*args, **kwds)
         except OSError as e:
             if e.errno:
-                res = -1 * _errno2syserrcode(e.errno)
+                res = _errno2syserrcode(e.errno)
             else:
-                res = -1
+                res = STATUS_ACCESS_DENIED;
         except Exception as e:
             raise
         else:
