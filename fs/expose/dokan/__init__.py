@@ -432,7 +432,8 @@ class FSOperations(object):
             return STATUS_ACCESS_DENIED
 
         retcode = STATUS_SUCCESS
-        if info.contents.IsDirectory:
+        if self.fs.isdir(path) or info.contents.IsDirectory:
+            info.contents.IsDirectory = True
             exist = self.fs.exists(path)
             if disposition == FILE_CREATE:
                 if self.fs.exists(path):
