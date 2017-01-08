@@ -5,7 +5,7 @@ fs.appdirfs
 A collection of filesystems that map to application specific locations.
 
 These classes abstract away the different requirements for user data across platforms,
-which vary in their conventions. They are all subclasses of :class:`fs.osfs.OSFS`,
+which vary in their conventions. They are all subclasses of :class:`~fs.osfs.OSFS`,
 all that differs from `OSFS` is the constructor which detects the appropriate
 location given the name of the application, author name and other parameters.
 

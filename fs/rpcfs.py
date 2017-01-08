@@ -4,7 +4,7 @@ fs.rpcfs
 
 This module provides the class 'RPCFS' to access a remote FS object over
 XML-RPC.  You probably want to use this in conjunction with the 'RPCFSServer'
-class from the :mod:`fs.expose.xmlrpc` module.
+class from the :mod:`~fs.expose.xmlrpc` module.
 
 """
 

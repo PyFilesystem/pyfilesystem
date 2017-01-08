@@ -68,7 +68,7 @@ class DummyLock(object):
 
 
 def silence_fserrors(f, *args, **kwargs):
-    """Perform a function call and return ``None`` if an :class:`fs.errors.FSError` is thrown
+    """Perform a function call and return ``None`` if an :class:`~fs.errors.FSError` is thrown
 
     :param f: Function to call
     :param args: Parameters to f
@@ -89,7 +89,7 @@ class NoDefaultMeta(object):
 class NullFile(object):
     """A NullFile is a file object that has no functionality.
 
-    Null files are returned by the :meth:`fs.base.FS.safeopen` method in FS objects when the
+    Null files are returned by the :meth:`~fs.base.FS.safeopen` method in FS objects when the
     file doesn't exist. This can simplify code by negating the need to check
     if a file exists, or handling exceptions.
 
@@ -589,9 +589,9 @@ class FS(object):
                  files_only=False):
         """Generator yielding the files and directories under a given path.
 
-        This method behaves identically to :py:meth:`fs.base.FS.listdir` but returns an generator
+        This method behaves identically to :py:meth:`~fs.base.FS.listdir` but returns an generator
         instead of a list.  Depending on the filesystem this may be more
-        efficient than calling :py:meth:`fs.base.FS.listdir` and iterating over the resulting list.
+        efficient than calling :py:meth:`~fs.base.FS.listdir` and iterating over the resulting list.
 
         """
         return iter(self.listdir(path,

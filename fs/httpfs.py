@@ -21,7 +21,7 @@ class HTTPFS(FS):
     typical filesystem functionality. This class exists to allow the :doc:`opener` system
     to read files over HTTP.
 
-    If you do need filesystem like functionality over HTTP, see :mod:`fs.contrib.davfs`.
+    If you do need filesystem like functionality over HTTP, see :mod:`~fs.contrib.davfs`.
 
     """
 

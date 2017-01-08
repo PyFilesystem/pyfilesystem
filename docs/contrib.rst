@@ -7,16 +7,16 @@ module namespace.
 
 DAV (WebDAV Protocol)
 ----------------------------
-An interface to WebDAV file servers. See :mod:`fs.contrib.davfs`
+An interface to WebDAV file servers. See :mod:`~fs.contrib.davfs`
 
 
 Tahoe LAFS
 ----------
-An interface to Tahoe Least-Authority File System.  See :mod:`fs.contrib.tahoelafs`
+An interface to Tahoe Least-Authority File System.  See :mod:`~fs.contrib.tahoelafs`
 
 
 BIG (BIG Archive File Format)
 -----------------------------
-A read-only interface to the BIG archive file format used in some EA games titles (e.g. Command & Conquer 4).  See :mod:`fs.contrib.bigfs`
+A read-only interface to the BIG archive file format used in some EA games titles (e.g. Command & Conquer 4).  See :mod:`~fs.contrib.bigfs`
 
 

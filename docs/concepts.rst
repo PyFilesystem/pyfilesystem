@@ -1,7 +1,7 @@
 Concepts
 ========
 
-Working with PyFilesystem is generally easier than working with lower level interfaces, as long as you are aware these simple concepts. 
+Working with PyFilesystem is generally easier than working with lower level interfaces, as long as you are aware these simple concepts.
 
 Sandboxing
 ----------
@@ -31,7 +31,7 @@ Fortunately we can isolate a single sub-directory with then :meth:`~fs.base.FS.o
 
 	bar_fs = foo_fs.opendir('bar')
 
-This creates a completely new FS object that represents everything in the `foo/bar` directory. The root directory of `bar_fs` has been re-position, so that from `bar_fs`'s point of view, the readme.txt and photo.jpg files are in the root::
+This creates a completely new FS object that represents everything in the `foo/bar` directory. The root directory of `bar_fs` has been re-positioned, so that from `bar_fs`'s point of view, the readme.txt and photo.jpg files are in the root::
 
 	--bar
 	  |--readme.txt
@@ -45,7 +45,7 @@ PyFilesystem will catch any attempts to read outside of the root directory. For 
 Paths
 -----
 
-Paths used within an FS object use the same common format, regardless of the underlying file system it represents (or the platform it resides on). 
+Paths used within an FS object use the same common format, regardless of the underlying file system it represents (or the platform it resides on).
 
 When working with paths in FS objects, keep in mind the following:
 
@@ -54,11 +54,11 @@ When working with paths in FS objects, keep in mind the following:
  * Paths not beginning with a forward slash are relative
  * A single dot means 'current directory'
  * A double dot means 'previous directory'
- 
+
 Note that paths used by the FS interface will use this format, but the constructor or additional methods may not.
 Notably the :mod:`~fs.osfs.OSFS` constructor which requires an OS path -- the format of which is platform-dependent.
 
-There are many helpful functions for working with paths in the :mod:`fs.path` module.
+There are many helpful functions for working with paths in the :mod:`~fs.path` module.
 
 System Paths
 ++++++++++++
@@ -78,7 +78,7 @@ If you call :meth:`~fs.base.FS.getsyspath` on such FS objects you will either ge
 Errors
 ------
 
-PyFilesystem converts all exceptions to a common type, so that you need only write your exception handling code once. For example, if you try to open a file that doesn't exist, PyFilesystem will throw a :class:`fs.errors.ResourceNotFoundError` regardless of whether the filesystem is local, on a ftp server or in a zip file::
+PyFilesystem converts all exceptions to a common type, so that you need only write your exception handling code once. For example, if you try to open a file that doesn't exist, PyFilesystem will throw a :class:`~fs.errors.ResourceNotFoundError` regardless of whether the filesystem is local, on a ftp server or in a zip file::
 
 	>>> from fs.osfs import OSFS
 	>>> root_fs = OSFS('/')
@@ -91,4 +91,4 @@ PyFilesystem converts all exceptions to a common type, so that you need only wri
 	    return open(self.getsyspath(path), mode, kwargs.get("buffering", -1))
 	fs.errors.ResourceNotFoundError: Resource not found: doesnotexist.txt
 
-All PyFilesystem exceptions are derived from :class:`fs.errors.FSError`, so you may use that if you want to catch all possible filesystem related exceptions.
+All PyFilesystem exceptions are derived from :class:`~fs.errors.FSError`, so you may use that if you want to catch all possible filesystem related exceptions.

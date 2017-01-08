@@ -4,7 +4,7 @@ Filesystem Interface
 ====================
 
 The following methods are available in all PyFilesystem implementation:
-	
+
 	* :meth:`~fs.base.FS.close` Close the filesystem and free any resources
 	* :meth:`~fs.base.FS.copy` Copy a file to a new location
 	* :meth:`~fs.base.FS.copydir` Recursively copy a directory to a new location
@@ -47,6 +47,6 @@ The following methods are available in all PyFilesystem implementation:
 	* :meth:`~fs.base.FS.walkdirs` Returns an iterable of paths to sub-directories
 	* :meth:`~fs.base.FS.walkfiles` Returns an iterable of file paths in a directory, and its sub-directories
 
-See :py:class:`fs.base.FS` for the method signature and full details.
+See :py:class:`~fs.base.FS` for the method signature and full details.
 
 If you intend to implement an FS object, see :ref:`implementers`.

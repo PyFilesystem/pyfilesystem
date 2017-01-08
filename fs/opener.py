@@ -171,7 +171,7 @@ class OpenerRegistry(object):
         """Retrieve an opener for the given protocol
 
         :param name: name of the opener to open
-        :raises NoOpenerError: if no opener has been registered of that name
+        :raises `NoOpenerError`: if no opener has been registered of that name
 
         """
         if name not in self.registry:

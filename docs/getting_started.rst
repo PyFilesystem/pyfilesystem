@@ -41,9 +41,9 @@ Prerequisites
 
 PyFilesystem requires at least **Python 2.6**. There are a few other dependencies if you want to use some of the more advanced filesystem interfaces, but for basic use all that is needed is the Python standard library.
 
-    * Boto (required for :mod:`fs.s3fs`) https://github.com/boto/boto
-    * Paramiko (required for :mod:`fs.sftpfs`) https://github.com/paramiko/paramiko
-    * wxPython (required for :mod:`fs.browsewin`) http://www.wxpython.org/
+    * Boto (required for :mod:`~fs.s3fs`) https://github.com/boto/boto
+    * Paramiko (required for :mod:`~fs.sftpfs`) https://github.com/paramiko/paramiko
+    * wxPython (required for :mod:`~fs.browsewin`) http://www.wxpython.org/
 
 
 Quick Examples
