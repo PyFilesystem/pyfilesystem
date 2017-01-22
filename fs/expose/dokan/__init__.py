@@ -7,19 +7,25 @@ Expose an FS object to the native filesystem via Dokan.
 This module provides the necessary interfaces to mount an FS object into
 the local filesystem using Dokan on win32::
 
-    http://dokan-dev.net/en/
+    http://dokan-dev.github.io/
 
-For simple usage, the function 'mount' takes an FS object and a drive letter,
-and exposes the given FS as that drive::
+For simple usage, the function 'mount' takes an FS object
+and new device mount point or an existing empty folder
+and exposes the given FS as that path::
 
     >>> from fs.memoryfs import MemoryFS
     >>> from fs.expose import dokan
     >>> fs = MemoryFS()
-    >>> mp = dokan.mount(fs,"Q")
-    >>> mp.drive
-    'Q'
+    >>> # Mount device mount point
+    >>> mp = dokan.mount(fs, "Q:\\")
     >>> mp.path
     'Q:\\'
+    >>> mp.unmount()
+    >>> fs = MemoryFS()
+    >>> # Mount in an existing empty folder.
+    >>> mp = dokan.mount(fs, "C:\\test")
+    >>> mp.path
+    'C:\\test'
     >>> mp.unmount()
 
 The above spawns a new background process to manage the Dokan event loop, which
@@ -27,7 +33,7 @@ can be controlled through the returned subprocess.Popen object.  To avoid
 spawning a new process, set the 'foreground' option::
 
     >>> #  This will block until the filesystem is unmounted
-    >>> dokan.mount(fs,"Q",foreground=True)
+    >>> dokan.mount(fs, "Q:\\", foreground=True)
 
 Any additional options for the Dokan process can be passed as keyword arguments
 to the 'mount' function.
@@ -37,7 +43,7 @@ instantiate the MountProcess class directly.  It accepts all options available
 to subprocess.Popen::
 
     >>> from subprocess import PIPE
-    >>> mp = dokan.MountProcess(fs,"Q",stderr=PIPE)
+    >>> mp = dokan.MountProcess(fs, "Q:\\", stderr=PIPE)
     >>> dokan_errors = mp.communicate()[1]
 
 
@@ -52,22 +58,26 @@ systems with Dokan installed.
 
 """
 #  Copyright (c) 2009-2010, Cloud Matrix Pty. Ltd.
+#  Copyright (c) 2016-2016, Adrien J. <liryna.stark@gmail.com>.
 #  All rights reserved; available under the terms of the MIT License.
 
-from __future__ import with_statement
+from __future__ import with_statement, absolute_import
 
+import six
 import sys
-
 import os
-import signal
 import errno
 import time
 import stat as statinfo
 import subprocess
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import datetime
 import ctypes
 from collections import deque
+from six.moves import range
 
 from fs.base import threading
 from fs.errors import *
@@ -76,7 +86,7 @@ from fs.local_functools import wraps
 from fs.wrapfs import WrapFS
 
 try:
-    import libdokan
+    from . import libdokan
 except (NotImplementedError, EnvironmentError, ImportError, NameError,):
     is_available = False
     sys.modules.pop("fs.expose.dokan.libdokan", None)
@@ -91,20 +101,41 @@ logger = logging.getLogger("fs.expose.dokan")
 
 
 #  Options controlling the behavior of the Dokan filesystem
+#  Ouput debug message
 DOKAN_OPTION_DEBUG = 1
+#  Ouput debug message to stderr
 DOKAN_OPTION_STDERR = 2
+#  Use alternate stream
 DOKAN_OPTION_ALT_STREAM = 4
-DOKAN_OPTION_KEEP_ALIVE = 8
+#  Mount drive as write-protected.
+DOKAN_OPTION_WRITE_PROTECT = 8
+#  Use network drive, you need to install Dokan network provider.
 DOKAN_OPTION_NETWORK = 16
+#  Use removable drive
 DOKAN_OPTION_REMOVABLE = 32
+#  Use mount manager
+DOKAN_OPTION_MOUNT_MANAGER = 64
+#  Mount the drive on current session only
+DOKAN_OPTION_CURRENT_SESSION = 128
+#  FileLock in User Mode
+DOKAN_OPTION_FILELOCK_USER_MODE = 256
 
 #  Error codes returned by DokanMain
 DOKAN_SUCCESS = 0
+#  General Error
 DOKAN_ERROR = -1
+#  Bad Drive letter
 DOKAN_DRIVE_LETTER_ERROR = -2
+#  Can't install driver
 DOKAN_DRIVER_INSTALL_ERROR = -3
+#  Driver something wrong
 DOKAN_START_ERROR = -4
+#  Can't assign a drive letter or mount point
 DOKAN_MOUNT_ERROR = -5
+#  Mount point is invalid
+DOKAN_MOUNT_POINT_ERROR = -6
+#  Requested an incompatible version
+DOKAN_VERSION_ERROR = -7
 
 # Misc windows constants
 FILE_LIST_DIRECTORY = 0x01
@@ -123,38 +154,48 @@ FILE_ATTRIBUTE_READONLY = 1
 FILE_ATTRIBUTE_SYSTEM = 4
 FILE_ATTRIBUTE_TEMPORARY = 4
 
-CREATE_NEW = 1
-CREATE_ALWAYS = 2
-OPEN_EXISTING = 3
-OPEN_ALWAYS = 4
-TRUNCATE_EXISTING = 5
+FILE_CREATE = 2
+FILE_OPEN = 1
+FILE_OPEN_IF = 3
+FILE_OVERWRITE = 4
+FILE_SUPERSEDE = 0
+FILE_OVERWRITE_IF = 5
 
 FILE_GENERIC_READ = 1179785
 FILE_GENERIC_WRITE = 1179926
 
+FILE_DELETE_ON_CLOSE = 0x00001000
+
 REQ_GENERIC_READ = 0x80 | 0x08 | 0x01
 REQ_GENERIC_WRITE = 0x004 | 0x0100 | 0x002 | 0x0010
 
-ERROR_ACCESS_DENIED = 5
-ERROR_LOCK_VIOLATION = 33
-ERROR_NOT_SUPPORTED = 50
-ERROR_FILE_EXISTS = 80
-ERROR_DIR_NOT_EMPTY = 145
-ERROR_NOT_LOCKED = 158
-ERROR_LOCK_FAILED = 167
-ERROR_ALREADY_EXISTS = 183
-ERROR_LOCKED = 212
-ERROR_INVALID_LOCK_RANGE = 306
+STATUS_SUCCESS = 0x0
+STATUS_ACCESS_DENIED = 0xC0000022
+STATUS_LOCK_NOT_GRANTED = 0xC0000055
+STATUS_NOT_SUPPORTED = 0xC00000BB
+STATUS_OBJECT_NAME_COLLISION = 0xC0000035
+STATUS_DIRECTORY_NOT_EMPTY = 0xC0000101
+STATUS_NOT_LOCKED = 0xC000002A
+STATUS_OBJECT_NAME_NOT_FOUND = 0xC0000034
+STATUS_NOT_IMPLEMENTED = 0xC0000002
+STATUS_OBJECT_PATH_NOT_FOUND = 0xC000003A
+STATUS_BUFFER_OVERFLOW = 0x80000005
 
+ERROR_ALREADY_EXISTS = 183
+
+FILE_CASE_SENSITIVE_SEARCH = 0x00000001
+FILE_CASE_PRESERVED_NAMES = 0x00000002
+FILE_SUPPORTS_REMOTE_STORAGE = 0x00000100
+FILE_UNICODE_ON_DISK = 0x00000004
+FILE_PERSISTENT_ACLS = 0x00000008
 
 #  Some useful per-process global information
 NATIVE_ENCODING = sys.getfilesystemencoding()
 
-DATETIME_ZERO = datetime.datetime(1,1,1,0,0,0)
+DATETIME_ZERO = datetime.datetime(1, 1, 1, 0, 0, 0)
 DATETIME_STARTUP = datetime.datetime.utcnow()
 
 FILETIME_UNIX_EPOCH = 116444736000000000
-
 
 
 def handle_fs_errors(func):
@@ -165,18 +206,18 @@ def handle_fs_errors(func):
     makes the function return zero instead of None as an indication of
     successful execution.
     """
-    name = func.__name__
     func = convert_fs_errors(func)
+
     @wraps(func)
-    def wrapper(*args,**kwds):
+    def wrapper(*args, **kwds):
         try:
-            res = func(*args,**kwds)
-        except OSError, e:
+            res = func(*args, **kwds)
+        except OSError as e:
             if e.errno:
-                res = -1 * _errno2syserrcode(e.errno)
+                res = _errno2syserrcode(e.errno)
             else:
-                res = -1
-        except Exception, e:
+                res = STATUS_ACCESS_DENIED;
+        except Exception as e:
             raise
         else:
             if res is None:
@@ -202,6 +243,7 @@ _TIMEOUT_PROTECT_QUEUE = deque()
 _TIMEOUT_PROTECT_WAIT_TIME = 4 * 60
 _TIMEOUT_PROTECT_RESET_TIME = 5 * 60 * 1000
 
+
 def _start_timeout_protect_thread():
     """Start the background thread used to protect dokan from timeouts.
 
@@ -217,24 +259,25 @@ def _start_timeout_protect_thread():
             _TIMEOUT_PROTECT_THREAD.daemon = True
             _TIMEOUT_PROTECT_THREAD.start()
 
+
 def _run_timeout_protect_thread():
     while True:
         with _TIMEOUT_PROTECT_COND:
             try:
-                (when,info,finished) = _TIMEOUT_PROTECT_QUEUE.popleft()
+                (when, info, finished) = _TIMEOUT_PROTECT_QUEUE.popleft()
             except IndexError:
                 _TIMEOUT_PROTECT_COND.wait()
                 continue
         if finished:
             continue
         now = time.time()
-        wait_time = max(0,_TIMEOUT_PROTECT_WAIT_TIME - now + when)
+        wait_time = max(0, _TIMEOUT_PROTECT_WAIT_TIME - now + when)
         time.sleep(wait_time)
         with _TIMEOUT_PROTECT_LOCK:
             if finished:
                 continue
-            libdokan.DokanResetTimeout(_TIMEOUT_PROTECT_RESET_TIME,info)
-            _TIMEOUT_PROTECT_QUEUE.append((now+wait_time,info,finished))
+            libdokan.DokanResetTimeout(_TIMEOUT_PROTECT_RESET_TIME, info)
+            _TIMEOUT_PROTECT_QUEUE.append((now + wait_time, info, finished))
 
 
 def timeout_protect(func):
@@ -244,16 +287,16 @@ def timeout_protect(func):
     the function, and marks it as finished when the function exits.
     """
     @wraps(func)
-    def wrapper(self,*args):
+    def wrapper(self, *args):
         if _TIMEOUT_PROTECT_THREAD is None:
             _start_timeout_protect_thread()
         info = args[-1]
         finished = []
         try:
             with _TIMEOUT_PROTECT_COND:
-                _TIMEOUT_PROTECT_QUEUE.append((time.time(),info,finished))
+                _TIMEOUT_PROTECT_QUEUE.append((time.time(), info, finished))
                 _TIMEOUT_PROTECT_COND.notify()
-            return func(self,*args)
+            return func(self, *args)
         finally:
             with _TIMEOUT_PROTECT_LOCK:
                 finished.append(True)
@@ -262,16 +305,18 @@ def timeout_protect(func):
 
 MIN_FH = 100
 
+
 class FSOperations(object):
     """Object delegating all DOKAN_OPERATIONS pointers to an FS object."""
 
-    def __init__(self, fs, fsname="Dokan FS", volname="Dokan Volume"):
+    def __init__(self, fs, fsname="NTFS", volname="Dokan Volume", securityfolder=os.path.expanduser('~')):
         if libdokan is None:
-            msg = "dokan library (http://dokan-dev.net/en/) is not available"
+            msg = 'dokan library (http://dokan-dev.github.io/) is not available'
             raise OSError(msg)
         self.fs = fs
         self.fsname = fsname
         self.volname = volname
+        self.securityfolder = securityfolder
         self._files_by_handle = {}
         self._files_lock = threading.Lock()
         self._next_handle = MIN_FH
@@ -291,8 +336,8 @@ class FSOperations(object):
     def get_ops_struct(self):
         """Get a DOKAN_OPERATIONS struct mapping to our methods."""
         struct = libdokan.DOKAN_OPERATIONS()
-        for (nm,typ) in libdokan.DOKAN_OPERATIONS._fields_:
-            setattr(struct,nm,typ(getattr(self,nm)))
+        for (nm, typ) in libdokan.DOKAN_OPERATIONS._fields_:
+            setattr(struct, nm, typ(getattr(self, nm)))
         return struct
 
     def _get_file(self, fh):
@@ -309,7 +354,7 @@ class FSOperations(object):
             fh = self._next_handle
             self._next_handle += 1
             lock = threading.Lock()
-            self._files_by_handle[fh] = (f,path,lock)
+            self._files_by_handle[fh] = (f, path, lock)
             if path not in self._files_size_written:
                 self._files_size_written[path] = {}
             self._files_size_written[path][fh] = 0
@@ -359,7 +404,7 @@ class FSOperations(object):
 
         This method implements basic lock checking.  It checks all the locks
         held against the given file, and if any overlap the given byte range
-        then it returns -ERROR_LOCKED.  If the range is not locked, it will
+        then it returns STATUS_LOCK_NOT_GRANTED.  If the range is not locked, it will
         return zero.
         """
         if locks is None:
@@ -367,7 +412,7 @@ class FSOperations(object):
                 try:
                     locks = self._active_locks[path]
                 except KeyError:
-                    return 0
+                    return STATUS_SUCCESS
         for (lh, lstart, lend) in locks:
             if info is not None and info.contents.Context == lh:
                 continue
@@ -375,95 +420,89 @@ class FSOperations(object):
                 continue
             if lend <= offset:
                 continue
-            return -ERROR_LOCKED
-        return 0
+            return STATUS_LOCK_NOT_GRANTED
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
-    def CreateFile(self, path, access, sharing, disposition, flags, info):
-        path = normpath(path)
+    def ZwCreateFile(self, path, securitycontext, access, attribute, sharing, disposition, options, info):
+        path = self._dokanpath2pyfs(path)
         #  Can't open files that are pending delete.
         if self._is_pending_delete(path):
-            return -ERROR_ACCESS_DENIED
-        # If no access rights are requestsed, only basic metadata is queried.
-        if not access:
-            if self.fs.isdir(path):
-                info.contents.IsDirectory = True
-            elif not self.fs.exists(path):
-                raise ResourceNotFoundError(path)
-            return
-        #  This is where we'd convert the access mask into an appropriate
-        #  mode string.  Unfortunately, I can't seem to work out all the
-        #  details.  I swear MS Word is trying to write to files that it
-        #  opens without asking for write permission.
-        #  For now, just set the mode based on disposition flag.
-        retcode = 0
-        if disposition == CREATE_ALWAYS:
-            if self.fs.exists(path):
-                retcode = ERROR_ALREADY_EXISTS
-            mode = "w+b"
-        elif disposition == OPEN_ALWAYS:
-            if not self.fs.exists(path):
+            return STATUS_ACCESS_DENIED
+
+        retcode = STATUS_SUCCESS
+        if self.fs.isdir(path) or info.contents.IsDirectory:
+            info.contents.IsDirectory = True
+            exist = self.fs.exists(path)
+            if disposition == FILE_CREATE:
+                if self.fs.exists(path):
+                    retcode = STATUS_OBJECT_NAME_COLLISION
+                self.fs.makedir(path)
+            elif disposition == FILE_OPEN_IF:
+                if not self.fs.exists(path):
+                    retcode = STATUS_OBJECT_PATH_NOT_FOUND
+        else:
+            # If no access rights are requestsed, only basic metadata is queried.
+            if not access:
+                if self.fs.isdir(path):
+                    info.contents.IsDirectory = True
+                elif not self.fs.exists(path):
+                    return STATUS_OBJECT_NAME_NOT_FOUND
+                return STATUS_SUCCESS
+            #  This is where we'd convert the access mask into an appropriate
+            #  mode string.  Unfortunately, I can't seem to work out all the
+            #  details.  I swear MS Word is trying to write to files that it
+            #  opens without asking for write permission.
+            #  For now, just set the mode based on disposition flag.
+            if disposition == FILE_OVERWRITE_IF or disposition == FILE_SUPERSEDE:
+                if self.fs.exists(path):
+                    retcode = STATUS_OBJECT_NAME_COLLISION
+                mode = "w+b"
+            elif disposition == FILE_OPEN_IF:
+                if not self.fs.exists(path):
+                    mode = "w+b"
+                else:
+                    mode = "r+b"
+            elif disposition == FILE_OPEN:
+                if not self.fs.exists(path):
+                    return STATUS_OBJECT_NAME_NOT_FOUND
+                mode = "r+b"
+            elif disposition == FILE_OVERWRITE:
+                if not self.fs.exists(path):
+                    return STATUS_OBJECT_NAME_NOT_FOUND
+                mode = "w+b"
+            elif disposition == FILE_CREATE:
+                if self.fs.exists(path):
+                    return STATUS_OBJECT_NAME_COLLISION
                 mode = "w+b"
             else:
-                retcode = ERROR_ALREADY_EXISTS
                 mode = "r+b"
-        elif disposition == OPEN_EXISTING:
-            mode = "r+b"
-        elif disposition == TRUNCATE_EXISTING:
-            if not self.fs.exists(path):
-                raise ResourceNotFoundError(path)
-            mode = "w+b"
-        elif disposition == CREATE_NEW:
-            if self.fs.exists(path):
-                return -ERROR_ALREADY_EXISTS
-            mode = "w+b"
-        else:
-            mode = "r+b"
-        #  Try to open the requested file.  It may actually be a directory.
-        info.contents.Context = 1
-        try:
-            f = self.fs.open(path, mode)
-            print path, mode, repr(f)
-        except ResourceInvalidError:
-            info.contents.IsDirectory = True
-        except FSError:
-            #  Sadly, win32 OSFS will raise all kinds of strange errors
-            #  if you try to open() a directory.  Need to check by hand.
-            if self.fs.isdir(path):
+            #  Try to open the requested file.  It may actually be a directory.
+            info.contents.Context = 1
+            try:
+                f = self.fs.open(path, mode)
+                #  print(path, mode, repr(f))
+            except ResourceInvalidError:
                 info.contents.IsDirectory = True
+            except FSError as e:
+                #  Sadly, win32 OSFS will raise all kinds of strange errors
+                #  if you try to open() a directory.  Need to check by hand.
+                if self.fs.isdir(path):
+                    info.contents.IsDirectory = True
+                else:
+                    # print(e)
+                    raise
             else:
-                raise
-        else:
-            info.contents.Context = self._reg_file(f, path)
+                info.contents.Context = self._reg_file(f, path)
+            if retcode == STATUS_SUCCESS and (options & FILE_DELETE_ON_CLOSE):
+                self._pending_delete.add(path)
         return retcode
 
     @timeout_protect
     @handle_fs_errors
-    def OpenDirectory(self, path, info):
-        path = normpath(path)
-        if self._is_pending_delete(path):
-            raise ResourceNotFoundError(path)
-        if not self.fs.isdir(path):
-            if not self.fs.exists(path):
-                raise ResourceNotFoundError(path)
-            else:
-                raise ResourceInvalidError(path)
-        info.contents.IsDirectory = True
-
-    @timeout_protect
-    @handle_fs_errors
-    def CreateDirectory(self, path, info):
-        path = normpath(path)
-        if self._is_pending_delete(path):
-            return -ERROR_ACCESS_DENIED
-        self.fs.makedir(path)
-        info.contents.IsDirectory = True
-
-    @timeout_protect
-    @handle_fs_errors
     def Cleanup(self, path, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         if info.contents.IsDirectory:
             if info.contents.DeleteOnClose:
                 self.fs.removedir(path)
@@ -497,13 +536,13 @@ class FSOperations(object):
     @timeout_protect
     @handle_fs_errors
     def ReadFile(self, path, buffer, nBytesToRead, nBytesRead, offset, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
-            errno = self._check_lock(path, offset, nBytesToRead, info)
-            if errno:
-                return errno
+            status = self._check_lock(path, offset, nBytesToRead, info)
+            if status:
+                return status
             #  This may be called after Cleanup, meaning we
             #  need to re-open the file.
             if file.closed:
@@ -515,18 +554,19 @@ class FSOperations(object):
             nBytesRead[0] = len(data)
         finally:
             lock.release()
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def WriteFile(self, path, buffer, nBytesToWrite, nBytesWritten, offset, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         fh = info.contents.Context
         (file, _, lock) = self._get_file(fh)
         lock.acquire()
         try:
-            errno = self._check_lock(path, offset, nBytesToWrite, info)
-            if errno:
-                return errno
+            status = self._check_lock(path, offset, nBytesToWrite, info)
+            if status:
+                return status
             #  This may be called after Cleanup, meaning we
             #  need to re-open the file.
             if file.closed:
@@ -550,22 +590,24 @@ class FSOperations(object):
                     self._files_size_written[path][fh] = new_size_written
         finally:
             lock.release()
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def FlushFileBuffers(self, path, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
             file.flush()
         finally:
             lock.release()
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def GetFileInformation(self, path, buffer, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         finfo = self.fs.getinfo(path)
         data = buffer.contents
         self._info2finddataw(path, finfo, data, info)
@@ -579,22 +621,24 @@ class FSOperations(object):
                 data.nFileSizeHigh = written_size >> 32
                 data.nFileSizeLow = written_size & 0xffffffff
         data.nNumberOfLinks = 1
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def FindFiles(self, path, fillFindData, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         for (nm, finfo) in self.fs.listdirinfo(path):
             fpath = pathjoin(path, nm)
             if self._is_pending_delete(fpath):
                 continue
             data = self._info2finddataw(fpath, finfo)
             fillFindData(ctypes.byref(data), info)
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def FindFilesWithPattern(self, path, pattern, fillFindData, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         for (nm, finfo) in self.fs.listdirinfo(path):
             fpath = pathjoin(path, nm)
             if self._is_pending_delete(fpath):
@@ -603,17 +647,19 @@ class FSOperations(object):
                 continue
             data = self._info2finddataw(fpath, finfo, None)
             fillFindData(ctypes.byref(data), info)
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def SetFileAttributes(self, path, attrs, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         # TODO: decode various file attributes
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def SetFileTime(self, path, ctime, atime, mtime, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         # setting ctime is not supported
         if atime is not None:
             try:
@@ -630,28 +676,31 @@ class FSOperations(object):
             self.fs.settimes(path, atime, mtime)
         except UnsupportedError:
             pass
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def DeleteFile(self, path, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         if not self.fs.isfile(path):
             if not self.fs.exists(path):
-                raise ResourceNotFoundError(path)
+                return STATUS_ACCESS_DENIED
             else:
-                raise ResourceInvalidError(path)
+                return STATUS_OBJECT_NAME_NOT_FOUND
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def DeleteDirectory(self, path, info):
-        path = normpath(path)
+        path = self._dokanpath2pyfs(path)
         for nm in self.fs.listdir(path):
             if not self._is_pending_delete(pathjoin(path, nm)):
-                raise DirectoryNotEmptyError(path)
+                return STATUS_DIRECTORY_NOT_EMPTY
         self._pending_delete.add(path)
         # the actual delete takes place in self.CloseFile()
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
@@ -665,17 +714,18 @@ class FSOperations(object):
                 self._del_file(info.contents.Context)
             finally:
                 lock.release()
-        src = normpath(src)
-        dst = normpath(dst)
+        src = self._dokanpath2pyfs(src)
+        dst = self._dokanpath2pyfs(dst)
         if info.contents.IsDirectory:
             self.fs.movedir(src, dst, overwrite=overwrite)
         else:
             self.fs.move(src, dst, overwrite=overwrite)
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def SetEndOfFile(self, path, length, info):
-        path = normpath(path)
+        self._dokanpath2pyfs(path)
         (file, _, lock) = self._get_file(info.contents.Context)
         lock.acquire()
         try:
@@ -687,20 +737,22 @@ class FSOperations(object):
                 file.seek(min(pos, length))
         finally:
             lock.release()
+        return STATUS_SUCCESS
 
     @handle_fs_errors
-    def GetDiskFreeSpaceEx(self, nBytesAvail, nBytesTotal, nBytesFree, info):
+    def GetDiskFreeSpace(self, nBytesAvail, nBytesTotal, nBytesFree, info):
         #  This returns a stupidly large number if not info is available.
         #  It's better to pretend an operation is possible and have it fail
         #  than to pretend an operation will fail when it's actually possible.
-        large_amount = 100 * 1024*1024*1024
+        large_amount = 100 * 1024 * 1024 * 1024
         nBytesFree[0] = self.fs.getmeta("free_space", large_amount)
         nBytesTotal[0] = self.fs.getmeta("total_space", 2 * large_amount)
         nBytesAvail[0] = nBytesFree[0]
+        return STATUS_SUCCESS
 
     @handle_fs_errors
     def GetVolumeInformation(self, vnmBuf, vnmSz, sNum, maxLen, flags, fnmBuf, fnmSz, info):
-        nm = ctypes.create_unicode_buffer(self.volname[:vnmSz-1])
+        nm = ctypes.create_unicode_buffer(self.volname[:vnmSz - 1])
         sz = (len(nm.value) + 1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(vnmBuf, nm, sz)
         if sNum:
@@ -708,10 +760,11 @@ class FSOperations(object):
         if maxLen:
             maxLen[0] = 255
         if flags:
-            flags[0] = 0
-        nm = ctypes.create_unicode_buffer(self.fsname[:fnmSz-1])
+            flags[0] = FILE_CASE_SENSITIVE_SEARCH | FILE_CASE_PRESERVED_NAMES | FILE_SUPPORTS_REMOTE_STORAGE | FILE_UNICODE_ON_DISK | FILE_PERSISTENT_ACLS;
+        nm = ctypes.create_unicode_buffer(self.fsname[:fnmSz - 1])
         sz = (len(nm.value) + 1) * ctypes.sizeof(ctypes.c_wchar)
         ctypes.memmove(fnmBuf, nm, sz)
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
@@ -719,7 +772,7 @@ class FSOperations(object):
         #  I think this is supposed to reserve space for the file
         #  but *not* actually move the end-of-file marker.
         #  No way to do that in pyfs.
-        return 0
+        return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
@@ -731,21 +784,20 @@ class FSOperations(object):
             except KeyError:
                 locks = self._active_locks[path] = []
             else:
-                errno = self._check_lock(path, offset, length, None, locks)
-                if errno:
-                    return errno
+                status = self._check_lock(path, offset, length, None, locks)
+                if status:
+                    return status
             locks.append((info.contents.Context, offset, end))
-            return 0
+            return STATUS_SUCCESS
 
     @timeout_protect
     @handle_fs_errors
     def UnlockFile(self, path, offset, length, info):
-        end = offset + length
         with self._files_lock:
             try:
                 locks = self._active_locks[path]
             except KeyError:
-                return -ERROR_NOT_LOCKED
+                return STATUS_NOT_LOCKED
             todel = []
             for i, (lh, lstart, lend) in enumerate(locks):
                 if info.contents.Context == lh:
@@ -753,14 +805,45 @@ class FSOperations(object):
                         if lend == offset + length:
                             todel.append(i)
             if not todel:
-                return -ERROR_NOT_LOCKED
+                return STATUS_NOT_LOCKED
             for i in reversed(todel):
                 del locks[i]
-            return 0
+            return STATUS_SUCCESS
 
     @handle_fs_errors
-    def Unmount(self, info):
-        pass
+    def GetFileSecurity(self, path, securityinformation, securitydescriptor, securitydescriptorlength, neededlength, info):
+        securitydescriptor = ctypes.cast(securitydescriptor, libdokan.PSECURITY_DESCRIPTOR)
+        path = self._dokanpath2pyfs(path)
+        if self.fs.isdir(path):
+            res = libdokan.GetFileSecurity(
+                self.securityfolder,
+                ctypes.cast(securityinformation, libdokan.PSECURITY_INFORMATION)[0],
+                securitydescriptor,
+                securitydescriptorlength,
+                neededlength,
+            )
+            return STATUS_SUCCESS if res else STATUS_BUFFER_OVERFLOW
+        return STATUS_NOT_IMPLEMENTED
+
+    @handle_fs_errors
+    def SetFileSecurity(self, path, securityinformation, securitydescriptor, securitydescriptorlength, info):
+        return STATUS_NOT_IMPLEMENTED
+
+    @handle_fs_errors
+    def Mounted(self, info):
+        return STATUS_SUCCESS
+
+    @handle_fs_errors
+    def Unmounted(self, info):
+        return STATUS_SUCCESS
+
+    @handle_fs_errors
+    def FindStreams(self, path, callback, info):
+        return STATUS_NOT_IMPLEMENTED
+
+    def _dokanpath2pyfs(self, path):
+        path = path.replace('\\', '/')
+        return normpath(path)
 
     def _info2attrmask(self, path, info, hinfo=None):
         """Convert a file/directory info dict to a win32 file attribute mask."""
@@ -783,16 +866,16 @@ class FSOperations(object):
                 attrs |= FILE_ATTRIBUTE_NORMAL
         return attrs
 
-    def _info2finddataw(self,path,info,data=None,hinfo=None):
+    def _info2finddataw(self, path, info, data=None, hinfo=None):
         """Convert a file/directory info dict into a WIN32_FIND_DATAW struct."""
         if data is None:
             data = libdokan.WIN32_FIND_DATAW()
-        data.dwFileAttributes = self._info2attrmask(path,info,hinfo)
-        data.ftCreationTime = _datetime2filetime(info.get("created_time",None))
-        data.ftLastAccessTime = _datetime2filetime(info.get("accessed_time",None))
-        data.ftLastWriteTime = _datetime2filetime(info.get("modified_time",None))
-        data.nFileSizeHigh = info.get("size",0) >> 32
-        data.nFileSizeLow = info.get("size",0) & 0xffffffff
+        data.dwFileAttributes = self._info2attrmask(path, info, hinfo)
+        data.ftCreationTime = _datetime2filetime(info.get("created_time", None))
+        data.ftLastAccessTime = _datetime2filetime(info.get("accessed_time", None))
+        data.ftLastWriteTime = _datetime2filetime(info.get("modified_time", None))
+        data.nFileSizeHigh = info.get("size", 0) >> 32
+        data.nFileSizeLow = info.get("size", 0) & 0xffffffff
         data.cFileName = basename(path)
         data.cAlternateFileName = ""
         return data
@@ -804,19 +887,21 @@ def _datetime2timestamp(dtime):
     t += dtime.microsecond / 1000000.0
     return t
 
-DATETIME_LOCAL_TO_UTC = _datetime2timestamp(datetime.datetime.utcnow()) - _datetime2timestamp(datetime.datetime.now())
 
 def _timestamp2datetime(tstamp):
     """Convert a unix timestamp to a datetime object."""
     return datetime.datetime.fromtimestamp(tstamp)
 
+
 def _timestamp2filetime(tstamp):
     f = FILETIME_UNIX_EPOCH + int(tstamp * 10000000)
-    return libdokan.FILETIME(f & 0xffffffff,f >> 32)
+    return libdokan.FILETIME(f & 0xffffffff, f >> 32)
+
 
 def _filetime2timestamp(ftime):
     f = ftime.dwLowDateTime | (ftime.dwHighDateTime << 32)
     return (f - FILETIME_UNIX_EPOCH) / 10000000.0
+
 
 def _filetime2datetime(ftime):
     """Convert a FILETIME struct info datetime.datetime object."""
@@ -826,43 +911,37 @@ def _filetime2datetime(ftime):
         return DATETIME_ZERO
     return _timestamp2datetime(_filetime2timestamp(ftime))
 
+
 def _datetime2filetime(dtime):
     """Convert a FILETIME struct info datetime.datetime object."""
     if dtime is None:
-        return libdokan.FILETIME(0,0)
+        return libdokan.FILETIME(0, 0)
     if dtime == DATETIME_ZERO:
-        return libdokan.FILETIME(0,0)
+        return libdokan.FILETIME(0, 0)
     return _timestamp2filetime(_datetime2timestamp(dtime))
 
 
 def _errno2syserrcode(eno):
     """Convert an errno into a win32 system error code."""
     if eno == errno.EEXIST:
-        return ERROR_FILE_EXISTS
+        return STATUS_OBJECT_NAME_COLLISION
     if eno == errno.ENOTEMPTY:
-        return ERROR_DIR_NOT_EMPTY
+        return STATUS_DIRECTORY_NOT_EMPTY
     if eno == errno.ENOSYS:
-        return ERROR_NOT_SUPPORTED
+        return STATUS_NOT_SUPPORTED
     if eno == errno.EACCES:
-        return ERROR_ACCESS_DENIED
+        return STATUS_ACCESS_DENIED
     return eno
 
 
-def _normalise_drive_string(drive):
-    """Normalise drive string to a single letter."""
-    if not drive:
-        raise ValueError("invalid drive letter: %r" % (drive,))
-    if len(drive) > 3:
-        raise ValueError("invalid drive letter: %r" % (drive,))
-    if not drive[0].isalpha():
-        raise ValueError("invalid drive letter: %r" % (drive,))
-    if not ":\\".startswith(drive[1:]):
-        raise ValueError("invalid drive letter: %r" % (drive,))
-    return drive[0].upper()
+def _check_path_string(path):  # TODO Probably os.path has a better check for this...
+    """Check path string."""
+    if not path or not path[0].isalpha() or not path[1:3] == ':\\':
+        raise ValueError("invalid path: %r" % (path,))
 
 
-def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
-    """Mount the given FS at the given drive letter, using Dokan.
+def mount(fs, path, foreground=False, ready_callback=None, unmount_callback=None, **kwds):
+    """Mount the given FS at the given path, using Dokan.
 
     By default, this function spawns a new background process to manage the
     Dokan event loop.  The return value in this case is an instance of the
@@ -880,26 +959,29 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         * numthreads:  number of threads to use for handling Dokan requests
         * fsname:  name to display in explorer etc
         * flags:   DOKAN_OPTIONS bitmask
+        * securityfolder:  folder path used to duplicate security rights on all folders 
         * FSOperationsClass:  custom FSOperations subclass to use
 
     """
     if libdokan is None:
         raise OSError("the dokan library is not available")
-    drive = _normalise_drive_string(drive)
+    _check_path_string(path)
     #  This function captures the logic of checking whether the Dokan mount
     #  is up and running.  Unfortunately I can't find a way to get this
-    #  via a callback in the Dokan API.  Instead we just check for the drive
+    #  via a callback in the Dokan API.  Instead we just check for the path
     #  in a loop, polling the mount proc to make sure it hasn't died.
+
     def check_alive(mp):
-        if mp and mp.poll() != None:
+        if mp and mp.poll() is not None:
             raise OSError("dokan mount process exited prematurely")
+
     def check_ready(mp=None):
         if ready_callback is not False:
             check_alive(mp)
-            for _ in xrange(100):
+            for _ in range(100):
                 try:
-                    os.stat(drive+":\\")
-                except EnvironmentError, e:
+                    os.stat(path)
+                except EnvironmentError:
                     check_alive(mp)
                     time.sleep(0.05)
                 else:
@@ -914,17 +996,17 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
     #  Running the the foreground is the final endpoint for the mount
     #  operation, it's where we call DokanMain().
     if foreground:
-        numthreads = kwds.pop("numthreads",0)
-        flags = kwds.pop("flags",0)
-        FSOperationsClass = kwds.pop("FSOperationsClass",FSOperations)
-        opts = libdokan.DOKAN_OPTIONS(drive[:1], numthreads, flags)
+        numthreads = kwds.pop("numthreads", 0)
+        flags = kwds.pop("flags", 0)
+        FSOperationsClass = kwds.pop("FSOperationsClass", FSOperations)
+        opts = libdokan.DOKAN_OPTIONS(libdokan.DOKAN_MINIMUM_COMPATIBLE_VERSION, numthreads, flags, 0, path, "", 2000, 512, 512)
         ops = FSOperationsClass(fs, **kwds)
         if ready_callback:
             check_thread = threading.Thread(target=check_ready)
             check_thread.daemon = True
             check_thread.start()
         opstruct = ops.get_ops_struct()
-        res = libdokan.DokanMain(ctypes.byref(opts),ctypes.byref(opstruct))
+        res = libdokan.DokanMain(ctypes.byref(opts), ctypes.byref(opstruct))
         if res != DOKAN_SUCCESS:
             raise OSError("Dokan failed with error: %d" % (res,))
         if unmount_callback:
@@ -932,10 +1014,11 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
     #  Running the background, spawn a subprocess and wait for it
     #  to be ready before returning.
     else:
-        mp = MountProcess(fs, drive, kwds)
+        mp = MountProcess(fs, path, kwds)
         check_ready(mp)
         if unmount_callback:
             orig_unmount = mp.unmount
+
             def new_unmount():
                 orig_unmount()
                 unmount_callback()
@@ -943,16 +1026,16 @@ def mount(fs, drive, foreground=False, ready_callback=None, unmount_callback=Non
         return mp
 
 
-def unmount(drive):
-    """Unmount the given drive.
+def unmount(path):
+    """Unmount the given path.
 
-    This function unmounts the dokan drive mounted at the given drive letter.
+    This function unmounts the dokan path mounted at the given path.
     It works but may leave dangling processes; its better to use the "unmount"
     method on the MountProcess class if you have one.
     """
-    drive = _normalise_drive_string(drive)
-    if not libdokan.DokanUnmount(drive):
-        raise OSError("filesystem could not be unmounted: %s" % (drive,))
+    _check_path_string(path)
+    if not libdokan.DokanRemoveMountPoint(path):
+        raise OSError("filesystem could not be unmounted: %s" % (path,))
 
 
 class MountProcess(subprocess.Popen):
@@ -960,14 +1043,14 @@ class MountProcess(subprocess.Popen):
 
     This is a subclass of subprocess.Popen, designed for easy management of
     a Dokan mount in a background process.  Rather than specifying the command
-    to execute, pass in the FS object to be mounted, the target drive letter
+    to execute, pass in the FS object to be mounted, the target path
     and a dictionary of options for the Dokan process.
 
     In order to be passed successfully to the new process, the FS object
     must be pickleable. Since win32 has no fork() this restriction is not
     likely to be lifted (see also the "multiprocessing" module)
 
-    This class has an extra attribute 'drive' giving the drive of the mounted
+    This class has an extra attribute 'path' giving the path of the mounted
     filesystem, and an extra method 'unmount' that will cleanly unmount it
     and terminate the process.
     """
@@ -980,47 +1063,48 @@ class MountProcess(subprocess.Popen):
 
     unmount_timeout = 5
 
-    def __init__(self, fs, drive, dokan_opts={}, nowait=False, **kwds):
+    def __init__(self, fs, path, dokan_opts={}, nowait=False, **kwds):
         if libdokan is None:
             raise OSError("the dokan library is not available")
-        self.drive = _normalise_drive_string(drive)
-        self.path = self.drive + ":\\"
-        cmd = "import cPickle; "
-        cmd = cmd + "data = cPickle.loads(%s); "
+        _check_path_string(path)
+        self.path = path
+        cmd = "try: import cPickle as pickle;\n"
+        cmd = cmd + "except ImportError: import pickle;\n"
+        cmd = cmd + "data = pickle.loads(%s); "
         cmd = cmd + "from fs.expose.dokan import MountProcess; "
         cmd = cmd + "MountProcess._do_mount(data)"
-        cmd = cmd % (repr(cPickle.dumps((fs,drive,dokan_opts,nowait),-1)),)
-        cmd = [sys.executable,"-c",cmd]
-        super(MountProcess,self).__init__(cmd,**kwds)
+        cmd = cmd % (repr(pickle.dumps((fs, path, dokan_opts, nowait), -1)),)
+        cmd = [sys.executable, "-c", cmd]
+        super(MountProcess, self).__init__(cmd, **kwds)
 
     def unmount(self):
         """Cleanly unmount the Dokan filesystem, terminating this subprocess."""
-        if not libdokan.DokanUnmount(self.drive):
-            raise OSError("the filesystem could not be unmounted: %s" %(self.drive,))
+        if not libdokan.DokanRemoveMountPoint(self.path):
+            raise OSError("the filesystem could not be unmounted: %s" %(self.path,))
         self.terminate()
 
     if not hasattr(subprocess.Popen, "terminate"):
         def terminate(self):
             """Gracefully terminate the subprocess."""
-            kernel32.TerminateProcess(int(self._handle),-1)
+            kernel32.TerminateProcess(int(self._handle), -1)
 
     if not hasattr(subprocess.Popen, "kill"):
         def kill(self):
             """Forcibly terminate the subprocess."""
-            kernel32.TerminateProcess(int(self._handle),-1)
+            kernel32.TerminateProcess(int(self._handle), -1)
 
     @staticmethod
     def _do_mount(data):
         """Perform the specified mount."""
-        (fs,drive,opts,nowait) = data
+        (fs, path, opts, nowait) = data
         opts["foreground"] = True
+
         def unmount_callback():
             fs.close()
         opts["unmount_callback"] = unmount_callback
         if nowait:
             opts["ready_callback"] = False
-        mount(fs,drive,**opts)
-
+        mount(fs, path, **opts)
 
 
 class Win32SafetyFS(WrapFS):
@@ -1034,21 +1118,21 @@ class Win32SafetyFS(WrapFS):
 
     """
 
-    def __init__(self,wrapped_fs,allow_autorun=False):
+    def __init__(self, wrapped_fs, allow_autorun=False):
         self.allow_autorun = allow_autorun
-        super(Win32SafetyFS,self).__init__(wrapped_fs)
+        super(Win32SafetyFS, self).__init__(wrapped_fs)
 
-    def _encode(self,path):
+    def _encode(self, path):
         path = relpath(normpath(path))
-        path = path.replace(":","__colon__")
+        path = path.replace(":", "__colon__")
         if not self.allow_autorun:
             if path.lower().startswith("_autorun."):
                 path = path[1:]
         return path
 
-    def _decode(self,path):
+    def _decode(self, path):
         path = relpath(normpath(path))
-        path = path.replace("__colon__",":")
+        path = path.replace("__colon__", ":")
         if not self.allow_autorun:
             if path.lower().startswith("autorun."):
                 path = "_" + path
@@ -1056,7 +1140,7 @@ class Win32SafetyFS(WrapFS):
 
 
 if __name__ == "__main__":
-    import os, os.path
+    import os.path
     import tempfile
     from fs.osfs import OSFS
     from fs.memoryfs import MemoryFS
@@ -1066,11 +1150,9 @@ if __name__ == "__main__":
     try:
         fs = OSFS(path)
         #fs = MemoryFS()
-        fs.setcontents("test1.txt",b("test one"))
-        flags = DOKAN_OPTION_DEBUG|DOKAN_OPTION_STDERR|DOKAN_OPTION_REMOVABLE
-        mount(fs, "Q", foreground=True, numthreads=1, flags=flags)
+        fs.setcontents("test1.txt", b("test one"))
+        flags = DOKAN_OPTION_DEBUG | DOKAN_OPTION_STDERR | DOKAN_OPTION_REMOVABLE
+        mount(fs, "Q:\\", foreground=True, numthreads=1, flags=flags)
         fs.close()
     finally:
         rmtree(path)
-
-
