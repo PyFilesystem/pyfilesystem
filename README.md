@@ -1,6 +1,8 @@
 PyFilesystem
 ============
 
+**Note:** The project has largely been replaced by [PyFilesystem2](https://github.com/PyFilesystem/pyfilesystem2) which offers many improvements over the original.
+
 PyFilesystem is an abstraction layer for *filesystems*. In the same way that Python's file-like objects provide a common way of accessing files, PyFilesystem provides a common way of accessing entire filesystems. You can write platform-independent code to work with local files, that also works with any of the supported filesystems (zip, ftp, S3 etc.).
 
 Pyfilesystem works with Linux, Windows and Mac.
