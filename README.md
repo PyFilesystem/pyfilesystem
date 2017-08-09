@@ -54,7 +54,7 @@ You could change ``C:/projects`` to ``zip://source.zip`` to open the zip file, o
 Documentation
 -------------
 
-http://docs.pyfilesystem.org
+http://pyfilesystem.readthedocs.org
 
 Screencast
 ----------
