@@ -3,10 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. _PyFilesystem2: https://pyfilesystem2.readthedocs.io/en/latest/
+
 Welcome to PyFilesystem's documentation!
 ========================================
 
 PyFilesystem provides a simplified common interface to a variety of different filesystems, such as the local filesystem, zip files, ftp servers etc.
+
+**Note:** The project has largely been replaced by PyFilesystem2_ which offers many improvements over the original.
 
 Guide
 -----
