@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. _PyFilesystem2: https://pyfilesystem2.readthedocs.io/en/latest/
+.. _PyFilesystem2: https://docs.pyfilesystem.org/
 
 Welcome to PyFilesystem's documentation!
 ========================================
